@@ -1,0 +1,42 @@
+====================
+pymysql Installation
+====================
+
+.. contents::
+..
+   This package contains a pure python mysql client library.
+   Documentation on the MySQL client/server protocol can be found here:
+   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
+
+Changes
+--------
+0.2  -Changed connection parameter name 'password' to 'passwd'
+      to make it more plugin replaceable for the other mysql clients.
+     -Changed pack()/unpack() calls so it runs on 64 bit OSes too.
+     -Added support for unix_socket.
+     -Added support for no password.
+     -Renamed decorders to decoders.
+     -Better handling of non-existing decoder.
+
+
+Requirements
+-------------
+
++ Python 2.4 or higher
+
+ * http://www.python.org/
+ 
+ * 2.5 is the primary test environment.
+
+* MySQL 4.1 or higher
+    
+ * protocol41 support
+
+Installation
+------------
+
+# easy_install pymysql
+# ... or ...
+# python setup.py install
+
+
