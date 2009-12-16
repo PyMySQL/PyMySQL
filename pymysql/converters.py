@@ -241,6 +241,7 @@ decoders = {
         FIELD_TYPE.VAR_STRING: str,
         FIELD_TYPE.VARCHAR: str
         }
+conversions = decoders  # for MySQLdb compatibility
 
 try:
     # python version > 2.3

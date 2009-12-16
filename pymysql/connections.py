@@ -473,6 +473,7 @@ class Connection(object):
         
         i = server_end + 1
         self.server_thread_id = struct.unpack('h', data[i:i+2])
+        self.thread_id = self.server_thread_id  # MySQLdb compatibility
 
         i += 4
         self.salt = data[i:i+8]

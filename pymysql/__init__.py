@@ -1,9 +1,11 @@
 VERSION = (0, 2, None)
+__version__ = VERSION  # for MySQLdb compatibility
 
+from pymysql.constants import FIELD_TYPE
+from pymysql.converters import escape_dict, escape_sequence, escape_string
 from pymysql.exceptions import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError
-from pymysql.constants import FIELD_TYPE
 from pymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
@@ -51,6 +53,9 @@ def Binary(x):
 def Connect(*args, **kwargs):
     from connections import Connection
     return Connection(*args, **kwargs)
+
+def get_client_info():  # for MySQLdb compatibility
+  return '%s.%s.%s' % VERSION
 
 connect = Connection = Connect
 
