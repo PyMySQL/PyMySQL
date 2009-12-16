@@ -141,7 +141,7 @@ class Cursor(object):
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
-        conn._query(q)
+        conn.query(q)
         self._do_get_result()
         return self.rowcount
     
@@ -171,4 +171,3 @@ class Cursor(object):
     InternalError = InternalError
     ProgrammingError = ProgrammingError
     NotSupportedError = NotSupportedError
-
