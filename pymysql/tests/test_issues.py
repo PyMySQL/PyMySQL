@@ -35,6 +35,12 @@ class TestOldIssues(base.PyMySqlTestCase):
         finally:
             c.execute("drop table issue4")
 
+    def test_issue_5(self):
+        """ query on information_schema.tables fails """
+        con = self.connections[0]
+        cur = con.cursor()
+        cur.execute("select * from information_schema.tables")
+
     def test_issue_6(self):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
         conn = pymysql.connect(host="localhost",user="root",passwd="",db="mysql")
