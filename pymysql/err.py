@@ -108,22 +108,24 @@ del StandardError, _map_error, ER
 
     
 def _get_error_info(data):
-    errno = struct.unpack('h', data[5:7])[0]
-    sqlstate = struct.unpack('5s', data[8:8+5])[0]
-    start = 13
-    end = data.find('\0', start)
-    errorvalue = data[start:end]
-    return (errno, sqlstate, errorvalue)
+    errno = struct.unpack('<h', data[1:3])[0]
+    if data[3] == "#":
+        # version 4.1
+        sqlstate = data[4:9].decode("utf8")
+        errorvalue = data[9:].decode("utf8")
+        return (errno, sqlstate, errorvalue)
+    else:
+        # version 4.0
+        return (errno, None, data[3:].decode("utf8"))
 
 def _check_mysql_exception(errinfo):
     errno, sqlstate, errorvalue = errinfo 
     errorclass = error_map.get(errno, None)
     if errorclass:
-        raise errorclass, errorvalue
-    """
-    TODO not found errno
-    """
-    raise InternalError, ""
+        raise errorclass, (errno,errorvalue)
+
+    # couldn't find the right error number
+    raise InternalError, (errno, errorvalue)
 
 def raise_mysql_exception(data):
     errinfo = _get_error_info(data)

@@ -2,19 +2,28 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import re
-import sha
+
+try:
+    import hashlib
+    sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
+except ImportError:
+    import sha
+    sha_new = sha.new
+
 import socket
 import struct
 import sys
+import os
+import ConfigParser
 
 from pymysql.charset import MBLENGTH
-from pymysql.cursor import Cursor
+from pymysql.cursors import Cursor
 from pymysql.constants import FIELD_TYPE
 from pymysql.constants import SERVER_STATUS
-from pymysql.constants.CLIENT_FLAG import *
+from pymysql.constants.CLIENT import *
 from pymysql.constants.COMMAND import *
-from pymysql.converters import escape_item, encoders, decoders
-from pymysql.exceptions import raise_mysql_exception, Warning, Error, \
+from pymysql.converters import escape_item, encoders, decoders, field_decoders
+from pymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 
@@ -57,9 +66,9 @@ def _scramble(password, message):
     if password == None or len(password) == 0:
         return '\0'
     if DEBUG: print 'password=' + password
-    stage1 = sha.new(password).digest()
-    stage2 = sha.new(stage1).digest()
-    s = sha.new()
+    stage1 = sha_new(password).digest()
+    stage2 = sha_new(stage1).digest()
+    s = sha_new()
     s.update(message)
     s.update(stage2)
     result = s.digest()
@@ -105,7 +114,11 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
         connection.messages.append(err)
     del cursor
     del connection
-    raise errorclass, errorvalue
+
+    if not issubclass(errorclass, Error):
+        raise Error(errorclass, errorvalue)
+    else:
+        raise errorclass, errorvalue
 
 
 class MysqlPacket(object):
@@ -121,6 +134,9 @@ class MysqlPacket(object):
   def __recv_packet(self, socket):
     """Parse the packet header and read entire packet payload into buffer."""
     packet_header = socket.recv(4)
+    while len(packet_header) < 4:
+        packet_header += socket.recv(4 - len(packet_header))
+
     if DEBUG: dump_packet(packet_header)
     packet_length_bin = packet_header[:3]
     self.__packet_number = ord(packet_header[3])
@@ -303,7 +319,7 @@ class FieldDescriptorPacket(MysqlPacket):
   def get_column_length(self):
     if self.type_code == FIELD_TYPE.VAR_STRING:
       mblen = MBLENGTH.get(self.charsetnr, 1)
-      return self.length / mblen
+      return self.length // mblen
     return self.length
 
   def __str__(self):
@@ -316,54 +332,103 @@ class Connection(object):
     """Representation of a socket with a mysql server."""
     errorhandler = defaulterrorhandler
 
-    def __init__(self, *args, **kwargs):
-        self.host = kwargs['host']
-        self.port = kwargs.get('port', 3306)
-        self.user = kwargs['user']
-        self.password = kwargs['passwd']
-        self.db = kwargs.get('db', None)
-        self.unix_socket = kwargs.get('unix_socket', None)
-        self.charset = DEFAULT_CHARSET
-        
-        client_flag = CLIENT_CAPABILITIES
-        #client_flag = kwargs.get('client_flag', None)
-        client_flag |= CLIENT_MULTI_STATEMENTS
+    def __init__(self, host="localhost", user=None, passwd="",
+                 db=None, port=3306, unix_socket=None,
+                 charset=DEFAULT_CHARSET, sql_mode=None,
+                 read_default_file=None, conv=decoders, use_unicode=True,
+                 client_flag=0):
+
+        if read_default_file:
+            cfg = ConfigParser.RawConfigParser()
+            cfg.read(os.path.expanduser(read_default_file))
+
+            def _config(key, default):
+                try:
+                    return cfg.get("client",key)
+                except:
+                    return default
+            
+            user = _config("user",user)
+            passwd = _config("password",passwd)
+            host = _config("host", host)
+            db = _config("db",db)
+            unix_socket = _config("socket",unix_socket)
+            port = _config("port", port)
+            charset = _config("default-character-set", charset)
+                
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = passwd
+        self.db = db
+        self.unix_socket = unix_socket
+        self.use_unicode = use_unicode
+        self.charset = charset
+        client_flag |= CAPABILITIES
+        client_flag |= MULTI_STATEMENTS
         if self.db:
-            client_flag |= CLIENT_CONNECT_WITH_DB
+            client_flag |= CONNECT_WITH_DB
         self.client_flag = client_flag
         
         self._connect()
         
-        charset = kwargs.get('charset', None)
-        self.set_chatset_set(charset)
+        self.set_charset_set(charset)
         self.messages = []
         self.encoders = encoders
-        self.decoders = decoders
+        self.decoders = conv
+        self.field_decoders = field_decoders
+
+        self._affected_rows = 0
+        self.host_info = "Not connected"
         
         self.autocommit(False)
         
+        if sql_mode is not None:
+            c = self.cursor()
+            c.execute("SET sql_mode=%s", (sql_mode,))
+        self.commit()
+        
 
     def close(self):
-        send_data = struct.pack('<i',1) + COM_QUIT
-        sock = self.socket
-        sock.send(send_data)
-        sock.close()
+        try:
+            send_data = struct.pack('<i',1) + COM_QUIT
+            sock = self.socket
+            sock.send(send_data)
+            sock.close()
+        except:
+            exc,value,tb = sys.exc_info()
+            self.errorhandler(None, exc, value)
     
     def autocommit(self, value):
-        self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
-                self.escape(value))
-        self.read_packet()
+        try:
+            self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
+                                      self.escape(value))
+            self.read_packet()
+        except:
+            exc,value,tb = sys.exc_info()
+            self.errorhandler(None, exc, value)
 
     def commit(self):
-        self._execute_command(COM_QUERY, "COMMIT")
-        self.read_packet()
+        try:
+            self._execute_command(COM_QUERY, "COMMIT")
+            self.read_packet()
+        except:
+            exc,value,tb = sys.exc_info()
+            self.errorhandler(None, exc, value)
 
     def rollback(self):
-        self._execute_command(COM_QUERY, "ROLLBACK")
-        self.read_packet()
+        try:
+            self._execute_command(COM_QUERY, "ROLLBACK")
+            self.read_packet()
+        except:
+            exc,value,tb = sys.exc_info()
+            self.errorhandler(None, exc, value)
 
     def escape(self, obj):
-        return escape_item(obj)
+        return escape_item(obj, self.charset)
+
+    def literal(self, obj):
+        return escape_item(obj, self.charset)
 
     def cursor(self):
         return Cursor(self)
@@ -379,26 +444,53 @@ class Connection(object):
 
     def query(self, sql):
         self._execute_command(COM_QUERY, sql)
-        return self._read_query_result()
+        self._affected_rows = self._read_query_result()
+        return self._affected_rows
     
     def next_result(self):
-        return self._read_query_result()
+        self._affected_rows = self._read_query_result()
+        return self._affected_rows
 
-    def set_chatset_set(self, charset):
-        sock = self.socket
-        if charset and self.charset != charset:
-            self._execute_command(COM_QUERY, "SET NAMES %s" % charset)
-            self.read_packet()
-            self.charset = charset     
+    def affected_rows(self):
+        return self._affected_rows
+
+    def ping(self, reconnect=True):
+        try:
+            self._execute_command(COM_PING, "")
+        except:
+            if reconnect:
+                self._connect()
+                return self.ping(False)
+            else:
+                exc,value,tb = sys.exc_info()
+                self.errorhandler(None, exc, value)
+                return
+
+        pkt = self.read_packet()
+        return pkt.is_ok_packet()
+
+    def set_charset_set(self, charset):
+        try:
+            sock = self.socket
+            if charset and self.charset != charset:
+                self._execute_command(COM_QUERY, "SET NAMES %s" %
+                                      self.escape(charset))
+                self.read_packet()
+                self.charset = charset     
+        except:
+            exc,value,tb = sys.exc_info()
+            self.errorhandler(None, exc, value)
 
     def _connect(self):
         if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(self.unix_socket)
+            self.host_info = "Localhost via UNIX socket"
             if DEBUG: print 'connected using unix_socket'
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self.host, self.port))
+            self.host_info = "socket %s:%d" % (self.host, self.port)
             if DEBUG: print 'connected using socket'
         self.socket = sock
         self._get_server_information()
@@ -424,8 +516,10 @@ class Connection(object):
 
     def _send_command(self, command, sql):
         send_data = struct.pack('<i', len(sql) + 1) + command + sql
+
         sock = self.socket
         sock.send(send_data)
+
         if DEBUG: dump_packet(send_data)
 
     def _execute_command(self, command, sql):
@@ -437,9 +531,12 @@ class Connection(object):
 
     def _send_authentication(self):
         sock = self.socket
-        self.client_flag |= CLIENT_CAPABILITIES
+        self.client_flag |= CAPABILITIES
         if self.server_version.startswith('5'):
-            self.client_flag |= CLIENT_MULTI_RESULTS
+            self.client_flag |= MULTI_RESULTS
+
+        if self.user is None:
+            raise ValueError, "Did not specify a username"
     
         data = (struct.pack('i', self.client_flag)) + "\0\0\0\x01" + \
                 '\x08' + '\0'*23 + \
@@ -458,6 +555,19 @@ class Connection(object):
         auth_packet.check_error()
         if DEBUG: auth_packet.dump()
         
+    # _mysql support
+    def thread_id(self):
+        return self.server_thread_id[0]
+
+    def character_set_name(self):
+        return self.charset
+
+    def get_host_info(self):
+        return self.host_info
+    
+    def get_proto_info(self):
+        return self.protocol_version
+        
     def _get_server_information(self):
         sock = self.socket
         i = 0
@@ -473,7 +583,6 @@ class Connection(object):
         
         i = server_end + 1
         self.server_thread_id = struct.unpack('h', data[i:i+2])
-        self.thread_id = self.server_thread_id  # MySQLdb compatibility
 
         i += 4
         self.salt = data[i:i+8]
@@ -561,12 +670,22 @@ class MySQLResult(object):
 
         row = []
         for field in self.fields:
-            converter = self.connection.decoders[field.type_code]
-            if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-            data = packet.read_length_coded_binary()
-            converted = None
-            if data != None:
-              converted = converter(data)
+            if field.type_code in self.connection.decoders:
+                converter = self.connection.decoders[field.type_code]
+
+                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
+                data = packet.read_length_coded_binary()
+                converted = None
+                if data != None:
+                    converted = converter(data)
+            else:
+                converter = self.connection.field_decoders[field.type_code]
+                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
+                data = packet.read_length_coded_binary()
+                converted = None
+                if data != None:
+                    converted = converter(self.connection, field, data)
+
             row.append(converted)
 
         rows.append(tuple(row))

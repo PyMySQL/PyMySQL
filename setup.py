@@ -1,5 +1,6 @@
 
-from setuptools import setup
+#from setuptools import setup
+from distutils.core import setup
 
 version_tuple = __import__('pymysql').VERSION
 
@@ -17,5 +18,5 @@ setup(
     maintainer = 'David.Story',
     maintainer_email = 'iDavidStory@gmail.com',
     description = 'Pure Python MySQL Driver ',
-    packages = ['pymysql', 'pymysql.constants']
+    packages = ['pymysql', 'pymysql.constants', 'pymysql.tests']
 )

@@ -1,36 +1,40 @@
-VERSION = (0, 2, None)
-__version__ = VERSION  # for MySQLdb compatibility
+VERSION = (0, 3, None)
 
 from pymysql.constants import FIELD_TYPE
 from pymysql.converters import escape_dict, escape_sequence, escape_string
-from pymysql.exceptions import Warning, Error, InterfaceError, DataError, \
+from pymysql.err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError
 from pymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
-from sets import ImmutableSet
+try:
+    frozenset
+except NameError:
+    from sets import ImmutableSet as frozenset
+    from sets import BaseSet as set
 
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
 
-class DBAPISet(ImmutableSet):
+class DBAPISet(frozenset):
 
 
     def __ne__(self, other):
-        from sets import BaseSet
-        if isinstance(other, BaseSet):
+        if isinstance(other, set):
             return super(DBAPISet, self).__ne__(self, other)
         else:
             return other not in self
 
     def __eq__(self, other):
-        from sets import BaseSet
-        if isinstance(other, BaseSet):
-            return super(DBAPISet, self).__eq__(self, other)
+        if isinstance(other, frozenset):
+            return frozenset.__eq__(self, other)
         else:
             return other in self
+
+    def __hash__(self):
+        return frozenset.__hash__(self)
 
 
 STRING    = DBAPISet([FIELD_TYPE.ENUM, FIELD_TYPE.STRING,
@@ -59,6 +63,16 @@ def get_client_info():  # for MySQLdb compatibility
 
 connect = Connection = Connect
 
+# we include a doctored version_info here for MySQLdb compatibility
+version_info = (1,2,2,"final",0)
+
+NULL = "NULL"
+
+__version__ = get_client_info()
+
+def thread_safe():
+    # Pure python, so yes we're threadsafe
+    return True
 
 __all__ = [
     'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',
@@ -70,4 +84,6 @@ __all__ = [
     'connections', 'constants', 'converters', 'cursors', 'debug', 'escape',
     'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
     'paramstyle', 'string_literal', 'threadsafety', 'version_info',
+
+    "NULL","__version__",
     ]

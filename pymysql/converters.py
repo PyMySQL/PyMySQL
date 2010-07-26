@@ -1,68 +1,81 @@
 import re
 import datetime
+import time
 import array
+import struct
+
 from pymysql.times import Date, Time, TimeDelta, Timestamp
 from pymysql.constants import FIELD_TYPE
 
-ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]", re.IGNORECASE)
+ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
+ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
+              '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
 
-def escape_item(val):
-    encorder = encoders[type(val)]
-    return encorder(val)
+def escape_item(val, charset):
+    encoder = encoders[type(val)]
+    return encoder(val, charset)
 
-def escape_dict(val):
+def escape_dict(val, charset):
     n = {}
     for k, v in val.items():
-        quoted = escape_item(v)
+        quoted = escape_item(v, charset)
         n[k] = quoted
     return n
 
-def escape_sequence(val):
+def escape_sequence(val, charset):
     n = []
     for item in val:
-        quoted = escape_item(item)
+        quoted = escape_item(item, charset)
         n.append(quoted)
     return tuple(n)
 
-def escape_bool(value):
-    return str(int(value))
+def escape_bool(value, charset):
+    return str(int(value)).encode(charset)
 
-def escape_object(value):
-    return str(val)
+def escape_object(value, charset):
+    return str(value).encode(charset)
 
-def escape_float(value):
-    return '%.15g' % value
+escape_int = escape_long = escape_object
 
-def escape_sequence(value):
-    return value
+def escape_float(value, charset):
+    return ('%.15g' % value).encode(charset)
 
-def escape_string(value):
+def escape_string(value, charset):
+    r = ("'%s'" % ESCAPE_REGEX.sub(
+        lambda match: ESCAPE_MAP.get(match.group(0)), value))
+    if not charset is None:
+        r = r.encode(charset)
+    return r
     
-    def rep(m):
-        n = m.group(0)
-        if n == "\0":
-            return "\\0"
-        elif n == "\n":
-            return "\\n"
-        elif n == "\r":
-            return "\\r"
-        elif n == "\032":
-            return "\\Z"
-        else:
-            return "\\"+n
-    s = re.sub(ESCAPE_REGEX, rep, value)
-    return s
+def escape_unicode(value, charset):
+    # pass None as the charset because we already encode it
+    return escape_string(value.encode(charset), None)
 
+def escape_None(value, charset):
+    return 'NULL'.encode(charset)
 
-def escape_timedelta(obj):
+def escape_timedelta(obj, charset):
     seconds = int(obj.seconds) % 60
-    minutes = int(obj.seconds / 60) % 60
-    hours = int(obj.seconds / 3600) % 24
-    return '%d %02d:%02d:%02d' % (obj.days, hours, minutes, seconds)
+    minutes = int(obj.seconds // 60) % 60
+    hours = int(obj.seconds // 3600) % 24 + int(obj.days) * 24
+    return escape_string('%02d:%02d:%02d' % (hours, minutes, seconds), charset)
 
-def escape_datetime(obj):
-    return obj.strftime("%Y-%m-%d %H:%M:%S")
+def escape_time(obj, charset):
+    s = "%02d:%02d:%02d" % (int(obj.hour), int(obj.minute),
+                            int(obj.second))
+    if obj.microsecond:
+        s += ".%f" % obj.microsecond
 
+    return escape_string(s, charset)
+
+def escape_datetime(obj, charset):
+    return escape_string(obj.strftime("%Y-%m-%d %H:%M:%S"), charset)
+
+def escape_date(obj, charset):
+    return escape_string(obj.strftime("%Y-%m-%d"), charset)
+
+def escape_struct_time(obj, charset):
+    return escape_datetime(datetime.datetime(*obj[:6]), charset)
 
 def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
@@ -85,13 +98,13 @@ def convert_datetime(obj):
     elif 'T' in obj:
         sep = 'T'
     else:
-        return date_or_None(obj)
+        return convert_date(obj)
 
     try:
         ymd, hms = obj.split(sep, 1)
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
-        return date_or_None(obj)
+        return convert_date(obj)
 
 def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
@@ -112,17 +125,14 @@ def convert_timedelta(obj):
     """
     from math import modf
     try:
-        hours, minutes, seconds = obj.split(':')
+        hours, minutes, seconds = tuple(int(x) for x in obj.split(':'))
         tdelta = datetime.timedelta(
             hours = int(hours),
             minutes = int(minutes),
             seconds = int(seconds),
             microseconds = int(modf(float(seconds))[0]*1000000),
             )
-        if hours < 0:
-            return -tdelta
-        else:
-            return tdelta
+        return tdelta
     except ValueError:
         return None
 
@@ -197,7 +207,7 @@ def convert_mysql_timestamp(timestamp):
       
     """
     if timestamp[4] == '-':
-        return datetime_or_None(timestamp)
+        return convert_datetime(timestamp)
     timestamp += "0"*(14-len(timestamp)) # padding
     year, month, day, hour, minute, second = \
         int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
@@ -207,21 +217,35 @@ def convert_mysql_timestamp(timestamp):
     except ValueError:
         return None
 
+def convert_set(s):
+    # TODO: this may not be correct
+    return set(s.split(","))
+
+def convert_bit(b):
+    b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
+    return struct.unpack(">Q", b)[0]
     
 encoders = {
         bool: escape_bool,
-        int: escape_object,
-        long: escape_object,
+        int: escape_int,
+        long: escape_long,
         float: escape_float,
         str: escape_string,
+        unicode: escape_unicode,
         tuple: escape_sequence,
         list:escape_sequence,
+        set:escape_sequence,
         dict:escape_dict,
+        type(None):escape_None,
+        datetime.date: escape_date,
         datetime.datetime : escape_datetime,
-        datetime.timedelta : escape_timedelta
+        datetime.timedelta : escape_timedelta,
+        datetime.time : escape_time,
+        time.struct_time : escape_struct_time,
         }
 
 decoders = {
+        FIELD_TYPE.BIT: convert_bit,
         FIELD_TYPE.TINY: int,
         FIELD_TYPE.SHORT: int,
         FIELD_TYPE.LONG: long,
@@ -236,17 +260,37 @@ decoders = {
         FIELD_TYPE.DATETIME: convert_datetime,
         FIELD_TYPE.TIME: convert_timedelta,
         FIELD_TYPE.DATE: convert_date,
-        FIELD_TYPE.BLOB: str,
-        FIELD_TYPE.STRING: str,
-        FIELD_TYPE.VAR_STRING: str,
-        FIELD_TYPE.VARCHAR: str
+        FIELD_TYPE.SET: convert_set,
+        #FIELD_TYPE.BLOB: str,
+        #FIELD_TYPE.STRING: str,
+        #FIELD_TYPE.VAR_STRING: str,
+        #FIELD_TYPE.VARCHAR: str
         }
 conversions = decoders  # for MySQLdb compatibility
+
+def decode_characters(connection, field, data):
+    if field.charsetnr == 63 or not connection.use_unicode:
+        # binary data, leave it alone
+        return data
+    return data.decode(connection.charset)
+
+# These take a field instance rather than just the data.
+field_decoders = {
+    FIELD_TYPE.BLOB: decode_characters,
+    FIELD_TYPE.STRING: decode_characters,
+    FIELD_TYPE.VAR_STRING: decode_characters,
+    FIELD_TYPE.VARCHAR: decode_characters,
+}
 
 try:
     # python version > 2.3
     from decimal import Decimal
     decoders[FIELD_TYPE.DECIMAL] = Decimal
     decoders[FIELD_TYPE.NEWDECIMAL] = Decimal
+
+    def escape_decimal(obj):
+        return str(obj)
+    encoders[Decimal] = escape_decimal
+
 except ImportError:
     pass

@@ -1,15 +1,35 @@
 ====================
-pymysql Installation
+PyMySQL Installation
 ====================
 
 .. contents::
 ..
-   This package contains a pure python mysql client library.
+   This package contains a pure-Python MySQL client library.
    Documentation on the MySQL client/server protocol can be found here:
    http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
+   If you would like to run the test suite, create a ~/.my.cnf file and
+   a database called "test_pymysql". The goal of pymysql is to be a drop-in
+   replacement for MySQLdb and work on CPython 2.3+, Jython, IronPython, PyPy
+   and Python 3. We test for compatibility by simply changing the import
+   statements in the Django MySQL backend and running its unit tests as well
+   as running it against the MySQLdb and myconnpy unit tests.
 
 Changes
 --------
+0.3  -Implemented most of the extended DBAPI 2.0 spec including callproc()
+     -Fixed error handling to include the message from the server and support
+      multiple protocol versions.
+     -Implemented ping()
+     -Implemented unicode support (probably needs better testing)
+     -Removed DeprecationWarnings
+     -Ran against the MySQLdb and myconnpy unit tests to check for bugs
+     -Added support for client_flag, charset, sql_mode, read_default_file, and
+      use_unicode.
+     -Refactoring for some more compatibility with MySQLdb including a fake
+      pymysql.version_info attribute.
+     -Now runs with no warnings with the -3 command-line switch
+     -Added test cases for all outstanding tickets and closed most of them.
+
 0.2  -Changed connection parameter name 'password' to 'passwd'
       to make it more plugin replaceable for the other mysql clients.
      -Changed pack()/unpack() calls so it runs on 64 bit OSes too.
@@ -26,11 +46,11 @@ Requirements
 
  * http://www.python.org/
  
- * 2.5 is the primary test environment.
+ * 2.6 is the primary test environment.
 
 * MySQL 4.1 or higher
     
- * protocol41 support
+ * protocol41 support, experimental 4.0 support
 
 Installation
 ------------

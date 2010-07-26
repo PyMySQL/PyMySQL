@@ -1,9 +1,11 @@
 import struct
+import re
 
-from pymysql.exceptions import Warning, Error, InterfaceError, DataError, \
+from pymysql.err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
-                  
+
+insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
 
 class Cursor(object):
 
@@ -16,7 +18,7 @@ class Cursor(object):
         self.arraysize = 1
         self._executed = None
         self.messages = []
-        self.errorhandler =connection.errorhandler
+        self.errorhandler = connection.errorhandler
         self._has_next = None
         self._rows = ()
 
@@ -68,11 +70,15 @@ class Cursor(object):
         charset = conn.charset
         del self.messages[:]
         
+        # this ordering is good because conn.escape() returns
+        # an encoded string.
         if isinstance(query, unicode):
             query = query.encode(charset)
+
         if args is not None:
             query = query % conn.escape(args)
                 
+        result = 0
         try:
             result = self._query(query)
         except:
@@ -98,7 +104,13 @@ class Cursor(object):
     
     
     def callproc(self, procname, args=()):
-        self.errorhandler(self, NotSupportedError, "not supported")
+        #self.errorhandler(self, NotSupportedError, "not supported")
+        if not isinstance(args, tuple):
+            args = (args,)
+
+        argstr = ("%s," * len(args))[:-1]
+
+        return self.execute("CALL `%s`(%s)" % (procname, argstr), args)
 
     def fetchone(self):
         self._check_executed()        
