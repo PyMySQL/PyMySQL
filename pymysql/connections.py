@@ -1,8 +1,6 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
-# TODO: use streams instead of send() and recv()
-
 import re
 
 try:
@@ -127,7 +125,7 @@ def _hash_password_323(password):
     add = 7L
     nr2 = 0x12345671L
 
-    for c in (ord(x) for x in password if x not in (' ', '\t')):
+    for c in [ord(x) for x in password if x not in (' ', '\t')]:
         nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
         nr2= (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
         add= (add + c) & 0xFFFFFFFF
@@ -210,6 +208,8 @@ class MysqlPacket(object):
     self.__data = ''.join(payload_buff)
 
   def packet_number(self): return self.__packet_number
+
+  def get_all_data(self): return self.__data
 
   def read(self, size):
     """Read the first 'size' bytes in packet and advance cursor past them."""
@@ -618,7 +618,7 @@ class Connection(object):
         data = (struct.pack('i', self.client_flag)) + "\0\0\0\x01" + \
                 '\x08' + '\0'*23 + \
                 self.user+"\0" + _scramble(self.password, self.salt)
-        
+
         if self.db:
             data += self.db + "\0"
 
@@ -635,7 +635,7 @@ class Connection(object):
         # if old_passwords is enabled the packet will be 1 byte long and
         # have the octet 254
 
-        if auth_packet.get_bytes(0,2) == chr(254):
+        if auth_packet.is_eof_packet():
             # send legacy handshake
             raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
             #data = _scramble_323(self.password, self.salt) + "\0"
@@ -663,11 +663,12 @@ class Connection(object):
     def _get_server_information(self):
         sock = self.socket
         i = 0
-        # TODO: likely bug here because recv() might return less bytes than we need
-        data = sock.recv(BUFFER_SIZE)
+        packet = MysqlPacket(sock)
+        data = packet.get_all_data()
+
         if DEBUG: dump_packet(data)
-        packet_len = ord(data[i:i+1])
-        i += 4
+        #packet_len = ord(data[i:i+1])
+        #i += 4
         self.protocol_version = ord(data[i:i+1])
         
         i += 1

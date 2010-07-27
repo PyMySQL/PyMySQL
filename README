@@ -29,6 +29,7 @@ Changes
       pymysql.version_info attribute.
      -Now runs with no warnings with the -3 command-line switch
      -Added test cases for all outstanding tickets and closed most of them.
+     -Basic Jython support added
 
 0.2  -Changed connection parameter name 'password' to 'passwd'
       to make it more plugin replaceable for the other mysql clients.

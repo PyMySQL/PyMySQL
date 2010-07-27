@@ -7,6 +7,14 @@ import struct
 from pymysql.times import Date, Time, TimeDelta, Timestamp
 from pymysql.constants import FIELD_TYPE
 
+try:
+    set
+except NameError:
+    try:
+        from sets import BaseSet as set
+    except ImportError:
+        from sets import Set as set
+
 ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
@@ -125,7 +133,7 @@ def convert_timedelta(obj):
     """
     from math import modf
     try:
-        hours, minutes, seconds = tuple(int(x) for x in obj.split(':'))
+        hours, minutes, seconds = tuple([int(x) for x in obj.split(':')])
         tdelta = datetime.timedelta(
             hours = int(hours),
             minutes = int(minutes),

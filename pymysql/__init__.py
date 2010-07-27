@@ -14,7 +14,10 @@ try:
     frozenset
 except NameError:
     from sets import ImmutableSet as frozenset
-    from sets import BaseSet as set
+    try:
+        from sets import BaseSet as set
+    except ImportError:
+        from sets import Set as set
 
 threadsafety = 1
 apilevel = "2.0"
