@@ -8,6 +8,8 @@ from pymysql.err import Warning, Error, InterfaceError, DataError, \
 from pymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
+import sys
+
 try:
     frozenset
 except NameError:
@@ -74,6 +76,13 @@ def thread_safe():
     # Pure python, so yes we're threadsafe
     return True
 
+def install_as_MySQLdb():
+    """
+    After this function is called, any application that imports MySQLdb or
+    _mysql will unwittingly actually use pymysql.
+    """
+    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
+
 __all__ = [
     'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',
     'Time', 'Timestamp', 'DateFromTicks', 'TimeFromTicks', 'TimestampFromTicks',
@@ -84,6 +93,8 @@ __all__ = [
     'connections', 'constants', 'converters', 'cursors', 'debug', 'escape',
     'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
     'paramstyle', 'string_literal', 'threadsafety', 'version_info',
+
+    "install_as_MySQLdb",
 
     "NULL","__version__",
     ]

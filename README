@@ -23,8 +23,8 @@ Changes
      -Implemented unicode support (probably needs better testing)
      -Removed DeprecationWarnings
      -Ran against the MySQLdb and myconnpy unit tests to check for bugs
-     -Added support for client_flag, charset, sql_mode, read_default_file, and
-      use_unicode.
+     -Added support for client_flag, charset, sql_mode, read_default_file,
+      use_unicode, cursorclass, init_command, and connect_timeout. 
      -Refactoring for some more compatibility with MySQLdb including a fake
       pymysql.version_info attribute.
      -Now runs with no warnings with the -3 command-line switch

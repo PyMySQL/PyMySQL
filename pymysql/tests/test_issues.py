@@ -1,7 +1,12 @@
 import pymysql
 import base
 
-import imp
+try:
+    import imp
+    reload = imp.reload
+except AttributeError:
+    pass
+
 import datetime
 
 class TestOldIssues(base.PyMySqlTestCase):
@@ -66,7 +71,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
     def test_issue_9(self):
         """ sets DeprecationWarning in Python 2.6 """
         try:
-            imp.reload(pymysql)
+            reload(pymysql)
         except DeprecationWarning:
             self.fail()
 

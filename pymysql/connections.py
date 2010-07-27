@@ -1,6 +1,8 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
+# TODO: use streams instead of send() and recv()
+
 import re
 
 try:
@@ -16,6 +18,11 @@ import sys
 import os
 import ConfigParser
 
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
+    
 from pymysql.charset import MBLENGTH
 from pymysql.cursors import Cursor
 from pymysql.constants import FIELD_TYPE
@@ -81,6 +88,55 @@ def _my_crypt(message1, message2):
         x = (struct.unpack('B', message1[i:i+1])[0] ^ struct.unpack('B', message2[i:i+1])[0])
         result += struct.pack('B', x)
     return result
+
+# old_passwords support ported from libmysql/password.c
+# note: the following functions do not work! they are very close, though.
+SCRAMBLE_LENGTH_323 = 8
+
+class RandStruct_323(object):
+    def __init__(self, seed1, seed2):
+        self.max_value = 0x3FFFFFFFL
+        self.seed1 = seed1 % self.max_value
+        self.seed2 = seed2 % self.max_value
+
+    def my_rnd(self):
+        self.seed1 = (self.seed1 * 3L + self.seed2) % self.max_value
+        self.seed2 = (self.seed1 + self.seed2 + 33L) % self.max_value
+        return float(self.seed1) / float(self.max_value)
+
+def _scramble_323(password, message):
+    hash_pass = _hash_password_323(password)
+    hash_message = _hash_password_323(message[:SCRAMBLE_LENGTH_323])
+    hash_pass_n = struct.unpack(">LL", hash_pass)
+    hash_message_n = struct.unpack(">LL", hash_message)
+
+    rand_st = RandStruct_323(hash_pass_n[0] ^ hash_message_n[0],
+                             hash_pass_n[1] ^ hash_message_n[1])
+    outbuf = StringIO.StringIO()
+    for _ in xrange(min(SCRAMBLE_LENGTH_323, len(message))):
+        outbuf.write(chr(int(rand_st.my_rnd() * 31) + 64))
+    extra = chr(int(rand_st.my_rnd() * 31))
+    out = outbuf.getvalue()
+    outbuf = StringIO.StringIO()
+    for c in out:
+        outbuf.write(chr(ord(c) ^ ord(extra)))
+    return outbuf.getvalue()
+
+def _hash_password_323(password):
+    nr = 1345345333L
+    add = 7L
+    nr2 = 0x12345671L
+
+    for c in (ord(x) for x in password if x not in (' ', '\t')):
+        nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
+        nr2= (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
+        add= (add + c) & 0xFFFFFFFF
+
+    r1 = nr & ((1L << 31) - 1L) # kill sign bits
+    r2 = nr2 & ((1L << 31) - 1L)
+
+    # pack
+    return struct.pack(">LL", r1, r2)
 
 def pack_int24(n):
     return struct.pack('BBB', n&0xFF, (n>>8)&0xFF, (n>>16)&0xFF)
@@ -336,7 +392,12 @@ class Connection(object):
                  db=None, port=3306, unix_socket=None,
                  charset=DEFAULT_CHARSET, sql_mode=None,
                  read_default_file=None, conv=decoders, use_unicode=True,
-                 client_flag=0):
+                 client_flag=0, cursorclass=Cursor, init_command=None,
+                 connect_timeout=None, ssl=None, read_default_group=None,
+                 compress=None, named_pipe=None):
+
+        if ssl or read_default_group or compress or named_pipe:
+            raise NotImplementedError, "ssl, read_default_group, compress and named_pipe arguments are not supported"
 
         if read_default_file:
             cfg = ConfigParser.RawConfigParser()
@@ -369,6 +430,9 @@ class Connection(object):
         if self.db:
             client_flag |= CONNECT_WITH_DB
         self.client_flag = client_flag
+
+        self.cursorclass = cursorclass
+        self.connect_timeout = connect_timeout
         
         self._connect()
         
@@ -386,7 +450,14 @@ class Connection(object):
         if sql_mode is not None:
             c = self.cursor()
             c.execute("SET sql_mode=%s", (sql_mode,))
+
         self.commit()
+
+        if init_command is not None:
+            c = self.cursor()
+            c.execute(init_command)
+            
+            self.commit()
         
 
     def close(self):
@@ -431,7 +502,7 @@ class Connection(object):
         return escape_item(obj, self.charset)
 
     def cursor(self):
-        return Cursor(self)
+        return self.cursorclass(self)
     
     def __enter__(self):
         return self.cursor()
@@ -484,12 +555,18 @@ class Connection(object):
     def _connect(self):
         if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            t = sock.gettimeout()
+            sock.settimeout(self.connect_timeout)
             sock.connect(self.unix_socket)
+            sock.settimeout(t)
             self.host_info = "Localhost via UNIX socket"
             if DEBUG: print 'connected using unix_socket'
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            t = sock.gettimeout()
+            sock.settimeout(self.connect_timeout)
             sock.connect((self.host, self.port))
+            sock.settimeout(t)
             self.host_info = "socket %s:%d" % (self.host, self.port)
             if DEBUG: print 'connected using socket'
         self.socket = sock
@@ -544,7 +621,7 @@ class Connection(object):
         
         if self.db:
             data += self.db + "\0"
-        
+
         data = pack_int24(len(data)) + "\x01" + data
         
         if DEBUG: dump_packet(data)
@@ -554,6 +631,21 @@ class Connection(object):
         auth_packet = MysqlPacket(sock)
         auth_packet.check_error()
         if DEBUG: auth_packet.dump()
+
+        # if old_passwords is enabled the packet will be 1 byte long and
+        # have the octet 254
+
+        if auth_packet.get_bytes(0,2) == chr(254):
+            # send legacy handshake
+            raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
+            #data = _scramble_323(self.password, self.salt) + "\0"
+            #data = pack_int24(len(data)) + "\x03" + data
+        
+            #sock.send(data)
+            #auth_packet = MysqlPacket(sock)
+            #auth_packet.check_error()
+            #if DEBUG: auth_packet.dump()
+        
         
     # _mysql support
     def thread_id(self):
@@ -571,6 +663,7 @@ class Connection(object):
     def _get_server_information(self):
         sock = self.socket
         i = 0
+        # TODO: likely bug here because recv() might return less bytes than we need
         data = sock.recv(BUFFER_SIZE)
         if DEBUG: dump_packet(data)
         packet_len = ord(data[i:i+1])
@@ -591,10 +684,10 @@ class Connection(object):
         if len(data) >= i + 1:
             i += 1
        
-        self.sever_capabilities = struct.unpack('h', data[i:i+2])
-        
+        self.server_capabilities = struct.unpack('h', data[i:i+2])[0]
+
         i += 1
-        self.sever_language = ord(data[i:i+1])
+        self.server_language = ord(data[i:i+1])
         
         i += 16 
         if len(data) >= i+12-1:
