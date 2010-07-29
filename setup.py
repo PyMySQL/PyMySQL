@@ -1,6 +1,8 @@
 
-#from setuptools import setup
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 version_tuple = __import__('pymysql').VERSION
 
