@@ -615,12 +615,12 @@ class Connection(object):
         if self.user is None:
             raise ValueError, "Did not specify a username"
     
-        data = (struct.pack('i', self.client_flag)) + "\0\0\0\x01" + \
+        data = (struct.pack('<i', self.client_flag)) + "\0\0\0\x01" + \
                 '\x08' + '\0'*23 + \
                 self.user+"\0" + _scramble(self.password, self.salt)
 
         if self.db:
-            data += self.db + "\0"
+            data += self.db.encode(self.charset) + "\0"
 
         data = pack_int24(len(data)) + "\x01" + data
         
@@ -676,7 +676,7 @@ class Connection(object):
         self.server_version = data[i:server_end]
         
         i = server_end + 1
-        self.server_thread_id = struct.unpack('h', data[i:i+2])
+        self.server_thread_id = struct.unpack('<h', data[i:i+2])
 
         i += 4
         self.salt = data[i:i+8]
@@ -685,7 +685,7 @@ class Connection(object):
         if len(data) >= i + 1:
             i += 1
        
-        self.server_capabilities = struct.unpack('h', data[i:i+2])[0]
+        self.server_capabilities = struct.unpack('<h', data[i:i+2])[0]
 
         i += 1
         self.server_language = ord(data[i:i+1])
@@ -739,8 +739,8 @@ class MySQLResult(object):
         self.first_packet.advance(1)  # field_count (always '0')
         self.affected_rows = self.first_packet.read_coded_length()
         self.insert_id = self.first_packet.read_coded_length()
-        self.server_status = struct.unpack('H', self.first_packet.read(2))[0]
-        self.warning_count = struct.unpack('H', self.first_packet.read(2))[0]
+        self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
+        self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
         self.message = self.first_packet.read_all()
 
     def _read_result_packet(self):
@@ -757,7 +757,7 @@ class MySQLResult(object):
         packet = self.connection.read_packet()
         if packet.is_eof_packet():
             self.warning_count = packet.read(2)
-            server_status = struct.unpack('h', packet.read(2))[0]
+            server_status = struct.unpack('<h', packet.read(2))[0]
             self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
             break
