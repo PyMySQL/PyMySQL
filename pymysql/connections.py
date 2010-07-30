@@ -385,7 +385,11 @@ class FieldDescriptorPacket(MysqlPacket):
 
 
 class Connection(object):
-    """Representation of a socket with a mysql server."""
+    """
+    Representation of a socket with a mysql server.
+
+    The proper way to get an instance of this class is to call
+    pymysql.connect()."""
     errorhandler = defaulterrorhandler
 
     def __init__(self, host="localhost", user=None, passwd="",
@@ -395,6 +399,30 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None):
+        """
+        Establish a connection to the MySQL database. Accepts several
+        arguments:
+
+        host: Host where the database server is located
+        user: Username to log in as
+        passwd: Password to use.
+        db: Database to use, None to not use a particular one.
+        port: MySQL port to use, default is usually OK.
+        unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
+        charset: Charset you want to use.
+        sql_mode: Default SQL_MODE to use.
+        read_default_file: Specifies  my.cnf file to read these parameters from under the [client] section.
+        conv: Decoders dictionary to use instead of the default one. This is used to provide custom marshalling of types. See pymysql.converters.
+        use_unicode: Whether or not to default to unicode strings.
+        client_flag: Custom flags to send to MySQL. Find potential values in pymysql.constants.CLIENT.
+        cursorclass: Custom cursor class to use.
+        init_command: Initial SQL statement to run when connection is established.
+        connect_timeout: Timeout before throwing an exception when connecting.
+        ssl: Whether or not to enable SSL access. This is not currently supported.
+        read_default_group: Not supported
+        compress; Not supported
+        named_pipe: Not supported
+        """
 
         if ssl or read_default_group or compress or named_pipe:
             raise NotImplementedError, "ssl, read_default_group, compress and named_pipe arguments are not supported"
@@ -461,6 +489,7 @@ class Connection(object):
         
 
     def close(self):
+        ''' Send the quit message and close the socket '''
         try:
             send_data = struct.pack('<i',1) + COM_QUIT
             sock = self.socket
@@ -471,6 +500,7 @@ class Connection(object):
             self.errorhandler(None, exc, value)
     
     def autocommit(self, value):
+        ''' Set whether or not to commit after every execute() '''
         try:
             self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
                                       self.escape(value))
@@ -480,6 +510,7 @@ class Connection(object):
             self.errorhandler(None, exc, value)
 
     def commit(self):
+        ''' Commit changes to stable storage '''
         try:
             self._execute_command(COM_QUERY, "COMMIT")
             self.read_packet()
@@ -488,6 +519,7 @@ class Connection(object):
             self.errorhandler(None, exc, value)
 
     def rollback(self):
+        ''' Roll back the current transaction '''
         try:
             self._execute_command(COM_QUERY, "ROLLBACK")
             self.read_packet()
@@ -496,23 +528,29 @@ class Connection(object):
             self.errorhandler(None, exc, value)
 
     def escape(self, obj):
+        ''' Escape whatever value you pass to it  '''
         return escape_item(obj, self.charset)
 
     def literal(self, obj):
+        ''' Alias for escape() '''
         return escape_item(obj, self.charset)
 
     def cursor(self):
+        ''' Create a new cursor to execute queries with '''
         return self.cursorclass(self)
     
     def __enter__(self):
+        ''' Context manager that returns a Cursor '''
         return self.cursor()
 
     def __exit__(self, exc, value, traceback):
+        ''' On successful exit, commit. On exception, rollback. '''
         if exc:
             self.rollback()
         else:
             self.commit()
 
+    # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql):
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result()
@@ -526,6 +564,7 @@ class Connection(object):
         return self._affected_rows
 
     def ping(self, reconnect=True):
+        ''' Check if the server is alive '''
         try:
             self._execute_command(COM_PING, "")
         except:

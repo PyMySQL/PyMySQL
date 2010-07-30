@@ -22,14 +22,19 @@ Changes
      -Implemented ping()
      -Implemented unicode support (probably needs better testing)
      -Removed DeprecationWarnings
-     -Ran against the MySQLdb and myconnpy unit tests to check for bugs
+     -Ran against the MySQLdb unit tests to check for bugs
      -Added support for client_flag, charset, sql_mode, read_default_file,
       use_unicode, cursorclass, init_command, and connect_timeout. 
      -Refactoring for some more compatibility with MySQLdb including a fake
       pymysql.version_info attribute.
      -Now runs with no warnings with the -3 command-line switch
      -Added test cases for all outstanding tickets and closed most of them.
-     -Basic Jython support added
+     -Basic Jython support added.
+     -Fixed empty result sets bug.
+     -Integrated new unit tests and refactored the example into one.
+     -Fixed bug with decimal conversion.
+     -Fixed string encoding bug. Now unicode and binary data work!
+     -Added very basic docstrings.
 
 0.2  -Changed connection parameter name 'password' to 'passwd'
       to make it more plugin replaceable for the other mysql clients.

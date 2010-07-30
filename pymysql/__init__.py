@@ -1,3 +1,7 @@
+'''
+PyMySQL: A pure-Python drop-in replacement for MySQLdb.
+'''
+
 VERSION = (0, 3, None)
 
 from pymysql.constants import FIELD_TYPE
@@ -60,6 +64,10 @@ def Binary(x):
     return str(x)
 
 def Connect(*args, **kwargs):
+    """
+    Connect to the database; see pymysql.connections.Connection.__init__() for
+    more information.
+    """
     from connections import Connection
     return Connection(*args, **kwargs)
 
@@ -76,8 +84,7 @@ NULL = "NULL"
 __version__ = get_client_info()
 
 def thread_safe():
-    # Pure python, so yes we're threadsafe
-    return True
+    return True # match MySQLdb.thread_safe()
 
 def install_as_MySQLdb():
     """
