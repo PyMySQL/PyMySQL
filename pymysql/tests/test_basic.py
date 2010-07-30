@@ -127,6 +127,8 @@ class TestCursor(base.PyMySQLTestCase):
         finally:
             c.execute("drop table test_nr")
 
+__all__ = ["TestConversion","TestCursor"]
+
 if __name__ == "__main__":
     import unittest
     unittest.main()

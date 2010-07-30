@@ -153,6 +153,8 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 class TestNewIssues(base.PyMySQLTestCase):
     pass
 
+__all__ = ["TestOldIssues", "TestNewIssues"]
+
 if __name__ == "__main__":
     import unittest
     unittest.main()

@@ -25,7 +25,7 @@ class TestExample(base.PyMySQLTestCase):
         cur.close()
         conn.close()
 
-
+__all__ = ["TestExample"]
 
 if __name__ == "__main__":
     import unittest
