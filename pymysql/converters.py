@@ -51,8 +51,11 @@ def escape_float(value, charset):
 def escape_string(value, charset):
     r = ("'%s'" % ESCAPE_REGEX.sub(
         lambda match: ESCAPE_MAP.get(match.group(0)), value))
-    if not charset is None:
-        r = r.encode(charset)
+    # TODO: make sure that encodings are handled correctly here.
+    # Since we may be dealing with binary data, the encoding
+    # routine below is commented out.
+    #if not charset is None:
+    #    r = r.encode(charset)
     return r
     
 def escape_unicode(value, charset):
@@ -296,8 +299,8 @@ try:
     decoders[FIELD_TYPE.DECIMAL] = Decimal
     decoders[FIELD_TYPE.NEWDECIMAL] = Decimal
 
-    def escape_decimal(obj):
-        return str(obj)
+    def escape_decimal(obj, charset):
+        return unicode(obj).encode(charset)
     encoders[Decimal] = escape_decimal
 
 except ImportError:
