@@ -359,7 +359,7 @@ class FieldDescriptorPacket(MysqlPacket):
     desc = []
     desc.append(self.name)
     desc.append(self.type_code)
-    desc.append(None)  # 'display size'
+    desc.append(None) # TODO: display_length; should this be self.length?
     desc.append(self.get_column_length()) # 'internal_size'
     desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
     desc.append(self.scale)

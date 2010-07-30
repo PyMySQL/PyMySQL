@@ -114,7 +114,7 @@ class Cursor(object):
 
     def fetchone(self):
         self._check_executed()        
-        if self.rownumber >= len(self._rows):
+        if self._rows is None or self.rownumber >= len(self._rows):
             return None
         result = self._rows[self.rownumber]
         self.rownumber += 1
@@ -124,11 +124,15 @@ class Cursor(object):
         self._check_executed()
         end = self.rownumber + (size or self.arraysize)
         result = self._rows[self.rownumber:end]
+        if self._rows is None:
+            return None
         self.rownumber = min(end, len(self._rows))
         return result
 
     def fetchall(self):
         self._check_executed()
+        if self._rows is None:
+            return None
         if self.rownumber:
             result = self._rows[self.rownumber:]
         else:
