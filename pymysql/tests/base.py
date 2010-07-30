@@ -1,7 +1,7 @@
 import pymysql
 import unittest
 
-class PyMySqlTestCase(unittest.TestCase):
+class PyMySQLTestCase(unittest.TestCase):
     databases = [
         {"host":"localhost","user":"root","passwd":"","db":"test_pymysql"},
         {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]

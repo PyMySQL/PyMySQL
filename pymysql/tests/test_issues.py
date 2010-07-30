@@ -1,5 +1,5 @@
 import pymysql
-import base
+from pymysql.tests import base
 
 try:
     import imp
@@ -9,7 +9,7 @@ except AttributeError:
 
 import datetime
 
-class TestOldIssues(base.PyMySqlTestCase):
+class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
         """ undefined methods datetime_or_None, date_or_None """
         conn = self.connections[0]
@@ -149,6 +149,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             self.assertEqual("hello, world!", c2.fetchone()[0])
         finally:
             c.execute("drop table issue17")
+
+class TestNewIssues(base.PyMySQLTestCase):
+    pass
 
 if __name__ == "__main__":
     import unittest
