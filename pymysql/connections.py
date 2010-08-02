@@ -676,14 +676,14 @@ class Connection(object):
 
         if auth_packet.is_eof_packet():
             # send legacy handshake
-            raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
-            #data = _scramble_323(self.password, self.salt) + "\0"
-            #data = pack_int24(len(data)) + "\x03" + data
+            #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
+            data = _scramble_323(self.password, self.salt) + "\0"
+            data = pack_int24(len(data)) + "\x03" + data
         
-            #sock.send(data)
-            #auth_packet = MysqlPacket(sock)
-            #auth_packet.check_error()
-            #if DEBUG: auth_packet.dump()
+            sock.send(data)
+            auth_packet = MysqlPacket(sock)
+            auth_packet.check_error()
+            if DEBUG: auth_packet.dump()
         
         
     # _mysql support
