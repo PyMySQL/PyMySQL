@@ -16,11 +16,6 @@ import sys
 import os
 import ConfigParser
 
-try:
-    import cStringIO as StringIO
-except ImportError:
-    import StringIO
-    
 from pymysql.charset import MBLENGTH
 from pymysql.cursors import Cursor
 from pymysql.constants import FIELD_TYPE
@@ -199,7 +194,7 @@ class MysqlPacket(object):
     bin_length = packet_length_bin + '\000'  # pad little-endian number
     bytes_to_read = struct.unpack('<I', bin_length)[0]
 
-    payload_buff = []  # TODO: look if cStringIO is markedly better
+    payload_buff = []  # this is faster than cStringIO
     while bytes_to_read > 0:
       recv_data = socket.recv(bytes_to_read)
       if DEBUG: dump_packet(recv_data)
