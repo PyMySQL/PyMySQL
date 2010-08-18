@@ -16,6 +16,11 @@ import sys
 import os
 import ConfigParser
 
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
+
 from pymysql.charset import MBLENGTH
 from pymysql.cursors import Cursor
 from pymysql.constants import FIELD_TYPE
