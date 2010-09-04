@@ -452,7 +452,8 @@ class Connection(object):
         self.db = db
         self.unix_socket = unix_socket
         self.use_unicode = use_unicode
-        self.charset = charset
+        self.charset = DEFAULT_CHARSET
+
         client_flag |= CAPABILITIES
         client_flag |= MULTI_STATEMENTS
         if self.db:

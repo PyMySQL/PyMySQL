@@ -160,6 +160,17 @@ class TestNewIssues(base.PyMySQLTestCase):
         except:
             self.fail()
 
+    def test_issue_33(self):
+        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        c = conn.cursor()
+        try:
+            c.execute("create table hei\xc3\x9f (name varchar(32))")
+            c.execute("insert into hei\xc3\x9f (name) values ('Pi\xc3\xb1ata')")
+            c.execute("select name from hei\xc3\x9f")
+            self.assertEqual("Pi\xc3\xb1ata", c.fetchone()[0].encode("utf8"))
+        finally:
+            c.execute("drop table hei\xc3\x9f")
+
 __all__ = ["TestOldIssues", "TestNewIssues"]
 
 if __name__ == "__main__":
