@@ -151,7 +151,14 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("drop table issue17")
 
 class TestNewIssues(base.PyMySQLTestCase):
-    pass
+    def test_issue_34(self):
+        try:
+            pymysql.connect(host="localhost", port=1237, user="root")
+            self.fail()
+        except pymysql.OperationalError, e:
+            self.assertEqual(2003, e.args[0])
+        except:
+            self.fail()
 
 __all__ = ["TestOldIssues", "TestNewIssues"]
 
