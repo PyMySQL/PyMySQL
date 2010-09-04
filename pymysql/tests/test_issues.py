@@ -171,6 +171,16 @@ class TestNewIssues(base.PyMySQLTestCase):
         finally:
             c.execute("drop table hei\xc3\x9f")
 
+    def test_issue_35(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        print "sudo killall -9 mysqld within the next 10 seconds"
+        try:
+            c.execute("select sleep(10)")
+            self.fail()
+        except pymysql.OperationalError, e:
+            self.assertEqual(2013, e.args[0])
+
 __all__ = ["TestOldIssues", "TestNewIssues"]
 
 if __name__ == "__main__":

@@ -189,7 +189,10 @@ class MysqlPacket(object):
     """Parse the packet header and read entire packet payload into buffer."""
     packet_header = socket.recv(4)
     while len(packet_header) < 4:
-        packet_header += socket.recv(4 - len(packet_header))
+        d = socket.recv(4 - len(packet_header))
+        if len(d) == 0:
+            raise OperationalError(2013, "Lost connection to MySQL server during query")
+        packet_header += d
 
     if DEBUG: dump_packet(packet_header)
     packet_length_bin = packet_header[:3]
@@ -202,6 +205,8 @@ class MysqlPacket(object):
     payload_buff = []  # this is faster than cStringIO
     while bytes_to_read > 0:
       recv_data = socket.recv(bytes_to_read)
+      if len(recv_data) == 0:
+            raise OperationalError(2013, "Lost connection to MySQL server during query")
       if DEBUG: dump_packet(recv_data)
       payload_buff.append(recv_data)
       bytes_to_read -= len(recv_data)
