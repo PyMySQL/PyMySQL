@@ -171,15 +171,39 @@ class TestNewIssues(base.PyMySQLTestCase):
         finally:
             c.execute("drop table hei\xc3\x9f")
 
-    def test_issue_35(self):
+    # Will fail without manual intervention:
+    #def test_issue_35(self):
+    #
+    #    conn = self.connections[0]
+    #    c = conn.cursor()
+    #    print "sudo killall -9 mysqld within the next 10 seconds"
+    #    try:
+    #        c.execute("select sleep(10)")
+    #        self.fail()
+    #    except pymysql.OperationalError, e:
+    #        self.assertEqual(2013, e.args[0])
+
+    def test_issue_36(self):
         conn = self.connections[0]
         c = conn.cursor()
-        print "sudo killall -9 mysqld within the next 10 seconds"
+        # kill connections[0]
+        original_count = c.execute("show processlist")
+        kill_id = None
+        for id,user,host,db,command,time,state,info in c.fetchall():
+            if info == "show processlist":
+                kill_id = id
+                break
+        # now nuke the connection
+        conn.kill(kill_id)
+        # make sure this connection has broken
         try:
-            c.execute("select sleep(10)")
+            c.execute("show tables")
             self.fail()
-        except pymysql.OperationalError, e:
-            self.assertEqual(2013, e.args[0])
+        except:
+            pass
+        # check the process list from the other connection
+        self.assertEqual(original_count - 1, self.connections[1].cursor().execute("show processlist"))
+        del self.connections[0]
 
 __all__ = ["TestOldIssues", "TestNewIssues"]
 
