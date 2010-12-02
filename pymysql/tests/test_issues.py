@@ -205,6 +205,23 @@ class TestNewIssues(base.PyMySQLTestCase):
         self.assertEqual(original_count - 1, self.connections[1].cursor().execute("show processlist"))
         del self.connections[0]
 
+    def test_issue_37(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        self.assertEqual(1, c.execute("SELECT @foo"))
+        self.assertEqual((None,), c.fetchone())
+        self.assertEqual(0, c.execute("SET @foo = 'bar'"))
+        c.execute("set @foo = 'bar'")
+
+    def test_issue_38(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        datum = "a" * 1024 * 1024 * 64
+        c.execute("create table issue38 (id integer, data mediumblob)")
+        try:
+            c.execute("insert into issue38 values (1, %s)", datum)
+        finally:
+            c.execute("drop table issue38")
 __all__ = ["TestOldIssues", "TestNewIssues"]
 
 if __name__ == "__main__":
