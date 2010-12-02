@@ -11,6 +11,7 @@ except ImportError:
     sha_new = sha.new
 
 import socket
+import ssl
 import struct
 import sys
 import os
@@ -160,6 +161,7 @@ def unpack_int64(n):
     (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
 
 def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
+    raise
     err = errorclass, errorvalue
     
     if cursor:
@@ -423,14 +425,28 @@ class Connection(object):
         cursorclass: Custom cursor class to use.
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.
-        ssl: Whether or not to enable SSL access. This is not currently supported.
+        ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
         read_default_group: Not supported
         compress; Not supported
         named_pipe: Not supported
         """
 
-        if ssl or read_default_group or compress or named_pipe:
-            raise NotImplementedError, "ssl, read_default_group, compress and named_pipe arguments are not supported"
+
+        if read_default_group or compress or named_pipe:
+            raise NotImplementedError, "read_default_group, compress and named_pipe arguments are not supported"
+
+        if ssl and (ssl.has_key('capath') or ssl.has_key('cipher')):
+            raise NotImplementedError, 'ssl options capath and cipher are not supported'
+
+        self.ssl = False
+        if ssl:
+            self.ssl = True
+            client_flag |= SSL
+            for k in ('key', 'cert', 'ca'):
+                v = None
+                if ssl.has_key(k):
+                    v = ssl[k]
+                setattr(self, k, v)
 
         if read_default_file:
             cfg = ConfigParser.RawConfigParser()
@@ -674,14 +690,31 @@ class Connection(object):
         if self.user is None:
             raise ValueError, "Did not specify a username"
     
-        data = (struct.pack('<i', self.client_flag)) + "\0\0\0\x01" + \
-                '\x08' + '\0'*23 + \
-                self.user+"\0" + _scramble(self.password, self.salt)
+        data_init = (struct.pack('<i', self.client_flag)) \
+                            + "\0\0\0\x01" + '\x08' + '\0'*23
+
+        next_packet = 1
+
+        if self.ssl:
+            data = pack_int24(len(data_init)) + chr(next_packet) + data_init
+            next_packet += 1
+
+            if DEBUG: dump_packet(data)
+
+            sock.send(data)
+            sock = self.socket = ssl.wrap_socket(sock, keyfile=self.key,
+                                           certfile=self.cert,
+                                           ssl_version=ssl.PROTOCOL_TLSv1,
+                                           cert_reqs=ssl.CERT_REQUIRED,
+                                           ca_certs=self.ca)
+
+        data = data_init + self.user+"\0" + _scramble(self.password, self.salt)
 
         if self.db:
             data += self.db.encode(self.charset) + "\0"
 
-        data = pack_int24(len(data)) + "\x01" + data
+        data = pack_int24(len(data)) + chr(next_packet) + data
+        next_packet += 2
         
         if DEBUG: dump_packet(data)
         
@@ -698,7 +731,7 @@ class Connection(object):
             # send legacy handshake
             #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
             data = _scramble_323(self.password, self.salt) + "\0"
-            data = pack_int24(len(data)) + "\x03" + data
+            data = pack_int24(len(data)) + chr(next_packet) + data
         
             sock.send(data)
             auth_packet = MysqlPacket(sock)
