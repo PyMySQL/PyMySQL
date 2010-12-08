@@ -46,7 +46,7 @@ UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
 DEFAULT_CHARSET = 'latin1'
-BUFFER_SIZE = 256*256*256-1
+MAX_PACKET_LENGTH = 256*256*256-1
 
 def dump_packet(data):
     
@@ -667,10 +667,21 @@ class Connection(object):
         return result.affected_rows
 
     def _send_command(self, command, sql):
-        send_data = struct.pack('<i', len(sql) + 1) + command + sql
+        #send_data = struct.pack('<i', len(sql) + 1) + command + sql
+        # could probably be more efficient, at least it's correct
+        buf = command + sql
+        pckt_no = 0
+        while len(buf) >= MAX_PACKET_LENGTH:
+            header = struct.pack('<i', MAX_PACKET_LENGTH)[:-1]+chr(pckt_no)
+            self.socket.send(header+buf[:MAX_PACKET_LENGTH])
+            buf = buf[MAX_PACKET_LENGTH:]
+            pckt_no += 1
+        header = struct.pack('<i', len(buf))[:-1]+chr(pckt_no)
+        self.socket.send(header+buf)
 
-        sock = self.socket
-        sock.send(send_data)
+
+        #sock = self.socket
+        #sock.send(send_data)
 
         if DEBUG: dump_packet(send_data)
 

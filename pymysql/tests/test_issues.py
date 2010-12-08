@@ -217,7 +217,7 @@ class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_38(self):
         conn = self.connections[0]
         c = conn.cursor()
-        datum = "a" * 1024 * 1024 * 64
+        datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
         
         try:
             c.execute("create table issue38 (id integer, data mediumblob)")
