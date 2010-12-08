@@ -22,14 +22,14 @@ try:
 except ImportError:
     import StringIO
 
-from pymysql.charset import MBLENGTH
-from pymysql.cursors import Cursor
-from pymysql.constants import FIELD_TYPE
-from pymysql.constants import SERVER_STATUS
-from pymysql.constants.CLIENT import *
-from pymysql.constants.COMMAND import *
-from pymysql.converters import escape_item, encoders, decoders, field_decoders
-from pymysql.err import raise_mysql_exception, Warning, Error, \
+from charset import MBLENGTH
+from cursors import Cursor
+from constants import FIELD_TYPE
+from constants import SERVER_STATUS
+from constants.CLIENT import *
+from constants.COMMAND import *
+from converters import escape_item, encoders, decoders, field_decoders
+from err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 
@@ -396,7 +396,7 @@ class Connection(object):
     Representation of a socket with a mysql server.
 
     The proper way to get an instance of this class is to call
-    pymysql.connect()."""
+    connect()."""
     errorhandler = defaulterrorhandler
 
     def __init__(self, host="localhost", user=None, passwd="",
@@ -419,9 +419,9 @@ class Connection(object):
         charset: Charset you want to use.
         sql_mode: Default SQL_MODE to use.
         read_default_file: Specifies  my.cnf file to read these parameters from under the [client] section.
-        conv: Decoders dictionary to use instead of the default one. This is used to provide custom marshalling of types. See pymysql.converters.
+        conv: Decoders dictionary to use instead of the default one. This is used to provide custom marshalling of types. See converters.
         use_unicode: Whether or not to default to unicode strings.
-        client_flag: Custom flags to send to MySQL. Find potential values in pymysql.constants.CLIENT.
+        client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
         cursorclass: Custom cursor class to use.
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.

@@ -9,7 +9,7 @@ except ImportError:
     StandardError = e.StandardError
     Warning = e.Warning
     
-from pymysql.constants import ER
+from constants import ER
 
 class MySQLError(StandardError):
     

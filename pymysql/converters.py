@@ -4,8 +4,8 @@ import time
 import array
 import struct
 
-from pymysql.times import Date, Time, TimeDelta, Timestamp
-from pymysql.constants import FIELD_TYPE
+from times import Date, Time, TimeDelta, Timestamp
+from constants import FIELD_TYPE
 
 try:
     set

@@ -1,7 +1,7 @@
 import struct
 import re
 
-from pymysql.err import Warning, Error, InterfaceError, DataError, \
+from err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
 
@@ -14,7 +14,7 @@ class Cursor(object):
     def __init__(self, connection):
         '''
         Do not create an instance of a Cursor yourself. Call
-        pymysql.connections.Connection.cursor().
+        connections.Connection.cursor().
         '''
         from weakref import proxy
         self.connection = proxy(connection)

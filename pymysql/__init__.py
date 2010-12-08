@@ -25,12 +25,12 @@ THE SOFTWARE.
 
 VERSION = (0, 4, None)
 
-from pymysql.constants import FIELD_TYPE
-from pymysql.converters import escape_dict, escape_sequence, escape_string
-from pymysql.err import Warning, Error, InterfaceError, DataError, \
+from constants import FIELD_TYPE
+from converters import escape_dict, escape_sequence, escape_string
+from err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError
-from pymysql.times import Date, Time, Timestamp, \
+from times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
 import sys
@@ -86,7 +86,7 @@ def Binary(x):
 
 def Connect(*args, **kwargs):
     """
-    Connect to the database; see pymysql.connections.Connection.__init__() for
+    Connect to the database; see connections.Connection.__init__() for
     more information.
     """
     from connections import Connection
@@ -110,7 +110,7 @@ def thread_safe():
 def install_as_MySQLdb():
     """
     After this function is called, any application that imports MySQLdb or
-    _mysql will unwittingly actually use pymysql.
+    _mysql will unwittingly actually use 
     """
     sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
 
