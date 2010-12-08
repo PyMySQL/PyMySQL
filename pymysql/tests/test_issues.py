@@ -138,10 +138,11 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         db = self.databases[0]["db"]
         c = conn.cursor()
         # grant access to a table to a user with a password
-        c.execute("create table issue17 (x varchar(32) primary key)")
         try:
+            c.execute("create table issue17 (x varchar(32) primary key)")
             c.execute("insert into issue17 (x) values ('hello, world!')")
-            c.execute("grant all privileges on issue17 to issue17user identified by '1234'")
+            c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
+            conn.commit()
             
             conn2 = pymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
             c2 = conn2.cursor()
@@ -217,8 +218,9 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         datum = "a" * 1024 * 1024 * 64
-        c.execute("create table issue38 (id integer, data mediumblob)")
+        
         try:
+            c.execute("create table issue38 (id integer, data mediumblob)")
             c.execute("insert into issue38 values (1, %s)", datum)
         finally:
             c.execute("drop table issue38")
