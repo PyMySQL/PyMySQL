@@ -16,6 +16,9 @@ PyMySQL Installation
 
 Changes
 --------
+0.4  -Miscellaneous bug fixes
+     -Implementation of SSL support
+     -Implementation of kill()
 0.3  -Implemented most of the extended DBAPI 2.0 spec including callproc()
      -Fixed error handling to include the message from the server and support
       multiple protocol versions.

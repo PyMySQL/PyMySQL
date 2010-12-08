@@ -20,5 +20,6 @@ setup(
     maintainer = 'David.Story',
     maintainer_email = 'iDavidStory@gmail.com',
     description = 'Pure Python MySQL Driver ',
+    license = "MIT",
     packages = ['pymysql', 'pymysql.constants', 'pymysql.tests']
 )
