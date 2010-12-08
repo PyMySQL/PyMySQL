@@ -288,6 +288,9 @@ def decode_characters(connection, field, data):
 # These take a field instance rather than just the data.
 field_decoders = {
     FIELD_TYPE.BLOB: decode_characters,
+    FIELD_TYPE.TINY_BLOB: decode_characters,
+    FIELD_TYPE.MEDIUM_BLOB: decode_characters,
+    FIELD_TYPE.LONG_BLOB: decode_characters,
     FIELD_TYPE.STRING: decode_characters,
     FIELD_TYPE.VAR_STRING: decode_characters,
     FIELD_TYPE.VARCHAR: decode_characters,
