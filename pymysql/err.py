@@ -2,16 +2,19 @@ import struct
 
 
 try:
-    from exceptions import Exception, StandardError, Warning
+    Exception, Warning
 except ImportError:
-    import sys
-    e = sys.modules['exceptions']
-    StandardError = e.StandardError
-    Warning = e.Warning
+    try:
+        from exceptions import Exception, Warning
+    except ImportError:
+        import sys
+        e = sys.modules['exceptions']
+        Exception = e.Exception
+        Warning = e.Warning
     
 from constants import ER
 
-class MySQLError(StandardError):
+class MySQLError(Exception):
     
     """Exception related to operation with MySQL."""
 
@@ -104,7 +107,7 @@ _map_error(IntegrityError, ER.DUP_ENTRY, ER.NO_REFERENCED_ROW,
 _map_error(NotSupportedError, ER.WARNING_NOT_COMPLETE_ROLLBACK,
            ER.NOT_SUPPORTED_YET, ER.FEATURE_DISABLED, ER.UNKNOWN_STORAGE_ENGINE)
 
-del StandardError, _map_error, ER
+del _map_error, ER
 
     
 def _get_error_info(data):

@@ -9,7 +9,12 @@ except ImportError:
     sha_new = sha.new
 
 import socket
-import ssl
+try:
+    import ssl
+    SSL_ENABLED = True
+except ImportError:
+    SSL_ENABLED = False
+
 import struct
 import sys
 import os
@@ -46,6 +51,15 @@ UNSIGNED_INT64_LENGTH = 8
 DEFAULT_CHARSET = 'latin1'
 MAX_PACKET_LENGTH = 256*256*256-1
 
+def byte2int(b):
+    if isinstance(b, int):
+        return b
+    else:
+        return struct.unpack("!B", b)[0]
+
+def int2byte(i):
+    return struct.pack("!B", i)
+
 def dump_packet(data):
     
     def is_ascii(data):
@@ -61,17 +75,17 @@ def dump_packet(data):
     print "-" * 88
     dump_data = [data[i:i+16] for i in xrange(len(data)) if i%16 == 0]
     for d in dump_data:
-        print ' '.join(map(lambda x:"%02X" % ord(x), d)) + \
+        print ' '.join(map(lambda x:"%02X" % byte2int(x), d)) + \
                 '   ' * (16 - len(d)) + ' ' * 2 + \
                 ' '.join(map(lambda x:"%s" % is_ascii(x), d))
     print "-" * 88
     print ""
 
-def _scramble(password, message):
-    if password == None or len(password) == 0:
+def _scramble(passwbyte2int, message):
+    if passwbyte2int == None or len(passwbyte2int) == 0:
         return '\0'
-    if DEBUG: print 'password=' + password
-    stage1 = sha_new(password).digest()
+    if DEBUG: print 'passwbyte2int=' + passwbyte2int
+    stage1 = sha_new(passwbyte2int).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
     s.update(message)
@@ -88,8 +102,7 @@ def _my_crypt(message1, message2):
         result += struct.pack('B', x)
     return result
 
-# old_passwords support ported from libmysql/password.c
-# note: the following functions do not work! they are very close, though.
+# old_passwbyte2ints support ported from libmysql/passwbyte2int.c
 SCRAMBLE_LENGTH_323 = 8
 
 class RandStruct_323(object):
@@ -103,9 +116,9 @@ class RandStruct_323(object):
         self.seed2 = (self.seed1 + self.seed2 + 33L) % self.max_value
         return float(self.seed1) / float(self.max_value)
 
-def _scramble_323(password, message):
-    hash_pass = _hash_password_323(password)
-    hash_message = _hash_password_323(message[:SCRAMBLE_LENGTH_323])
+def _scramble_323(passwbyte2int, message):
+    hash_pass = _hash_passwbyte2int_323(passwbyte2int)
+    hash_message = _hash_passwbyte2int_323(message[:SCRAMBLE_LENGTH_323])
     hash_pass_n = struct.unpack(">LL", hash_pass)
     hash_message_n = struct.unpack(">LL", hash_message)
 
@@ -113,20 +126,20 @@ def _scramble_323(password, message):
                              hash_pass_n[1] ^ hash_message_n[1])
     outbuf = StringIO.StringIO()
     for _ in xrange(min(SCRAMBLE_LENGTH_323, len(message))):
-        outbuf.write(chr(int(rand_st.my_rnd() * 31) + 64))
-    extra = chr(int(rand_st.my_rnd() * 31))
+        outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
+    extra = int2byte(int(rand_st.my_rnd() * 31))
     out = outbuf.getvalue()
     outbuf = StringIO.StringIO()
     for c in out:
-        outbuf.write(chr(ord(c) ^ ord(extra)))
+        outbuf.write(int2byte(byte2int(c) ^ byte2int(extra)))
     return outbuf.getvalue()
 
-def _hash_password_323(password):
+def _hash_passwbyte2int_323(passwbyte2int):
     nr = 1345345333L
     add = 7L
     nr2 = 0x12345671L
 
-    for c in [ord(x) for x in password if x not in (' ', '\t')]:
+    for c in [byte2int(x) for x in passwbyte2int if x not in (' ', '\t')]:
         nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
         nr2= (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
         add= (add + c) & 0xFFFFFFFF
@@ -199,7 +212,7 @@ class MysqlPacket(object):
 
     if DEBUG: dump_packet(packet_header)
     packet_length_bin = packet_header[:3]
-    self.__packet_number = ord(packet_header[3])
+    self.__packet_number = byte2int(packet_header[3])
     # TODO: check packet_num is correct (+1 from last packet)
 
     bin_length = packet_length_bin + '\000'  # pad little-endian number
@@ -278,7 +291,7 @@ class MysqlPacket(object):
     Length coded numbers can be anywhere from 1 to 9 bytes depending
     on the value of the first byte.
     """
-    c = ord(self.read(1))
+    c = byte2int(self.read(1))
     if c == NULL_COLUMN:
       return None
     if c < UNSIGNED_CHAR_COLUMN:
@@ -304,17 +317,17 @@ class MysqlPacket(object):
     return self.read(length)
 
   def is_ok_packet(self):
-    return ord(self.get_bytes(0)) == 0
+    return byte2int(self.get_bytes(0)) == 0
 
   def is_eof_packet(self):
-    return ord(self.get_bytes(0)) == 254  # 'fe'
+    return byte2int(self.get_bytes(0)) == 254  # 'fe'
 
   def is_resultset_packet(self):
-    field_count = ord(self.get_bytes(0))
+    field_count = byte2int(self.get_bytes(0))
     return field_count >= 1 and field_count <= 250
 
   def is_error_packet(self):
-    return ord(self.get_bytes(0)) == 255
+    return byte2int(self.get_bytes(0)) == 255
 
   def check_error(self):
     if self.is_error_packet():
@@ -353,9 +366,9 @@ class FieldDescriptorPacket(MysqlPacket):
     self.advance(1)  # non-null filler
     self.charsetnr = struct.unpack('<H', self.read(2))[0]
     self.length = struct.unpack('<I', self.read(4))[0]
-    self.type_code = ord(self.read(1))
+    self.type_code = byte2int(self.read(1))
     self.flags = struct.unpack('<H', self.read(2))[0]
-    self.scale = ord(self.read(1))  # "decimals"
+    self.scale = byte2int(self.read(1))  # "decimals"
     self.advance(2)  # filler (always 0x00)
 
     # 'default' is a length coded binary and is still in the buffer?
@@ -412,7 +425,7 @@ class Connection(object):
 
         host: Host where the database server is located
         user: Username to log in as
-        passwd: Password to use.
+        passwd: Passwbyte2int to use.
         db: Database to use, None to not use a particular one.
         port: MySQL port to use, default is usually OK.
         unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
@@ -440,6 +453,8 @@ class Connection(object):
 
         self.ssl = False
         if ssl:
+            if not SSL_ENABLED:
+                raise NotImplementedError, "ssl module not found"
             self.ssl = True
             client_flag |= SSL
             for k in ('key', 'cert', 'ca'):
@@ -468,7 +483,7 @@ class Connection(object):
                     return default
 
             user = _config("user",user)
-            passwd = _config("password",passwd)
+            passwd = _config("passwbyte2int",passwd)
             host = _config("host", host)
             db = _config("db",db)
             unix_socket = _config("socket",unix_socket)
@@ -478,7 +493,7 @@ class Connection(object):
         self.host = host
         self.port = port
         self.user = user
-        self.password = passwd
+        self.passwbyte2int = passwd
         self.db = db
         self.unix_socket = unix_socket
         if charset:
@@ -685,13 +700,13 @@ class Connection(object):
         buf = command + sql
         pckt_no = 0
         while len(buf) >= MAX_PACKET_LENGTH:
-            header = struct.pack('<i', MAX_PACKET_LENGTH)[:-1]+chr(pckt_no)
+            header = struct.pack('<i', MAX_PACKET_LENGTH)[:-1]+int2byte(pckt_no)
             send_data = header + buf[:MAX_PACKET_LENGTH]
             self.socket.send(send_data)
             if DEBUG: dump_packet(send_data)
             buf = buf[MAX_PACKET_LENGTH:]
             pckt_no += 1
-        header = struct.pack('<i', len(buf))[:-1]+chr(pckt_no)
+        header = struct.pack('<i', len(buf))[:-1]+int2byte(pckt_no)
         self.socket.send(header+buf)
 
 
@@ -719,12 +734,12 @@ class Connection(object):
         self.user = self.user.encode(self.charset)
 
         data_init = struct.pack('<i', self.client_flag) + "\0\0\0\x01" + \
-                     chr(charset_id) + '\0'*23
+                     int2byte(charset_id) + '\0'*23
 
         next_packet = 1
 
         if self.ssl:
-            data = pack_int24(len(data_init)) + chr(next_packet) + data_init
+            data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
             next_packet += 1
 
             if DEBUG: dump_packet(data)
@@ -736,13 +751,13 @@ class Connection(object):
                                            cert_reqs=ssl.CERT_REQUIRED,
                                            ca_certs=self.ca)
 
-        data = data_init + self.user+"\0" + _scramble(self.password, self.salt)
+        data = data_init + self.user+"\0" + _scramble(self.passwbyte2int, self.salt)
 
         if self.db:
             self.db = self.db.encode(self.charset)
             data += self.db + "\0"
 
-        data = pack_int24(len(data)) + chr(next_packet) + data
+        data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
         if DEBUG: dump_packet(data)
@@ -753,14 +768,14 @@ class Connection(object):
         auth_packet.check_error()
         if DEBUG: auth_packet.dump()
 
-        # if old_passwords is enabled the packet will be 1 byte long and
+        # if old_passwbyte2ints is enabled the packet will be 1 byte long and
         # have the octet 254
 
         if auth_packet.is_eof_packet():
             # send legacy handshake
-            #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
-            data = _scramble_323(self.password, self.salt) + "\0"
-            data = pack_int24(len(data)) + chr(next_packet) + data
+            #raise NotImplementedError, "old_passwbyte2ints are not supported. Check to see if mysqld was started with --old-passwbyte2ints, if old-passwbyte2ints=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
+            data = _scramble_323(self.passwbyte2int, self.salt) + "\0"
+            data = pack_int24(len(data)) + int2byte(next_packet) + data
 
             sock.send(data)
             auth_packet = MysqlPacket(sock)
@@ -788,9 +803,9 @@ class Connection(object):
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
-        #packet_len = ord(data[i:i+1])
+        #packet_len = byte2int(data[i:i+1])
         #i += 4
-        self.protocol_version = ord(data[i:i+1])
+        self.protocol_version = byte2int(data[i:i+1])
 
         i += 1
         server_end = data.find("\0", i)
@@ -809,7 +824,7 @@ class Connection(object):
         self.server_capabilities = struct.unpack('<h', data[i:i+2])[0]
 
         i += 1
-        self.server_language = ord(data[i:i+1])
+        self.server_language = byte2int(data[i:i+1])
         self.server_charset = charset_by_id(self.server_language).name
 
         i += 16
@@ -866,7 +881,7 @@ class MySQLResult(object):
         self.message = self.first_packet.read_all()
 
     def _read_result_packet(self):
-        self.field_count = ord(self.first_packet.read(1))
+        self.field_count = byte2int(self.first_packet.read(1))
         self._get_descriptions()
         self._read_rowdata_packet()
 
