@@ -3,7 +3,8 @@ import unittest
 
 class PyMySQLTestCase(unittest.TestCase):
     databases = [
-        {"host":"localhost","user":"root","passwd":"","db":"test_pymysql"},
+        {"host":"localhost","user":"root",
+         "passwd":"","db":"test_pymysql", "use_unicode": True},
         {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
 
     def setUp(self):

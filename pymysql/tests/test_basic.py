@@ -15,7 +15,8 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
-            self.assertEqual(v[:8], r[:8])
+            self.assertEqual("\x01", r[0])
+            self.assertEqual(v[1:8], r[1:8])
             # mysql throws away microseconds so we need to check datetimes
             # specially. additionally times are turned into timedeltas.
             self.assertEqual(datetime.datetime(*v[8].timetuple()[:6]), r[8])

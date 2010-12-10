@@ -1,8 +1,6 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
-import re
-
 try:
     import hashlib
     sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
@@ -22,13 +20,13 @@ try:
 except ImportError:
     import StringIO
 
-from charset import MBLENGTH
+from charset import MBLENGTH, charset_by_name, charset_by_id
 from cursors import Cursor
-from constants import FIELD_TYPE
+from constants import FIELD_TYPE, FLAG
 from constants import SERVER_STATUS
 from constants.CLIENT import *
 from constants.COMMAND import *
-from converters import escape_item, encoders, decoders, field_decoders
+from converters import escape_item, encoders, decoders
 from err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
@@ -64,7 +62,8 @@ def dump_packet(data):
     dump_data = [data[i:i+16] for i in xrange(len(data)) if i%16 == 0]
     for d in dump_data:
         print ' '.join(map(lambda x:"%02X" % ord(x), d)) + \
-                '   ' * (16 - len(d)) + ' ' * 2 + ' '.join(map(lambda x:"%s" % is_ascii(x), d))
+                '   ' * (16 - len(d)) + ' ' * 2 + \
+                ' '.join(map(lambda x:"%s" % is_ascii(x), d))
     print "-" * 88
     print ""
 
@@ -84,7 +83,8 @@ def _my_crypt(message1, message2):
     length = len(message1)
     result = struct.pack('B', length)
     for i in xrange(length):
-        x = (struct.unpack('B', message1[i:i+1])[0] ^ struct.unpack('B', message2[i:i+1])[0])
+        x = (struct.unpack('B', message1[i:i+1])[0] ^ \
+             struct.unpack('B', message2[i:i+1])[0])
         result += struct.pack('B', x)
     return result
 
@@ -161,9 +161,10 @@ def unpack_int64(n):
     (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
 
 def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
-    raise
     err = errorclass, errorvalue
-    
+    if DEBUG:
+        raise
+
     if cursor:
         cursor.messages.append(err)
     else:
@@ -271,8 +272,8 @@ class MysqlPacket(object):
     """
     return self.__data[position:(position+length)]
 
-  def read_coded_length(self):
-    """Read a 'Length Coded' number from the data buffer.
+  def read_length_coded_binary(self):
+    """Read a 'Length Coded Binary' number from the data buffer.
 
     Length coded numbers can be anywhere from 1 to 9 bytes depending
     on the value of the first byte.
@@ -290,16 +291,17 @@ class MysqlPacket(object):
       # TODO: what was 'longlong'?  confirm it wasn't used?
       return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
 
-  def read_length_coded_binary(self):
-    """Read a 'Length Coded Binary' from the data buffer.
+  def read_length_coded_string(self):
+    """Read a 'Length Coded String' from the data buffer.
 
-    A 'Length Coded Binary' consists first of a length coded
+    A 'Length Coded String' consists first of a length coded
     (unsigned, positive) integer represented in 1-9 bytes followed by
     that many bytes of binary data.  (For example "cat" would be "3cat".)
     """
-    length = self.read_coded_length()
-    if length:
-      return self.read(length)
+    length = self.read_length_coded_binary()
+    if length is None:
+        return None
+    return self.read(length)
 
   def is_ok_packet(self):
     return ord(self.get_bytes(0)) == 0
@@ -342,19 +344,17 @@ class FieldDescriptorPacket(MysqlPacket):
 
     This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
     """
-    self.catalog = self.read_length_coded_binary()
-    self.db = self.read_length_coded_binary()
-    self.table_name = self.read_length_coded_binary()
-    self.org_table = self.read_length_coded_binary()
-    self.name = self.read_length_coded_binary()
-    self.org_name = self.read_length_coded_binary()
+    self.catalog = self.read_length_coded_string()
+    self.db = self.read_length_coded_string()
+    self.table_name = self.read_length_coded_string()
+    self.org_table = self.read_length_coded_string()
+    self.name = self.read_length_coded_string()
+    self.org_name = self.read_length_coded_string()
     self.advance(1)  # non-null filler
-    self.charsetnr = struct.unpack('<h', self.read(2))[0]
-    self.length = struct.unpack('<i', self.read(4))[0]
+    self.charsetnr = struct.unpack('<H', self.read(2))[0]
+    self.length = struct.unpack('<I', self.read(4))[0]
     self.type_code = ord(self.read(1))
-    flags = struct.unpack('<h', self.read(2))
-    # TODO: what is going on here with this flag parsing???
-    self.flags = int(("%02X" % flags)[1:], 16)
+    self.flags = struct.unpack('<H', self.read(2))[0]
     self.scale = ord(self.read(1))  # "decimals"
     self.advance(2)  # filler (always 0x00)
 
@@ -401,8 +401,8 @@ class Connection(object):
 
     def __init__(self, host="localhost", user=None, passwd="",
                  db=None, port=3306, unix_socket=None,
-                 charset=DEFAULT_CHARSET, sql_mode=None,
-                 read_default_file=None, conv=decoders, use_unicode=True,
+                 charset='', sql_mode=None,
+                 read_default_file=None, conv=decoders, use_unicode=False,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None):
@@ -457,7 +457,7 @@ class Connection(object):
                     return cfg.get("client",key)
                 except:
                     return default
-            
+
             user = _config("user",user)
             passwd = _config("password",passwd)
             host = _config("host", host)
@@ -465,15 +465,22 @@ class Connection(object):
             unix_socket = _config("socket",unix_socket)
             port = _config("port", port)
             charset = _config("default-character-set", charset)
-                
+
         self.host = host
         self.port = port
         self.user = user
         self.password = passwd
         self.db = db
         self.unix_socket = unix_socket
-        self.use_unicode = use_unicode
-        self.charset = DEFAULT_CHARSET
+        if charset:
+            self.charset = charset
+            self.use_unicode = True
+        else:
+            self.charset = DEFAULT_CHARSET
+            self.use_unicode = False
+
+        if use_unicode:
+            self.use_unicode = use_unicode
 
         client_flag |= CAPABILITIES
         client_flag |= MULTI_STATEMENTS
@@ -483,20 +490,19 @@ class Connection(object):
 
         self.cursorclass = cursorclass
         self.connect_timeout = connect_timeout
-        
+
         self._connect()
-        
-        self.set_charset_set(charset)
+
         self.messages = []
+        self.set_charset(charset)
         self.encoders = encoders
         self.decoders = conv
-        self.field_decoders = field_decoders
 
         self._affected_rows = 0
         self.host_info = "Not connected"
-        
+
         self.autocommit(False)
-        
+
         if sql_mode is not None:
             c = self.cursor()
             c.execute("SET sql_mode=%s", (sql_mode,))
@@ -506,21 +512,20 @@ class Connection(object):
         if init_command is not None:
             c = self.cursor()
             c.execute(init_command)
-            
+
             self.commit()
-        
+
 
     def close(self):
         ''' Send the quit message and close the socket '''
-        try:
+        if self.socket:
             send_data = struct.pack('<i',1) + COM_QUIT
-            sock = self.socket
-            sock.send(send_data)
-            sock.close()
-        except:
-            exc,value,tb = sys.exc_info()
-            self.errorhandler(None, exc, value)
-    
+            self.socket.send(send_data)
+            self.socket.close()
+            self.socket = None
+        else:
+            self.errorhandler(None, InterfaceError, "(0, '')")
+
     def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
         try:
@@ -560,7 +565,7 @@ class Connection(object):
     def cursor(self):
         ''' Create a new cursor to execute queries with '''
         return self.cursorclass(self)
-    
+
     def __enter__(self):
         ''' Context manager that returns a Cursor '''
         return self.cursor()
@@ -577,7 +582,7 @@ class Connection(object):
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result()
         return self._affected_rows
-    
+
     def next_result(self):
         self._affected_rows = self._read_query_result()
         return self._affected_rows
@@ -595,7 +600,7 @@ class Connection(object):
             return
         pkt = self.read_packet()
         return pkt.is_ok_packet()
-    
+
     def ping(self, reconnect=True):
         ''' Check if the server is alive '''
         try:
@@ -612,14 +617,13 @@ class Connection(object):
         pkt = self.read_packet()
         return pkt.is_ok_packet()
 
-    def set_charset_set(self, charset):
+    def set_charset(self, charset):
         try:
-            sock = self.socket
-            if charset and self.charset != charset:
+            if charset:
                 self._execute_command(COM_QUERY, "SET NAMES %s" %
                                       self.escape(charset))
                 self.read_packet()
-                self.charset = charset     
+                self.charset = charset
         except:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
@@ -647,7 +651,7 @@ class Connection(object):
             self._request_authentication()
         except socket.error, e:
             raise OperationalError(2003, "Can't connect to MySQL server on %r (%d)" % (self.host, e.args[0]))
-    
+
     def read_packet(self, packet_type=MysqlPacket):
       """Read an entire "mysql packet" in its entirety from the network
       and return a MysqlPacket type that represents the results."""
@@ -673,7 +677,9 @@ class Connection(object):
         pckt_no = 0
         while len(buf) >= MAX_PACKET_LENGTH:
             header = struct.pack('<i', MAX_PACKET_LENGTH)[:-1]+chr(pckt_no)
-            self.socket.send(header+buf[:MAX_PACKET_LENGTH])
+            send_data = header + buf[:MAX_PACKET_LENGTH]
+            self.socket.send(send_data)
+            if DEBUG: dump_packet(send_data)
             buf = buf[MAX_PACKET_LENGTH:]
             pckt_no += 1
         header = struct.pack('<i', len(buf))[:-1]+chr(pckt_no)
@@ -683,13 +689,12 @@ class Connection(object):
         #sock = self.socket
         #sock.send(send_data)
 
-        if DEBUG: dump_packet(send_data)
+        #
 
     def _execute_command(self, command, sql):
         self._send_command(command, sql)
         
     def _request_authentication(self):
-        sock = self.socket
         self._send_authentication()
 
     def _send_authentication(self):
@@ -700,9 +705,12 @@ class Connection(object):
 
         if self.user is None:
             raise ValueError, "Did not specify a username"
-    
-        data_init = (struct.pack('<i', self.client_flag)) \
-                            + "\0\0\0\x01" + '\x08' + '\0'*23
+
+        charset_id = charset_by_name(self.charset).id
+        self.user = self.user.encode(self.charset)
+
+        data_init = struct.pack('<i', self.client_flag) + "\0\0\0\x01" + \
+                     chr(charset_id) + '\0'*23
 
         next_packet = 1
 
@@ -722,13 +730,14 @@ class Connection(object):
         data = data_init + self.user+"\0" + _scramble(self.password, self.salt)
 
         if self.db:
-            data += self.db.encode(self.charset) + "\0"
+            self.db = self.db.encode(self.charset)
+            data += self.db + "\0"
 
         data = pack_int24(len(data)) + chr(next_packet) + data
         next_packet += 2
-        
+
         if DEBUG: dump_packet(data)
-        
+
         sock.send(data)
 
         auth_packet = MysqlPacket(sock)
@@ -743,13 +752,13 @@ class Connection(object):
             #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
             data = _scramble_323(self.password, self.salt) + "\0"
             data = pack_int24(len(data)) + chr(next_packet) + data
-        
+
             sock.send(data)
             auth_packet = MysqlPacket(sock)
             auth_packet.check_error()
             if DEBUG: auth_packet.dump()
-        
-        
+
+
     # _mysql support
     def thread_id(self):
         return self.server_thread_id[0]
@@ -759,10 +768,10 @@ class Connection(object):
 
     def get_host_info(self):
         return self.host_info
-    
+
     def get_proto_info(self):
         return self.protocol_version
-        
+
     def _get_server_information(self):
         sock = self.socket
         i = 0
@@ -773,27 +782,28 @@ class Connection(object):
         #packet_len = ord(data[i:i+1])
         #i += 4
         self.protocol_version = ord(data[i:i+1])
-        
+
         i += 1
         server_end = data.find("\0", i)
         self.server_version = data[i:server_end]
-        
+
         i = server_end + 1
         self.server_thread_id = struct.unpack('<h', data[i:i+2])
 
         i += 4
         self.salt = data[i:i+8]
-        
+
         i += 9
         if len(data) >= i + 1:
             i += 1
-       
+
         self.server_capabilities = struct.unpack('<h', data[i:i+2])[0]
 
         i += 1
         self.server_language = ord(data[i:i+1])
-        
-        i += 16 
+        self.server_charset = charset_by_id(self.server_language).name
+
+        i += 16
         if len(data) >= i+12-1:
             rest_salt = data[i:i+12]
             self.salt += rest_salt
@@ -840,8 +850,8 @@ class MySQLResult(object):
 
     def _read_ok_packet(self):
         self.first_packet.advance(1)  # field_count (always '0')
-        self.affected_rows = self.first_packet.read_coded_length()
-        self.insert_id = self.first_packet.read_coded_length()
+        self.affected_rows = self.first_packet.read_length_coded_binary()
+        self.insert_id = self.first_packet.read_length_coded_binary()
         self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
         self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
         self.message = self.first_packet.read_all()
@@ -871,14 +881,7 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
 
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-                data = packet.read_length_coded_binary()
-                converted = None
-                if data != None:
-                    converted = converter(data)
-            else:
-                converter = self.connection.field_decoders[field.type_code]
-                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-                data = packet.read_length_coded_binary()
+                data = packet.read_length_coded_string()
                 converted = None
                 if data != None:
                     converted = converter(self.connection, field, data)

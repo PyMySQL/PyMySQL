@@ -104,8 +104,8 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         self.assertEqual('1', pymysql.converters.escape_item(1, "utf8"))
         self.assertEqual('1', pymysql.converters.escape_item(1L, "utf8"))
 
-        self.assertEqual('1', pymysql.converters.escape_object(1, "utf8"))
-        self.assertEqual('1', pymysql.converters.escape_object(1L, "utf8"))
+        self.assertEqual('1', pymysql.converters.escape_object(1))
+        self.assertEqual('1', pymysql.converters.escape_object(1L))
 
     def test_issue_15(self):
         """ query should be expanded before perform character encoding """
