@@ -537,13 +537,10 @@ class Connection(object):
 
     def close(self):
         ''' Send the quit message and close the socket '''
-        if self.socket:
-            send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
-            self.socket.send(send_data)
-            self.socket.close()
-            self.socket = None
-        else:
-            self.errorhandler(None, InterfaceError, "(0, '')")
+        send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
+        self.socket.send(send_data)
+        self.socket.close()
+        self.socket = None
 
     def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
@@ -692,6 +689,9 @@ class Connection(object):
     def _send_command(self, command, sql):
         #send_data = struct.pack('<i', len(sql) + 1) + command + sql
         # could probably be more efficient, at least it's correct
+        if not self.socket:
+            self.errorhandler(None, InterfaceError, "(0, '')")
+
         if isinstance(sql, unicode):
             sql = sql.encode(self.charset)
 

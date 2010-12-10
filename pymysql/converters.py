@@ -338,8 +338,8 @@ try:
     decoders[FIELD_TYPE.DECIMAL] = convert_decimal
     decoders[FIELD_TYPE.NEWDECIMAL] = convert_decimal
 
-    def escape_decimal(obj, charset):
-        return unicode(obj).encode(charset)
+    def escape_decimal(obj):
+        return unicode(obj)
     encoders[Decimal] = escape_decimal
 
 except ImportError:
