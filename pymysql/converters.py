@@ -22,6 +22,9 @@ def escape_item(val, charset):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
+    if hasattr(val, "decode") and not isinstance(val, unicode):
+        # deal with py3k bytes
+        val = val.decode(charset)
     encoder = encoders[type(val)]
     val = encoder(val)
     if type(val) is str:
@@ -107,6 +110,8 @@ def convert_datetime(connection, field, obj):
       True
 
     """
+    if not isinstance(obj, unicode):
+        obj = obj.decode(connection.charset)
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
@@ -139,6 +144,8 @@ def convert_timedelta(connection, field, obj):
     """
     from math import modf
     try:
+        if not isinstance(obj, unicode):
+            obj = obj.decode(connection.charset)
         hours, minutes, seconds = tuple([int(x) for x in obj.split(':')])
         tdelta = datetime.timedelta(
             hours = int(hours),
@@ -196,6 +203,8 @@ def convert_date(connection, field, obj):
 
     """
     try:
+        if not isinstance(obj, unicode):
+            obj = obj.decode(connection.charset)
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
         return None
@@ -221,6 +230,9 @@ def convert_mysql_timestamp(connection, field, timestamp):
       True
 
     """
+    if not isinstance(timestamp, unicode):
+        timestamp = timestamp.decode(connection.charset)
+
     if timestamp[4] == '-':
         return convert_datetime(connection, field, timestamp)
     timestamp += "0"*(14-len(timestamp)) # padding
@@ -244,16 +256,19 @@ def convert_bit(connection, field, b):
     return b
 
 def convert_characters(connection, field, data):
+    field_charset = charset_by_id(field.charsetnr).name
     if field.flags & FLAG.SET:
-        return convert_set(data)
+        return convert_set(data.decode(field_charset))
     if field.flags & FLAG.BINARY:
         return data
-    field_charset = charset_by_id(field.charsetnr).name
+
     if connection.use_unicode:
         data = data.decode(field_charset)
     elif connection.charset != field_charset:
         data = data.decode(field_charset)
         data = data.encode(connection.charset)
+    else:
+        data = data.decode(connection.charset)
     return data
 
 def convert_int(connection, field, data):

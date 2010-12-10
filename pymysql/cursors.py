@@ -2,6 +2,11 @@
 import struct
 import re
 
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
+
 from err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
@@ -85,13 +90,13 @@ class Cursor(object):
         charset = conn.charset
         del self.messages[:]
 
-        # this ordering is good because conn.escape() returns
-        # an encoded string.
-        if isinstance(query, unicode):
-            query = query.encode(charset)
+        # TODO: make sure that conn.escape is correct
 
         if args is not None:
             query = query % conn.escape(args)
+
+        if isinstance(query, unicode):
+            query = query.encode(charset)
 
         result = 0
         try:

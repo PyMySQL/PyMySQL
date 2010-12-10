@@ -1,4 +1,5 @@
 from pymysql.tests import base
+from pymysql import util
 
 import time
 import datetime
@@ -11,11 +12,11 @@ class TestConversion(base.PyMySQLTestCase):
         c.execute("create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)")
         try:
             # insert values
-            v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", "binary\x00data", datetime.date(1988,2,2), datetime.datetime.now(), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
+            v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", "binary\x00data".encode(conn.charset), datetime.date(1988,2,2), datetime.datetime.now(), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
             c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
-            self.assertEqual("\x01", r[0])
+            self.assertEqual(util.int2byte(1), r[0])
             self.assertEqual(v[1:8], r[1:8])
             # mysql throws away microseconds so we need to check datetimes
             # specially. additionally times are turned into timedeltas.
@@ -63,7 +64,7 @@ class TestConversion(base.PyMySQLTestCase):
             data = "pymysql" * 1024
             c.execute("insert into test_big_blob (b) values (%s)", (data,))
             c.execute("select b from test_big_blob")
-            self.assertEqual(data, c.fetchone()[0])
+            self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
         finally:
             c.execute("drop table test_big_blob")
 
