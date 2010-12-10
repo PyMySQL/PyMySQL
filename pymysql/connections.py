@@ -426,14 +426,14 @@ class Connection(object):
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.
         ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
-        read_default_group: Not supported
+        read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
         """
 
 
-        if read_default_group or compress or named_pipe:
-            raise NotImplementedError, "read_default_group, compress and named_pipe arguments are not supported"
+        if compress or named_pipe:
+            raise NotImplementedError, "compress and named_pipe arguments are not supported"
 
         if ssl and (ssl.has_key('capath') or ssl.has_key('cipher')):
             raise NotImplementedError, 'ssl options capath and cipher are not supported'
@@ -448,13 +448,22 @@ class Connection(object):
                     v = ssl[k]
                 setattr(self, k, v)
 
+        if read_default_group and not read_default_file:
+            if sys.platform.startswith("win"):
+                read_default_file = "c:\\my.ini"
+            else:
+                read_default_file = "/etc/my.cnf"
+
         if read_default_file:
+            if not read_default_group:
+                read_default_group = "client"
+
             cfg = ConfigParser.RawConfigParser()
             cfg.read(os.path.expanduser(read_default_file))
 
             def _config(key, default):
                 try:
-                    return cfg.get("client",key)
+                    return cfg.get(read_default_group,key)
                 except:
                     return default
 
