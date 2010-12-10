@@ -6,6 +6,7 @@ Changes
      -Cleaned up charset functionality
      -Fixed BIT type handling
      -Connections raise exceptions after they are close()'d
+     -Full Py3k and unicode support
 
 0.3  -Implemented most of the extended DBAPI 2.0 spec including callproc()
      -Fixed error handling to include the message from the server and support
