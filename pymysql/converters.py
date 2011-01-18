@@ -1,9 +1,12 @@
 import re
 import datetime
 import time
+import sys
 
 from constants import FIELD_TYPE, FLAG
 from charset import charset_by_id
+
+PYTHON3 = sys.version_info[0] > 2
 
 try:
     set
@@ -22,7 +25,7 @@ def escape_item(val, charset):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    if hasattr(val, "decode") and not isinstance(val, unicode):
+    if PYTHON3 and hasattr(val, "decode") and not isinstance(val, unicode):
         # deal with py3k bytes
         val = val.decode(charset)
     encoder = encoders[type(val)]
@@ -267,8 +270,6 @@ def convert_characters(connection, field, data):
     elif connection.charset != field_charset:
         data = data.decode(field_charset)
         data = data.encode(connection.charset)
-    else:
-        data = data.decode(connection.charset)
     return data
 
 def convert_int(connection, field, data):
