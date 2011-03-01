@@ -113,12 +113,12 @@ class Cursor(object):
     def executemany(self, query, args):
         ''' Run several data against one query '''
         del self.messages[:]
-        conn = self._get_db()
+        #conn = self._get_db()
         if not args:
             return
-        charset = conn.charset
-        if isinstance(query, unicode):
-            query = query.encode(charset)
+        #charset = conn.charset
+        #if isinstance(query, unicode):
+        #    query = query.encode(charset)
 
         self.rowcount = sum([ self.execute(query, arg) for arg in args ])
         return self.rowcount
@@ -248,3 +248,44 @@ class Cursor(object):
     InternalError = InternalError
     ProgrammingError = ProgrammingError
     NotSupportedError = NotSupportedError
+
+class DictCursor(Cursor):
+    """A cursor which returns results as a dictionary"""
+
+    def execute(self, query, args=None):
+        result = super(DictCursor, self).execute(query, args)
+        if self.description:
+            self._fields = [ field[0] for field in self.description ]
+        return result
+
+    def fetchone(self):
+        ''' Fetch the next row '''
+        self._check_executed()
+        if self._rows is None or self.rownumber >= len(self._rows):
+            return None
+        result = dict(zip(self._fields, self._rows[self.rownumber]))
+        self.rownumber += 1
+        return result
+
+    def fetchmany(self, size=None):
+        ''' Fetch several rows '''
+        self._check_executed()
+        if self._rows is None:
+            return None
+        end = self.rownumber + (size or self.arraysize)
+        result = [ dict(zip(self._fields, r)) for r in self._rows[self.rownumber:end] ]
+        self.rownumber = min(end, len(self._rows))
+        return tuple(result)
+
+    def fetchall(self):
+        ''' Fetch all the rows '''
+        self._check_executed()
+        if self._rows is None:
+            return None
+        if self.rownumber:
+            result = [ dict(zip(self._fields, r)) for r in self._rows[self.rownumber:] ]
+        else:
+            result = [ dict(zip(self._fields, r)) for r in self._rows ]
+        self.rownumber = len(self._rows)
+        return tuple(result)
+

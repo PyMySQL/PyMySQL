@@ -189,7 +189,8 @@ class MysqlPacket(object):
   from the network socket, removes packet header and provides an interface
   for reading/parsing the packet results."""
 
-  def __init__(self, socket):
+  def __init__(self, socket, connection):
+    self.connection = connection
     self.__position = 0
     self.__recv_packet(socket)
     del socket
@@ -354,7 +355,7 @@ class FieldDescriptorPacket(MysqlPacket):
     self.db = self.read_length_coded_string()
     self.table_name = self.read_length_coded_string()
     self.org_table = self.read_length_coded_string()
-    self.name = self.read_length_coded_string()
+    self.name = self.read_length_coded_string().decode(self.connection.charset)
     self.org_name = self.read_length_coded_string()
     self.advance(1)  # non-null filler
     self.charsetnr = struct.unpack('<H', self.read(2))[0]
@@ -578,8 +579,10 @@ class Connection(object):
         ''' Alias for escape() '''
         return escape_item(obj, self.charset)
 
-    def cursor(self):
+    def cursor(self, cursor=None):
         ''' Create a new cursor to execute queries with '''
+        if cursor:
+            return cursor(self)
         return self.cursorclass(self)
 
     def __enter__(self):
@@ -676,7 +679,7 @@ class Connection(object):
       #       socket.recv(large_number)?  if so, maybe we should buffer
       #       the socket.recv() (though that obviously makes memory management
       #       more complicated.
-      packet = packet_type(self.socket)
+      packet = packet_type(self.socket, self)
       packet.check_error()
       return packet
 
@@ -762,7 +765,7 @@ class Connection(object):
 
         sock.send(data)
 
-        auth_packet = MysqlPacket(sock)
+        auth_packet = MysqlPacket(sock, self)
         auth_packet.check_error()
         if DEBUG: auth_packet.dump()
 
@@ -777,7 +780,7 @@ class Connection(object):
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
             sock.send(data)
-            auth_packet = MysqlPacket(sock)
+            auth_packet = MysqlPacket(sock, self)
             auth_packet.check_error()
             if DEBUG: auth_packet.dump()
 
@@ -798,7 +801,7 @@ class Connection(object):
     def _get_server_information(self):
         sock = self.socket
         i = 0
-        packet = MysqlPacket(sock)
+        packet = MysqlPacket(sock, self)
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
