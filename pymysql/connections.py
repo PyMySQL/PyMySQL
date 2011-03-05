@@ -669,7 +669,7 @@ class Connection(object):
             self._get_server_information()
             self._request_authentication()
         except socket.error, e:
-            raise OperationalError(2003, "Can't connect to MySQL server on %r (%d)" % (self.host, e.args[0]))
+            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
 
     def read_packet(self, packet_type=MysqlPacket):
       """Read an entire "mysql packet" in its entirety from the network
