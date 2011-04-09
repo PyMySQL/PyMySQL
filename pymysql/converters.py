@@ -335,6 +335,7 @@ try:
     # python version > 2.3
     from decimal import Decimal
     def convert_decimal(connection, field, data):
+        data = data.decode(connection.charset)
         return Decimal(data)
     decoders[FIELD_TYPE.DECIMAL] = convert_decimal
     decoders[FIELD_TYPE.NEWDECIMAL] = convert_decimal

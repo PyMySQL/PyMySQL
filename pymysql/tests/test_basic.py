@@ -134,6 +134,20 @@ class TestCursor(base.PyMySQLTestCase):
         finally:
             c.execute("drop table test_nr")
 
+    def test_aggregates(self):
+        """ test aggregate functions """
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute('create table test_aggregates (i integer)')
+        try:
+            for i in xrange(0, 10):
+                c.execute('insert into test_aggregates (i) values (%s)', (i,))
+            c.execute('select sum(i) from test_aggregates')
+            r, = c.fetchone()
+            self.assertEqual(sum(range(0,10)), r)
+        finally:
+            c.execute('drop table test_aggregates')
+
 __all__ = ["TestConversion","TestCursor"]
 
 if __name__ == "__main__":
