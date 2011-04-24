@@ -50,7 +50,7 @@ UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
 DEFAULT_CHARSET = 'latin1'
-MAX_PACKET_LENGTH = 256*256*256-1
+MAX_PACKET_LENGTH = 256*64
 
 
 def dump_packet(data):
@@ -598,6 +598,8 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql):
+        if DEBUG:
+            print "sending query: %s" % sql
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result()
         return self._affected_rows
@@ -698,18 +700,18 @@ class Connection(object):
         if isinstance(sql, unicode):
             sql = sql.encode(self.charset)
 
-        buf = int2byte(command) + sql
-        pckt_no = 0
-        while len(buf) >= MAX_PACKET_LENGTH:
-            header = struct.pack('<i', MAX_PACKET_LENGTH)[:-1]+int2byte(pckt_no)
-            send_data = header + buf[:MAX_PACKET_LENGTH]
+        send_data = struct.pack('<i', len(sql)+1) + int2byte(command) + sql
+        if len(sql) <= (MAX_PACKET_LENGTH-5):
             self.socket.send(send_data)
             if DEBUG: dump_packet(send_data)
-            buf = buf[MAX_PACKET_LENGTH:]
-            pckt_no += 1
-        header = struct.pack('<i', len(buf))[:-1]+int2byte(pckt_no)
-        self.socket.send(header+buf)
-
+        else:
+            self.socket.send(send_data)
+            if DEBUG: dump_packet(send_data)
+            while len(sql) > MAX_PACKET_LENGTH:
+                self.socket.send(sql[:MAX_PACKET_LENGTH])
+                if DEBUG: dump_packet(sql[:MAX_PACKET_LENGTH])
+                sql = sql[MAX_PACKET_LENGTH:]
+            self.socket.send(sql)
 
         #sock = self.socket
         #sock.send(send_data)

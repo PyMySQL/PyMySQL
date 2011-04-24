@@ -138,8 +138,8 @@ class TestCursor(base.PyMySQLTestCase):
         """ test aggregate functions """
         conn = self.connections[0]
         c = conn.cursor()
-        c.execute('create table test_aggregates (i integer)')
         try:
+            c.execute('create table test_aggregates (i integer)')
             for i in xrange(0, 10):
                 c.execute('insert into test_aggregates (i) values (%s)', (i,))
             c.execute('select sum(i) from test_aggregates')
@@ -147,6 +147,19 @@ class TestCursor(base.PyMySQLTestCase):
             self.assertEqual(sum(range(0,10)), r)
         finally:
             c.execute('drop table test_aggregates')
+
+    def test_single_tuple(self):
+        """ test a single tuple """
+        conn = self.connections[0]
+        c = conn.cursor()
+        try:
+            c.execute("create table mystuff (id integer primary key)")
+            c.execute("insert into mystuff (id) values (1)")
+            c.execute("insert into mystuff (id) values (2)")
+            c.execute("select id from mystuff where id in %s", ((1,),))
+            self.assertEqual([(1,)], list(c.fetchall()))
+        finally:
+            c.execute("drop table mystuff")
 
 __all__ = ["TestConversion","TestCursor"]
 

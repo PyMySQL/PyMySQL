@@ -93,7 +93,14 @@ class Cursor(object):
         # TODO: make sure that conn.escape is correct
 
         if args is not None:
-            query = query % conn.escape(args)
+            if isinstance(args, tuple) or isinstance(args, list):
+                escaped_args = tuple(conn.escape(arg) for arg in args)
+            elif isinstance(args, dict):
+                escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
+            else:
+                raise ValueError, "args must be dict or tuple"
+
+            query = query % escaped_args
 
         if isinstance(query, unicode):
             query = query.encode(charset)

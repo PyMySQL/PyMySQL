@@ -47,7 +47,7 @@ def escape_sequence(val, charset):
     for item in val:
         quoted = escape_item(item, charset)
         n.append(quoted)
-    return tuple(n)
+    return "(" + ",".join(n) + ")"
 
 def escape_set(val, charset):
     val = map(lambda x: escape_item(x, charset), val)
