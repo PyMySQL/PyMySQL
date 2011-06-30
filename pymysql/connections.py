@@ -700,18 +700,19 @@ class Connection(object):
         if isinstance(sql, unicode):
             sql = sql.encode(self.charset)
 
-        send_data = struct.pack('<i', len(sql)+1) + int2byte(command) + sql
+        prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         if len(sql) <= (MAX_PACKET_LENGTH-5):
-            self.socket.send(send_data)
-            if DEBUG: dump_packet(send_data)
+            self.socket.send(prelude + sql)
+            if DEBUG: dump_packet(prelude + sql)
         else:
-            self.socket.send(send_data)
+            self.socket.send(prelude)
             if DEBUG: dump_packet(send_data)
             while len(sql) > MAX_PACKET_LENGTH:
-                self.socket.send(sql[:MAX_PACKET_LENGTH])
+                self.socket.sendall(sql[:MAX_PACKET_LENGTH])
                 if DEBUG: dump_packet(sql[:MAX_PACKET_LENGTH])
                 sql = sql[MAX_PACKET_LENGTH:]
-            self.socket.send(sql)
+            if len(sql) > 0:
+                self.socket.sendall(sql)
 
         #sock = self.socket
         #sock.send(send_data)
