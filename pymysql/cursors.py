@@ -98,7 +98,9 @@ class Cursor(object):
             elif isinstance(args, dict):
                 escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
             else:
-                raise ValueError, "args must be dict or tuple"
+                #If it's not a dictionary let's try escaping it anyways.
+                #Worst case it will throw a Value error
+                escaped_args = conn.escape(args)
 
             query = query % escaped_args
 
@@ -241,9 +243,7 @@ class Cursor(object):
         conn._result = None
 
     def __iter__(self):
-        self._check_executed()
-        result = self.rownumber and self._rows[self.rownumber:] or self._rows
-        return iter(result)
+        return iter(self.fetchone, None)
 
     Warning = Warning
     Error = Error
