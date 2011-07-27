@@ -822,7 +822,7 @@ class Connection(object):
             self.salt += rest_salt
 
     def get_server_info(self):
-        return self.server_version.encode("utf8") # 100% back-compat with MySQLdb
+        return self.server_version
 
     Warning = Warning
     Error = Error

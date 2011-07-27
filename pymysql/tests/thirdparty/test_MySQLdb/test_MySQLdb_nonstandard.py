@@ -83,7 +83,7 @@ class CoreAPI(unittest.TestCase):
                         "Should return an int.")
 
     def test_server_info(self):
-        self.assertTrue(isinstance(self.conn.get_server_info(), str),
+        self.assertTrue(isinstance(self.conn.get_server_info(), basestring),
                         "Should return an str.")
 
 if __name__ == "__main__":

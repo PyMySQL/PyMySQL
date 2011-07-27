@@ -114,7 +114,7 @@ del _map_error, ER
     
 def _get_error_info(data):
     errno = struct.unpack('<h', data[1:3])[0]
-    if data[3] == "#":
+    if data[3] == b"#"[0]:
         # version 4.1
         sqlstate = data[4:9].decode("utf8")
         errorvalue = data[9:].decode("utf8")
