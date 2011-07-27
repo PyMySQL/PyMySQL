@@ -528,10 +528,12 @@ class Connection(object):
 
     def close(self):
         ''' Send the quit message and close the socket '''
+        if self.socket is None:
+            raise Error("Already closed")
         send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
         self.wfile.write(send_data)
-        self.rfile.close()
         self.wfile.close()
+        self.rfile.close()
         self.socket.close()
         self.socket = None
         self.rfile = None
@@ -820,7 +822,7 @@ class Connection(object):
             self.salt += rest_salt
 
     def get_server_info(self):
-        return self.server_version
+        return self.server_version.encode("utf8") # 100% back-compat with MySQLdb
 
     Warning = Warning
     Error = Error

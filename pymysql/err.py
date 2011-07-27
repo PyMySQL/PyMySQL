@@ -2,19 +2,19 @@ import struct
 
 
 try:
-    Exception, Warning
+    StandardError, Warning
 except ImportError:
     try:
-        from exceptions import Exception, Warning
+        from exceptions import StandardError, Warning
     except ImportError:
         import sys
         e = sys.modules['exceptions']
-        Exception = e.Exception
+        StandardError = e.StandardError
         Warning = e.Warning
     
 from constants import ER
 
-class MySQLError(Exception):
+class MySQLError(StandardError):
     
     """Exception related to operation with MySQL."""
 

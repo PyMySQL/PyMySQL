@@ -2,6 +2,7 @@ import pymysql
 import unittest
 
 class PyMySQLTestCase(unittest.TestCase):
+    # Edit this to suit your test environment.
     databases = [
         {"host":"localhost","user":"root",
          "passwd":"","db":"test_pymysql", "use_unicode": True},
