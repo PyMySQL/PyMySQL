@@ -55,6 +55,31 @@ class TestConversion(base.PyMySQLTestCase):
         finally:
             c.execute("drop table test_dict")
 
+    def test_string(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("create table test_dict (a text)")
+        test_value = "I am a test string"
+        try:
+            c.execute("insert into test_dict (a) values (%s)", test_value)
+            c.execute("select a from test_dict")
+            self.assertEqual((test_value,), c.fetchone())
+        finally:
+            c.execute("drop table test_dict")
+
+    def test_integer(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("create table test_dict (a integer)")
+        test_value = 12345
+        try:
+            c.execute("insert into test_dict (a) values (%s)", test_value)
+            c.execute("select a from test_dict")
+            self.assertEqual((test_value,), c.fetchone())
+        finally:
+            c.execute("drop table test_dict")
+
+
     def test_big_blob(self):
         """ test tons of data """
         conn = self.connections[0]

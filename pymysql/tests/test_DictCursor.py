@@ -30,10 +30,18 @@ class TestDictCursor(base.PyMySQLTestCase):
             c.execute("SELECT * from dictcursor where name='bob'")
             r = c.fetchall()
             self.assertEqual((bob,),r,"fetch a 1 row result via fetchall failed via DictCursor")
+            # same test again but iterate over the 
+            c.execute("SELECT * from dictcursor where name='bob'")
+            for r in c:
+                self.assertEqual(bob, r,"fetch a 1 row result via iteration failed via DictCursor")
             # get all 3 row via fetchall
             c.execute("SELECT * from dictcursor")
             r = c.fetchall()
             self.assertEqual((bob,jim,fred), r, "fetchall failed via DictCursor")
+            #same test again but do a list comprehension
+            c.execute("SELECT * from dictcursor")
+            r = [x for x in c]
+            self.assertEqual([bob,jim,fred], r, "list comprehension failed via DictCursor")
             # get all 2 row via fetchmany
             c.execute("SELECT * from dictcursor")
             r = c.fetchmany(2)
