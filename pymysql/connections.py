@@ -50,7 +50,6 @@ UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
 DEFAULT_CHARSET = 'latin1'
-MAX_PACKET_LENGTH = 256*64
 
 
 def dump_packet(data):
@@ -189,20 +188,16 @@ class MysqlPacket(object):
   from the network socket, removes packet header and provides an interface
   for reading/parsing the packet results."""
 
-  def __init__(self, socket, connection):
+  def __init__(self, connection):
     self.connection = connection
     self.__position = 0
-    self.__recv_packet(socket)
-    del socket
+    self.__recv_packet()
 
-  def __recv_packet(self, socket):
+  def __recv_packet(self):
     """Parse the packet header and read entire packet payload into buffer."""
-    packet_header = socket.recv(4)
-    while len(packet_header) < 4:
-        d = socket.recv(4 - len(packet_header))
-        if len(d) == 0:
-            raise OperationalError(2013, "Lost connection to MySQL server during query")
-        packet_header += d
+    packet_header = self.connection.rfile.read(4)
+    if len(packet_header) < 4:
+        raise OperationalError(2013, "Lost connection to MySQL server during query")
 
     if DEBUG: dump_packet(packet_header)
     packet_length_bin = packet_header[:3]
@@ -211,16 +206,11 @@ class MysqlPacket(object):
 
     bin_length = packet_length_bin + int2byte(0)  # pad little-endian number
     bytes_to_read = struct.unpack('<I', bin_length)[0]
-
-    payload_buff = []  # this is faster than cStringIO
-    while bytes_to_read > 0:
-      recv_data = socket.recv(bytes_to_read)
-      if len(recv_data) == 0:
-            raise OperationalError(2013, "Lost connection to MySQL server during query")
-      if DEBUG: dump_packet(recv_data)
-      payload_buff.append(recv_data)
-      bytes_to_read -= len(recv_data)
-    self.__data = join_bytes(payload_buff)
+    recv_data = self.connection.rfile.read(bytes_to_read)
+    if len(recv_data) < bytes_to_read:
+        raise OperationalError(2013, "Lost connection to MySQL server during query")
+    if DEBUG: dump_packet(recv_data)
+    self.__data = recv_data
 
   def packet_number(self): return self.__packet_number
 
@@ -539,9 +529,13 @@ class Connection(object):
     def close(self):
         ''' Send the quit message and close the socket '''
         send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
-        self.socket.send(send_data)
+        self.wfile.write(send_data)
+        self.rfile.close()
+        self.wfile.close()
         self.socket.close()
         self.socket = None
+        self.rfile = None
+        self.wfile = None
 
     def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
@@ -668,6 +662,8 @@ class Connection(object):
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print 'connected using socket'
             self.socket = sock
+            self.rfile = self.socket.makefile("rb")
+            self.wfile = self.socket.makefile("wb")
             self._get_server_information()
             self._request_authentication()
         except socket.error, e:
@@ -677,11 +673,7 @@ class Connection(object):
       """Read an entire "mysql packet" in its entirety from the network
       and return a MysqlPacket type that represents the results."""
 
-      # TODO: is socket.recv(small_number) significantly slower than
-      #       socket.recv(large_number)?  if so, maybe we should buffer
-      #       the socket.recv() (though that obviously makes memory management
-      #       more complicated.
-      packet = packet_type(self.socket, self)
+      packet = packet_type(self)
       packet.check_error()
       return packet
 
@@ -701,23 +693,9 @@ class Connection(object):
             sql = sql.encode(self.charset)
 
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
-        if len(sql) <= (MAX_PACKET_LENGTH-5):
-            self.socket.send(prelude + sql)
-            if DEBUG: dump_packet(prelude + sql)
-        else:
-            self.socket.send(prelude)
-            if DEBUG: dump_packet(send_data)
-            while len(sql) > MAX_PACKET_LENGTH:
-                self.socket.sendall(sql[:MAX_PACKET_LENGTH])
-                if DEBUG: dump_packet(sql[:MAX_PACKET_LENGTH])
-                sql = sql[MAX_PACKET_LENGTH:]
-            if len(sql) > 0:
-                self.socket.sendall(sql)
-
-        #sock = self.socket
-        #sock.send(send_data)
-
-        #
+        self.wfile.write(prelude + sql)
+        self.wfile.flush()
+        if DEBUG: dump_packet(prelude + sql)
 
     def _execute_command(self, command, sql):
         self._send_command(command, sql)
@@ -726,7 +704,6 @@ class Connection(object):
         self._send_authentication()
 
     def _send_authentication(self):
-        sock = self.socket
         self.client_flag |= CAPABILITIES
         if self.server_version.startswith('5'):
             self.client_flag |= MULTI_RESULTS
@@ -748,12 +725,15 @@ class Connection(object):
 
             if DEBUG: dump_packet(data)
 
-            sock.send(data)
-            sock = self.socket = ssl.wrap_socket(sock, keyfile=self.key,
-                                           certfile=self.cert,
-                                           ssl_version=ssl.PROTOCOL_TLSv1,
-                                           cert_reqs=ssl.CERT_REQUIRED,
-                                           ca_certs=self.ca)
+            self.wfile.write(data)
+            self.wfile.flush()
+            self.socket = ssl.wrap_self.socketet(self.socket, keyfile=self.key,
+                                                 certfile=self.cert,
+                                                 ssl_version=ssl.PROTOCOL_TLSv1,
+                                                 cert_reqs=ssl.CERT_REQUIRED,
+                                                 ca_certs=self.ca)
+            self.rfile = self.socket.makefile("rb")
+            self.wfile = self.socket.makefile("wb")
 
         data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
@@ -766,9 +746,10 @@ class Connection(object):
 
         if DEBUG: dump_packet(data)
 
-        sock.send(data)
+        self.wfile.write(data)
+        self.wfile.flush()
 
-        auth_packet = MysqlPacket(sock, self)
+        auth_packet = MysqlPacket(self)
         auth_packet.check_error()
         if DEBUG: auth_packet.dump()
 
@@ -782,8 +763,9 @@ class Connection(object):
             data = _scramble_323(self.password.encode(self.charset), self.salt.encode(self.charset)) + int2byte(0)
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
-            sock.send(data)
-            auth_packet = MysqlPacket(sock, self)
+            self.wfile.write(data)
+            self.wfile.flush()
+            auth_packet = MysqlPacket(self)
             auth_packet.check_error()
             if DEBUG: auth_packet.dump()
 
@@ -802,9 +784,8 @@ class Connection(object):
         return self.protocol_version
 
     def _get_server_information(self):
-        sock = self.socket
         i = 0
-        packet = MysqlPacket(sock, self)
+        packet = MysqlPacket(self)
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
