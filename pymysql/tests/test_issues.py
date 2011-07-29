@@ -249,7 +249,17 @@ class TestNewIssues(base.PyMySQLTestCase):
             c.execute("drop table issue54")
 
 class TestGitHubIssues(base.PyMySQLTestCase):
-    pass
+    def test_issue_66(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        self.assertEquals(0, conn.insert_id())
+        try:
+            c.execute("create table issue66 (id integer primary key auto_increment, x integer)")
+            c.execute("insert into issue66 (x) values (1)")
+            c.execute("insert into issue66 (x) values (1)")
+            self.assertEquals(2, conn.insert_id())
+        finally:
+            c.execute("drop table issue66")
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 

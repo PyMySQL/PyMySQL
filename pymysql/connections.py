@@ -508,6 +508,7 @@ class Connection(object):
         self.encoders = encoders
         self.decoders = conv
 
+        self._result = None
         self._affected_rows = 0
         self.host_info = "Not connected"
 
@@ -684,6 +685,12 @@ class Connection(object):
         result.read()
         self._result = result
         return result.affected_rows
+
+    def insert_id(self):
+        if self._result:
+            return self._result.insert_id
+        else:
+            return 0
 
     def _send_command(self, command, sql):
         #send_data = struct.pack('<i', len(sql) + 1) + command + sql

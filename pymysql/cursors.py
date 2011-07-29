@@ -240,7 +240,6 @@ class Cursor(object):
         self.lastrowid = conn._result.insert_id
         self._rows = conn._result.rows
         self._has_next = conn._result.has_next
-        conn._result = None
 
     def __iter__(self):
         return iter(self.fetchone, None)
