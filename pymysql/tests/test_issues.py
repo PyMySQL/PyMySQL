@@ -249,8 +249,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             c.execute("drop table issue54")
 
 class TestGitHubIssues(base.PyMySQLTestCase):
-    def test_importall(self):
-        from pymysql import *
+    pass
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
