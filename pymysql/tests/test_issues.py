@@ -248,7 +248,11 @@ class TestNewIssues(base.PyMySQLTestCase):
         finally:
             c.execute("drop table issue54")
 
-__all__ = ["TestOldIssues", "TestNewIssues"]
+class TestGitHubIssues(base.PyMySQLTestCase):
+    def test_importall(self):
+        from pymysql import *
+
+__all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
 if __name__ == "__main__":
     import unittest
