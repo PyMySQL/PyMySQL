@@ -897,15 +897,13 @@ class MySQLResult(object):
 
         row = []
         for field in self.fields:
+            data = packet.read_length_coded_string()
+            converted = None
             if field.type_code in self.connection.decoders:
                 converter = self.connection.decoders[field.type_code]
-
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-                data = packet.read_length_coded_string()
-                converted = None
                 if data != None:
                     converted = converter(self.connection, field, data)
-
             row.append(converted)
 
         rows.append(tuple(row))
