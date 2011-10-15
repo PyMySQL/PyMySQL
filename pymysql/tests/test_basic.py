@@ -92,6 +92,26 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
         finally:
             c.execute("drop table test_big_blob")
+    
+    def test_untyped(self):
+        """ test conversion of null, empty string """
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("select null,''")
+        self.assertEqual((None,u''), c.fetchone())
+        c.execute("select '',null")
+        self.assertEqual((u'',None), c.fetchone())
+    
+    def test_datetime(self):
+        """ test conversion of null, empty string """
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100')")
+        self.assertEqual((datetime.timedelta(0, 45000),
+                          datetime.timedelta(0, 83579),
+                          datetime.timedelta(0, 83579, 51000)),
+                         c.fetchone())
+
 
 class TestCursor(base.PyMySQLTestCase):
     # this test case does not work quite right yet, however,

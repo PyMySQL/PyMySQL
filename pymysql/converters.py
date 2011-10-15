@@ -183,15 +183,14 @@ def convert_time(connection, field, obj):
     to be treated as time-of-day and not a time offset, then you can
     use set this function as the converter for FIELD_TYPE.TIME.
     """
-    from math import modf
     try:
         microseconds = 0
         if "." in obj:
             (obj, tail) = obj.split('.')
             microseconds = int(tail)
         hours, minutes, seconds = obj.split(':')
-        return datetime.time(hour=int(hour), minute=int(minute),
-                             second=int(second), microsecond=microseconds)
+        return datetime.time(hour=int(hours), minute=int(minutes),
+                             second=int(seconds), microsecond=microseconds)
     except ValueError:
         return None
 
