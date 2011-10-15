@@ -145,16 +145,17 @@ def convert_timedelta(connection, field, obj):
     can accept values as (+|-)DD HH:MM:SS. The latter format will not
     be parsed correctly by this function.
     """
-    from math import modf
     try:
-        if not isinstance(obj, unicode):
-            obj = obj.decode(connection.charset)
-        hours, minutes, seconds = tuple([int(x) for x in obj.split(':')])
+        microseconds = 0
+        if "." in obj:
+            (obj, tail) = obj.split('.')
+            microseconds = int(tail)
+        hours, minutes, seconds = obj.split(':')
         tdelta = datetime.timedelta(
             hours = int(hours),
             minutes = int(minutes),
             seconds = int(seconds),
-            microseconds = int(modf(float(seconds))[0]*1000000),
+            microseconds = microseconds
             )
         return tdelta
     except ValueError:
@@ -184,10 +185,13 @@ def convert_time(connection, field, obj):
     """
     from math import modf
     try:
-        hour, minute, second = obj.split(':')
+        microseconds = 0
+        if "." in obj:
+            (obj, tail) = obj.split('.')
+            microseconds = int(tail)
+        hours, minutes, seconds = obj.split(':')
         return datetime.time(hour=int(hour), minute=int(minute),
-                             second=int(second),
-                             microsecond=int(modf(float(second))[0]*1000000))
+                             second=int(second), microsecond=microseconds)
     except ValueError:
         return None
 
