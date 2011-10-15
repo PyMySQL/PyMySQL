@@ -25,6 +25,12 @@ try:
 except ImportError:
     import StringIO
 
+try:
+    import getpass
+    DEFAULT_USER = getpass.getuser()
+except ImportError:
+    DEFAULT_USER = None
+
 from charset import MBLENGTH, charset_by_name, charset_by_id
 from cursors import Cursor
 from constants import FIELD_TYPE, FLAG
@@ -478,7 +484,7 @@ class Connection(object):
 
         self.host = host
         self.port = port
-        self.user = user
+        self.user = user or DEFAULT_USER
         self.password = passwd
         self.db = db
         self.unix_socket = unix_socket
@@ -897,15 +903,13 @@ class MySQLResult(object):
 
         row = []
         for field in self.fields:
+            data = packet.read_length_coded_string()
+            converted = None
             if field.type_code in self.connection.decoders:
                 converter = self.connection.decoders[field.type_code]
-
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-                data = packet.read_length_coded_string()
-                converted = None
                 if data != None:
                     converted = converter(self.connection, field, data)
-
             row.append(converted)
 
         rows.append(tuple(row))
