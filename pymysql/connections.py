@@ -25,6 +25,12 @@ try:
 except ImportError:
     import StringIO
 
+try:
+    import getpass
+    DEFAULT_USER = getpass.getuser()
+except ImportError:
+    DEFAULT_USER = None
+
 from charset import MBLENGTH, charset_by_name, charset_by_id
 from cursors import Cursor
 from constants import FIELD_TYPE, FLAG
@@ -478,7 +484,7 @@ class Connection(object):
 
         self.host = host
         self.port = port
-        self.user = user
+        self.user = user or DEFAULT_USER
         self.password = passwd
         self.db = db
         self.unix_socket = unix_socket
