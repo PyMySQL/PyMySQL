@@ -147,6 +147,8 @@ def convert_timedelta(connection, field, obj):
     """
     try:
         microseconds = 0
+        if not isinstance(obj, unicode):
+            obj = obj.decode(connection.charset)
         if "." in obj:
             (obj, tail) = obj.split('.')
             microseconds = int(tail)

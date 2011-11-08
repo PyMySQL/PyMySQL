@@ -100,9 +100,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             size = 18*1024
             cur.execute("insert into issue13 (t) values (%s)", ("x" * size,))
             cur.execute("select t from issue13")
-            # use assert_ so that obscenely huge error messages don't print
+            # use assertTrue so that obscenely huge error messages don't print
             r = cur.fetchone()[0]
-            self.assert_("x" * size == r)
+            self.assertTrue("x" * size == r)
         finally:
             cur.execute("drop table issue13")
 
@@ -202,7 +202,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         # kill connections[0]
-        original_count = c.execute("show processlist")
+        c.execute("show processlist")
         kill_id = None
         for id,user,host,db,command,time,state,info in c.fetchall():
             if info == "show processlist":
@@ -217,8 +217,13 @@ class TestNewIssues(base.PyMySQLTestCase):
         except:
             pass
         # check the process list from the other connection
-        self.assertEqual(original_count - 1, self.connections[1].cursor().execute("show processlist"))
-        del self.connections[0]
+        try:
+            c = self.connections[1].cursor()
+            c.execute("show processlist")
+            ids = [row[0] for row in c.fetchall()]
+            self.assertFalse(kill_id in ids)
+        finally:
+            del self.connections[0]
 
     def test_issue_37(self):
         conn = self.connections[0]
@@ -249,7 +254,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             c.execute("create table issue54 (id integer primary key)")
             c.execute("insert into issue54 (id) values (7)")
             c.execute(big_sql)
-            self.assertEquals(7, c.fetchone()[0])
+            self.assertEqual(7, c.fetchone()[0])
         finally:
             c.execute("drop table issue54")
 
@@ -257,12 +262,12 @@ class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_66(self):
         conn = self.connections[0]
         c = conn.cursor()
-        self.assertEquals(0, conn.insert_id())
+        self.assertEqual(0, conn.insert_id())
         try:
             c.execute("create table issue66 (id integer primary key auto_increment, x integer)")
             c.execute("insert into issue66 (x) values (1)")
             c.execute("insert into issue66 (x) values (1)")
-            self.assertEquals(2, conn.insert_id())
+            self.assertEqual(2, conn.insert_id())
         finally:
             c.execute("drop table issue66")
 
