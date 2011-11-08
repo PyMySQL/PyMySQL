@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 '''
 
-VERSION = (0, 4, None)
+VERSION = (0, 5, None)
 
 from constants import FIELD_TYPE
 from converters import escape_dict, escape_sequence, escape_string

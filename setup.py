@@ -17,8 +17,8 @@ setup(
     url = 'http://code.google.com/p/pymysql',
     author = 'yutaka.matsubara',
     author_email = 'yutaka.matsubara@gmail.com',
-    maintainer = 'David.Story',
-    maintainer_email = 'iDavidStory@gmail.com',
+    maintainer = 'Pete Hunt',
+    maintainer_email = 'floydophone@gmail.com',
     description = 'Pure Python MySQL Driver ',
     license = "MIT",
     packages = ['pymysql', 'pymysql.constants', 'pymysql.tests']
