@@ -1,5 +1,6 @@
 import pymysql
 from pymysql.tests import base
+import unittest
 
 import sys
 
@@ -10,6 +11,10 @@ except AttributeError:
     pass
 
 import datetime
+
+# backwards compatibility:
+if not hasattr(unittest, "skip"):
+    unittest.skip = lambda message: lambda f: f
 
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
@@ -133,9 +138,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         finally:
             c.execute("drop table issue16")
 
+    @unittest.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
     def test_issue_17(self):
         """ could not connect mysql use passwod """
-        self.skipTest("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
         conn = self.connections[0]
         host = self.databases[0]["host"]
         db = self.databases[0]["db"]
@@ -182,17 +187,16 @@ class TestNewIssues(base.PyMySQLTestCase):
         finally:
             c.execute(_uni("drop table hei\xc3\x9fe", "utf8"))
 
-    # Will fail without manual intervention:
-    #def test_issue_35(self):
-    #
-    #    conn = self.connections[0]
-    #    c = conn.cursor()
-    #    print "sudo killall -9 mysqld within the next 10 seconds"
-    #    try:
-    #        c.execute("select sleep(10)")
-    #        self.fail()
-    #    except pymysql.OperationalError, e:
-    #        self.assertEqual(2013, e.args[0])
+    @unittest.skip("This test requires manual intervention")
+    def test_issue_35(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        print "sudo killall -9 mysqld within the next 10 seconds"
+        try:
+            c.execute("select sleep(10)")
+            self.fail()
+        except pymysql.OperationalError, e:
+            self.assertEqual(2013, e.args[0])
 
     def test_issue_36(self):
         conn = self.connections[0]
