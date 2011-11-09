@@ -396,6 +396,28 @@ class FieldDescriptorPacket(MysqlPacket):
             % (self.__class__, self.db, self.table_name, self.name,
                self.type_code))
 
+# TODO: Implement these. Commented code is below
+class OKPacket(MysqlPacket): pass
+class EOFPacket(MysqlPacket): pass
+
+"""
+    def _read_ok_packet(self):
+        self.first_packet.advance(1)  # field_count (always '0')
+        self.affected_rows = self.first_packet.read_length_coded_binary()
+        self.insert_id = self.first_packet.read_length_coded_binary()
+        self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
+        self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
+        self.message = self.first_packet.read_all()
+
+    def _check_packet_is_eof(self, packet):
+        if packet.is_eof_packet():
+            self.warning_count = packet.read(2)
+            server_status = struct.unpack('<h', packet.read(2))[0]
+            self.has_next = (server_status
+                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+            return True
+        return False
+"""
 
 class Connection(object):
     """
@@ -895,7 +917,6 @@ class MySQLResult(object):
         self.unbuffered_active = True
         self.first_packet = self.connection.read_packet()
 
-        # TODO: use classes for different packet types?
         if self.first_packet.is_ok_packet():
             self._read_ok_packet()
         else:

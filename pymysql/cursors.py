@@ -296,6 +296,21 @@ class DictCursor(Cursor):
         return tuple(result)
 
 class UnbufferedCursor(Cursor):
+    """
+    Unbuffered Cursor, mainly useful for queries that return a lot of data,
+    or for connections to remote servers over a slow network.
+    
+    Instead of copying every row of data into a buffer, this will fetch
+    rows as needed. The upside of this, is the client uses much less memory,
+    and rows are returned much faster when traveling over a slow network,
+    or if the result set is very big.
+    
+    There are limitations, though. The MySQL protocol doesn't support
+    returning the total number of rows, so the only way to tell how many rows
+    there are is to iterate over every row returned. Also, it currently isn't
+    possible to scroll backwards, as only the current row is held in memory.
+    """
+    
     def close(self):
         conn = self._get_db()
         conn._result._finish_unbuffered_query()
@@ -312,12 +327,15 @@ class UnbufferedCursor(Cursor):
         return self.rowcount
     
     def read_next(self):
+        """ Read next row """
+    
         conn = self._get_db()
         conn._result._read_rowdata_packet_unbuffered()
         return conn._result.rows
     
     def fetchone(self):
-        ''' Fetch the next row '''
+        """ Fetch next row """
+        
         self._check_executed()
         row = self.read_next()
         if row is None:
@@ -326,10 +344,41 @@ class UnbufferedCursor(Cursor):
         return row
     
     def fetchall(self):
+        """
+        Fetch all, implemented as a generator, which isn't to standard,
+        however, it doesn't make sense to return everything in a list, as that
+        would use ridiculous memory for large result sets.
+        """
+    
         row = self.fetchone()
         while row is not None:
             yield row
             row = self.fetchone()
     
-    def fetchmany(self, size=None): pass
+    def fetchall_list(self):
+        """ Fetch all, as list. """
+    
+        rows = []
+        row = self.fetchone()
+        while row is not None:
+            rows.append(row)
+            row = self.fetchone()
+        return rows
+    
+    def fetchmany(self, size=None):
+        """ Fetch many """
+    
+        self._check_executed()
+        if size is None:
+            size = self.arraysize
+        
+        rows = []
+        for i in range(0, size):
+            row = self.read_next()
+            if row is None:
+                break
+            rows.append(row)
+            self.rownumber += 1
+        return tuple(rows)
+        
     def scroll(self, value, mode='relative'): pass
