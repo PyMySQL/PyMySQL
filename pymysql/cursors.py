@@ -295,3 +295,5 @@ class DictCursor(Cursor):
         self.rownumber = len(self._rows)
         return tuple(result)
 
+class UnbufferedCursor(Cursor): pass
+

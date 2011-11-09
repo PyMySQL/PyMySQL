@@ -867,6 +867,7 @@ class MySQLResult(object):
         self.description = None
         self.rows = None
         self.has_next = None
+        self.unbuffered_active = False
 
     def read(self):
         self.first_packet = self.connection.read_packet()
@@ -877,7 +878,8 @@ class MySQLResult(object):
         else:
             self._read_result_packet()
 
-    def init_unbuffered(self):
+    def init_unbuffered_query(self):
+        self.unbuffered_active = True
         self.first_packet = self.connection.read_packet()
 
         # TODO: use classes for different packet types?
@@ -895,19 +897,30 @@ class MySQLResult(object):
         self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
         self.message = self.first_packet.read_all()
 
-    def _read_result_packet(self):
-        self.field_count = byte2int(self.first_packet.read(1))
-        self._get_descriptions()
-        self._read_rowdata_packet()
-
-    def _read_next_rowdata_packet(self):
-        packet = self.connection.read_packet()
+    def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
             self.warning_count = packet.read(2)
             server_status = struct.unpack('<h', packet.read(2))[0]
             self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
-            #break
+            return True
+        return False
+    
+
+    def _read_result_packet(self):
+        self.field_count = byte2int(self.first_packet.read(1))
+        self._get_descriptions()
+        self._read_rowdata_packet()
+
+    def _read_rowdata_packet_unbuffered(self):
+        # Check if in an active query
+        if self.unbuffered_active == False: return
+        
+        # EOF
+        packet = self.connection.read_packet()
+        if self._check_packet_is_eof(packet):
+            self.unbuffered_active = False
+            return
 
         row = []
         for field in self.fields:
@@ -924,17 +937,14 @@ class MySQLResult(object):
         self.rows = tuple([row])
         if DEBUG: self.rows
 
-    def _cancel_unbuffered_query(self):
-        # TODO: There HAS to be a better way, than waiting for the server to
-        # send an EOF packet.
-        while True:
+    def _finish_unbuffered_query(self):
+        # After much reading on the MySQL protocol, it appears that there is,
+        # in fact, no way to stop MySQL from sending all the data after
+        # executing a query, so we just spin, and wait for an EOF packet.
+        while self.unbuffered_active:
             packet = self.connection.read_packet()
-            if packet.is_eof_packet():
-                self.warning_count = packet.read(2)
-                server_status = struct.unpack('<h', packet.read(2))[0]
-                self.has_next = (server_status
-                        & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
-                break
+            if self._check_packet_is_eof(packet):
+                self.unbuffered_active = False
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
@@ -943,11 +953,7 @@ class MySQLResult(object):
       rows = []
       while True:
         packet = self.connection.read_packet()
-        if packet.is_eof_packet():
-            self.warning_count = packet.read(2)
-            server_status = struct.unpack('<h', packet.read(2))[0]
-            self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+        if self._check_packet_is_eof(packet):
             break
 
         row = []
