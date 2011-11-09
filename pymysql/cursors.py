@@ -295,13 +295,6 @@ class DictCursor(Cursor):
         self.rownumber = len(self._rows)
         return tuple(result)
 
-"""
-    db._execute_command(command.COM_QUERY, 'SELECT * FROM bigtable')
-    result = connections.MySQLResult(db)
-    result.init_unbuffered_query()
-    result._read_rowdata_packet_unbuffered()
-"""
-
 class UnbufferedCursor(Cursor):
     def _query(self, q):
         conn = self._get_db()
@@ -323,3 +316,12 @@ class UnbufferedCursor(Cursor):
             return None
         self.rownumber += 1
         return row
+    
+    def fetchall(self):
+        row = self.fetchone()
+        while row is not None:
+            yield row
+            row = self.fetchone()
+    
+    def fetchmany(self, size=None): pass
+    def scroll(self, value, mode='relative'): pass
