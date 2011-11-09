@@ -64,13 +64,16 @@ def dump_packet(data):
         if byte2int(data) >= 65 and byte2int(data) <= 122: #data.isalnum():
             return data
         return '.'
-    print "packet length %d" % len(data)
-    print "method call[1]: %s" % sys._getframe(1).f_code.co_name
-    print "method call[2]: %s" % sys._getframe(2).f_code.co_name
-    print "method call[3]: %s" % sys._getframe(3).f_code.co_name
-    print "method call[4]: %s" % sys._getframe(4).f_code.co_name
-    print "method call[5]: %s" % sys._getframe(5).f_code.co_name
-    print "-" * 88
+    
+    try:
+        print "packet length %d" % len(data)
+        print "method call[1]: %s" % sys._getframe(1).f_code.co_name
+        print "method call[2]: %s" % sys._getframe(2).f_code.co_name
+        print "method call[3]: %s" % sys._getframe(3).f_code.co_name
+        print "method call[4]: %s" % sys._getframe(4).f_code.co_name
+        print "method call[5]: %s" % sys._getframe(5).f_code.co_name
+        print "-" * 88
+    except ValueError: pass
     dump_data = [data[i:i+16] for i in xrange(len(data)) if i%16 == 0]
     for d in dump_data:
         print ' '.join(map(lambda x:"%02X" % byte2int(x), d)) + \
@@ -874,6 +877,16 @@ class MySQLResult(object):
         else:
             self._read_result_packet()
 
+    def init_unbuffered(self):
+        self.first_packet = self.connection.read_packet()
+
+        # TODO: use classes for different packet types?
+        if self.first_packet.is_ok_packet():
+            self._read_ok_packet()
+        else:
+            self.field_count = byte2int(self.first_packet.read(1))
+            self._get_descriptions()
+
     def _read_ok_packet(self):
         self.first_packet.advance(1)  # field_count (always '0')
         self.affected_rows = self.first_packet.read_length_coded_binary()
@@ -886,6 +899,42 @@ class MySQLResult(object):
         self.field_count = byte2int(self.first_packet.read(1))
         self._get_descriptions()
         self._read_rowdata_packet()
+
+    def _read_next_rowdata_packet(self):
+        packet = self.connection.read_packet()
+        if packet.is_eof_packet():
+            self.warning_count = packet.read(2)
+            server_status = struct.unpack('<h', packet.read(2))[0]
+            self.has_next = (server_status
+                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+            #break
+
+        row = []
+        for field in self.fields:
+            data = packet.read_length_coded_string()
+            converted = None
+            if field.type_code in self.connection.decoders:
+                converter = self.connection.decoders[field.type_code]
+                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
+                if data != None:
+                    converted = converter(self.connection, field, data)
+            row.append(converted)
+
+        self.affected_rows = 1
+        self.rows = tuple([row])
+        if DEBUG: self.rows
+
+    def _cancel_unbuffered_query(self):
+        # TODO: There HAS to be a better way, than waiting for the server to
+        # send an EOF packet.
+        while True:
+            packet = self.connection.read_packet()
+            if packet.is_eof_packet():
+                self.warning_count = packet.read(2)
+                server_status = struct.unpack('<h', packet.read(2))[0]
+                self.has_next = (server_status
+                        & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+                break
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
