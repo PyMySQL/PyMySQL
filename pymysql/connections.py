@@ -933,6 +933,7 @@ class MySQLResult(object):
         packet = self.connection.read_packet()
         if self._check_packet_is_eof(packet):
             self.unbuffered_active = False
+            self.rows = None
             return
 
         row = []

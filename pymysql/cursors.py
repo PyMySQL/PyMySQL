@@ -296,6 +296,14 @@ class DictCursor(Cursor):
         return tuple(result)
 
 class UnbufferedCursor(Cursor):
+    def close(self):
+        conn = self._get_db()
+        conn._result._finish_unbuffered_query()
+        
+        try:
+            while self.nextset(): pass
+        except: pass
+
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
