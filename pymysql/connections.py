@@ -603,11 +603,11 @@ class Connection(object):
             self.commit()
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
-    def query(self, sql):
+    def query(self, sql, unbuffered=False):
         if DEBUG:
             print "sending query: %s" % sql
         self._execute_command(COM_QUERY, sql)
-        self._affected_rows = self._read_query_result()
+        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
 
     def next_result(self):
@@ -689,9 +689,13 @@ class Connection(object):
       packet.check_error()
       return packet
 
-    def _read_query_result(self):
-        result = MySQLResult(self)
-        result.read()
+    def _read_query_result(self, unbuffered=False):
+        if unbuffered:
+            result = MySQLResult(self)
+            result.init_unbuffered_query()
+        else:
+            result = MySQLResult(self)
+            result.read()
         self._result = result
         return result.affected_rows
 
@@ -706,6 +710,11 @@ class Connection(object):
         # could probably be more efficient, at least it's correct
         if not self.socket:
             self.errorhandler(None, InterfaceError, "(0, '')")
+
+        # If the last query was unbuffered, make sure it finishes before
+        # sending new commands
+        if self._result is not None and self._result.unbuffered_active:
+            self._result._finish_unbuffered_query()
 
         if isinstance(sql, unicode):
             sql = sql.encode(self.charset)
@@ -869,6 +878,10 @@ class MySQLResult(object):
         self.has_next = None
         self.unbuffered_active = False
 
+    def __del__(self):
+        if self.unbuffered_active:
+            self._finish_unbuffered_query()
+
     def read(self):
         self.first_packet = self.connection.read_packet()
 
@@ -934,7 +947,7 @@ class MySQLResult(object):
             row.append(converted)
 
         self.affected_rows = 1
-        self.rows = tuple([row])
+        self.rows = tuple((row))
         if DEBUG: self.rows
 
     def _finish_unbuffered_query(self):

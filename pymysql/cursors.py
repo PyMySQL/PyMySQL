@@ -295,5 +295,31 @@ class DictCursor(Cursor):
         self.rownumber = len(self._rows)
         return tuple(result)
 
-class UnbufferedCursor(Cursor): pass
+"""
+    db._execute_command(command.COM_QUERY, 'SELECT * FROM bigtable')
+    result = connections.MySQLResult(db)
+    result.init_unbuffered_query()
+    result._read_rowdata_packet_unbuffered()
+"""
 
+class UnbufferedCursor(Cursor):
+    def _query(self, q):
+        conn = self._get_db()
+        self._last_executed = q
+        conn.query(q, unbuffered=True)
+        self._do_get_result()
+        return self.rowcount
+    
+    def read_next(self):
+        conn = self._get_db()
+        conn._result._read_rowdata_packet_unbuffered()
+        return conn._result.rows
+    
+    def fetchone(self):
+        ''' Fetch the next row '''
+        self._check_executed()
+        row = self.read_next()
+        if row is None:
+            return None
+        self.rownumber += 1
+        return row
