@@ -381,4 +381,14 @@ class UnbufferedCursor(Cursor):
             self.rownumber += 1
         return tuple(rows)
         
-    def scroll(self, value, mode='relative'): pass
+    def scroll(self, value, mode='relative'):
+        NotSupportedError('Backwards scrolling not supported'
+            ' by this cursor')
+        
+        if mode == 'relative' and value < 0:
+            raise NotSupportedError('Backwards scrolling not supported'
+                    ' by this cursor')
+            
+            
+            
+            
