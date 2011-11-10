@@ -397,6 +397,12 @@ class FieldDescriptorPacket(MysqlPacket):
                self.type_code))
 
 class OKPacketWrapper(object):
+    """
+    OK Packet Wrapper. It uses an existing packet object, and wraps
+    around it, exposing useful variables while still providing access
+    to the original packet objects variables and methods.
+    """
+
     def __init__(self, from_packet):
         if not from_packet.is_ok_packet():
             raise ValueError('Cannot create ' + str(self.__class__.__name__)
@@ -419,6 +425,12 @@ class OKPacketWrapper(object):
             + " instance has no attribute '" + key + "'")
 
 class EOFPacketWrapper(object):
+    """
+    EOF Packet Wrapper. It uses an existing packet object, and wraps
+    around it, exposing useful variables while still providing access
+    to the original packet objects variables and methods.
+    """
+
     def __init__(self, from_packet):
         if not from_packet.is_eof_packet():
             raise ValueError('Cannot create ' + str(self.__class__.__name__)
