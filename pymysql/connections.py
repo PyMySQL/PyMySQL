@@ -396,7 +396,7 @@ class FieldDescriptorPacket(MysqlPacket):
             % (self.__class__, self.db, self.table_name, self.name,
                self.type_code))
 
-class OKPacket(object):
+class OKPacketWrapper(object):
     def __init__(self, from_packet):
         if not from_packet.is_ok_packet():
             raise ValueError('Cannot create ' + str(self.__class__.__name__)
@@ -418,7 +418,7 @@ class OKPacket(object):
         raise AttributeError(str(self.__class__)
             + " instance has no attribute '" + key + "'")
 
-class EOFPacket(object):
+class EOFPacketWrapper(object):
     def __init__(self, from_packet):
         if not from_packet.is_eof_packet():
             raise ValueError('Cannot create ' + str(self.__class__.__name__)
@@ -942,7 +942,7 @@ class MySQLResult(object):
             self._get_descriptions()
 
     def _read_ok_packet(self):
-        ok_packet = OKPacket(self.first_packet)
+        ok_packet = OKPacketWrapper(self.first_packet)
         self.affected_rows = ok_packet.affected_rows
         self.insert_id = ok_packet.insert_id
         self.server_status = ok_packet.server_status
@@ -951,7 +951,7 @@ class MySQLResult(object):
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
-            eof_packet = EOFPacket(packet)
+            eof_packet = EOFPacketWrapper(packet)
             self.warning_count = eof_packet.warning_count
             self.has_next = eof_packet.has_next
             return True
