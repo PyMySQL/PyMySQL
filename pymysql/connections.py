@@ -399,7 +399,7 @@ class FieldDescriptorPacket(MysqlPacket):
 class OKPacket(object):
     def __init__(self, from_packet):
         if not from_packet.is_ok_packet():
-            raise AssertionError('Cannot create ' + str(self.__class__.__name__)
+            raise ValueError('Cannot create ' + str(self.__class__.__name__)
                 + ' object from invalid packet type')
         
         self.packet = from_packet
@@ -421,7 +421,7 @@ class OKPacket(object):
 class EOFPacket(object):
     def __init__(self, from_packet):
         if not from_packet.is_eof_packet():
-            raise AssertionError('Cannot create ' + str(self.__class__.__name__)
+            raise ValueError('Cannot create ' + str(self.__class__.__name__)
                 + ' object from invalid packet type')
         
         self.packet = from_packet
