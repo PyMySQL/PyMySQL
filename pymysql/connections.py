@@ -43,7 +43,7 @@ from err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 
-DEBUG = False
+DEBUG = True
 
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
@@ -743,8 +743,12 @@ class Connection(object):
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
-            result = MySQLResult(self)
-            result.init_unbuffered_query()
+            try:
+                result = MySQLResult(self)
+                result.init_unbuffered_query()
+            except:
+                result.unbuffered_active = False
+                raise
         else:
             result = MySQLResult(self)
             result.read()
@@ -953,6 +957,11 @@ class MySQLResult(object):
         else:
             self.field_count = byte2int(self.first_packet.read(1))
             self._get_descriptions()
+            
+            # Apparently, MySQLdb picks this number because it's the maximum
+            # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
+            # we set it to this instead of None, which would be preferred.
+            self.affected_rows = 18446744073709551615
 
     def _read_ok_packet(self):
         ok_packet = OKPacketWrapper(self.first_packet)

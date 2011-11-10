@@ -295,7 +295,7 @@ class DictCursor(Cursor):
         self.rownumber = len(self._rows)
         return tuple(result)
 
-class UnbufferedCursor(Cursor):
+class SSCursor(Cursor):
     """
     Unbuffered Cursor, mainly useful for queries that return a lot of data,
     or for connections to remote servers over a slow network.
@@ -316,7 +316,8 @@ class UnbufferedCursor(Cursor):
         conn._result._finish_unbuffered_query()
         
         try:
-            while self.nextset(): pass
+            if self._has_next:
+                while self.nextset(): pass
         except: pass
 
     def _query(self, q):
@@ -344,6 +345,21 @@ class UnbufferedCursor(Cursor):
         return row
     
     def fetchall(self):
+        """
+        Fetch all, as per MySQLdb. Pretty useless for large queries, as
+        it is buffered. See fetchall_unbuffered(), if you want an unbuffered
+        generator version of this method.
+        """
+    
+        rows = []
+        while True:
+            row = self.fetchone()
+            if row is None:
+                break
+            rows.append(row)
+        return tuple(rows)
+
+    def fetchall_unbuffered(self):
         """
         Fetch all, implemented as a generator, which isn't to standard,
         however, it doesn't make sense to return everything in a list, as that
