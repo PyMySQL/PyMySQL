@@ -396,28 +396,46 @@ class FieldDescriptorPacket(MysqlPacket):
             % (self.__class__, self.db, self.table_name, self.name,
                self.type_code))
 
-# TODO: Implement these. Commented code is below
-class OKPacket(MysqlPacket): pass
-class EOFPacket(MysqlPacket): pass
+class OKPacket(object):
+    def __init__(self, from_packet):
+        if not from_packet.is_ok_packet():
+            raise AssertionError('Cannot create ' + str(self.__class__.__name__)
+                + ' object from invalid packet type')
+        
+        self.packet = from_packet
+        self.packet.advance(1)
+        
+        self.affected_rows = self.packet.read_length_coded_binary()
+        self.insert_id = self.packet.read_length_coded_binary()
+        self.server_status = struct.unpack('<H', self.packet.read(2))[0]
+        self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
+        self.message = self.packet.read_all()
+    
+    def __getattr__(self, key):
+        if hasattr(self.packet, key):
+            return getattr(self.packet, key)
+        
+        raise AttributeError(str(self.__class__)
+            + " instance has no attribute '" + key + "'")
 
-"""
-    def _read_ok_packet(self):
-        self.first_packet.advance(1)  # field_count (always '0')
-        self.affected_rows = self.first_packet.read_length_coded_binary()
-        self.insert_id = self.first_packet.read_length_coded_binary()
-        self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
-        self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
-        self.message = self.first_packet.read_all()
+class EOFPacket(object):
+    def __init__(self, from_packet):
+        if not from_packet.is_eof_packet():
+            raise AssertionError('Cannot create ' + str(self.__class__.__name__)
+                + ' object from invalid packet type')
+        
+        self.packet = from_packet
+        self.warning_count = self.packet.read(2)
+        server_status = struct.unpack('<h', self.packet.read(2))[0]
+        self.has_next = (server_status
+                        & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
 
-    def _check_packet_is_eof(self, packet):
-        if packet.is_eof_packet():
-            self.warning_count = packet.read(2)
-            server_status = struct.unpack('<h', packet.read(2))[0]
-            self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
-            return True
-        return False
-"""
+    def __getattr__(self, key):
+        if hasattr(self.packet, key):
+            return getattr(self.packet, key)
+        
+        raise AttributeError(str(self.__class__)
+            + " instance has no attribute '" + key + "'")
 
 class Connection(object):
     """
@@ -924,22 +942,20 @@ class MySQLResult(object):
             self._get_descriptions()
 
     def _read_ok_packet(self):
-        self.first_packet.advance(1)  # field_count (always '0')
-        self.affected_rows = self.first_packet.read_length_coded_binary()
-        self.insert_id = self.first_packet.read_length_coded_binary()
-        self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
-        self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
-        self.message = self.first_packet.read_all()
+        ok_packet = OKPacket(self.first_packet)
+        self.affected_rows = ok_packet.affected_rows
+        self.insert_id = ok_packet.insert_id
+        self.server_status = ok_packet.server_status
+        self.warning_count = ok_packet.warning_count
+        self.message = ok_packet.message
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
-            self.warning_count = packet.read(2)
-            server_status = struct.unpack('<h', packet.read(2))[0]
-            self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+            eof_packet = EOFPacket(packet)
+            self.warning_count = eof_packet.warning_count
+            self.has_next = eof_packet.has_next
             return True
         return False
-    
 
     def _read_result_packet(self):
         self.field_count = byte2int(self.first_packet.read(1))
