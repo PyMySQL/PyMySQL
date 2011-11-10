@@ -1,8 +1,27 @@
 
 try:
-    from setuptools import setup
+    from setuptools import setup, Command
 except ImportError:
-    from distutils.core import setup
+    from distutils.core import setup, Command
+
+import sys
+
+class TestCommand(Command):
+    user_options = [ ]
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        '''
+        Finds all the tests modules in tests/, and runs them.
+        '''
+        from pymysql import tests
+        import unittest
+        unittest.main(tests, argv=sys.argv[:1])
 
 version_tuple = __import__('pymysql').VERSION
 
@@ -21,5 +40,6 @@ setup(
     maintainer_email = 'floydophone@gmail.com',
     description = 'Pure Python MySQL Driver ',
     license = "MIT",
-    packages = ['pymysql', 'pymysql.constants', 'pymysql.tests']
+    packages = ['pymysql', 'pymysql.constants', 'pymysql.tests'],
+    cmdclass = {'test': TestCommand},
 )
