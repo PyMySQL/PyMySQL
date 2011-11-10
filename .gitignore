@@ -3,3 +3,6 @@ __pycache__
 py3k
 dist
 PyMySQL.egg-info
+Xcode
+.DS_Store
+tests/test.py
