@@ -409,6 +409,5 @@ class SSCursor(Cursor):
             for i in range(0, end): self.read_next()
             self.rownumber = value
             
-            
-            
-            
+    def nextset(self): pass
+    def executemany(self, query, args): pass
