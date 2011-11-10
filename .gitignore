@@ -4,6 +4,5 @@ py3k
 dist
 PyMySQL.egg-info
 Xcode
-tests
 .DS_Store
-test.py
+tests/test.py
