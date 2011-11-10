@@ -949,6 +949,7 @@ class MySQLResult(object):
 
         if self.first_packet.is_ok_packet():
             self._read_ok_packet()
+            self.unbuffered_active = False
         else:
             self.field_count = byte2int(self.first_packet.read(1))
             self._get_descriptions()
