@@ -43,7 +43,7 @@ from err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 
-DEBUG = True
+DEBUG = False
 
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251

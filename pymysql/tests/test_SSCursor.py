@@ -10,9 +10,6 @@ except:
     import pymysql.cursors
 
 class TestSSCursor(base.PyMySQLTestCase):
-    #databases = [
-    #    {"host":"localhost","user":"testuser","passwd":"8cp1FEqp","db":"cleure"}]
-
     def test_SSCursor(self):
         affected_rows = 18446744073709551615
     
@@ -75,10 +72,16 @@ class TestSSCursor(base.PyMySQLTestCase):
             self.assertEqual(len(cursor.fetchmany(2)), 2,
                 'fetchmany failed. Number of rows does not match')
             
+            # So MySQLdb won't throw "Commands out of sync"
+            while True:
+                res = cursor.fetchone()
+                if res is None:
+                    break
+            
             # Test update, affected_rows()
             cursor.execute('UPDATE tz_data SET zone = %s', ['Foo'])
             conn.commit()
-            self.assertEqual(conn.affected_rows(), len(data),
+            self.assertEqual(cursor.rowcount, len(data),
                 'Update failed. affected_rows != %s' % (str(len(data))))
             
             # Test executemany
