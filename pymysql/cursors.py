@@ -382,12 +382,26 @@ class UnbufferedCursor(Cursor):
         return tuple(rows)
         
     def scroll(self, value, mode='relative'):
-        NotSupportedError('Backwards scrolling not supported'
-            ' by this cursor')
-        
-        if mode == 'relative' and value < 0:
-            raise NotSupportedError('Backwards scrolling not supported'
-                    ' by this cursor')
+        self._check_executed()
+        if not mode == 'relative' and not mode == 'absolute':
+            self.errorhandler(self, ProgrammingError,
+                    "unknown scroll mode %s" % mode)
+    
+        if mode == 'relative':
+            if value < 0:
+                self.errorhandler(self, NotSupportedError,
+                    "Backwards scrolling not supported by this cursor")
+            
+            for i in range(0, value): self.read_next()
+            self.rownumber += value
+        else:
+            if value < self.rownumber:
+                self.errorhandler(self, NotSupportedError,
+                    "Backwards scrolling not supported by this cursor")
+                
+            end = value - self.rownumber
+            for i in range(0, end): self.read_next()
+            self.rownumber = value
             
             
             
