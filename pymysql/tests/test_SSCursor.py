@@ -75,6 +75,17 @@ class TestSSCursor(base.PyMySQLTestCase):
             self.assertEqual(len(cursor.fetchmany(2)), 2,
                 'fetchmany failed. Number of rows does not match')
             
+            # Test update, affected_rows()
+            cursor.execute('UPDATE tz_data SET zone = %s', ['Foo'])
+            conn.commit()
+            self.assertEqual(conn.affected_rows(), len(data),
+                'Update failed. affected_rows != %s' % (str(len(data))))
+            
+            # Test executemany
+            cursor.executemany('INSERT INTO tz_data VALUES (%s, %s, %s)', data)
+            self.assertEqual(cursor.rowcount, len(data),
+                'executemany failed. cursor.rowcount != %s' % (str(len(data))))
+            
         finally:
             cursor.execute('DROP TABLE tz_data')
             cursor.close()
