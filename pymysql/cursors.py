@@ -355,16 +355,6 @@ class UnbufferedCursor(Cursor):
             yield row
             row = self.fetchone()
     
-    def fetchall_list(self):
-        """ Fetch all, as list. """
-    
-        rows = []
-        row = self.fetchone()
-        while row is not None:
-            rows.append(row)
-            row = self.fetchone()
-        return rows
-    
     def fetchmany(self, size=None):
         """ Fetch many """
     
