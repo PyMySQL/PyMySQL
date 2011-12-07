@@ -574,14 +574,14 @@ class Connection(object):
 
         self._connect()
 
+        self._result = None
+        self._affected_rows = 0
+        self.host_info = "Not connected"
+
         self.messages = []
         self.set_charset(charset)
         self.encoders = encoders
         self.decoders = conv
-
-        self._result = None
-        self._affected_rows = 0
-        self.host_info = "Not connected"
 
         self.autocommit(False)
 
