@@ -769,7 +769,7 @@ class Connection(object):
 
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
-        if self._result is not None and self._result.unbuffered_active:
+        if getattr(self, '_result', None) and self._result.unbuffered_active:
             self._result._finish_unbuffered_query()
 
         if isinstance(sql, unicode):
