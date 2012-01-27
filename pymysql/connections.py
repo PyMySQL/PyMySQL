@@ -694,6 +694,8 @@ class Connection(object):
         ''' Check if the server is alive '''
         try:
             self._execute_command(COM_PING, "")
+            pkt = self.read_packet()
+            return pkt.is_ok_packet()
         except:
             if reconnect:
                 self._connect()
@@ -702,9 +704,6 @@ class Connection(object):
                 exc,value,tb = sys.exc_info()
                 self.errorhandler(None, exc, value)
                 return
-
-        pkt = self.read_packet()
-        return pkt.is_ok_packet()
 
     def set_charset(self, charset):
         try:
