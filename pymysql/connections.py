@@ -544,7 +544,7 @@ class Connection(object):
             host = _config("host", host)
             db = _config("db",db)
             unix_socket = _config("socket",unix_socket)
-            port = _config("port", port)
+            port = int(_config("port", port))
             charset = _config("default-character-set", charset)
 
         self.host = host
