@@ -20,6 +20,8 @@ ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
 
+class Obj(object):pass
+
 def escape_item(val, charset):
     if type(val) in [tuple, list, set]:
         return escape_sequence(val, charset)
@@ -103,7 +105,7 @@ def escape_struct_time(obj):
 def Thing2Literal(o, d):
     return "'%s'" % escape_string(str(o))
 
-def convert_datetime(connection, field, obj):
+def convert_datetime(*args):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
@@ -119,6 +121,14 @@ def convert_datetime(connection, field, obj):
       True
 
     """
+    field = None
+    if len(args) > 1:
+        connection = args[0]
+        obj = args[-1]
+    else:
+        connection = Obj()
+        connection.charset = 'utf8'
+        obj = args[0]
     if not isinstance(obj, unicode):
         obj = obj.decode(connection.charset)
     if ' ' in obj:

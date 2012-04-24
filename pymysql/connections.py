@@ -15,6 +15,7 @@ try:
 except ImportError:
     SSL_ENABLED = False
 
+import inspect
 import struct
 import sys
 import os
@@ -197,6 +198,8 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     del connection
 
     if not issubclass(errorclass, Error):
+        import traceback
+        traceback.print_exc()
         raise Error(errorclass, errorvalue)
     else:
         raise errorclass, errorvalue
@@ -969,7 +972,7 @@ class MySQLResult(object):
         else:
             self.field_count = byte2int(self.first_packet.read(1))
             self._get_descriptions()
-            
+
             # Apparently, MySQLdb picks this number because it's the maximum
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
             # we set it to this instead of None, which would be preferred.
@@ -999,7 +1002,7 @@ class MySQLResult(object):
     def _read_rowdata_packet_unbuffered(self):
         # Check if in an active query
         if self.unbuffered_active == False: return
-        
+
         # EOF
         packet = self.connection.read_packet()
         if self._check_packet_is_eof(packet):
@@ -1015,7 +1018,10 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    converted = converter(self.connection, field, data)
+                    if len(inspect.getargspec(converter)[0]) == 1:
+                        converted = converter(data)
+                    else:
+                        converted = converter(self.connection, field, data)
             row.append(converted)
 
         self.affected_rows = 1
@@ -1049,7 +1055,10 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    converted = converter(self.connection, field, data)
+                    if len(inspect.getargspec(converter)[0]) == 1:
+                        converted = converter(data)
+                    else:
+                        converted = converter(self.connection, field, data)
             row.append(converted)
 
         rows.append(tuple(row))
