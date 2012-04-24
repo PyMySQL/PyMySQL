@@ -597,7 +597,6 @@ class Connection(object):
 
             self.commit()
 
-
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
@@ -638,6 +637,10 @@ class Connection(object):
         except:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
+
+    def select_db(self, db):
+        self.db = db
+        self.query("USE %s" % db)
 
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''

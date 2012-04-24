@@ -100,6 +100,9 @@ def escape_date(obj):
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
 
+def Thing2Literal(o, d):
+    return "'%s'" % escape_string(str(o))
+
 def convert_datetime(connection, field, obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
