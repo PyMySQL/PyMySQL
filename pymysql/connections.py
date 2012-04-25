@@ -15,11 +15,11 @@ try:
 except ImportError:
     SSL_ENABLED = False
 
-import inspect
 import struct
 import sys
 import os
 import ConfigParser
+from functools import partial
 
 try:
     import cStringIO as StringIO
@@ -1018,10 +1018,11 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    if len(inspect.getargspec(converter)[0]) == 1:
-                        converted = converter(data)
-                    else:
-                        converted = converter(self.connection, field, data)
+                    if not isinstance(data, unicode):
+                        data = data.decode(self.connection.charset)
+                    if converter.func_name == 'convert_characters':
+                        converter = partial(converter, self.connection, field)
+                    converted = converter(data)
             row.append(converted)
 
         self.affected_rows = 1
@@ -1055,10 +1056,11 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    if len(inspect.getargspec(converter)[0]) == 1:
-                        converted = converter(data)
-                    else:
-                        converted = converter(self.connection, field, data)
+                    if not isinstance(data, unicode):
+                        data = data.decode(self.connection.charset)
+                    if converter.func_name == 'convert_characters':
+                        converter = partial(converter, self.connection, field)
+                    converted = converter(data)
             row.append(converted)
 
         rows.append(tuple(row))
