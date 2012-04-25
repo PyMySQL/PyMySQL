@@ -1018,10 +1018,10 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    if not isinstance(data, unicode):
-                        data = data.decode(self.connection.charset)
                     if converter.func_name == 'convert_characters':
                         converter = partial(converter, self.connection, field)
+                    elif not isinstance(data, unicode):
+                        data = data.decode(self.connection.charset)
                     converted = converter(data)
             row.append(converted)
 
@@ -1056,10 +1056,10 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    if not isinstance(data, unicode):
-                        data = data.decode(self.connection.charset)
                     if converter.func_name == 'convert_characters':
                         converter = partial(converter, self.connection, field)
+                    elif not isinstance(data, unicode):
+                        data = data.decode(self.connection.charset)
                     converted = converter(data)
             row.append(converted)
 
