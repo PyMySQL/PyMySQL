@@ -15,6 +15,7 @@ try:
 except ImportError:
     SSL_ENABLED = False
 
+import traceback
 import struct
 import sys
 import os
@@ -198,7 +199,6 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     del connection
 
     if not issubclass(errorclass, Error):
-        import traceback
         traceback.print_exc()
         raise Error(errorclass, errorvalue)
     else:
