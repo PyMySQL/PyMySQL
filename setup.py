@@ -1,4 +1,3 @@
-
 try:
     from setuptools import setup, Command
 except ImportError:
@@ -33,7 +32,7 @@ else:
 setup(
     name = "PyMySQL",
     version = version,
-    url = 'http://code.google.com/p/pymysql',
+    url = 'https://github.com/petehunt/PyMySQL/',
     author = 'yutaka.matsubara',
     author_email = 'yutaka.matsubara@gmail.com',
     maintainer = 'Pete Hunt',
