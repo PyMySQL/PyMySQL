@@ -174,7 +174,7 @@ class TestCursor(base.PyMySQLTestCase):
     def test_select_db(self):
         conn = self.connections[0]
         try:
-            conn.selet_db('test_pymysql')
+            conn.select_db('test_pymysql')
         finally:
             pass
 
