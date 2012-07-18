@@ -473,7 +473,7 @@ class Connection(object):
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None):
+                 compress=None, named_pipe=None, no_delay=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -497,6 +497,7 @@ class Connection(object):
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
+        no_delay: Disable Nagle's algorithm on the socket
         """
 
         if use_unicode is None and sys.version_info[0] > 2:
@@ -552,6 +553,7 @@ class Connection(object):
         self.user = user or DEFAULT_USER
         self.password = passwd
         self.db = db
+        self.no_delay = no_delay
         self.unix_socket = unix_socket
         if charset:
             self.charset = charset
@@ -734,6 +736,8 @@ class Connection(object):
                 sock.settimeout(t)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print 'connected using socket'
+            if self.no_delay:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket = sock
             self.rfile = self.socket.makefile("rb")
             self.wfile = self.socket.makefile("wb")
