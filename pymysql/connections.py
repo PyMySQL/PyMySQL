@@ -473,7 +473,7 @@ class Connection(object):
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None):
+                 autocommit_mode=False, compress=None, named_pipe=None):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -495,6 +495,7 @@ class Connection(object):
         connect_timeout: Timeout before throwing an exception when connecting.
         ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
         read_default_group: Group to read from in the configuration file.
+        autocommit_mode: Whether or not to use the AUTOCOMMIT mode
         compress; Not supported
         named_pipe: Not supported
         """
@@ -578,7 +579,7 @@ class Connection(object):
 
         self.messages = []
 
-        self.autocommit_mode = False
+        self.autocommit_mode = autocommit_mode
         self._connect()
 
         self.set_charset(charset)

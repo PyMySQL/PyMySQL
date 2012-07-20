@@ -295,6 +295,19 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.assertTrue(c.fetchone()[0])
         conn.close()
 
+    def test_issue_104(self):
+        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8", autocommit_mode=True)
+        c = conn.cursor()
+        c.execute("""select @@autocommit;""")
+        self.assertTrue(c.fetchone()[0])
+        conn.close()
+
+        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8", autocommit_mode=False)
+        c = conn.cursor()
+        c.execute("""select @@autocommit;""")
+        self.assertFalse(c.fetchone()[0])
+        conn.close()
+
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
 if __name__ == "__main__":
