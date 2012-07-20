@@ -283,6 +283,18 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.assertFalse(c.fetchone()[0])
         conn.close()
 
+        # Ensure autocommit() is still working
+        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        c = conn.cursor()
+        c.execute("""select @@autocommit;""")
+        self.assertFalse(c.fetchone()[0])
+        conn.close()
+        conn.ping()
+        conn.autocommit(True)
+        c.execute("""select @@autocommit;""")
+        self.assertTrue(c.fetchone()[0])
+        conn.close()
+
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
 if __name__ == "__main__":

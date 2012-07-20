@@ -572,18 +572,18 @@ class Connection(object):
         self.cursorclass = cursorclass
         self.connect_timeout = connect_timeout
 
-        self._connect()
-
         self._result = None
         self._affected_rows = 0
         self.host_info = "Not connected"
 
         self.messages = []
+
+        self.autocommit_mode = False
+        self._connect()
+
         self.set_charset(charset)
         self.encoders = encoders
         self.decoders = conv
-
-        self.autocommit(False)
 
         if sql_mode is not None:
             c = self.cursor()
@@ -612,14 +612,18 @@ class Connection(object):
         self.wfile = None
 
     def autocommit(self, value):
+        self.autocommit_mode = value
+        self._send_autocommit_mode()
+
+    def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
         try:
             self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
-                                      self.escape(value))
+                                      self.escape(self.autocommit_mode))
             self.read_packet()
         except:
             exc,value,tb = sys.exc_info()
-            self.errorhandler(None, exc, value)
+            self.errorhandler(None, exc, self.autocommit_mode)
 
     def commit(self):
         ''' Commit changes to stable storage '''
@@ -739,6 +743,8 @@ class Connection(object):
             self.wfile = self.socket.makefile("wb")
             self._get_server_information()
             self._request_authentication()
+
+            self._send_autocommit_mode()
         except socket.error, e:
             raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
 
