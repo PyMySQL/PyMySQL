@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 '''
 
-VERSION = (0, 5, None)
+__version__ = '0.5.1'
 
 from constants import FIELD_TYPE
 from converters import escape_dict, escape_sequence, escape_string
@@ -93,7 +93,7 @@ def Connect(*args, **kwargs):
     return Connection(*args, **kwargs)
 
 def get_client_info():  # for MySQLdb compatibility
-  return '%s.%s.%s' % VERSION
+    return __version__
 
 connect = Connection = Connect
 
@@ -110,7 +110,7 @@ def thread_safe():
 def install_as_MySQLdb():
     """
     After this function is called, any application that imports MySQLdb or
-    _mysql will unwittingly actually use 
+    _mysql will unwittingly actually use
     """
     sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
 

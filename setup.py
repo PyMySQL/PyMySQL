@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup, Command
 
-import sys
+import sys, os, re
 
 class TestCommand(Command):
     user_options = [ ]
@@ -22,12 +22,9 @@ class TestCommand(Command):
         import unittest
         unittest.main(tests, argv=sys.argv[:1])
 
-version_tuple = __import__('pymysql').VERSION
-
-if version_tuple[2] is not None:
-    version = "%d.%d_%s" % version_tuple
-else:
-    version = "%d.%d" % version_tuple[:2]
+v = open(os.path.join(os.path.dirname(__file__), 'pymysql', '__init__.py'))
+version = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
+v.close()
 
 setup(
     name = "PyMySQL",
