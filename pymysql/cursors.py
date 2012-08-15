@@ -294,6 +294,39 @@ class DictCursor(Cursor):
             result = [ dict(zip(self._fields, r)) for r in self._rows ]
         self.rownumber = len(self._rows)
         return tuple(result)
+try:
+    from collections import OrderedDict
+except ImportError:
+    try:
+        from OrderedDict import OrderedDict
+    except ImportError:
+        OrderedDict = None
+
+if OrderedDict:
+    class OrderedDictCursor(DictCursor):
+        """A cursor which returns results as an ordered dictionary."""
+        def dict_to_ordered_dict(self, d):
+            """
+            d is the dict to convert
+            f is a list of fields, in order
+            """
+            return OrderedDict(zip(self._fields, (d[f] for f in self._fields))) if d else None
+    
+        def fetchone(self):
+            """Fetch the next row"""
+            result = super(OrderedDictCursor, self).fetchone()
+            result = self.dict_to_ordered_dict(result)
+            return result
+    
+        def fetchmany(self, size=None):
+            """Fetch several rows"""
+            result = super(OrderedDictCursor, self).fetchmany(size)
+            return tuple(self.dict_to_ordered_dict(r) for r in result)
+    
+        def fetchall(self):
+            """Fetch all the rows"""
+            result = super(OrderedDictCursor, self).fetchall()
+            return tuple(self.dict_to_ordered_dict(r) for r in result)
 
 class SSCursor(Cursor):
     """

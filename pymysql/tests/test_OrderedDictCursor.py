@@ -46,6 +46,24 @@ class TestOrderedDictCursor(base.PyMySQLTestCase):
             c.execute("SELECT * from ordereddictcursor")
             r = c.fetchmany(2)
             self.assertEqual((bob,jim), r, "fetchmany failed via OrderedDictCursor")
+            # make sure fields are indeed ordered for a single item
+            c.execute("SELECT * from ordereddictcursor")
+            r = c.fetchone()
+            fields = [f for f in r]
+            self.assertEqual(fields, ['name', 'age', 'DOB'])
+            # make sure fields are indeed ordered for several items
+            c.execute("SELECT * from ordereddictcursor")
+            r = c.fetchmany(2)
+            for rec in r:
+                fields = [f for f in rec]
+                self.assertEqual(fields, ['name', 'age', 'DOB'])
+            # make sure fields are indeed ordered for all items
+            c.execute("SELECT * from ordereddictcursor")
+            r = c.fetchall()
+            for rec in r:
+                fields = [f for f in rec]
+                self.assertEqual(fields, ['name', 'age', 'DOB'])
+
         finally:
             c.execute("drop table ordereddictcursor")
 
