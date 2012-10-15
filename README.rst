@@ -3,7 +3,7 @@ PyMySQL Installation
 ====================
 
 .. contents::
-..
+
    This package contains a pure-Python MySQL client library.
    Documentation on the MySQL client/server protocol can be found here:
    http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
