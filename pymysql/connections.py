@@ -958,23 +958,23 @@ class MySQLResult(object):
             self._finish_unbuffered_query()
 
     def read(self):
-        self.first_packet = self.connection.read_packet()
+        first_packet = self.connection.read_packet()
 
         # TODO: use classes for different packet types?
-        if self.first_packet.is_ok_packet():
-            self._read_ok_packet()
+        if first_packet.is_ok_packet():
+            self._read_ok_packet(first_packet)
         else:
-            self._read_result_packet()
+            self._read_result_packet(first_packet)
 
     def init_unbuffered_query(self):
         self.unbuffered_active = True
-        self.first_packet = self.connection.read_packet()
+        first_packet = self.connection.read_packet()
 
-        if self.first_packet.is_ok_packet():
-            self._read_ok_packet()
+        if first_packet.is_ok_packet():
+            self._read_ok_packet(first_packet)
             self.unbuffered_active = False
         else:
-            self.field_count = byte2int(self.first_packet.read(1))
+            self.field_count = byte2int(first_packet.read(1))
             self._get_descriptions()
             
             # Apparently, MySQLdb picks this number because it's the maximum
@@ -982,8 +982,8 @@ class MySQLResult(object):
             # we set it to this instead of None, which would be preferred.
             self.affected_rows = 18446744073709551615
 
-    def _read_ok_packet(self):
-        ok_packet = OKPacketWrapper(self.first_packet)
+    def _read_ok_packet(self, first_packet):
+        ok_packet = OKPacketWrapper(first_packet)
         self.affected_rows = ok_packet.affected_rows
         self.insert_id = ok_packet.insert_id
         self.server_status = ok_packet.server_status
@@ -998,8 +998,8 @@ class MySQLResult(object):
             return True
         return False
 
-    def _read_result_packet(self):
-        self.field_count = byte2int(self.first_packet.read(1))
+    def _read_result_packet(self, first_packet):
+        self.field_count = byte2int(first_packet.read(1))
         self._get_descriptions()
         self._read_rowdata_packet()
 
