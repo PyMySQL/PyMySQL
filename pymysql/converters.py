@@ -3,8 +3,8 @@ import datetime
 import time
 import sys
 
-from constants import FIELD_TYPE, FLAG
-from charset import charset_by_id
+from pymysql.constants import FIELD_TYPE, FLAG
+from pymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -289,10 +289,8 @@ def convert_float(connection, field, data):
 encoders = {
         bool: escape_bool,
         int: escape_int,
-        long: escape_long,
         float: escape_float,
         str: escape_string,
-        unicode: escape_unicode,
         tuple: escape_sequence,
         list:escape_sequence,
         set:escape_sequence,
@@ -304,6 +302,11 @@ encoders = {
         datetime.time : escape_time,
         time.struct_time : escape_struct_time,
         }
+
+if PYTHON3:
+    encoders['unicode'] = escape_unicode
+else:
+    encoders['long'] = escape_long
 
 decoders = {
         FIELD_TYPE.BIT: convert_bit,

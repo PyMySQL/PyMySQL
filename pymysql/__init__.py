@@ -25,12 +25,12 @@ THE SOFTWARE.
 
 VERSION = (0, 5, None)
 
-from constants import FIELD_TYPE
-from converters import escape_dict, escape_sequence, escape_string
-from err import Warning, Error, InterfaceError, DataError, \
+from pymysql.constants import FIELD_TYPE
+from pymysql.converters import escape_dict, escape_sequence, escape_string
+from pymysql.err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError, MySQLError
-from times import Date, Time, Timestamp, \
+from pymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
 import sys
