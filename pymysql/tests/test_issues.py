@@ -16,6 +16,8 @@ import datetime
 if not hasattr(unittest, "skip"):
     unittest.skip = lambda message: lambda f: f
 
+PYTHON3 = sys.version_info[0] > 2
+
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
         """ undefined methods datetime_or_None, date_or_None """
@@ -109,10 +111,11 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
     def test_issue_14(self):
         """ typo in converters.py """
         self.assertEqual('1', pymysql.converters.escape_item(1, "utf8"))
-        self.assertEqual('1', pymysql.converters.escape_item(1L, "utf8"))
-
         self.assertEqual('1', pymysql.converters.escape_object(1))
-        self.assertEqual('1', pymysql.converters.escape_object(1L))
+        if not PYTHON3:
+            self.assertEqual('1', pymysql.converters.escape_item(eval("1L"), "utf8"))
+
+            self.assertEqual('1', pymysql.converters.escape_object(eval("1L")))
 
     def test_issue_15(self):
         """ query should be expanded before perform character encoding """
@@ -171,7 +174,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         try:
             pymysql.connect(host="localhost", port=1237, user="root")
             self.fail()
-        except pymysql.OperationalError, e:
+        except pymysql.OperationalError as e:
             self.assertEqual(2003, e.args[0])
         except:
             self.fail()
@@ -191,11 +194,11 @@ class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_35(self):
         conn = self.connections[0]
         c = conn.cursor()
-        print "sudo killall -9 mysqld within the next 10 seconds"
+        print("sudo killall -9 mysqld within the next 10 seconds")
         try:
             c.execute("select sleep(10)")
             self.fail()
-        except pymysql.OperationalError, e:
+        except pymysql.OperationalError as e:
             self.assertEqual(2013, e.args[0])
 
     def test_issue_36(self):

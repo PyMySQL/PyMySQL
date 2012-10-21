@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 import struct
 import re
+import sys
 
-try:
-    import cStringIO as StringIO
-except ImportError:
-    import StringIO
-
-from err import Warning, Error, InterfaceError, DataError, \
+from pymysql.err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
 
 insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
+
+PYTHON3 = sys.version_info[0] > 2
 
 class Cursor(object):
     '''
@@ -104,7 +102,7 @@ class Cursor(object):
 
             query = query % escaped_args
 
-        if isinstance(query, unicode):
+        if PYTHON3 or isinstance(query, unicode):
             query = query.encode(charset)
 
         result = 0
