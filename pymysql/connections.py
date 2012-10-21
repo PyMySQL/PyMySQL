@@ -76,7 +76,7 @@ def dump_packet(data):
     print("method call[4]: %s" % sys._getframe(4).f_code.co_name)
     print("method call[5]: %s" % sys._getframe(5).f_code.co_name)
     print("-" * 88)
-    dump_data = [data[i:i+16] for i in xrange(len(data)) if i%16 == 0]
+    dump_data = [data[i:i+16] for i in range(len(data)) if i%16 == 0]
     for d in dump_data:
         print(' '.join(map(lambda x:"%02X" % byte2int(x), d)) + \
                 '   ' * (16 - len(d)) + ' ' * 2 + \
@@ -99,7 +99,7 @@ def _scramble(password, message):
 def _my_crypt(message1, message2):
     length = len(message1)
     result = struct.pack('B', length)
-    for i in xrange(length):
+    for i in range(length):
         x = (struct.unpack('B', message1[i:i+1])[0] ^ \
              struct.unpack('B', message2[i:i+1])[0])
         result += struct.pack('B', x)
@@ -128,7 +128,7 @@ def _scramble_323(password, message):
     rand_st = RandStruct_323(hash_pass_n[0] ^ hash_message_n[0],
                              hash_pass_n[1] ^ hash_message_n[1])
     outbuf = StringIO()
-    for _ in xrange(min(SCRAMBLE_LENGTH_323, len(message))):
+    for _ in range(min(SCRAMBLE_LENGTH_323, len(message))):
         outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
     extra = int2byte(int(rand_st.my_rnd() * 31))
     out = outbuf.getvalue()
