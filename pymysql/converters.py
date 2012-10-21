@@ -241,7 +241,8 @@ def convert_mysql_timestamp(connection, field, timestamp):
       True
 
     """
-    if not isinstance(timestamp, unicode):
+    if ((PYTHON3 and not isinstance(timestamp, str)) or
+        (not PYTHON3 and not isinstance(timestamp, unicode))):
         timestamp = timestamp.decode(connection.charset)
 
     if timestamp[4] == '-':

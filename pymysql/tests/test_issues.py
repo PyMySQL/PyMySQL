@@ -165,7 +165,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 def _uni(s, e):
     # hack for py3
     if sys.version_info[0] > 2:
-        return unicode(bytes(s, sys.getdefaultencoding()), e)
+        return str(bytes(s, sys.getdefaultencoding()), e)
     else:
         return unicode(s, e)
 
