@@ -30,7 +30,7 @@ def escape_item(val, charset):
         val = val.decode(charset)
     encoder = encoders[type(val)]
     val = encoder(val)
-    if type(val) in [str, int]:
+    if type(val) in [str, int, unicode]:
         return val
     val = val.encode(charset)
     return val

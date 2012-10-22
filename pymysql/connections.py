@@ -476,7 +476,7 @@ class Connection(object):
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None):
+                 compress=None, named_pipe=None, no_delay=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -500,6 +500,7 @@ class Connection(object):
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
+        no_delay: Disable Nagle's algorithm on the socket
         """
 
         if use_unicode is None and sys.version_info[0] > 2:
@@ -555,6 +556,7 @@ class Connection(object):
         self.user = user or DEFAULT_USER
         self.password = passwd
         self.db = db
+        self.no_delay = no_delay
         self.unix_socket = unix_socket
         if charset:
             self.charset = charset
@@ -575,18 +577,18 @@ class Connection(object):
         self.cursorclass = cursorclass
         self.connect_timeout = connect_timeout
 
-        self._connect()
-
         self._result = None
         self._affected_rows = 0
         self.host_info = "Not connected"
 
         self.messages = []
+
+        self.autocommit_mode = False
+        self._connect()
+
         self.set_charset(charset)
         self.encoders = encoders
         self.decoders = conv
-
-        self.autocommit(False)
 
         if sql_mode is not None:
             c = self.cursor()
@@ -614,14 +616,18 @@ class Connection(object):
         self.wfile = None
 
     def autocommit(self, value):
+        self.autocommit_mode = value
+        self._send_autocommit_mode()
+
+    def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
         try:
             self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
-                                      self.escape(value))
+                                      self.escape(self.autocommit_mode))
             self.read_packet()
         except:
             exc,value,tb = sys.exc_info()
-            self.errorhandler(None, exc, value)
+            self.errorhandler(None, exc, self.autocommit_mode)
 
     def commit(self):
         ''' Commit changes to stable storage '''
@@ -740,11 +746,15 @@ class Connection(object):
                 sock.settimeout(t)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print 'connected using socket'
+            if self.no_delay:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket = sock
             self.rfile = self.socket.makefile("rb")
             self.wfile = self.socket.makefile("wb")
             self._get_server_information()
             self._request_authentication()
+
+            self._send_autocommit_mode()
         except socket.error, e:
             raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
 
@@ -954,23 +964,23 @@ class MySQLResult(object):
             self._finish_unbuffered_query()
 
     def read(self):
-        self.first_packet = self.connection.read_packet()
+        first_packet = self.connection.read_packet()
 
         # TODO: use classes for different packet types?
-        if self.first_packet.is_ok_packet():
-            self._read_ok_packet()
+        if first_packet.is_ok_packet():
+            self._read_ok_packet(first_packet)
         else:
-            self._read_result_packet()
+            self._read_result_packet(first_packet)
 
     def init_unbuffered_query(self):
         self.unbuffered_active = True
-        self.first_packet = self.connection.read_packet()
+        first_packet = self.connection.read_packet()
 
-        if self.first_packet.is_ok_packet():
-            self._read_ok_packet()
+        if first_packet.is_ok_packet():
+            self._read_ok_packet(first_packet)
             self.unbuffered_active = False
         else:
-            self.field_count = byte2int(self.first_packet.read(1))
+            self.field_count = byte2int(first_packet.read(1))
             self._get_descriptions()
 
             # Apparently, MySQLdb picks this number because it's the maximum
@@ -978,8 +988,8 @@ class MySQLResult(object):
             # we set it to this instead of None, which would be preferred.
             self.affected_rows = 18446744073709551615
 
-    def _read_ok_packet(self):
-        ok_packet = OKPacketWrapper(self.first_packet)
+    def _read_ok_packet(self, first_packet):
+        ok_packet = OKPacketWrapper(first_packet)
         self.affected_rows = ok_packet.affected_rows
         self.insert_id = ok_packet.insert_id
         self.server_status = ok_packet.server_status
@@ -994,8 +1004,8 @@ class MySQLResult(object):
             return True
         return False
 
-    def _read_result_packet(self):
-        self.field_count = byte2int(self.first_packet.read(1))
+    def _read_result_packet(self, first_packet):
+        self.field_count = byte2int(first_packet.read(1))
         self._get_descriptions()
         self._read_rowdata_packet()
 
