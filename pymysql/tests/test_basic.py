@@ -1,9 +1,11 @@
 from pymysql.tests import base
-from pymysql import util
 
 import time
 import datetime
+import struct
 
+def int2byte(i):
+    return struct.pack("!B", i)
 
 class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
@@ -17,7 +19,7 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
-            self.assertEqual(util.int2byte(1), r[0])
+            self.assertEqual(int2byte(1), r[0])
             self.assertEqual(v[1:8], r[1:8])
             # mysql throws away microseconds so we need to check datetimes
             # specially. additionally times are turned into timedeltas.
