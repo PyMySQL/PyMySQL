@@ -2,12 +2,19 @@ import struct
 import sys
 from pymysql.constants import ER
 
-class MySQLError(Exception):
+PYTHON3 = sys.version_info[0] > 2
+
+if PYTHON3:
+    class MySQLError(Exception):
+
+        """Exception related to operation with MySQL."""
+else:
+    class MySQLError(StandardError):
     
-    """Exception related to operation with MySQL."""
+        """Exception related to operation with MySQL."""
 
 
-class Warning(Warning, MySQLError):
+class Warning(MySQLError):
 
     """Exception raised for important warnings like data truncations
     while inserting, etc."""
