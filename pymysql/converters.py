@@ -3,8 +3,8 @@ import datetime
 import time
 import sys
 
-from constants import FIELD_TYPE, FLAG
-from charset import charset_by_id
+from pymysql.constants import FIELD_TYPE, FLAG
+from pymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -25,7 +25,7 @@ def escape_item(val, charset):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    if PYTHON3 and hasattr(val, "decode") and not isinstance(val, unicode):
+    if PYTHON3 and isinstance(val, bytes):
         # deal with py3k bytes
         val = val.decode(charset)
     encoder = encoders[type(val)]
@@ -116,7 +116,8 @@ def convert_datetime(connection, field, obj):
       True
 
     """
-    if not isinstance(obj, unicode):
+    if ((PYTHON3 and not isinstance(obj, str)) or 
+        (not PYTHON3 and not isinstance(obj, unicode))):
         obj = obj.decode(connection.charset)
     if ' ' in obj:
         sep = ' '
@@ -150,7 +151,8 @@ def convert_timedelta(connection, field, obj):
     """
     try:
         microseconds = 0
-        if not isinstance(obj, unicode):
+        if ((PYTHON3 and not isinstance(obj, str)) or 
+            (not PYTHON3 and not isinstance(obj, unicode))):
             obj = obj.decode(connection.charset)
         if "." in obj:
             (obj, tail) = obj.split('.')
@@ -214,7 +216,8 @@ def convert_date(connection, field, obj):
 
     """
     try:
-        if not isinstance(obj, unicode):
+        if ((PYTHON3 and not isinstance(obj, str)) or
+            (not PYTHON3 and not isinstance(obj, unicode))):
             obj = obj.decode(connection.charset)
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
@@ -241,7 +244,8 @@ def convert_mysql_timestamp(connection, field, timestamp):
       True
 
     """
-    if not isinstance(timestamp, unicode):
+    if ((PYTHON3 and not isinstance(timestamp, str)) or
+        (not PYTHON3 and not isinstance(timestamp, unicode))):
         timestamp = timestamp.decode(connection.charset)
 
     if timestamp[4] == '-':
@@ -284,7 +288,10 @@ def convert_int(connection, field, data):
     return int(data)
 
 def convert_long(connection, field, data):
-    return long(data)
+    if PYTHON3:
+        return int(data)
+    else:
+        return long(data)
 
 def convert_float(connection, field, data):
     return float(data)
@@ -292,10 +299,8 @@ def convert_float(connection, field, data):
 encoders = {
         bool: escape_bool,
         int: escape_int,
-        long: escape_long,
         float: escape_float,
         str: escape_string,
-        unicode: escape_unicode,
         tuple: escape_sequence,
         list:escape_sequence,
         set:escape_sequence,
@@ -307,6 +312,10 @@ encoders = {
         datetime.time : escape_time,
         time.struct_time : escape_struct_time,
         }
+
+if not PYTHON3:
+    encoders[unicode] = escape_unicode
+    encoders[long] = escape_long
 
 decoders = {
         FIELD_TYPE.BIT: convert_bit,
