@@ -6,7 +6,12 @@ from pymysql.tests import base
 
 # compatibility:
 if not hasattr(unittest, "expectedFailure"):
-    unittest.expectedFailure = lambda f: f
+    # skip @expectedFailure
+    def _empty(func):
+        pass
+    def _skip(message):
+        return _empty
+    unittest.expectedFailure = _skip
 
 class test_MySQLdb(dbapi20.DatabaseAPI20Test):
     driver = pymysql
