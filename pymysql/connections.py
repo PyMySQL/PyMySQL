@@ -40,7 +40,6 @@ from pymysql.constants import FIELD_TYPE, FLAG
 from pymysql.constants import SERVER_STATUS
 from pymysql.constants.CLIENT import *
 from pymysql.constants.COMMAND import *
-from pymysql.util import join_bytes, byte2int, int2byte
 from pymysql.converters import escape_item, encoders, decoders
 from pymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
@@ -152,6 +151,15 @@ def _hash_password_323(password):
 
     # pack
     return struct.pack(">LL", r1, r2)
+
+def byte2int(b):
+    if isinstance(b, int):
+        return b
+    else:
+        return struct.unpack("!B", b)[0]
+
+def int2byte(i):
+    return struct.pack("!B", i)
 
 def pack_int24(n):
     return struct.pack('BBB', n&0xFF, (n>>8)&0xFF, (n>>16)&0xFF)
