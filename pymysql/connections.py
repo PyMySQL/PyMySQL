@@ -191,7 +191,7 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     if not issubclass(errorclass, Error):
         raise Error(errorclass, errorvalue)
     else:
-        raise errorclass(errorvalue)
+        raise errorclass(errorvalue[0], errorvalue[1])
 
 
 class MysqlPacket(object):
