@@ -30,7 +30,7 @@ def escape_item(val, charset):
         val = val.decode(charset)
     encoder = encoders[type(val)]
     val = encoder(val)
-    if type(val) in [str, int]:
+    if type(val) is str:
         return val
     val = val.encode(charset)
     return val
@@ -59,10 +59,7 @@ def escape_bool(value):
 def escape_object(value):
     return str(value)
 
-def escape_int(value):
-    return value
-
-escape_long = escape_object
+escape_int = escape_long = escape_object
 
 def escape_float(value):
     return ('%.15g' % value)

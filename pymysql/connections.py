@@ -163,28 +163,18 @@ def unpack_uint16(n):
 # TODO: stop using bit-shifting in these functions...
 # TODO: rename to "uint" to make it clear they're unsigned...
 def unpack_int24(n):
-    try:
-        return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
-            (struct.unpack('B',n[2])[0] << 16)
-    except TypeError:
-        return n[0] + (n[1] << 8) + (n[2] << 16)
+    return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
+        (struct.unpack('B',n[2])[0] << 16)
 
 def unpack_int32(n):
-    try:
-        return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
-            (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B', n[3])[0] << 24)
-    except TypeError:
-        return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
+    return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
+        (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B', n[3])[0] << 24)
 
 def unpack_int64(n):
-    try:
-        return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0]<<8) +\
-        (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B',n[3])[0]<<24)+\
-        (struct.unpack('B',n[4])[0] << 32) + (struct.unpack('B',n[5])[0]<<40)+\
-        (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
-    except TypeError:
-        return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24) +\
-        (n[4] << 32) + (n[5] << 40) + (n[6] << 48) + (n[7] << 56)
+    return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0]<<8) +\
+    (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B',n[3])[0]<<24)+\
+    (struct.unpack('B',n[4])[0] << 32) + (struct.unpack('B',n[5])[0]<<40)+\
+    (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
 
 def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     err = errorclass, errorvalue
@@ -408,58 +398,6 @@ class FieldDescriptorPacket(MysqlPacket):
             % (self.__class__, self.db, self.table_name, self.name,
                self.type_code))
 
-class OKPacketWrapper(object):
-    """
-    OK Packet Wrapper. It uses an existing packet object, and wraps
-    around it, exposing useful variables while still providing access
-    to the original packet objects variables and methods.
-    """
-
-    def __init__(self, from_packet):
-        if not from_packet.is_ok_packet():
-            raise ValueError('Cannot create ' + str(self.__class__.__name__)
-                + ' object from invalid packet type')
-        
-        self.packet = from_packet
-        self.packet.advance(1)
-        
-        self.affected_rows = self.packet.read_length_coded_binary()
-        self.insert_id = self.packet.read_length_coded_binary()
-        self.server_status = struct.unpack('<H', self.packet.read(2))[0]
-        self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
-        self.message = self.packet.read_all()
-    
-    def __getattr__(self, key):
-        if hasattr(self.packet, key):
-            return getattr(self.packet, key)
-        
-        raise AttributeError(str(self.__class__)
-            + " instance has no attribute '" + key + "'")
-
-class EOFPacketWrapper(object):
-    """
-    EOF Packet Wrapper. It uses an existing packet object, and wraps
-    around it, exposing useful variables while still providing access
-    to the original packet objects variables and methods.
-    """
-
-    def __init__(self, from_packet):
-        if not from_packet.is_eof_packet():
-            raise ValueError('Cannot create ' + str(self.__class__.__name__)
-                + ' object from invalid packet type')
-        
-        self.packet = from_packet
-        self.warning_count = self.packet.read(2)
-        server_status = struct.unpack('<h', self.packet.read(2))[0]
-        self.has_next = (server_status
-                        & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
-
-    def __getattr__(self, key):
-        if hasattr(self.packet, key):
-            return getattr(self.packet, key)
-        
-        raise AttributeError(str(self.__class__)
-            + " instance has no attribute '" + key + "'")
 
 class Connection(object):
     """
@@ -546,7 +484,7 @@ class Connection(object):
             host = _config("host", host)
             db = _config("db",db)
             unix_socket = _config("socket",unix_socket)
-            port = int(_config("port", port))
+            port = _config("port", port)
             charset = _config("default-character-set", charset)
 
         self.host = host
@@ -576,14 +514,14 @@ class Connection(object):
 
         self._connect()
 
-        self._result = None
-        self._affected_rows = 0
-        self.host_info = "Not connected"
-
         self.messages = []
         self.set_charset(charset)
         self.encoders = encoders
         self.decoders = conv
+
+        self._result = None
+        self._affected_rows = 0
+        self.host_info = "Not connected"
 
         self.autocommit(False)
 
@@ -667,11 +605,11 @@ class Connection(object):
             self.commit()
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
-    def query(self, sql, unbuffered=False):
+    def query(self, sql):
         if DEBUG:
             print("sending query: %s" % sql)
         self._execute_command(COM_QUERY, sql)
-        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+        self._affected_rows = self._read_query_result()
         return self._affected_rows
 
     def next_result(self):
@@ -696,8 +634,6 @@ class Connection(object):
         ''' Check if the server is alive '''
         try:
             self._execute_command(COM_PING, "")
-            pkt = self.read_packet()
-            return pkt.is_ok_packet()
         except:
             if reconnect:
                 self._connect()
@@ -706,6 +642,9 @@ class Connection(object):
                 exc,value,tb = sys.exc_info()
                 self.errorhandler(None, exc, value)
                 return
+
+        pkt = self.read_packet()
+        return pkt.is_ok_packet()
 
     def set_charset(self, charset):
         try:
@@ -752,17 +691,9 @@ class Connection(object):
       packet.check_error()
       return packet
 
-    def _read_query_result(self, unbuffered=False):
-        if unbuffered:
-            try:
-                result = MySQLResult(self)
-                result.init_unbuffered_query()
-            except:
-                result.unbuffered_active = False
-                raise
-        else:
-            result = MySQLResult(self)
-            result.read()
+    def _read_query_result(self):
+        result = MySQLResult(self)
+        result.read()
         self._result = result
         return result.affected_rows
 
@@ -939,11 +870,6 @@ class MySQLResult(object):
         self.description = None
         self.rows = None
         self.has_next = None
-        self.unbuffered_active = False
-
-    def __del__(self):
-        if self.unbuffered_active:
-            self._finish_unbuffered_query()
 
     def read(self):
         self.first_packet = self.connection.read_packet()
@@ -954,77 +880,18 @@ class MySQLResult(object):
         else:
             self._read_result_packet()
 
-    def init_unbuffered_query(self):
-        self.unbuffered_active = True
-        self.first_packet = self.connection.read_packet()
-
-        if self.first_packet.is_ok_packet():
-            self._read_ok_packet()
-            self.unbuffered_active = False
-        else:
-            self.field_count = byte2int(self.first_packet.read(1))
-            self._get_descriptions()
-            
-            # Apparently, MySQLdb picks this number because it's the maximum
-            # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
-            # we set it to this instead of None, which would be preferred.
-            self.affected_rows = 18446744073709551615
-
     def _read_ok_packet(self):
-        ok_packet = OKPacketWrapper(self.first_packet)
-        self.affected_rows = ok_packet.affected_rows
-        self.insert_id = ok_packet.insert_id
-        self.server_status = ok_packet.server_status
-        self.warning_count = ok_packet.warning_count
-        self.message = ok_packet.message
-
-    def _check_packet_is_eof(self, packet):
-        if packet.is_eof_packet():
-            eof_packet = EOFPacketWrapper(packet)
-            self.warning_count = eof_packet.warning_count
-            self.has_next = eof_packet.has_next
-            return True
-        return False
+        self.first_packet.advance(1)  # field_count (always '0')
+        self.affected_rows = self.first_packet.read_length_coded_binary()
+        self.insert_id = self.first_packet.read_length_coded_binary()
+        self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
+        self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
+        self.message = self.first_packet.read_all()
 
     def _read_result_packet(self):
         self.field_count = byte2int(self.first_packet.read(1))
         self._get_descriptions()
         self._read_rowdata_packet()
-
-    def _read_rowdata_packet_unbuffered(self):
-        # Check if in an active query
-        if self.unbuffered_active == False: return
-        
-        # EOF
-        packet = self.connection.read_packet()
-        if self._check_packet_is_eof(packet):
-            self.unbuffered_active = False
-            self.rows = None
-            return
-
-        row = []
-        for field in self.fields:
-            data = packet.read_length_coded_string()
-            converted = None
-            if field.type_code in self.connection.decoders:
-                converter = self.connection.decoders[field.type_code]
-                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-                if data != None:
-                    converted = converter(self.connection, field, data)
-            row.append(converted)
-
-        self.affected_rows = 1
-        self.rows = tuple((row))
-        if DEBUG: self.rows
-
-    def _finish_unbuffered_query(self):
-        # After much reading on the MySQL protocol, it appears that there is,
-        # in fact, no way to stop MySQL from sending all the data after
-        # executing a query, so we just spin, and wait for an EOF packet.
-        while self.unbuffered_active:
-            packet = self.connection.read_packet()
-            if self._check_packet_is_eof(packet):
-                self.unbuffered_active = False
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
@@ -1033,7 +900,11 @@ class MySQLResult(object):
       rows = []
       while True:
         packet = self.connection.read_packet()
-        if self._check_packet_is_eof(packet):
+        if packet.is_eof_packet():
+            self.warning_count = packet.read(2)
+            server_status = struct.unpack('<h', packet.read(2))[0]
+            self.has_next = (server_status
+                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
             break
 
         row = []
