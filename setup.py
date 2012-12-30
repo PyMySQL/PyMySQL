@@ -38,14 +38,14 @@ else:
     version = "%d.%d" % version_tuple[:2]
 
 setup(
-    name = "PyMySQL",
+    name = "cymysql",
     version = version,
-    url = 'https://github.com/petehunt/PyMySQL/',
-    author = 'yutaka.matsubara',
+    url = 'https://github.com/nakagami/cymysql/',
+    author = 'Yutaka Matsubara',
     author_email = 'yutaka.matsubara@gmail.com',
-    maintainer = 'Pete Hunt',
-    maintainer_email = 'floydophone@gmail.com',
-    description = 'Pure Python MySQL Driver ',
+    maintainer = 'Hajime Nakagami',
+    maintainer_email = 'nakagami@gmail.com',
+    description = 'Python MySQL Driver powered by Cython',
     license = "MIT",
     packages = ['cymysql', 'cymysql.constants', 'cymysql.tests'],
     cmdclass = cmdclass,

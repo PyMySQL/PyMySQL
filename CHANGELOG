@@ -1,5 +1,9 @@
 Changes
 --------
+0.5  -Rename package name from pymysql to cymysql
+     -Cython powered
+     -supoort Python 2.6+
+
 0.4  -Miscellaneous bug fixes
      -Implementation of SSL support
      -Implementation of kill()
