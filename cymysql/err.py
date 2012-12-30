@@ -1,6 +1,6 @@
 import struct
 import sys
-from pymysql.constants import ER
+from cymysql.constants import ER
 
 PYTHON3 = sys.version_info[0] > 2
 

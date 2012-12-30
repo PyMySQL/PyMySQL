@@ -29,16 +29,19 @@ try:
 except ImportError:
     DEFAULT_USER = None
 
-from pymysql.charset import charset_by_name, charset_by_id
-from pymysql.cursors import Cursor
-from pymysql.constants import SERVER_STATUS
-from pymysql.constants.CLIENT import *
-from pymysql.constants.COMMAND import *
-from pymysql.converters import escape_item, encoders, decoders
-from pymysql.err import raise_mysql_exception, Warning, Error, \
+from cymysql.charset import charset_by_name, charset_by_id
+from cymysql.cursors import Cursor
+from cymysql.constants import SERVER_STATUS
+from cymysql.constants.CLIENT import *
+from cymysql.constants.COMMAND import *
+from cymysql.converters import escape_item, encoders, decoders
+from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from pymysql.packet import MysqlPacket, FieldDescriptorPacket
+try:
+    from cymysql.packetx import MysqlPacket, FieldDescriptorPacket
+except ImportError:
+    from cymysql.packet import MysqlPacket, FieldDescriptorPacket
 
 PYTHON3 = sys.version_info[0] > 2
 

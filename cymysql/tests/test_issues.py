@@ -1,5 +1,5 @@
-import pymysql
-from pymysql.tests import base
+import cymysql
+from cymysql.tests import base
 import unittest
 
 import sys
@@ -61,7 +61,7 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_6(self):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
-        conn = pymysql.connect(host="localhost",user="root",passwd="",db="mysql")
+        conn = cymysql.connect(host="localhost",user="root",passwd="",db="mysql")
         c = conn.cursor()
         c.execute("select * from user")
         conn.close()
@@ -84,7 +84,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
     def test_issue_9(self):
         """ sets DeprecationWarning in Python 2.6 """
         try:
-            reload(pymysql)
+            reload(cymysql)
         except DeprecationWarning:
             self.fail()
 
@@ -114,12 +114,12 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 
     def test_issue_14(self):
         """ typo in converters.py """
-        self.assertEqual('1', pymysql.converters.escape_item(1, "utf8"))
-        self.assertEqual('1', pymysql.converters.escape_object(1))
+        self.assertEqual('1', cymysql.converters.escape_item(1, "utf8"))
+        self.assertEqual('1', cymysql.converters.escape_object(1))
         if not PYTHON3:
-            self.assertEqual('1', pymysql.converters.escape_item(eval("1L"), "utf8"))
+            self.assertEqual('1', cymysql.converters.escape_item(eval("1L"), "utf8"))
 
-            self.assertEqual('1', pymysql.converters.escape_object(eval("1L")))
+            self.assertEqual('1', cymysql.converters.escape_object(eval("1L")))
 
     def test_issue_15(self):
         """ query should be expanded before perform character encoding """
@@ -159,7 +159,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
             conn.commit()
             
-            conn2 = pymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
+            conn2 = cymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
             c2 = conn2.cursor()
             c2.execute("select x from issue17")
             self.assertEqual("hello, world!", c2.fetchone()[0])
@@ -176,15 +176,15 @@ def _uni(s, e):
 class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_34(self):
         try:
-            pymysql.connect(host="localhost", port=1237, user="root")
+            cymysql.connect(host="localhost", port=1237, user="root")
             self.fail()
-        except pymysql.OperationalError as e:
+        except cymysql.OperationalError as e:
             self.assertEqual(2003, e.args[0])
         except:
             self.fail()
 
     def test_issue_33(self):
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = cymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
         c = conn.cursor()
         try:
             c.execute(_uni("create table hei\xc3\x9fe (name varchar(32))", "utf8"))
@@ -202,7 +202,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         try:
             c.execute("select sleep(10)")
             self.fail()
-        except pymysql.OperationalError as e:
+        except cymysql.OperationalError as e:
             self.assertEqual(2013, e.args[0])
 
     def test_issue_36(self):

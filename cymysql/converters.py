@@ -3,8 +3,8 @@ import datetime
 import time
 import sys
 
-from pymysql.constants import FIELD_TYPE, FLAG
-from pymysql.charset import charset_by_id
+from cymysql.constants import FIELD_TYPE, FLAG
+from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 

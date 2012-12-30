@@ -3,7 +3,7 @@ import struct
 import re
 import sys
 
-from pymysql.err import Warning, Error, InterfaceError, DataError, \
+from cymysql.err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
 

@@ -1,13 +1,13 @@
 import sys
 
 try:
-    from pymysql.tests import base
-    import pymysql.cursors
+    from cymysql.tests import base
+    import cymysql.cursors
 except:
     # For local testing from top-level directory, without installing
-    sys.path.append('../pymysql')
-    from pymysql.tests import base
-    import pymysql.cursors
+    sys.path.append('../cymysql')
+    from cymysql.tests import base
+    import cymysql.cursors
 
 class TestSSCursor(base.PyMySQLTestCase):
     def test_SSCursor(self):
@@ -27,7 +27,7 @@ class TestSSCursor(base.PyMySQLTestCase):
             ('America', '', 'America/Detroit'),]
     
         try:
-            cursor = conn.cursor(pymysql.cursors.SSCursor)
+            cursor = conn.cursor(cymysql.cursors.SSCursor)
         
             # Create table
             cursor.execute(('CREATE TABLE tz_data ('

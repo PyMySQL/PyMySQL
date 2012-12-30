@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import dbapi20
 import unittest
-import pymysql
-from pymysql.tests import base
+import cymysql
+from cymysql.tests import base
 
 # compatibility:
 if not hasattr(unittest, "expectedFailure"):
@@ -14,7 +14,7 @@ if not hasattr(unittest, "expectedFailure"):
     unittest.expectedFailure = _skip
 
 class test_MySQLdb(dbapi20.DatabaseAPI20Test):
-    driver = pymysql
+    driver = cymysql
     connect_args = ()
     connect_kw_args = base.PyMySQLTestCase.databases[0].copy()
     connect_kw_args.update(dict(read_default_file='~/.my.cnf',

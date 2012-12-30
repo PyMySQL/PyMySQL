@@ -1,23 +1,23 @@
 import unittest
 
-import pymysql
-_mysql = pymysql
-from pymysql.constants import FIELD_TYPE
-from pymysql.tests import base
+import cymysql
+_mysql = cymysql
+from cymysql.constants import FIELD_TYPE
+from cymysql.tests import base
 
 
 class TestDBAPISet(unittest.TestCase):
     def test_set_equality(self):
-        self.assertTrue(pymysql.STRING == pymysql.STRING)
+        self.assertTrue(cymysql.STRING == cymysql.STRING)
 
     def test_set_inequality(self):
-        self.assertTrue(pymysql.STRING != pymysql.NUMBER)
+        self.assertTrue(cymysql.STRING != cymysql.NUMBER)
 
     def test_set_equality_membership(self):
-        self.assertTrue(FIELD_TYPE.VAR_STRING == pymysql.STRING)
+        self.assertTrue(FIELD_TYPE.VAR_STRING == cymysql.STRING)
 
     def test_set_inequality_membership(self):
-        self.assertTrue(FIELD_TYPE.DATE != pymysql.STRING)
+        self.assertTrue(FIELD_TYPE.DATE != cymysql.STRING)
 
 
 class CoreModule(unittest.TestCase):
@@ -67,7 +67,7 @@ class CoreAPI(unittest.TestCase):
 
     #def test_debug(self):
         ## FIXME Only actually tests if you lack SUPER
-        #self.assertRaises(pymysql.OperationalError,
+        #self.assertRaises(cymysql.OperationalError,
                           #self.conn.dump_debug_info)
 
     def test_charset_name(self):

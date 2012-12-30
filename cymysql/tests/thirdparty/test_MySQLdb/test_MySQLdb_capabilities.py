@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 import capabilities
 import unittest
-import pymysql
-from pymysql.tests import base
+import cymysql
+from cymysql.tests import base
 import warnings
 
 warnings.filterwarnings('error')
 
 class test_MySQLdb(capabilities.DatabaseTest):
 
-    db_module = pymysql
+    db_module = cymysql
     connect_args = ()
     connect_kwargs = base.PyMySQLTestCase.databases[0].copy()
     connect_kwargs.update(dict(read_default_file='~/.my.cnf',
@@ -79,14 +79,14 @@ class test_MySQLdb(capabilities.DatabaseTest):
             generator)
 
     def test_bug_2671682(self):
-        from pymysql.constants import ER
+        from cymysql.constants import ER
         try:
             self.cursor.execute("describe some_non_existent_table");
         except self.connection.ProgrammingError, msg:
             self.assertTrue(msg.args[0] == ER.NO_SUCH_TABLE)
     
     def test_insert_values(self):
-        from pymysql.cursors import insert_values
+        from cymysql.cursors import insert_values
         query = """INSERT FOO (a, b, c) VALUES (a, b, c)"""
         matched = insert_values.search(query)
         self.assertTrue(matched)

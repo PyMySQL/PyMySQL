@@ -25,12 +25,12 @@ THE SOFTWARE.
 
 VERSION = (0, 5, None)
 
-from pymysql.constants import FIELD_TYPE
-from pymysql.converters import escape_dict, escape_sequence, escape_string
-from pymysql.err import Warning, Error, InterfaceError, DataError, \
+from cymysql.constants import FIELD_TYPE
+from cymysql.converters import escape_dict, escape_sequence, escape_string
+from cymysql.err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError, MySQLError
-from pymysql.times import Date, Time, Timestamp, \
+from cymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
 import sys
@@ -89,7 +89,7 @@ def Connect(*args, **kwargs):
     Connect to the database; see connections.Connection.__init__() for
     more information.
     """
-    from pymysql.connections import Connection
+    from cymysql.connections import Connection
     return Connection(*args, **kwargs)
 
 def get_client_info():  # for MySQLdb compatibility
@@ -112,7 +112,7 @@ def install_as_MySQLdb():
     After this function is called, any application that imports MySQLdb or
     _mysql will unwittingly actually use 
     """
-    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
+    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["cymysql"]
 
 __all__ = [
     'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',

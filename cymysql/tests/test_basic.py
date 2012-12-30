@@ -1,4 +1,4 @@
-from pymysql.tests import base
+from cymysql.tests import base
 
 import time
 import datetime
@@ -89,7 +89,7 @@ class TestConversion(base.PyMySQLTestCase):
         c = conn.cursor()
         c.execute("create table test_big_blob (b blob)")
         try:
-            data = "pymysql" * 1024
+            data = "cymysql" * 1024
             c.execute("insert into test_big_blob (b) values (%s)", (data,))
             c.execute("select b from test_big_blob")
             self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
@@ -176,7 +176,7 @@ class TestCursor(base.PyMySQLTestCase):
         c = conn.cursor()
         c.execute("create table test_nr (b varchar(32))")
         try:
-            data = "pymysql"
+            data = "cymysql"
             c.execute("insert into test_nr (b) values (%s)", (data,))
             self.assertEqual(None, c.fetchone())
         finally:
