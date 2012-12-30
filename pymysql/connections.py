@@ -445,7 +445,9 @@ class Connection(object):
       and return a MysqlPacket type that represents the results."""
 
       packet = packet_type(self)
-      packet.check_error()
+      _errno, _data = packet.check_error()
+      if _errno:
+        raise_my_sql_exception(_data)
       return packet
 
     def _read_query_result(self):
@@ -528,7 +530,9 @@ class Connection(object):
         self.wfile.flush()
 
         auth_packet = MysqlPacket(self)
-        auth_packet.check_error()
+        _errno, _data = auth_packet.check_error()
+        if _errno:
+            raise_my_sql_exception(_data)
         if DEBUG: auth_packet.dump()
 
         # if old_passwords is enabled the packet will be 1 byte long and
@@ -544,9 +548,10 @@ class Connection(object):
             self.wfile.write(data)
             self.wfile.flush()
             auth_packet = MysqlPacket(self)
-            auth_packet.check_error()
+            _errno, _data = auth_packet.check_error()
+            if _errno:
+                raise_my_sql_exception(_data)
             if DEBUG: auth_packet.dump()
-
 
     # _mysql support
     def thread_id(self):

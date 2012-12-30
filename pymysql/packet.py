@@ -5,7 +5,7 @@ import struct
 import sys
 import os
 
-from pymysql.err import raise_mysql_exception, OperationalError
+from pymysql.err import OperationalError
 from pymysql.charset import MBLENGTH
 from pymysql.constants import FIELD_TYPE
 
@@ -211,7 +211,8 @@ class MysqlPacket(object):
       self.advance(1)  # field_count == error (we already know that)
       errno = unpack_uint16(self.read(2))
       if DEBUG: print("errno = %d" % errno)
-      raise_mysql_exception(self.__data)
+      return errno, self.__data
+    return 0, None
 
   def dump(self):
     dump_packet(self.__data)
