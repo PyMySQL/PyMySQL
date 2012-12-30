@@ -19,17 +19,6 @@ UNSIGNED_SHORT_LENGTH = 2
 UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
-def byte2int(b):
-    if isinstance(b, int):
-        return b
-    else:
-        return struct.unpack("!B", b)[0]
-
-def int2byte(i):
-    return struct.pack("!B", i)
-
-def pack_int24(n):
-    return struct.pack('BBB', n&0xFF, (n>>8)&0xFF, (n>>16)&0xFF)
 
 def unpack_uint16(n):
   return struct.unpack('<H', n[0:2])[0]
@@ -65,10 +54,10 @@ class MysqlPacket(object):
         raise OperationalError(2013, "Lost connection to MySQL server during query")
 
     packet_length_bin = packet_header[:3]
-    self.__packet_number = byte2int(packet_header[3])
+    self.__packet_number = ord(packet_header[3:4])
     # TODO: check packet_num is correct (+1 from last packet)
 
-    bin_length = packet_length_bin + int2byte(0)  # pad little-endian number
+    bin_length = packet_length_bin + b'\00'  # pad little-endian number
     bytes_to_read = struct.unpack('<I', bin_length)[0]
     recv_data = self.connection.socket.recv(bytes_to_read)
     if len(recv_data) < bytes_to_read:
@@ -135,7 +124,7 @@ class MysqlPacket(object):
     Length coded numbers can be anywhere from 1 to 9 bytes depending
     on the value of the first byte.
     """
-    c = byte2int(self.read(1))
+    c = ord(self.read(1))
     if c == NULL_COLUMN:
       return None
     if c < UNSIGNED_CHAR_COLUMN:
@@ -161,17 +150,17 @@ class MysqlPacket(object):
     return self.read(length)
 
   def is_ok_packet(self):
-    return byte2int(self.get_bytes(0)) == 0
+    return ord(self.get_bytes(0)) == 0
 
   def is_eof_packet(self):
-    return byte2int(self.get_bytes(0)) == 254  # 'fe'
+    return ord(self.get_bytes(0)) == 254  # 'fe'
 
   def is_resultset_packet(self):
-    field_count = byte2int(self.get_bytes(0))
+    field_count = ord(self.get_bytes(0))
     return field_count >= 1 and field_count <= 250
 
   def is_error_packet(self):
-    return byte2int(self.get_bytes(0)) == 255
+    return ord(self.get_bytes(0)) == 255
 
   def check_error(self):
     if self.is_error_packet():
@@ -207,9 +196,9 @@ class FieldDescriptorPacket(MysqlPacket):
     self.advance(1)  # non-null filler
     self.charsetnr = struct.unpack('<H', self.read(2))[0]
     self.length = struct.unpack('<I', self.read(4))[0]
-    self.type_code = byte2int(self.read(1))
+    self.type_code = ord(self.read(1))
     self.flags = struct.unpack('<H', self.read(2))[0]
-    self.scale = byte2int(self.read(1))  # "decimals"
+    self.scale = ord(self.read(1))  # "decimals"
     self.advance(2)  # filler (always 0x00)
 
     # 'default' is a length coded binary and is still in the buffer?
