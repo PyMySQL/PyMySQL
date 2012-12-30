@@ -533,7 +533,7 @@ class Connection(object):
         _errno, _data = auth_packet.check_error()
         if _errno:
             raise_mysql_exception(_data)
-        if DEBUG: auth_packet.dump()
+        if DEBUG: dump_packet(auth_packet.get_all_data())
 
         # if old_passwords is enabled the packet will be 1 byte long and
         # have the octet 254
@@ -551,7 +551,7 @@ class Connection(object):
             _errno, _data = auth_packet.check_error()
             if _errno:
                 raise_mysql_exception(_data)
-            if DEBUG: auth_packet.dump()
+            if DEBUG: dump_packet(auth_packet.get_all_data())
 
     # _mysql support
     def thread_id(self):

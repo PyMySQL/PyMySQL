@@ -21,28 +21,6 @@ UNSIGNED_SHORT_LENGTH = 2
 UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
-
-def dump_packet(data):
-    
-    def is_ascii(data):
-        if byte2int(data) >= 65 and byte2int(data) <= 122: #data.isalnum():
-            return data
-        return '.'
-    print("packet length %d" % len(data))
-    print("method call[1]: %s" % sys._getframe(1).f_code.co_name)
-    print("method call[2]: %s" % sys._getframe(2).f_code.co_name)
-    print("method call[3]: %s" % sys._getframe(3).f_code.co_name)
-    print("method call[4]: %s" % sys._getframe(4).f_code.co_name)
-    print("method call[5]: %s" % sys._getframe(5).f_code.co_name)
-    print("-" * 88)
-    dump_data = [data[i:i+16] for i in range(len(data)) if i%16 == 0]
-    for d in dump_data:
-        print(' '.join(map(lambda x:"%02X" % byte2int(x), d)) + \
-                '   ' * (16 - len(d)) + ' ' * 2 + \
-                ' '.join(map(lambda x:"%s" % is_ascii(x), d)))
-    print("-" * 88)
-    print("")
-
 def byte2int(b):
     if isinstance(b, int):
         return b
@@ -91,7 +69,6 @@ class MysqlPacket(object):
     if len(packet_header) < 4:
         raise OperationalError(2013, "Lost connection to MySQL server during query")
 
-    if DEBUG: dump_packet(packet_header)
     packet_length_bin = packet_header[:3]
     self.__packet_number = byte2int(packet_header[3])
     # TODO: check packet_num is correct (+1 from last packet)
@@ -101,7 +78,6 @@ class MysqlPacket(object):
     recv_data = self.connection.rfile.read(bytes_to_read)
     if len(recv_data) < bytes_to_read:
         raise OperationalError(2013, "Lost connection to MySQL server during query")
-    if DEBUG: dump_packet(recv_data)
     self.__data = recv_data
 
   def packet_number(self): return self.__packet_number
@@ -213,9 +189,6 @@ class MysqlPacket(object):
       if DEBUG: print("errno = %d" % errno)
       return errno, self.__data
     return 0, None
-
-  def dump(self):
-    dump_packet(self.__data)
 
 
 class FieldDescriptorPacket(MysqlPacket):
