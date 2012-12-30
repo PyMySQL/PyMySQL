@@ -1,9 +1,7 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
-import struct
 import sys
-import os
 
 from pymysql.charset import MBLENGTH
 from pymysql.constants import FIELD_TYPE
@@ -21,19 +19,23 @@ UNSIGNED_INT64_LENGTH = 8
 PYTHON3 = sys.version_info[0] > 2
 
 def unpack_uint16(n):
-    return struct.unpack('<H', n[0:2])[0]
+    if PYTHON3:
+        return n[0] + (n[1] << 8)
+    else:
+        return ord(n[0]) + (ord(n[1]) << 8)
 
 def unpack_uint24(n):
     if PYTHON3:
         return n[0] + (n[1] << 8) + (n[2] << 16)
     else:
-        return struct.unpack('<I', n + b'\00')[0]
+        return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
 
 def unpack_uint32(n):
     if PYTHON3:
         return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
     else:
-        return struct.unpack('<I', n)[0]
+        return ord(n[0]) + (ord(n[1]) << 8) + \
+            (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
 
 class MysqlPacket(object):
