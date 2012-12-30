@@ -5,7 +5,6 @@ import struct
 import sys
 import os
 
-from pymysql.err import OperationalError
 from pymysql.charset import MBLENGTH
 from pymysql.constants import FIELD_TYPE
 
