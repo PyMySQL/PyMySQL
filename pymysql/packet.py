@@ -9,8 +9,6 @@ from pymysql.err import OperationalError
 from pymysql.charset import MBLENGTH
 from pymysql.constants import FIELD_TYPE
 
-DEBUG = False
-
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
@@ -36,18 +34,15 @@ def pack_int24(n):
 def unpack_uint16(n):
   return struct.unpack('<H', n[0:2])[0]
 
-
-# TODO: stop using bit-shifting in these functions...
-# TODO: rename to "uint" to make it clear they're unsigned...
-def unpack_int24(n):
+def unpack_uint24(n):
     return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
         (struct.unpack('B',n[2])[0] << 16)
 
-def unpack_int32(n):
+def unpack_uint32(n):
     return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
         (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B', n[3])[0] << 24)
 
-def unpack_int64(n):
+def unpack_uint64(n):
     return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0]<<8) +\
     (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B',n[3])[0]<<24)+\
     (struct.unpack('B',n[4])[0] << 32) + (struct.unpack('B',n[5])[0]<<40)+\
@@ -120,9 +115,6 @@ class MysqlPacket(object):
       error = ('Result length not requested length:\n'
                'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
                % (size, len(result), self.__position, len(self.__data)))
-      if DEBUG:
-        print(error)
-        self.dump()
       raise AssertionError(error)
     return result
 
@@ -151,10 +143,10 @@ class MysqlPacket(object):
     elif c == UNSIGNED_SHORT_COLUMN:
       return unpack_uint16(self.read(UNSIGNED_SHORT_LENGTH))
     elif c == UNSIGNED_INT24_COLUMN:
-      return unpack_int24(self.read(UNSIGNED_INT24_LENGTH))
+      return unpack_uint24(self.read(UNSIGNED_INT24_LENGTH))
     elif c == UNSIGNED_INT64_COLUMN:
       # TODO: what was 'longlong'?  confirm it wasn't used?
-      return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
+      return unpack_uint64(self.read(UNSIGNED_INT64_LENGTH))
 
   def read_length_coded_string(self):
     """Read a 'Length Coded String' from the data buffer.
@@ -186,7 +178,6 @@ class MysqlPacket(object):
       self.rewind()
       self.advance(1)  # field_count == error (we already know that)
       errno = unpack_uint16(self.read(2))
-      if DEBUG: print("errno = %d" % errno)
       return errno, self.__data
     return 0, None
 
