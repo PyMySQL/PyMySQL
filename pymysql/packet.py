@@ -20,7 +20,7 @@ UNSIGNED_INT64_LENGTH = 8
 
 
 def unpack_uint16(n):
-  return struct.unpack('<H', n[0:2])[0]
+    return struct.unpack('<H', n[0:2])[0]
 
 def unpack_uint24(n):
     return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
@@ -35,6 +35,7 @@ def unpack_uint64(n):
     (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B',n[3])[0]<<24)+\
     (struct.unpack('B',n[4])[0] << 32) + (struct.unpack('B',n[5])[0]<<40)+\
     (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
+
 
 class MysqlPacket(object):
   """Representation of a MySQL response packet.  Reads in the packet
@@ -174,64 +175,63 @@ class MysqlPacket(object):
 
 
 class FieldDescriptorPacket(MysqlPacket):
-  """A MysqlPacket that represents a specific column's metadata in the result.
+    """A MysqlPacket that represents a specific column's metadata in the result.
 
-  Parsing is automatically done and the results are exported via public
-  attributes on the class such as: db, table_name, name, length, type_code.
-  """
-
-  def __init__(self, *args):
-    MysqlPacket.__init__(self, *args)
-    self.__parse_field_descriptor()
-
-  def __parse_field_descriptor(self):
-    """Parse the 'Field Descriptor' (Metadata) packet.
-
-    This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
+    Parsing is automatically done and the results are exported via public
+    attributes on the class such as: db, table_name, name, length, type_code.
     """
-    self.catalog = self.read_length_coded_string()
-    self.db = self.read_length_coded_string()
-    self.table_name = self.read_length_coded_string()
-    self.org_table = self.read_length_coded_string()
-    self.name = self.read_length_coded_string().decode(self.connection.charset)
-    self.org_name = self.read_length_coded_string()
-    self.advance(1)  # non-null filler
-    self.charsetnr = struct.unpack('<H', self.read(2))[0]
-    self.length = struct.unpack('<I', self.read(4))[0]
-    self.type_code = ord(self.read(1))
-    self.flags = struct.unpack('<H', self.read(2))[0]
-    self.scale = ord(self.read(1))  # "decimals"
-    self.advance(2)  # filler (always 0x00)
 
-    # 'default' is a length coded binary and is still in the buffer?
-    # not used for normal result sets...
+    def __init__(self, *args):
+        MysqlPacket.__init__(self, *args)
+        self.__parse_field_descriptor()
 
-  def description(self):
-    """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
-    desc = []
-    desc.append(self.name)
-    desc.append(self.type_code)
-    desc.append(None) # TODO: display_length; should this be self.length?
-    desc.append(self.get_column_length()) # 'internal_size'
-    desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
-    desc.append(self.scale)
+    def __parse_field_descriptor(self):
+        """Parse the 'Field Descriptor' (Metadata) packet.
+    
+        This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
+        """
+        self.catalog = self.read_length_coded_string()
+        self.db = self.read_length_coded_string()
+        self.table_name = self.read_length_coded_string()
+        self.org_table = self.read_length_coded_string()
+        self.name = self.read_length_coded_string().decode(self.connection.charset)
+        self.org_name = self.read_length_coded_string()
+        self.advance(1)  # non-null filler
+        self.charsetnr = struct.unpack('<H', self.read(2))[0]
+        self.length = struct.unpack('<I', self.read(4))[0]
+        self.type_code = ord(self.read(1))
+        self.flags = struct.unpack('<H', self.read(2))[0]
+        self.scale = ord(self.read(1))  # "decimals"
+        self.advance(2)  # filler (always 0x00)
+    
+        # 'default' is a length coded binary and is still in the buffer?
+        # not used for normal result sets...
 
-    # 'null_ok' -- can this be True/False rather than 1/0?
-    #              if so just do:  desc.append(bool(self.flags % 2 == 0))
-    if self.flags % 2 == 0:
-      desc.append(1)
-    else:
-      desc.append(0)
-    return tuple(desc)
+    def description(self):
+        """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
+        desc = []
+        desc.append(self.name)
+        desc.append(self.type_code)
+        desc.append(None) # TODO: display_length; should this be self.length?
+        desc.append(self.get_column_length()) # 'internal_size'
+        desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
+        desc.append(self.scale)
+  
+        # 'null_ok' -- can this be True/False rather than 1/0?
+        #              if so just do:  desc.append(bool(self.flags % 2 == 0))
+        if self.flags % 2 == 0:
+            desc.append(1)
+        else:
+            desc.append(0)
+        return tuple(desc)
 
-  def get_column_length(self):
-    if self.type_code == FIELD_TYPE.VAR_STRING:
-      mblen = MBLENGTH.get(self.charsetnr, 1)
-      return self.length // mblen
-    return self.length
+    def get_column_length(self):
+        if self.type_code == FIELD_TYPE.VAR_STRING:
+            mblen = MBLENGTH.get(self.charsetnr, 1)
+            return self.length // mblen
+        return self.length
 
-  def __str__(self):
-    return ('%s %s.%s.%s, type=%s'
+    def __str__(self):
+        return ('%s %s.%s.%s, type=%s'
             % (self.__class__, self.db, self.table_name, self.name,
                self.type_code))
-
