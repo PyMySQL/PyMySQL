@@ -8,6 +8,8 @@ import os
 from pymysql.charset import MBLENGTH
 from pymysql.constants import FIELD_TYPE
 
+PYTHON3 = sys.version_info[0] > 2
+
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
@@ -23,18 +25,10 @@ def unpack_uint16(n):
     return struct.unpack('<H', n[0:2])[0]
 
 def unpack_uint24(n):
-    return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
-        (struct.unpack('B',n[2])[0] << 16)
-
-def unpack_uint32(n):
-    return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
-        (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B', n[3])[0] << 24)
-
-def unpack_uint64(n):
-    return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0]<<8) +\
-    (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B',n[3])[0]<<24)+\
-    (struct.unpack('B',n[4])[0] << 32) + (struct.unpack('B',n[5])[0]<<40)+\
-    (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
+    if PYTHON3:
+        return n[0] + (n[1] << 8) + (n[2] << 16)
+    else:
+        return struct.unpack('<I', n + b'\00')[0]
 
 
 class MysqlPacket(object):
@@ -58,16 +52,11 @@ class MysqlPacket(object):
     def __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
         packet_header = self.__recv_from_socket(4)
-  
-        packet_length_bin = packet_header[:3]
-        self.__packet_number = ord(packet_header[3:4])
+        bytes_to_read = unpack_uint24(packet_header[:3])
+        self.packet_number = ord(packet_header[3:])
         # TODO: check packet_num is correct (+1 from last packet)
-        bin_length = packet_length_bin + b'\00'  # pad little-endian number
-        bytes_to_read = struct.unpack('<I', bin_length)[0]
   
         self.__data = self.__recv_from_socket(bytes_to_read)
-  
-    def packet_number(self): return self.__packet_number
   
     def get_all_data(self): return self.__data
   
@@ -139,7 +128,7 @@ class MysqlPacket(object):
             return unpack_uint24(self.read(UNSIGNED_INT24_LENGTH))
         elif c == UNSIGNED_INT64_COLUMN:
             # TODO: what was 'longlong'?  confirm it wasn't used?
-            return unpack_uint64(self.read(UNSIGNED_INT64_LENGTH))
+            pass
   
     def read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
