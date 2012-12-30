@@ -1,9 +1,15 @@
-try:
-    from setuptools import setup, Command
-except ImportError:
-    from distutils.core import setup, Command
-
 import sys
+from distutils.core import setup, Command
+from distutils.extension import Extension
+
+try:
+    from Cython.Distutils import build_ext
+    cmdclass = {'build_ext': build_ext}
+    ext_modules = [Extension("pymysql.packetx", ["pymysql/packetx.pyx"])],
+except ImportError:
+    cmdclass = {}
+    ext_modules = None
+
 
 class TestCommand(Command):
     user_options = [ ]
@@ -21,6 +27,8 @@ class TestCommand(Command):
         from pymysql import tests
         import unittest
         unittest.main(tests, argv=sys.argv[:1])
+
+cmd_class['test'] = TestCommand
 
 version_tuple = __import__('pymysql').VERSION
 
@@ -40,5 +48,6 @@ setup(
     description = 'Pure Python MySQL Driver ',
     license = "MIT",
     packages = ['pymysql', 'pymysql.constants', 'pymysql.tests'],
-    cmdclass = {'test': TestCommand},
+    cmdclass = cmdclass,
+    ext_modules = ext_modules,
 )
