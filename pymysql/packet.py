@@ -8,8 +8,6 @@ import os
 from pymysql.charset import MBLENGTH
 from pymysql.constants import FIELD_TYPE
 
-PYTHON3 = sys.version_info[0] > 2
-
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
@@ -20,6 +18,7 @@ UNSIGNED_SHORT_LENGTH = 2
 UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
+PYTHON3 = sys.version_info[0] > 2
 
 def unpack_uint16(n):
     return struct.unpack('<H', n[0:2])[0]
@@ -29,6 +28,12 @@ def unpack_uint24(n):
         return n[0] + (n[1] << 8) + (n[2] << 16)
     else:
         return struct.unpack('<I', n + b'\00')[0]
+
+def unpack_uint32(n):
+    if PYTHON3:
+        return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
+    else:
+        return struct.unpack('<I', n)[0]
 
 
 class MysqlPacket(object):
@@ -187,10 +192,10 @@ class FieldDescriptorPacket(MysqlPacket):
         self.name = self.read_length_coded_string().decode(self.connection.charset)
         self.org_name = self.read_length_coded_string()
         self.advance(1)  # non-null filler
-        self.charsetnr = struct.unpack('<H', self.read(2))[0]
-        self.length = struct.unpack('<I', self.read(4))[0]
+        self.charsetnr = unpack_uint16(self.read(2))
+        self.length = unpack_uint32(self.read(4))
         self.type_code = ord(self.read(1))
-        self.flags = struct.unpack('<H', self.read(2))[0]
+        self.flags = unpack_uint16(self.read(2))
         self.scale = ord(self.read(1))  # "decimals"
         self.advance(2)  # filler (always 0x00)
     
