@@ -447,7 +447,7 @@ class Connection(object):
       packet = packet_type(self)
       _errno, _data = packet.check_error()
       if _errno:
-        raise_my_sql_exception(_data)
+        raise_mysql_exception(_data)
       return packet
 
     def _read_query_result(self):
@@ -532,7 +532,7 @@ class Connection(object):
         auth_packet = MysqlPacket(self)
         _errno, _data = auth_packet.check_error()
         if _errno:
-            raise_my_sql_exception(_data)
+            raise_mysql_exception(_data)
         if DEBUG: auth_packet.dump()
 
         # if old_passwords is enabled the packet will be 1 byte long and
@@ -550,7 +550,7 @@ class Connection(object):
             auth_packet = MysqlPacket(self)
             _errno, _data = auth_packet.check_error()
             if _errno:
-                raise_my_sql_exception(_data)
+                raise_mysql_exception(_data)
             if DEBUG: auth_packet.dump()
 
     # _mysql support
