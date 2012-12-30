@@ -3,8 +3,14 @@
 
 import sys
 
-from pymysql.charset import MBLENGTH
-from pymysql.constants import FIELD_TYPE
+MBLENGTH = {
+        8:1,
+        33:3,
+        88:2,
+        91:2
+        }
+
+FIELD_TYPE_VAR_STRING=253
 
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
@@ -223,7 +229,7 @@ class FieldDescriptorPacket(MysqlPacket):
         return tuple(desc)
 
     def get_column_length(self):
-        if self.type_code == FIELD_TYPE.VAR_STRING:
+        if self.type_code == FIELD_TYPE_VAR_STRING:
             mblen = MBLENGTH.get(self.charsetnr, 1)
             return self.length // mblen
         return self.length

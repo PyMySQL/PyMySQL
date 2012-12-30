@@ -1,10 +1,3 @@
-MBLENGTH = {
-        8:1,
-        33:3,
-        88:2,
-        91:2
-        }
-
 class Charset:
     def __init__(self, id, name, collation, is_default):
         self.id, self.name, self.collation = id, name, collation
