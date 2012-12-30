@@ -300,13 +300,9 @@ class Connection(object):
         if self.socket is None:
             raise Error("Already closed")
         send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
-        self.wfile.write(send_data)
-        self.wfile.close()
-        self.rfile.close()
+        self.socket.sendall(send_data)
         self.socket.close()
         self.socket = None
-        self.rfile = None
-        self.wfile = None
 
     def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
@@ -433,8 +429,6 @@ class Connection(object):
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
             self.socket = sock
-            self.rfile = self.socket.makefile("rb")
-            self.wfile = self.socket.makefile("wb")
             self._get_server_information()
             self._request_authentication()
         except socket.error as e:
@@ -473,8 +467,7 @@ class Connection(object):
             sql = sql.encode(self.charset)
 
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
-        self.wfile.write(prelude + sql)
-        self.wfile.flush()
+        self.socket.sendall(prelude + sql)
         if DEBUG: dump_packet(prelude + sql)
 
     def _execute_command(self, command, sql):
@@ -505,15 +498,12 @@ class Connection(object):
 
             if DEBUG: dump_packet(data)
 
-            self.wfile.write(data)
-            self.wfile.flush()
+            self.socket.sendall(data)
             self.socket = ssl.wrap_self.socketet(self.socket, keyfile=self.key,
                                                  certfile=self.cert,
                                                  ssl_version=ssl.PROTOCOL_TLSv1,
                                                  cert_reqs=ssl.CERT_REQUIRED,
                                                  ca_certs=self.ca)
-            self.rfile = self.socket.makefile("rb")
-            self.wfile = self.socket.makefile("wb")
 
         data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
@@ -526,8 +516,7 @@ class Connection(object):
 
         if DEBUG: dump_packet(data)
 
-        self.wfile.write(data)
-        self.wfile.flush()
+        self.socket.sendall(data)
 
         auth_packet = MysqlPacket(self)
         _errno, _data = auth_packet.check_error()
@@ -545,8 +534,7 @@ class Connection(object):
             data = _scramble_323(self.password.encode(self.charset), self.salt.encode(self.charset)) + int2byte(0)
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
-            self.wfile.write(data)
-            self.wfile.flush()
+            self.socket.sendall(data)
             auth_packet = MysqlPacket(self)
             _errno, _data = auth_packet.check_error()
             if _errno:
