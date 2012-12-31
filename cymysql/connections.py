@@ -449,6 +449,7 @@ class Connection(object):
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
             self.socket = sock
+            self.sock_fd = sock.fileno()
             self._get_server_information()
             self._request_authentication()
         except socket.error as e:
@@ -524,6 +525,7 @@ class Connection(object):
                                                  ssl_version=ssl.PROTOCOL_TLSv1,
                                                  cert_reqs=ssl.CERT_REQUIRED,
                                                  ca_certs=self.ca)
+            self.sock_fd = -1
 
         data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 

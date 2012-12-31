@@ -56,23 +56,27 @@ cdef class MysqlPacket(object):
   
     def __init__(self, connection):
         self.connection = connection
+        self.sock_fd = connection.sock_fd
         self.__position = 0
         self.__recv_packet()
-        if hasattr(self.connection.socket, 'fileno'):
-            self.sock_fd = self.connection.socket.fileno()
-        else:
-            self.sock_fd = -1
-  
+
     def __recv_from_socket(self, int size):
+        cdef extern from "sys/socket.h":
+            int recv(int sock_fd, void * buf, int len, int flag)
         cdef char buf[8192]
-        cdef int nbytes
-        cdef object r
+        cdef int nbytes, recieved
+        cdef bytes r
 
         r = b''
         while size:
             nbytes = size if size < 8192 else 8192
-            recv_data = self.connection.socket.recv(nbytes)
-            if len(recv_data) == 0:
+            if self.sock_fd >= 0:
+                recieved = recv(self.sock_fd, buf, nbytes, 0)
+                recv_data = buf[:recieved]
+            else:
+                recv_data = self.connection.socket.recv(nbytes)
+                recieved = len(recv_data)
+            if recieved == 0:
                 break
             size -= len(recv_data)
             r += recv_data
