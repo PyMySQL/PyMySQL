@@ -63,6 +63,8 @@ cdef class MysqlPacket(object):
         while size:
             recv_data = self.connection.socket.recv(size)
             size -= len(recv_data)
+            if len(recv_data) == 0:
+                break
             r += recv_data
         return r
   
