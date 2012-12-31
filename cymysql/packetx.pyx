@@ -44,10 +44,14 @@ def unpack_uint32(n):
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
 
-class MysqlPacket(object):
+cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
     for reading/parsing the packet results."""
+    cdef object connection
+    cdef int packet_number
+    cdef object __data
+    cdef int __position
   
     def __init__(self, connection):
         self.connection = connection
@@ -85,7 +89,7 @@ class MysqlPacket(object):
         (Subsequent read() or peek() will return errors.)
         """
         result = self.__data[self.__position:]
-        self.__position = None  # ensure no subsequent read() or peek()
+        self.__position = -1  # ensure no subsequent read() or peek()
         return result
   
     def advance(self, length):
@@ -177,12 +181,14 @@ class MysqlPacket(object):
         return 0, None
 
 
-class FieldDescriptorPacket(MysqlPacket):
+cdef class FieldDescriptorPacket(MysqlPacket):
     """A MysqlPacket that represents a specific column's metadata in the result.
 
     Parsing is automatically done and the results are exported via public
     attributes on the class such as: db, table_name, name, length, type_code.
     """
+    cdef object catalog, db, table_name, org_table, name, org_name
+    cdef int charsetnr, length, type_code, flags, scale
 
     def __init__(self, *args):
         MysqlPacket.__init__(self, *args)
