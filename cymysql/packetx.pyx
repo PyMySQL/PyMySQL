@@ -52,13 +52,19 @@ cdef class MysqlPacket(object):
     cdef int packet_number
     cdef object __data
     cdef int __position
+    cdef int sock_fd
   
     def __init__(self, connection):
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
+        if hasattr(self.connection.socket, 'fileno'):
+            self.sock_fd = self.connection.socket.fileno()
+        else:
+            self.sock_fd = -1
   
-    def __recv_from_socket(self, size):
+    def __recv_from_socket(self, int size):
+        cdef object r
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)
