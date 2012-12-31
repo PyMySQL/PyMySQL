@@ -85,7 +85,7 @@ class MysqlPacket(object):
         (Subsequent read() or peek() will return errors.)
         """
         result = self.__data[self.__position:]
-        self.__position = None  # ensure no subsequent read() or peek()
+        self.__position = -1  # ensure no subsequent read() or peek()
         return result
   
     def advance(self, length):
