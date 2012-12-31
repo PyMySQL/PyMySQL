@@ -187,8 +187,8 @@ cdef class FieldDescriptorPacket(MysqlPacket):
     Parsing is automatically done and the results are exported via public
     attributes on the class such as: db, table_name, name, length, type_code.
     """
-    cdef object catalog, db, table_name, org_table, name, org_name
-    cdef int charsetnr, length, type_code, flags, scale
+    cdef public object catalog, db, table_name, org_table, name, org_name
+    cdef public int charsetnr, length, type_code, flags, scale
 
     def __init__(self, *args):
         MysqlPacket.__init__(self, *args)
