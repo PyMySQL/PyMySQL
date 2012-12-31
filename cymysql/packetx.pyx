@@ -2,6 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
+cdef int PYTHON3 = sys.version_info[0] > 2
 
 MBLENGTH = {
         8:1,
@@ -10,33 +11,32 @@ MBLENGTH = {
         91:2
         }
 
-FIELD_TYPE_VAR_STRING=253
+cdef int FIELD_TYPE_VAR_STRING=253
 
-NULL_COLUMN = 251
-UNSIGNED_CHAR_COLUMN = 251
-UNSIGNED_SHORT_COLUMN = 252
-UNSIGNED_INT24_COLUMN = 253
-UNSIGNED_INT64_COLUMN = 254
-UNSIGNED_CHAR_LENGTH = 1
-UNSIGNED_SHORT_LENGTH = 2
-UNSIGNED_INT24_LENGTH = 3
-UNSIGNED_INT64_LENGTH = 8
+cdef int NULL_COLUMN = 251
+cdef int UNSIGNED_CHAR_COLUMN = 251
+cdef int UNSIGNED_SHORT_COLUMN = 252
+cdef int UNSIGNED_INT24_COLUMN = 253
+cdef int UNSIGNED_INT64_COLUMN = 254
+cdef int UNSIGNED_CHAR_LENGTH = 1
+cdef int UNSIGNED_SHORT_LENGTH = 2
+cdef int UNSIGNED_INT24_LENGTH = 3
+cdef int UNSIGNED_INT64_LENGTH = 8
 
-PYTHON3 = sys.version_info[0] > 2
 
-def unpack_uint16(n):
+cdef int unpack_uint16(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8)
     else:
         return ord(n[0]) + (ord(n[1]) << 8)
 
-def unpack_uint24(n):
+cdef int unpack_uint24(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8) + (n[2] << 16)
     else:
         return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
 
-def unpack_uint32(n):
+cdef int unpack_uint32(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
     else:

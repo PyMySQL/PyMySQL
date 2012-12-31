@@ -2,6 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
+PYTHON3 = sys.version_info[0] > 2
 
 MBLENGTH = {
         8:1,
@@ -22,7 +23,6 @@ UNSIGNED_SHORT_LENGTH = 2
 UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
-PYTHON3 = sys.version_info[0] > 2
 
 def unpack_uint16(n):
     if PYTHON3:
