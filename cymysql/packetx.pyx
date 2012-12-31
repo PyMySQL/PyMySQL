@@ -64,13 +64,17 @@ cdef class MysqlPacket(object):
             self.sock_fd = -1
   
     def __recv_from_socket(self, int size):
+        cdef char buf[8192]
+        cdef int nbytes
         cdef object r
+
         r = b''
         while size:
-            recv_data = self.connection.socket.recv(size)
-            size -= len(recv_data)
+            nbytes = size if size < 8192 else 8192
+            recv_data = self.connection.socket.recv(nbytes)
             if len(recv_data) == 0:
                 break
+            size -= len(recv_data)
             r += recv_data
         return r
   
