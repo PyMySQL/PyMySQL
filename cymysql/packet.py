@@ -55,13 +55,13 @@ class MysqlPacket(object):
         self.__position = 0
         self.__recv_packet()
 
-    def __recv_from_socket(self, size, wait=0):
+    def __recv_from_socket(self, size):
         r = b''
         while size:
             nbytes = size if size < 8192 else 8192
             recv_data = self.connection.socket.recv(nbytes)
             recieved = len(recv_data)
-            if wait==0 and recieved == 0:
+            if recieved == 0:
                 break
             size -= len(recv_data)
             r += recv_data
@@ -69,7 +69,7 @@ class MysqlPacket(object):
   
     def __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
-        packet_header = self.__recv_from_socket(4, wait=1)
+        packet_header = self.__recv_from_socket(4)
         bytes_to_read = unpack_uint24(packet_header[:3])
         self.packet_number = ord(packet_header[3:])
         # TODO: check packet_num is correct (+1 from last packet)
