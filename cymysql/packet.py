@@ -48,17 +48,20 @@ class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
     for reading/parsing the packet results."""
-  
+
     def __init__(self, connection):
         self.connection = connection
+        self.sock_fd = connection.sock_fd
         self.__position = 0
         self.__recv_packet()
-  
+
     def __recv_from_socket(self, size):
         r = b''
         while size:
-            recv_data = self.connection.socket.recv(size)
-            if len(recv_data) == 0:
+            nbytes = size if size < 8192 else 8192
+            recv_data = self.connection.socket.recv(nbytes)
+            recieved = len(recv_data)
+            if recieved == 0:
                 break
             size -= len(recv_data)
             r += recv_data
