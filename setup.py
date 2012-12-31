@@ -5,7 +5,7 @@ from distutils.extension import Extension
 try:
     from Cython.Distutils import build_ext
     cmdclass = {'build_ext': build_ext}
-    ext_modules = [Extension("cymysql.packetx", ["cymysql/packetx.pyx"])],
+    ext_modules = [Extension("cymysql.packetx", ["cymysql/packetx.pyx"])]
 except ImportError:
     cmdclass = {}
     ext_modules = None
