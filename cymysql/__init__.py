@@ -1,7 +1,7 @@
 '''
 PyMySQL: A pure-Python drop-in replacement for MySQLdb.
 
-Copyright (c) 2010 PyMySQL contributors
+Copyright (c) 2010-2013 PyMySQL contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 '''
 
-VERSION = (0, 5, None)
+VERSION = (0, 5, 0)
 
 from cymysql.constants import FIELD_TYPE
 from cymysql.converters import escape_dict, escape_sequence, escape_string
