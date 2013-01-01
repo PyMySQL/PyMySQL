@@ -3,6 +3,7 @@
 
 import sys
 from cymysql.err import OperationalError
+from cymysql.constants import SERVER_STATUS
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -261,3 +262,82 @@ class FieldDescriptorPacket(MysqlPacket):
         return ('%s %s.%s.%s, type=%s'
             % (self.__class__, self.db, self.table_name, self.name,
                self.type_code))
+
+
+# TODO: move OK and EOF packet parsing/logic into a proper subclass
+#       of MysqlPacket like has been done with FieldDescriptorPacket.
+class MySQLResult(object):
+
+    def __init__(self, connection):
+        from weakref import proxy
+        self.connection = proxy(connection)
+        self.affected_rows = None
+        self.insert_id = None
+        self.server_status = 0
+        self.warning_count = 0
+        self.message = None
+        self.field_count = 0
+        self.description = None
+        self.rows = None
+        self.has_next = None
+
+    def read(self):
+        self.first_packet = self.connection.read_packet()
+
+        # TODO: use classes for different packet types?
+        if self.first_packet.is_ok_packet():
+            self._read_ok_packet()
+        else:
+            self._read_result_packet()
+
+    def _read_ok_packet(self):
+        (self.affected_rows, self.insert_id,
+            self.server_status, self.warning_count,
+            self.message) = self.first_packet.read_ok_packet()
+
+    def _read_result_packet(self):
+        self.field_count = ord(self.first_packet.read(1))
+        self._get_descriptions()
+        self._read_rowdata_packet()
+
+    # TODO: implement this as an iteratable so that it is more
+    #       memory efficient and lower-latency to client...
+    def _read_rowdata_packet(self):
+      """Read a rowdata packet for each data row in the result set."""
+      rows = []
+      while True:
+        packet = self.connection.read_packet()
+        if packet.is_eof_packet():
+            self.warning_count = packet.read(2)
+            server_status = unpack_uint16(packet.read(2))
+            self.has_next = (server_status
+                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+            break
+
+        row = []
+        for field in self.fields:
+            data = packet.read_length_coded_string()
+            converted = None
+            if field.type_code in self.connection.decoders:
+                converter = self.connection.decoders[field.type_code]
+                if data != None:
+                    converted = converter(self.connection, field, data)
+            row.append(converted)
+
+        rows.append(tuple(row))
+
+      self.affected_rows = len(rows)
+      self.rows = tuple(rows)
+
+    def _get_descriptions(self):
+        """Read a column descriptor packet for each column in the result."""
+        self.fields = []
+        description = []
+        for i in range(self.field_count):
+            field = self.connection.read_packet(FieldDescriptorPacket)
+            self.fields.append(field)
+            description.append(field.description())
+
+        eof_packet = self.connection.read_packet()
+        assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
+        self.description = tuple(description)
