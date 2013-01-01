@@ -1,5 +1,5 @@
 ====================
-PyMySQL Installation
+CyMySQL Installation
 ====================
 
 .. contents::
@@ -14,14 +14,12 @@ PyMySQL Installation
 Requirements
 -------------
 
-+ Python 2.6 or higher
+- Python 2.6 or higher
 
- * http://www.python.org/
+- Cython 17.1 or higher
  
-* MySQL 4.1 or higher
+- MySQL 4.1 or higher
     
- * protocol41 support, experimental 4.0 support
-
 Installation
 ------------
 
