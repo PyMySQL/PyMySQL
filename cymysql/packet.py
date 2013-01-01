@@ -74,6 +74,7 @@ class MysqlPacket(object):
         packet_header = self.__recv_from_socket(4)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
+
         bytes_to_read = unpack_uint24(packet_header[:3])
         self.packet_number = ord(packet_header[3:])
         # TODO: check packet_num is correct (+1 from last packet)
