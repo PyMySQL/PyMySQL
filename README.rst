@@ -10,8 +10,9 @@ This package contains a python MySQL client library.
 It is a fork project from PyMySQL http://www.pymysql.org/ .
 
 PyMySQL is written by Yutaka Matsubara <yutaka.matsubara@gmail.com>
-as pure python database driver. CyMySQL is powered by Cython, it still can work
-without Cython as a pure python driver.
+as a pure python database driver. CyMySQL is powered by Cython by
+Hajime Nakagami <nakagami@gmail.com>.
+It still can work without Cython as a pure python driver.
 
 Documentation on the MySQL client/server protocol can be found here:
 http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol .
