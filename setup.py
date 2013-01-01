@@ -40,7 +40,7 @@ else:
 setup(
     name = "cymysql",
     version = version,
-    url = 'https://github.com/nakagami/cymysql/',
+    url = 'https://github.com/nakagami/CyMySQL/',
     author = 'Yutaka Matsubara',
     author_email = 'yutaka.matsubara@gmail.com',
     maintainer = 'Hajime Nakagami',
