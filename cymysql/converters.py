@@ -116,16 +116,13 @@ def convert_datetime(connection, field, obj):
     if ((PYTHON3 and not isinstance(obj, str)) or 
         (not PYTHON3 and not isinstance(obj, unicode))):
         obj = obj.decode(connection.charset)
-    if ' ' in obj:
-        sep = ' '
-    elif 'T' in obj:
-        sep = 'T'
-    else:
-        return convert_date(connection, field, obj)
-
     try:
-        ymd, hms = obj.split(sep, 1)
-        return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
+        if ' ' in obj:
+            return datetime.datetime.strptime(obj, "%Y-%m-%d %H:%M:%S")
+        elif 'T' in obj:
+            return datetime.datetime.strptime(obj, "%Y-%mT%dT%H:%M:%S")
+        else:
+            return convert_date(connection, field, obj)
     except ValueError:
         return convert_date(connection, field, obj)
 
