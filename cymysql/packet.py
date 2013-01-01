@@ -2,7 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
-from err import OperationalError
+from cymysql.err import OperationalError
 
 PYTHON3 = sys.version_info[0] > 2
 
