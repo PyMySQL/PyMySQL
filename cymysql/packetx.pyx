@@ -108,7 +108,7 @@ cdef class MysqlPacket(object):
         self.__position = -1  # ensure no subsequent read() or peek()
         return result
   
-    def advance(self, length):
+    cdef void advance(self, int length):
         """Advance the cursor in data buffer 'length' bytes."""
         new_position = self.__position + length
         if new_position < 0 or new_position > len(self.__data):
@@ -116,14 +116,14 @@ cdef class MysqlPacket(object):
                         'Position=%s' % (length, new_position))
         self.__position = new_position
   
-    def rewind(self, position=0):
+    cdef void rewind(self, position=0):
         """Set the position of the data buffer cursor to 'position'."""
         if position < 0 or position > len(self.__data):
             raise Exception(
                     "Invalid position to rewind cursor to: %s." % position)
         self.__position = position
   
-    def peek(self, size):
+    cdef bytes peek(self, int size):
         """Look at the first 'size' bytes in packet without moving cursor."""
         result = self.__data[self.__position:(self.__position+size)]
         if len(result) != size:
@@ -133,7 +133,7 @@ cdef class MysqlPacket(object):
             raise AssertionError(error)
         return result
   
-    def get_bytes(self, position, length=1):
+    cdef bytes get_bytes(self, int position, int length=1):
         """Get 'length' bytes starting at 'position'.
   
         Position is start of payload (first four packet header bytes are not
@@ -144,7 +144,7 @@ cdef class MysqlPacket(object):
         """
         return self.__data[position:(position+length)]
   
-    def read_length_coded_binary(self):
+    cdef object read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
         Length coded numbers can be anywhere from 1 to 9 bytes depending
