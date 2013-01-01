@@ -2,6 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
+from libc.stdlib cimport malloc, free
 from cymysql.err import OperationalError
 from cymysql.constants import SERVER_STATUS
 
@@ -65,10 +66,25 @@ cdef class MysqlPacket(object):
 
 
     cdef bytes __recv_from_socket(self, int size):
+        cdef extern from "sys/socket.h":
+            int recv(int sock_fd, void * buf, int len, int flag)
         cdef bytes r
         cdef int recieved
         cdef char buf[8192]
 
+        # read from socket descriptor
+        if self.sock_fd >= 0:
+            r = b''
+            while size:
+                recieved = recv(self.sock_fd, buf,
+                    size if size < 8192 else 8192, 0)
+                if recieved == 0:
+                    break
+                recv_data = buf[:recieved]
+                size -= recieved
+                r += recv_data
+            return r
+  
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)
@@ -79,18 +95,6 @@ cdef class MysqlPacket(object):
             r += recv_data
         return r
 
-        if self.sock_fd >= 0:
-            while size:
-                recieved = recv(self.sock_fd, buf,
-                    size if size < 8192 else 8192, 0)
-                if recieved == 0:
-                    break
-                recv_data = buf[:recieved]
-                size -= recieved
-                r += recv_data
-    
-            return r
-  
     def __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
         packet_header = self.__recv_from_socket(4)
