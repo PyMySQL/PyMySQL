@@ -283,7 +283,11 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 
 # TODO: move OK and EOF packet parsing/logic into a proper subclass
 #       of MysqlPacket like has been done with FieldDescriptorPacket.
-class MySQLResult(object):
+cdef class MySQLResult(object):
+    cdef public object affected_rows, insert_id, rows, has_next
+    cdef public object message, description
+    cdef public object server_status, warning_count, field_count
+    cdef object connection, first_packet, fields
 
     def __init__(self, connection):
         from weakref import proxy
