@@ -196,6 +196,15 @@ cdef class MysqlPacket(object):
             return errno, self.__data
         return 0, None
 
+    def read_ok_packet(self):
+        self.advance(1)  # field_count (always '0')
+        affected_rows = self.read_length_coded_binary()
+        insert_id = self.read_length_coded_binary()
+        server_status = unpack_uint16(self.read(2))
+        warning_count = unpack_uint16(self.read(2))
+        message = self.read_all()
+        return (affected_rows, insert_id, server_status, warning_count, message)
+
 
 cdef class FieldDescriptorPacket(MysqlPacket):
     """A MysqlPacket that represents a specific column's metadata in the result.

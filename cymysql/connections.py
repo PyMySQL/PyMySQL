@@ -653,12 +653,9 @@ class MySQLResult(object):
             self._read_result_packet()
 
     def _read_ok_packet(self):
-        self.first_packet.advance(1)  # field_count (always '0')
-        self.affected_rows = self.first_packet.read_length_coded_binary()
-        self.insert_id = self.first_packet.read_length_coded_binary()
-        self.server_status = struct.unpack('<H', self.first_packet.read(2))[0]
-        self.warning_count = struct.unpack('<H', self.first_packet.read(2))[0]
-        self.message = self.first_packet.read_all()
+        (self.affected_rows, self.insert_id,
+            self.server_status, self.warning_count,
+            self.message) = self.first_packet.read_ok_packet()
 
     def _read_result_packet(self):
         self.field_count = byte2int(self.first_packet.read(1))
