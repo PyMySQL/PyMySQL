@@ -311,19 +311,19 @@ cdef class MySQLResult(object):
         else:
             self._read_result_packet()
 
-    def _read_ok_packet(self):
+    cdef object _read_ok_packet(self):
         (self.affected_rows, self.insert_id,
             self.server_status, self.warning_count,
             self.message) = self.first_packet.read_ok_packet()
 
-    def _read_result_packet(self):
+    cdef object _read_result_packet(self):
         self.field_count = ord(self.first_packet.read(1))
         self._get_descriptions()
         self._read_rowdata_packet()
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
-    def _read_rowdata_packet(self):
+    cdef object _read_rowdata_packet(self):
       """Read a rowdata packet for each data row in the result set."""
       rows = []
       while True:
@@ -350,7 +350,7 @@ cdef class MySQLResult(object):
       self.affected_rows = len(rows)
       self.rows = tuple(rows)
 
-    def _get_descriptions(self):
+    cdef object _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         self.fields = []
         description = []
