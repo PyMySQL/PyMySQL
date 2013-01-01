@@ -2,6 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
+from libc.stdlib cimport malloc, free
 from cymysql.err import OperationalError
 from cymysql.constants import SERVER_STATUS
 
@@ -53,36 +54,54 @@ cdef class MysqlPacket(object):
     for reading/parsing the packet results."""
     cdef object connection
     cdef int packet_number
-    cdef object __data
+    cdef bytes __data
     cdef int __position
     cdef int sock_fd
-  
+
     def __init__(self, connection):
         self.connection = connection
         self.sock_fd = connection.sock_fd
         self.__position = 0
         self.__recv_packet()
 
-    def __recv_from_socket(self, int size):
+
+    cdef bytes __recv_from_socket(self, int size):
+        cdef bytes r
+        cdef int recieved
+
+        if self.sock_fd < 0:
+            r = b''
+            while size:
+                recv_data = self.connection.socket.recv(size)
+                recieved = len(recv_data)
+                if recieved == 0:
+                    break
+                size -= len(recv_data)
+                r += recv_data
+            return r
+
         cdef extern from "sys/socket.h":
             int recv(int sock_fd, void * buf, int len, int flag)
         cdef char buf[8192]
-        cdef int nbytes, recieved
-        cdef bytes r
+        cdef char *mem_buf
+        cdef int i = 0
 
-        r = b''
+        if size > 8192:
+            mem_buf = <char*>malloc(size)
+        else:
+            mem_buf = buf
+
         while size:
-            nbytes = size if size < 8192 else 8192
-            if self.sock_fd >= 0:
-                recieved = recv(self.sock_fd, buf, nbytes, 0)
-                recv_data = buf[:recieved]
-            else:
-                recv_data = self.connection.socket.recv(nbytes)
-                recieved = len(recv_data)
+            recieved = recv(self.sock_fd, mem_buf + i, size, 0)
             if recieved == 0:
                 break
-            size -= len(recv_data)
-            r += recv_data
+            i += recieved
+            size -= recieved
+
+        if self.sock_fd >= 0:
+            r = mem_buf[:i]
+        if size > 8192:
+            free(mem_buf)
         return r
   
     def __recv_packet(self):

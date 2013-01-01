@@ -61,8 +61,7 @@ class MysqlPacket(object):
     def __recv_from_socket(self, size):
         r = b''
         while size:
-            nbytes = size if size < 8192 else 8192
-            recv_data = self.connection.socket.recv(nbytes)
+            recv_data = self.connection.socket.recv(size)
             recieved = len(recv_data)
             if recieved == 0:
                 break
