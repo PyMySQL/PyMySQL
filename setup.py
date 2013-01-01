@@ -37,10 +37,22 @@ if version_tuple[2] is not None:
 else:
     version = "%d.%d" % version_tuple[:2]
 
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 2',
+    'Programming Language :: Python :: 3',
+    'Topic :: Database',
+]
+
 setup(
     name = "cymysql",
     version = version,
     url = 'https://github.com/nakagami/CyMySQL/',
+    classifiers=classifiers,
+    keywords=['MySQL'],
     author = 'Yutaka Matsubara',
     author_email = 'yutaka.matsubara@gmail.com',
     maintainer = 'Hajime Nakagami',
