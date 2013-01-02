@@ -8,6 +8,11 @@ except ImportError:
     import sha
     sha_new = sha.new
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 import socket
 try:
     import ssl
@@ -27,8 +32,12 @@ except ImportError:
 
 from cymysql.charset import charset_by_name, charset_by_id
 from cymysql.cursors import Cursor
-from cymysql.constants.CLIENT import *
-from cymysql.constants.COMMAND import *
+from cymysql.constants.CLIENT import (
+    CAPABILITIES, MULTI_RESULTS, CONNECT_WITH_DB, MULTI_STATEMENTS, SSL
+)
+from cymysql.constants.COMMAND import (
+    COM_QUERY, COM_QUIT, COM_PROCESS_KILL, COM_PING
+)
 from cymysql.converters import escape_item, encoders, decoders
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
