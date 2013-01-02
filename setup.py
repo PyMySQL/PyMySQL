@@ -7,7 +7,9 @@ try:
     cmdclass = {'build_ext': build_ext}
     ext_modules = [Extension("cymysql.packetx", ["cymysql/packetx.pyx"]),
         Extension("cymysql.convertersx", ["cymysql/convertersx.pyx"]),
-        Extension("cymysql.connectionsx", ["cymysql/connectionsx.pyx"]),]
+        Extension("cymysql.connectionsx", ["cymysql/connectionsx.pyx"]),
+        Extension("cymysql.cursorsx", ["cymysql/cursorsx.pyx"]),
+    ]
 except ImportError:
     cmdclass = {}
     ext_modules = None

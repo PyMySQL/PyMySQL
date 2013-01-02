@@ -30,7 +30,10 @@ except ImportError:
     DEFAULT_USER = None
 
 from cymysql.charset import charset_by_name, charset_by_id
-from cymysql.cursors import Cursor
+try:
+    from cymysql.cursorsx import Cursor
+except ImportError:
+    from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
 from cymysql.converters import escape_item, encoders, decoders
