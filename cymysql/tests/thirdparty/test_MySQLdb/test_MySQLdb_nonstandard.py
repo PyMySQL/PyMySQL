@@ -46,6 +46,7 @@ class CoreAPI(unittest.TestCase):
 
     def setUp(self):
         kwargs = base.PyMySQLTestCase.databases[0].copy()
+        kwargs["read_default_file"] = "~/.my.cnf"
         self.conn = _mysql.connect(**kwargs)
 
     def tearDown(self):
