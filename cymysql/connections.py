@@ -32,9 +32,6 @@ except ImportError:
 
 from cymysql.charset import charset_by_name, charset_by_id
 from cymysql.cursors import Cursor
-from cymysql.constants.CLIENT import (
-    CAPABILITIES, MULTI_RESULTS, CONNECT_WITH_DB, MULTI_STATEMENTS, SSL
-)
 from cymysql.constants.COMMAND import (
     COM_QUERY, COM_QUIT, COM_PROCESS_KILL, COM_PING
 )
@@ -50,6 +47,26 @@ except ImportError:
 PYTHON3 = sys.version_info[0] > 2
 
 DEBUG = False
+
+LONG_PASSWORD = 1
+FOUND_ROWS = 1 << 1
+LONG_FLAG = 1 << 2
+CONNECT_WITH_DB = 1 << 3
+NO_SCHEMA = 1 << 4
+COMPRESS = 1 << 5
+ODBC = 1 << 6
+LOCAL_FILES = 1 << 7
+IGNORE_SPACE = 1 << 8
+PROTOCOL_41 = 1 << 9
+INTERACTIVE = 1 << 10
+SSL = 1 << 11
+IGNORE_SIGPIPE = 1 << 12
+TRANSACTIONS  = 1 << 13
+SECURE_CONNECTION = 1 << 15
+MULTI_STATEMENTS = 1 << 16
+MULTI_RESULTS = 1 << 17
+CAPABILITIES = LONG_PASSWORD|LONG_FLAG|TRANSACTIONS| \
+    PROTOCOL_41|SECURE_CONNECTION
 
 DEFAULT_CHARSET = 'latin1'
 
@@ -210,7 +227,7 @@ class Connection(object):
         read_default_file: Specifies  my.cnf file to read these parameters from under the [client] section.
         conv: Decoders dictionary to use instead of the default one. This is used to provide custom marshalling of types. See converters.
         use_unicode: Whether or not to default to unicode strings. This option defaults to true for Py3k.
-        client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
+        client_flag: Custom flags to send to MySQL.
         cursorclass: Custom cursor class to use.
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.
