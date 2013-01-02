@@ -158,12 +158,20 @@ def _hash_password_323(password):
 
 
 
-class Connection(object):
+cdef class Connection(object):
     """
     Representation of a socket with a mysql server.
 
     The proper way to get an instance of this class is to call
     connect()."""
+    cdef object ssl, host, port, user, password, db, unix_socket
+    cdef object charset, use_unicode, client_flag, cursorclass
+    cdef object connect_timeout, message, encoders, decoders
+    cdef object _result, _affected_rows, host_info, socket, sock_fd
+    cdef object server_version, protocol_version, server_capabilities
+    cdef object server_language, server_charset
+    cdef object key, cert, ca, salt
+    cdef object server_thread_id
 
     def errorhandler(connection, cursor, errorclass, errorvalue):
         err = errorclass, errorvalue
