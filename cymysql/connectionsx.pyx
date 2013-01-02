@@ -7,6 +7,7 @@ try:
 except ImportError:
     import sha
     sha_new = sha.new
+
 try:
     from cStringIO import StringIO
 except ImportError:
