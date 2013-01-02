@@ -89,7 +89,10 @@ def Connect(*args, **kwargs):
     Connect to the database; see connections.Connection.__init__() for
     more information.
     """
-    from cymysql.connections import Connection
+    try:
+        from cymysql.connectionsx import Connection
+    except ImportError:
+        from cymysql.connections import Connection
     return Connection(*args, **kwargs)
 
 def get_client_info():  # for MySQLdb compatibility
