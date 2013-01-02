@@ -121,7 +121,7 @@ __all__ = [
     'InterfaceError', 'InternalError', 'MySQLError', 'NULL', 'NUMBER',
     'NotSupportedError', 'DBAPISet', 'OperationalError', 'ProgrammingError',
     'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel', 'connect',
-    'connections', 'constants', 'converters', 'cursors',
+    'constants', 'converters', 'cursors',
     'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
     'paramstyle', 'threadsafety', 'version_info',
 
