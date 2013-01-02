@@ -2,6 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
+from libc.stdlib cimport malloc, free
 from cymysql.err import OperationalError
 from cymysql.constants import SERVER_STATUS
 
@@ -68,25 +69,21 @@ cdef class MysqlPacket(object):
         cdef extern from "sys/socket.h":
             int recv(int sock_fd, void * buf, int len, int flag)
         cdef bytes r
-        cdef int recieved, nbytes
+        cdef int recieved
         cdef char buf[8192]
 
         # read from socket descriptor
         if self.sock_fd >= 0:
             r = b''
             while size:
-                if size < 8192:
-                    nbytes=size
-                else:
-                    nbytes=8192
-                recieved = recv(self.sock_fd, buf, nbytes, 0)
+                recieved = recv(self.sock_fd, buf,
+                    size if size < 8192 else 8192, 0)
                 if recieved == 0:
                     break
                 r += buf[:recieved]
                 size -= recieved
             return r
   
-        cdef object recv_data
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)
@@ -97,10 +94,11 @@ cdef class MysqlPacket(object):
             r += recv_data
         return r
 
-    cdef void __recv_packet(self):
+    cdef __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
         cdef bytes packet_header, recv_data
         cdef int bytes_to_read
+
         packet_header = self.__recv_from_socket(4)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
