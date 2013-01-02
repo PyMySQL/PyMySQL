@@ -18,10 +18,6 @@ except ImportError:
 import struct
 import sys
 import os
-try:
-    import ConfigParser
-except ImportError:
-    import configparser
 
 try:
     import getpass
@@ -244,32 +240,9 @@ cdef class Connection(object):
                     v = ssl[k]
                 setattr(self, k, v)
 
-        if read_default_group and not read_default_file:
-            if sys.platform.startswith("win"):
-                read_default_file = "c:\\my.ini"
-            else:
-                read_default_file = "/etc/my.cnf"
-
-        if read_default_file:
-            if not read_default_group:
-                read_default_group = "client"
-
-            cfg = ConfigParser.RawConfigParser()
-            cfg.read(os.path.expanduser(read_default_file))
-
-            def _config(key, default):
-                try:
-                    return cfg.get(read_default_group,key)
-                except:
-                    return default
-
-            user = _config("user",user)
-            passwd = _config("password",passwd)
-            host = _config("host", host)
-            db = _config("db",db)
-            unix_socket = _config("socket",unix_socket)
-            port = _config("port", port)
-            charset = _config("default-character-set", charset)
+        if read_default_group or read_default_file:
+            error = ('read_default_file and read_default_group is obsolated')
+            raise AssertionError(error)
 
         self.host = host
         self.port = port

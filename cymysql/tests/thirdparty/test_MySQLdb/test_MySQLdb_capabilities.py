@@ -12,9 +12,8 @@ class test_MySQLdb(capabilities.DatabaseTest):
     db_module = cymysql
     connect_args = ()
     connect_kwargs = base.PyMySQLTestCase.databases[0].copy()
-    connect_kwargs.update(dict(read_default_file='~/.my.cnf',
-                          use_unicode=True,
-                          charset='utf8', sql_mode="ANSI,STRICT_TRANS_TABLES,TRADITIONAL"))
+    connect_kwargs.update(use_unicode=True,
+                          charset='utf8', sql_mode="ANSI,STRICT_TRANS_TABLES,TRADITIONAL")
 
     create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8"
     leak_test = False

@@ -17,8 +17,7 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
     driver = cymysql
     connect_args = ()
     connect_kw_args = base.PyMySQLTestCase.databases[0].copy()
-    connect_kw_args.update(dict(read_default_file='~/.my.cnf',
-                                charset='utf8',
+    connect_kw_args.update(dict(charset='utf8',
                                 sql_mode="ANSI,STRICT_TRANS_TABLES,TRADITIONAL"))
                            
     def test_setoutputsize(self): pass
