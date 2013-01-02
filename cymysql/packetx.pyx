@@ -86,6 +86,7 @@ cdef class MysqlPacket(object):
                 size -= recieved
             return r
   
+        cdef object recv_data
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)
@@ -96,8 +97,10 @@ cdef class MysqlPacket(object):
             r += recv_data
         return r
 
-    def __recv_packet(self):
+    cdef void __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
+        cdef bytes packet_header, recv_data
+        cdef int bytes_to_read
         packet_header = self.__recv_from_socket(4)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
