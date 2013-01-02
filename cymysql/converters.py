@@ -293,6 +293,13 @@ def convert_long(connection, field, data):
 def convert_float(connection, field, data):
     return float(data)
 
+try:
+    from convertersx import (
+        convert_datetime,
+    )
+except:
+    pass
+
 encoders = {
         bool: escape_bool,
         int: escape_int,
