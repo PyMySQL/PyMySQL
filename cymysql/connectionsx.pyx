@@ -8,6 +8,11 @@ except ImportError:
     import sha
     sha_new = sha.new
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 import socket
 try:
     import ssl
@@ -18,10 +23,6 @@ except ImportError:
 import struct
 import sys
 import os
-try:
-    import ConfigParser
-except ImportError:
-    import configparser
 
 try:
     import getpass
@@ -31,8 +32,12 @@ except ImportError:
 
 from cymysql.charset import charset_by_name, charset_by_id
 from cymysql.cursors import Cursor
-from cymysql.constants.CLIENT import *
-from cymysql.constants.COMMAND import *
+from cymysql.constants.CLIENT import (
+    CAPABILITIES, MULTI_RESULTS, CONNECT_WITH_DB, MULTI_STATEMENTS, SSL
+)
+from cymysql.constants.COMMAND import (
+    COM_QUERY, COM_QUIT, COM_PROCESS_KILL, COM_PING
+)
 from cymysql.converters import escape_item, encoders, decoders
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
@@ -46,7 +51,7 @@ PYTHON3 = sys.version_info[0] > 2
 
 DEBUG = False
 
-DEFAULT_CHARSET = 'latin1'
+cdef str DEFAULT_CHARSET = 'latin1'
 
 def byte2int(b):
     if isinstance(b, int):
@@ -194,7 +199,7 @@ cdef class Connection(object):
     def __init__(self, host="localhost", user=None, passwd="",
                  db=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
-                 read_default_file=None, conv=decoders, use_unicode=None,
+                 read_default_file=None, conv=None, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None):
@@ -244,32 +249,9 @@ cdef class Connection(object):
                     v = ssl[k]
                 setattr(self, k, v)
 
-        if read_default_group and not read_default_file:
-            if sys.platform.startswith("win"):
-                read_default_file = "c:\\my.ini"
-            else:
-                read_default_file = "/etc/my.cnf"
-
-        if read_default_file:
-            if not read_default_group:
-                read_default_group = "client"
-
-            cfg = ConfigParser.RawConfigParser()
-            cfg.read(os.path.expanduser(read_default_file))
-
-            def _config(key, default):
-                try:
-                    return cfg.get(read_default_group,key)
-                except:
-                    return default
-
-            user = _config("user",user)
-            passwd = _config("password",passwd)
-            host = _config("host", host)
-            db = _config("db",db)
-            unix_socket = _config("socket",unix_socket)
-            port = _config("port", port)
-            charset = _config("default-character-set", charset)
+        if read_default_group or read_default_file:
+            error = ('read_default_file and read_default_group is obsolated')
+            raise AssertionError(error)
 
         self.host = host
         self.port = port
@@ -301,7 +283,7 @@ cdef class Connection(object):
         self.messages = []
         self.set_charset(charset)
         self.encoders = encoders
-        self.decoders = conv
+        self.decoders = conv if conv else decoders
 
         self._result = None
         self._affected_rows = 0
