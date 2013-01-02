@@ -157,23 +157,6 @@ def _hash_password_323(password):
     return struct.pack(">LL", r1, r2)
 
 
-def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
-    err = errorclass, errorvalue
-    if DEBUG:
-        raise
-
-    if cursor:
-        cursor.messages.append(err)
-    else:
-        connection.messages.append(err)
-    del cursor
-    del connection
-
-    if not issubclass(errorclass, Error):
-        raise Error(errorclass, errorvalue)
-    else:
-        raise errorclass(errorvalue[0], errorvalue[1])
-
 
 class Connection(object):
     """
@@ -181,7 +164,24 @@ class Connection(object):
 
     The proper way to get an instance of this class is to call
     connect()."""
-    errorhandler = defaulterrorhandler
+
+    def errorhandler(connection, cursor, errorclass, errorvalue):
+        err = errorclass, errorvalue
+        if DEBUG:
+            raise
+
+        if cursor:
+            cursor.messages.append(err)
+        else:
+            connection.messages.append(err)
+        del cursor
+        del connection
+
+        if not issubclass(errorclass, Error):
+            raise Error(errorclass, errorvalue)
+        else:
+            raise errorclass(errorvalue[0], errorvalue[1])
+
 
     def __init__(self, host="localhost", user=None, passwd="",
                  db=None, port=3306, unix_socket=None,
