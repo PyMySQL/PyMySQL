@@ -180,7 +180,7 @@ class MysqlPacket(object):
         return field_count >= 1 and field_count <= 250
   
     def check_error(self):
-        if self.self.is_error_packet():
+        if ord(self.get_bytes(0)) == 255:
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self.read(2))
