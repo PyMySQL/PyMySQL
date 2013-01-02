@@ -51,19 +51,19 @@ DEBUG = False
 
 DEFAULT_CHARSET = 'latin1'
 
-def byte2int(b):
+cdef int byte2int(b):
     if isinstance(b, int):
         return b
     else:
         return ord(b)
 
-def int2byte(i):
+cdef bytes int2byte(int i):
     if PYTHON3:
         return bytes([i])
     else:
         return chr(i)
 
-def pack_int24(n):
+cdef bytes pack_int24(int n):
     if PYTHON3:
         return bytes([n&0xFF, (n>>8)&0xFF,(n>>16)&0xFF])
     else:

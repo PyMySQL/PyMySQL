@@ -207,11 +207,8 @@ cdef class MysqlPacket(object):
         field_count = ord(self.get_bytes(0))
         return field_count >= 1 and field_count <= 250
   
-    def is_error_packet(self):
-        return ord(self.get_bytes(0)) == 255
-  
     def check_error(self):
-        if self.is_error_packet():
+        if ord(self.get_bytes(0)) == 255:
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self.read(2))
