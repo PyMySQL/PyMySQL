@@ -28,7 +28,10 @@ except ImportError:
     from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
-from cymysql.converters import escape_item, encoders, decoders
+try:
+    from cymysql.convertersx import escape_item, encoders, decoders
+except:
+    from cymysql.converters import escape_item, encoders, decoders
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError

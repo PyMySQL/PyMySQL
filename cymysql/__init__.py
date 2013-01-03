@@ -26,7 +26,11 @@ THE SOFTWARE.
 VERSION = (0, 5, 1)
 
 from cymysql.constants import FIELD_TYPE
-from cymysql.converters import escape_dict, escape_sequence, escape_string
+try:
+    import convertresx as converters
+    from cymysql.convertersx import escape_dict, escape_sequence, escape_string
+except ImportError:
+    from cymysql.converters import escape_dict, escape_sequence, escape_string
 from cymysql.err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError, MySQLError

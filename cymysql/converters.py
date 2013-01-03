@@ -296,40 +296,6 @@ def convert_long(connection, field, data):
 def convert_float(connection, field, data):
     return float(data)
 
-try:
-    from convertersx import (
-        escape_item,
-        escape_dict,
-        escape_sequence,
-        escape_set,
-        escape_bool,
-        escape_object,
-        escape_int,
-        escape_long,
-        escape_float,
-        escape_string,
-        escape_unicode,
-        escape_None,
-        escape_timedelta,
-        escape_time,
-        escape_datetime,
-        escape_date,
-        escape_struct_time,
-        convert_datetime,
-        convert_timedelta,
-        convert_time,
-        convert_date,
-        convert_mysql_timestamp,
-        convert_set,
-        convert_bit,
-        convert_characters,
-        convert_int,
-        convert_long,
-        convert_float,
-    )
-except:
-    pass
-
 encoders = {
         bool: escape_bool,
         int: escape_int,
