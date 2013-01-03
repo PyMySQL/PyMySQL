@@ -296,7 +296,7 @@ class MySQLResult(object):
         self._get_descriptions()
         self._read_rowdata_packet()
 
-    cdef _field_data(self, packet, decoders, field):
+    def _field_data(self, packet, decoders, field):
         data = packet.read_length_coded_string()
         if data != None and field.type_code in decoders:
             return decoders[field.type_code](self.connection, field, data)
@@ -306,6 +306,7 @@ class MySQLResult(object):
     #       memory efficient and lower-latency to client...
     def _read_rowdata_packet(self):
       """Read a rowdata packet for each data row in the result set."""
+      decoders = self.connection.decoders
       rows = []
       while True:
         packet = self.connection.read_packet()
@@ -319,7 +320,7 @@ class MySQLResult(object):
                                             for i in range(len(self.fields))]))
 
       self.affected_rows = len(rows)
-      self.rows = tuple(rows)
+      self.rows = rows
 
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""

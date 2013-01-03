@@ -355,7 +355,7 @@ cdef class MySQLResult(object):
                                             for i in range(len(self.fields))]))
 
       self.affected_rows = len(rows)
-      self.rows = tuple(rows)
+      self.rows = rows
 
     cdef object _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
