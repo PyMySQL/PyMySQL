@@ -296,6 +296,12 @@ class MySQLResult(object):
         self._get_descriptions()
         self._read_rowdata_packet()
 
+    cdef _field_data(self, packet, decoders, field):
+        data = packet.read_length_coded_string()
+        if data != None and field.type_code in decoders:
+            return decoders[field.type_code](self.connection, field, data)
+        return None
+
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
     def _read_rowdata_packet(self):
@@ -309,18 +315,8 @@ class MySQLResult(object):
             self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
             break
-
-        row = []
-        for field in self.fields:
-            data = packet.read_length_coded_string()
-            converted = None
-            if field.type_code in self.connection.decoders:
-                converter = self.connection.decoders[field.type_code]
-                if data != None:
-                    converted = converter(self.connection, field, data)
-            row.append(converted)
-
-        rows.append(tuple(row))
+        rows.append(tuple([self._field_data(packet, decoders, self.fields[i])
+                                            for i in range(len(self.fields))]))
 
       self.affected_rows = len(rows)
       self.rows = tuple(rows)
