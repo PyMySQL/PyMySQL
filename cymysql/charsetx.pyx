@@ -3,7 +3,9 @@ class Charset(object):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'
 
-class Charsets(object):
+cdef class Charsets(object):
+    cdef object _by_id
+
     def __init__(self):
         self._by_id = {}
 
@@ -159,9 +161,9 @@ _charsets.add(Charset(208, 'utf8', 'utf8_persian_ci', ''))
 _charsets.add(Charset(209, 'utf8', 'utf8_esperanto_ci', ''))
 _charsets.add(Charset(210, 'utf8', 'utf8_hungarian_ci', ''))
 
-def charset_by_name(name):
+cdef charset_by_name(name):
     return _charsets.by_name(name)
 
-def charset_by_id(id):
+cdef charset_by_id(id):
     return _charsets.by_id(id)
 

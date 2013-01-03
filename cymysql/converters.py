@@ -4,7 +4,10 @@ import time
 import sys
 
 from cymysql.constants import FIELD_TYPE, FLAG
-from cymysql.charset import charset_by_id
+try:
+    from cymysql.charsetx import charset_by_id
+except ImportError:
+    from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 
