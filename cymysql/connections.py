@@ -1,19 +1,11 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
-try:
-    import hashlib
-    sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
-except ImportError:
-    import sha
-    sha_new = sha.new
+import hashlib
+sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
 
 import socket
-try:
-    import ssl
-    SSL_ENABLED = True
-except ImportError:
-    SSL_ENABLED = False
+import ssl
 
 import struct
 import sys
@@ -23,11 +15,8 @@ try:
 except ImportError:
     import configparser
 
-try:
-    import getpass
-    DEFAULT_USER = getpass.getuser()
-except ImportError:
-    DEFAULT_USER = None
+import getpass
+DEFAULT_USER = getpass.getuser()
 
 from cymysql.charset import charset_by_name, charset_by_id
 try:
@@ -229,8 +218,6 @@ class Connection(object):
 
         self.ssl = False
         if ssl:
-            if not SSL_ENABLED:
-                raise NotImplementedError("ssl module not found")
             self.ssl = True
             client_flag |= SSL
             for k in ('key', 'cert', 'ca'):

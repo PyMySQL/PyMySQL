@@ -1,19 +1,11 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
-try:
-    import hashlib
-    sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
-except ImportError:
-    import sha
-    sha_new = sha.new
+import hashlib
+sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
 
 import socket
-try:
-    import ssl
-    SSL_ENABLED = True
-except ImportError:
-    SSL_ENABLED = False
+import ssl
 
 import struct
 import sys
@@ -23,11 +15,8 @@ try:
 except ImportError:
     import configparser
 
-try:
-    import getpass
-    DEFAULT_USER = getpass.getuser()
-except ImportError:
-    DEFAULT_USER = None
+import getpass
+DEFAULT_USER = getpass.getuser()
 
 from cymysql.charset import charset_by_name, charset_by_id
 try:
@@ -90,7 +79,7 @@ def dump_packet(data):
     print("-" * 88)
     print("")
 
-def _scramble(password, message):
+cdef _scramble(password, message):
     if password == None or len(password) == 0:
         return int2byte(0)
     if DEBUG: print('password=' + password)
@@ -102,7 +91,7 @@ def _scramble(password, message):
     result = s.digest()
     return _my_crypt(result, stage1)
 
-def _my_crypt(message1, message2):
+cdef _my_crypt(message1, message2):
     length = len(message1)
     result = struct.pack('B', length)
     for i in range(length):
@@ -125,7 +114,7 @@ class RandStruct_323(object):
         self.seed2 = (self.seed1 + self.seed2 + 33) % self.max_value
         return float(self.seed1) / float(self.max_value)
 
-def _scramble_323(password, message):
+cdef _scramble_323(password, message):
     hash_pass = _hash_password_323(password)
     hash_message = _hash_password_323(message[:SCRAMBLE_LENGTH_323])
     hash_pass_n = struct.unpack(">LL", hash_pass)
@@ -143,10 +132,10 @@ def _scramble_323(password, message):
         outbuf.write(int2byte(byte2int(c) ^ byte2int(extra)))
     return outbuf.getvalue()
 
-def _hash_password_323(password):
-    nr = 1345345333
-    add = 7
-    nr2 = 0x12345671
+cdef _hash_password_323(password):
+    cdef int nr = 1345345333
+    cdef int add = 7
+    cdef int nr2 = 0x12345671
 
     for c in [byte2int(x) for x in password if x not in (' ', '\t')]:
         nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
@@ -229,8 +218,6 @@ class Connection(object):
 
         self.ssl = False
         if ssl:
-            if not SSL_ENABLED:
-                raise NotImplementedError("ssl module not found")
             self.ssl = True
             client_flag |= SSL
             for k in ('key', 'cert', 'ca'):
@@ -579,6 +566,7 @@ class Connection(object):
         return self.protocol_version
 
     def _get_server_information(self):
+        cdef int i
         i = 0
         packet = MysqlPacket(self)
         data = packet.get_all_data()
