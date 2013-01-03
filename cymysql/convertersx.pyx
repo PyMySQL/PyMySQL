@@ -2,6 +2,7 @@ import re
 import datetime
 import time
 import sys
+from decimal import Decimal
 
 from cymysql.constants import FIELD_TYPE, FLAG
 try:
@@ -10,14 +11,6 @@ except ImportError:
     from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
-
-try:
-    set
-except NameError:
-    try:
-        from sets import BaseSet as set
-    except ImportError:
-        from sets import Set as set
 
 ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
@@ -99,6 +92,9 @@ def escape_date(obj):
 
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
+
+def escape_decimal(obj):
+    return unicode(obj)
 
 def convert_datetime(connection, field, obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
@@ -296,10 +292,15 @@ def convert_long(connection, field, data):
 def convert_float(connection, field, data):
     return float(data)
 
+def convert_decimal(connection, field, data):
+    data = data.decode(connection.charset)
+    return Decimal(data)
+
 encoders = {
         bool: escape_bool,
         int: escape_int,
         float: escape_float,
+        Decimal: escape_decimal,
         str: escape_string,
         tuple: escape_sequence,
         list:escape_sequence,
@@ -312,7 +313,6 @@ encoders = {
         datetime.time : escape_time,
         time.struct_time : escape_struct_time,
         }
-
 if not PYTHON3:
     encoders[unicode] = escape_unicode
     encoders[long] = escape_long
@@ -328,6 +328,8 @@ decoders = {
         FIELD_TYPE.NEWDECIMAL: convert_float,
         FIELD_TYPE.LONGLONG: convert_long,
         FIELD_TYPE.INT24: convert_int,
+        FIELD_TYPE.DECIMAL:  convert_decimal,
+        FIELD_TYPE.NEWDECIMAL: convert_decimal,
         FIELD_TYPE.YEAR: convert_int,
         FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
         FIELD_TYPE.DATETIME: convert_datetime,
@@ -348,18 +350,3 @@ decoders = {
         }
 conversions = decoders  # for MySQLdb compatibility
 
-try:
-    # python version > 2.3
-    from decimal import Decimal
-    def convert_decimal(connection, field, data):
-        data = data.decode(connection.charset)
-        return Decimal(data)
-    decoders[FIELD_TYPE.DECIMAL] = convert_decimal
-    decoders[FIELD_TYPE.NEWDECIMAL] = convert_decimal
-
-    def escape_decimal(obj):
-        return unicode(obj)
-    encoders[Decimal] = escape_decimal
-
-except ImportError:
-    pass
