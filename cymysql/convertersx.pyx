@@ -296,7 +296,7 @@ def convert_decimal(connection, field, data):
     data = data.decode(connection.charset)
     return Decimal(data)
 
-cdef encoders = {
+encoders = {
         bool: escape_bool,
         int: escape_int,
         float: escape_float,
@@ -317,7 +317,7 @@ if not PYTHON3:
     encoders[unicode] = escape_unicode
     encoders[long] = escape_long
 
-cdef decoders = {
+decoders = {
         FIELD_TYPE.BIT: convert_bit,
         FIELD_TYPE.TINY: convert_int,
         FIELD_TYPE.SHORT: convert_int,
