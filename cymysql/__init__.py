@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 '''
 
-VERSION = (0, 5, 0)
+VERSION = (0, 5, 1)
 
 from cymysql.constants import FIELD_TYPE
 from cymysql.converters import escape_dict, escape_sequence, escape_string
