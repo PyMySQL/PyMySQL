@@ -1,4 +1,9 @@
-class Charset(object):
+from cpython cimport bool
+
+cdef class Charset(object):
+    cdef public int id
+    cdef public str name, collation
+    cdef public bool is_default
     def __init__(self, id, name, collation, is_default):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'
