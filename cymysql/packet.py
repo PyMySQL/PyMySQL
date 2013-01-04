@@ -176,15 +176,9 @@ class MysqlPacket(object):
         return self._read(length)
   
     def is_ok_packet(self):
-        return self._is_ok_packet()
-
-    def _is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0
 
     def is_eof_packet(self):
-        return self._is_eof_packet()
-
-    def _is_eof_packet(self):
         return ord(self.get_bytes(0)) == 254  # 'fe'
 
     def is_resultset_packet(self):
@@ -293,7 +287,7 @@ class MySQLResult(object):
         self.first_packet = self.connection.read_packet()
 
         # TODO: use classes for different packet types?
-        if self.first_packet._is_ok_packet():
+        if self.first_packet.is_ok_packet():
             self._read_ok_packet()
         else:
             self._read_result_packet()
@@ -322,7 +316,7 @@ class MySQLResult(object):
       rows = []
       while True:
         packet = self.connection.read_packet()
-        if packet._is_eof_packet():
+        if packet.is_eof_packet():
             self.warning_count = packet.read(2)
             server_status = unpack_uint16(packet.read(2))
             self.has_next = (server_status
@@ -344,5 +338,5 @@ class MySQLResult(object):
             description.append(field.description())
 
         eof_packet = self.connection.read_packet()
-        assert eof_packet._is_eof_packet(), 'Protocol error, expecting EOF'
+        assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
