@@ -88,6 +88,9 @@ class MysqlPacket(object):
     def get_all_data(self): return self.__data
   
     def read(self, size):
+        return self._read(size)
+
+    def _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         result = self.peek(size)
         self.advance(size)
@@ -144,15 +147,15 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = ord(self.read(1))
+        c = ord(self._read(1))
         if c == NULL_COLUMN:
             return None
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
-            return unpack_uint16(self.read(UNSIGNED_SHORT_LENGTH))
+            return unpack_uint16(self._read(UNSIGNED_SHORT_LENGTH))
         elif c == UNSIGNED_INT24_COLUMN:
-            return unpack_uint24(self.read(UNSIGNED_INT24_LENGTH))
+            return unpack_uint24(self._read(UNSIGNED_INT24_LENGTH))
         elif c == UNSIGNED_INT64_COLUMN:
             # TODO: what was 'longlong'?  confirm it wasn't used?
             pass
@@ -167,7 +170,7 @@ class MysqlPacket(object):
         length = self.read_length_coded_binary()
         if length is None:
             return None
-        return self.read(length)
+        return self._read(length)
   
     def is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0
@@ -183,7 +186,7 @@ class MysqlPacket(object):
         if ord(self.get_bytes(0)) == 255:
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
-            errno = unpack_uint16(self.read(2))
+            errno = unpack_uint16(self._read(2))
             return errno, self.__data
         return 0, None
 
@@ -191,8 +194,8 @@ class MysqlPacket(object):
         self.advance(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
         insert_id = self.read_length_coded_binary()
-        server_status = unpack_uint16(self.read(2))
-        warning_count = unpack_uint16(self.read(2))
+        server_status = unpack_uint16(self._read(2))
+        warning_count = unpack_uint16(self._read(2))
         message = self.read_all()
         return (affected_rows, insert_id, server_status, warning_count, message)
 
@@ -220,11 +223,11 @@ class FieldDescriptorPacket(MysqlPacket):
         self.name = self.read_length_coded_string().decode(self.connection.charset)
         self.org_name = self.read_length_coded_string()
         self.advance(1)  # non-null filler
-        self.charsetnr = unpack_uint16(self.read(2))
-        self.length = unpack_uint32(self.read(4))
-        self.type_code = ord(self.read(1))
-        self.flags = unpack_uint16(self.read(2))
-        self.scale = ord(self.read(1))  # "decimals"
+        self.charsetnr = unpack_uint16(self._read(2))
+        self.length = unpack_uint32(self._read(4))
+        self.type_code = ord(self._read(1))
+        self.flags = unpack_uint16(self._read(2))
+        self.scale = ord(self._read(1))  # "decimals"
         self.advance(2)  # filler (always 0x00)
     
         # 'default' is a length coded binary and is still in the buffer?
