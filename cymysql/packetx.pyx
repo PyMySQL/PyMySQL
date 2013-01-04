@@ -352,7 +352,7 @@ cdef class MySQLResult(object):
       while True:
         packet = self.connection.read_packet()
         if packet.is_eof_packet():
-            self.warning_count = packet.read(2)
+            self.warning_count = unpack_uint16(packet.read(2))
             server_status = unpack_uint16(packet.read(2))
             self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
