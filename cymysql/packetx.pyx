@@ -169,7 +169,7 @@ cdef class MysqlPacket(object):
         """
         return self.__data[position:(position+length)]
   
-    cdef object read_length_coded_binary(self):
+    cdef int read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
         Length coded numbers can be anywhere from 1 to 9 bytes depending
@@ -177,7 +177,7 @@ cdef class MysqlPacket(object):
         """
         c = ord(self._read(1))
         if c == NULL_COLUMN:
-            return None
+            return -1
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
@@ -186,19 +186,33 @@ cdef class MysqlPacket(object):
             return unpack_uint24(self._read(UNSIGNED_INT24_LENGTH))
         elif c == UNSIGNED_INT64_COLUMN:
             # TODO: what was 'longlong'?  confirm it wasn't used?
-            pass
+            return -1
   
     def read_length_coded_string(self):
+        return self._read_length_coded_string()
+
+    cdef bytes _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
 
         A 'Length Coded String' consists first of a length coded
         (unsigned, positive) integer represented in 1-9 bytes followed by
         that many bytes of binary data.  (For example "cat" would be "3cat".)
         """
+        cdef int length 
         length = self.read_length_coded_binary()
-        if length is None:
+        if length < 0:
             return None
         return self._read(length)
+
+    def read_decode_data(self, decoders, field):
+        cdef bytes data
+        cdef object func
+        data = self._read_length_coded_string()
+        if data != None:
+            func = decoders.get(field.type_code)
+            if func:
+                return func(self.connection, field, data)
+        return None
   
     def is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0
@@ -221,6 +235,8 @@ cdef class MysqlPacket(object):
     def read_ok_packet(self):
         self.advance(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
+        if affected_rows < 0:
+            affected_rows = None
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
         warning_count = unpack_uint16(self._read(2))
@@ -333,19 +349,14 @@ cdef class MySQLResult(object):
         self._get_descriptions()
         self._read_rowdata_packet()
 
-    cdef _field_data(self, packet, decoders, field):
-        data = packet.read_length_coded_string()
-        if data != None and field.type_code in decoders:
-            return decoders[field.type_code](self.connection, field, data)
-        return None
-
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
     cdef object _read_rowdata_packet(self):
       """Read a rowdata packet for each data row in the result set."""
       cdef int i
-      decoders = self.connection.decoders
+      cdef object rows
       rows = []
+      decoders = self.connection.decoders
       while True:
         packet = self.connection.read_packet()
         if packet.is_eof_packet():
@@ -354,7 +365,7 @@ cdef class MySQLResult(object):
             self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
             break
-        rows.append(tuple([self._field_data(packet, decoders, self.fields[i])
+        rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
                                             for i in range(len(self.fields))]))
 
       self.affected_rows = len(rows)
