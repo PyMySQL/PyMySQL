@@ -55,6 +55,7 @@ cdef class MysqlPacket(object):
     cdef object connection
     cdef int packet_number
     cdef bytes __data
+    cdef int __data_length
     cdef int __position
     cdef int sock_fd
 
@@ -112,6 +113,7 @@ cdef class MysqlPacket(object):
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
         self.__data = recv_data
+        self.__data_length = bytes_to_read
   
     def get_all_data(self): return self.__data
 
@@ -120,7 +122,16 @@ cdef class MysqlPacket(object):
   
     cdef bytes _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self.peek(size)
+        cdef bytes result
+
+        if self.__position + size > self.__data_length:
+            error = ('Result length not requested length:\n'
+                 'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
+                 % (size, self.__data_length - self.__position,
+                    self.__position, self.__data_length))
+            raise AssertionError(error)
+        result = self.__data[self.__position:(self.__position+size)]
+
         self.advance(size)
         return result
   
@@ -135,28 +146,19 @@ cdef class MysqlPacket(object):
   
     cdef void advance(self, int length):
         """Advance the cursor in data buffer 'length' bytes."""
+        cdef int new_position
         new_position = self.__position + length
-        if new_position < 0 or new_position > len(self.__data):
+        if new_position < 0 or new_position > self.__data_length:
             raise Exception('Invalid advance amount (%s) for cursor.  '
                         'Position=%s' % (length, new_position))
         self.__position = new_position
   
     cdef void rewind(self, position=0):
         """Set the position of the data buffer cursor to 'position'."""
-        if position < 0 or position > len(self.__data):
+        if position < 0 or position > self.__data_length:
             raise Exception(
                     "Invalid position to rewind cursor to: %s." % position)
         self.__position = position
-  
-    cdef bytes peek(self, int size):
-        """Look at the first 'size' bytes in packet without moving cursor."""
-        result = self.__data[self.__position:(self.__position+size)]
-        if len(result) != size:
-            error = ('Result length not requested length:\n'
-                 'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                 % (size, len(result), self.__position, len(self.__data)))
-            raise AssertionError(error)
-        return result
   
     cdef bytes get_bytes(self, int position, int length=1):
         """Get 'length' bytes starting at 'position'.
@@ -233,15 +235,17 @@ cdef class MysqlPacket(object):
         return 0, None
 
     def read_ok_packet(self):
+        cdef int affected_rows, insert_id, server_status, warning_count
+        cdef message
         self.advance(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
-        if affected_rows < 0:
-            affected_rows = None
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
         warning_count = unpack_uint16(self._read(2))
         message = self.read_all()
-        return (affected_rows, insert_id, server_status, warning_count, message)
+        return (None if affected_rows < 0 else affected_rows,
+                None if insert_id < 0 else insert_id,
+                server_status, warning_count, message)
 
 
 cdef class FieldDescriptorPacket(MysqlPacket):
@@ -262,12 +266,12 @@ cdef class FieldDescriptorPacket(MysqlPacket):
     
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
         """
-        self.catalog = self.read_length_coded_string()
-        self.db = self.read_length_coded_string()
-        self.table_name = self.read_length_coded_string()
-        self.org_table = self.read_length_coded_string()
-        self.name = self.read_length_coded_string().decode(self.connection.charset)
-        self.org_name = self.read_length_coded_string()
+        self.catalog = self._read_length_coded_string()
+        self.db = self._read_length_coded_string()
+        self.table_name = self._read_length_coded_string()
+        self.org_table = self._read_length_coded_string()
+        self.name = self._read_length_coded_string().decode(self.connection.charset)
+        self.org_name = self._read_length_coded_string()
         self.advance(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.length = unpack_uint32(self._read(4))

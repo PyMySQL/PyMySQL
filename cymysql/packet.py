@@ -84,6 +84,7 @@ class MysqlPacket(object):
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
         self.__data = recv_data
+        self.__data_length = bytes_to_read
   
     def get_all_data(self): return self.__data
   
@@ -92,7 +93,14 @@ class MysqlPacket(object):
 
     def _read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self.peek(size)
+        if self.__position + size > self.__data_length:
+            error = ('Result length not requested length:\n'
+                 'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
+                 % (size, self.__data_length - self.__position,
+                    self.__position, self.__data_length))
+            raise AssertionError(error)
+        result = self.__data[self.__position:(self.__position+size)]
+
         self.advance(size)
         return result
   
@@ -108,27 +116,17 @@ class MysqlPacket(object):
     def advance(self, length):
         """Advance the cursor in data buffer 'length' bytes."""
         new_position = self.__position + length
-        if new_position < 0 or new_position > len(self.__data):
+        if new_position < 0 or new_position > self.__data_length:
             raise Exception('Invalid advance amount (%s) for cursor.  '
                         'Position=%s' % (length, new_position))
         self.__position = new_position
   
     def rewind(self, position=0):
         """Set the position of the data buffer cursor to 'position'."""
-        if position < 0 or position > len(self.__data):
+        if position < 0 or position > self.__data_length:
             raise Exception(
                     "Invalid position to rewind cursor to: %s." % position)
         self.__position = position
-  
-    def peek(self, size):
-        """Look at the first 'size' bytes in packet without moving cursor."""
-        result = self.__data[self.__position:(self.__position+size)]
-        if len(result) != size:
-            error = ('Result length not requested length:\n'
-                 'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                 % (size, len(result), self.__position, len(self.__data)))
-            raise AssertionError(error)
-        return result
   
     def get_bytes(self, position, length=1):
         """Get 'length' bytes starting at 'position'.
@@ -204,13 +202,14 @@ class MysqlPacket(object):
     def read_ok_packet(self):
         self.advance(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
-        if affected_rows < 0:
-            affected_rows = None
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
         warning_count = unpack_uint16(self._read(2))
         message = self.read_all()
-        return (affected_rows, insert_id, server_status, warning_count, message)
+        return (None if affected_rows < 0 else affected_rows,
+                None if insert_id < 0 else insert_id,
+                server_status, warning_count, message)
+
 
 
 class FieldDescriptorPacket(MysqlPacket):
@@ -230,11 +229,11 @@ class FieldDescriptorPacket(MysqlPacket):
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
         """
         self.catalog = self.read_length_coded_string()
-        self.db = self.read_length_coded_string()
-        self.table_name = self.read_length_coded_string()
-        self.org_table = self.read_length_coded_string()
-        self.name = self.read_length_coded_string().decode(self.connection.charset)
-        self.org_name = self.read_length_coded_string()
+        self.db = self._read_length_coded_string()
+        self.table_name = self._read_length_coded_string()
+        self.org_table = self._read_length_coded_string()
+        self.name = self._read_length_coded_string().decode(self.connection.charset)
+        self.org_name = self._read_length_coded_string()
         self.advance(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.length = unpack_uint32(self._read(4))
