@@ -90,7 +90,7 @@ class MysqlPacket(object):
     def read(self, size):
         return self._read(size)
 
-    def _read(self, int size):
+    def _read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         result = self.peek(size)
         self.advance(size)
@@ -161,6 +161,9 @@ class MysqlPacket(object):
             pass
   
     def read_length_coded_string(self):
+        return self._read_length_coded_string()
+
+    def _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
 
         A 'Length Coded String' consists first of a length coded
@@ -216,12 +219,12 @@ class FieldDescriptorPacket(MysqlPacket):
     
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
         """
-        self.catalog = self.read_length_coded_string()
-        self.db = self.read_length_coded_string()
-        self.table_name = self.read_length_coded_string()
-        self.org_table = self.read_length_coded_string()
-        self.name = self.read_length_coded_string().decode(self.connection.charset)
-        self.org_name = self.read_length_coded_string()
+        self.catalog = self._read_length_coded_string()
+        self.db = self._read_length_coded_string()
+        self.table_name = self._read_length_coded_string()
+        self.org_table = self._read_length_coded_string()
+        self.name = self._read_length_coded_string().decode(self.connection.charset)
+        self.org_name = self._read_length_coded_string()
         self.advance(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.length = unpack_uint32(self._read(4))
@@ -300,7 +303,7 @@ class MySQLResult(object):
         self._read_rowdata_packet()
 
     def _field_data(self, packet, decoders, field):
-        data = packet.read_length_coded_string()
+        data = packet._read_length_coded_string()
         if data != None and field.type_code in decoders:
             return decoders[field.type_code](self.connection, field, data)
         return None
