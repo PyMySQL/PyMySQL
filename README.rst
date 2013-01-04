@@ -28,8 +28,23 @@ Requirements
 - Cython 17.1 or higher
 - MySQL 4.1 or higher
     
-Installation
-------------
+Installation & Example
+-----------------------
 
-# python setup.py install
+Install cython (optional) ::
+
+   # pip install cython
+
+Install cymysql ::
+
+   # pip install cymysql
+
+Example ::
+
+   import cymysql
+   conn = cymysql.connect(host='127.0.0.1', user='root', passwd='',
+                                           db='database_name', charset='utf8')
+   for r in cur.fetchall():
+      print r
+
 
