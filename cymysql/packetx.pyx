@@ -71,18 +71,21 @@ cdef class MysqlPacket(object):
             int recv(int sock_fd, void * buf, int len, int flag)
         cdef bytes r
         cdef int recieved
-        cdef char buf[8192]
+        cdef char *buf
+        cdef int next_start = 0
 
         # read from socket descriptor
         if self.sock_fd >= 0:
             r = b''
+            buf = <char *>malloc(size)
             while size:
-                recieved = recv(self.sock_fd, buf,
-                    size if size < 8192 else 8192, 0)
+                recieved = recv(self.sock_fd, buf + next_start, size, 0)
                 if recieved == 0:
                     break
-                r += buf[:recieved]
+                next_start += recieved
                 size -= recieved
+            r = buf[:next_start]
+            free(buf)
             return r
   
         r = b''
