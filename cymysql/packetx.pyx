@@ -110,7 +110,7 @@ cdef class MysqlPacket(object):
         cdef char buf[4]
 
         packet_header, packet_header_len = self.__recv_from_socket(4, buf)
-        if len(packet_header) < 4:
+        if packet_header_len < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
         bytes_to_read = unpack_uint24(packet_header[:3])
