@@ -17,7 +17,7 @@ cdef class Charsets(object):
     def add(self, c):
         self._by_id[c.id] = c
 
-    def by_id(self, id):
+    def by_id(self, int id):
         return self._by_id[id]
 
     def by_name(self, name):
@@ -166,9 +166,9 @@ _charsets.add(Charset(208, 'utf8', 'utf8_persian_ci', ''))
 _charsets.add(Charset(209, 'utf8', 'utf8_esperanto_ci', ''))
 _charsets.add(Charset(210, 'utf8', 'utf8_hungarian_ci', ''))
 
-cdef charset_by_name(name):
+def charset_by_name(name):
     return _charsets.by_name(name)
 
-cdef charset_by_id(id):
+def charset_by_id(int id):
     return _charsets.by_id(id)
 
