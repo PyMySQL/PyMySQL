@@ -135,7 +135,7 @@ cdef class MysqlPacket(object):
                         'Position=%s' % (length, new_position))
         self.__position = new_position
   
-    cdef void rewind(self, position=0):
+    cdef void rewind(self, int position=0):
         """Set the position of the data buffer cursor to 'position'."""
         if position < 0 or position > self.__data_length:
             raise Exception(

@@ -227,7 +227,7 @@ class FieldDescriptorPacket(MysqlPacket):
     
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
         """
-        self.catalog = self.read_length_coded_string()
+        self.catalog = self._read_length_coded_string()
         self.db = self._read_length_coded_string()
         self.table_name = self._read_length_coded_string()
         self.org_table = self._read_length_coded_string()
