@@ -114,7 +114,7 @@ cdef class MysqlPacket(object):
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
         bytes_to_read = unpack_uint24(packet_header[:3])
-        self.packet_number = ord(packet_header[3:])
+        self.packet_number = ord(packet_header[3:4])
         # TODO: check packet_num is correct (+1 from last packet)
   
         recv_data, recv_data_len = self.__recv_from_socket(bytes_to_read)
