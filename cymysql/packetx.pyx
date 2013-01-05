@@ -66,18 +66,19 @@ cdef class MysqlPacket(object):
         self.__recv_packet()
 
 
-    cdef bytes __recv_from_socket(self, int size, char *allocated_buffer=NULL):
+    cdef bytes __recv_from_socket(self, int size):
         cdef extern from "sys/socket.h":
             int recv(int sock_fd, void * buf, int len, int flag)
         cdef bytes r
         cdef int recieved
+        cdef char allocated_buffer[8192]
         cdef char *buf
         cdef int next_start = 0
 
         # read from socket descriptor
         if self.sock_fd >= 0:
             r = b''
-            if allocated_buffer:
+            if size <= 8192:
                 buf = allocated_buffer
             else:
                 buf = <char *>malloc(size)
@@ -88,7 +89,7 @@ cdef class MysqlPacket(object):
                 next_start += recieved
                 size -= recieved
             r = buf[:next_start]
-            if allocated_buffer == NULL:
+            if size > 8192:
                 free(buf)
             return r
   
@@ -106,9 +107,8 @@ cdef class MysqlPacket(object):
         """Parse the packet header and read entire packet payload into buffer."""
         cdef bytes packet_header, recv_data
         cdef int bytes_to_read
-        cdef char buf[4]
 
-        packet_header = self.__recv_from_socket(4, buf)
+        packet_header = self.__recv_from_socket(4)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
