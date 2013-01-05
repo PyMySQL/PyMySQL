@@ -54,7 +54,6 @@ class MysqlPacket(object):
 
     def __init__(self, connection):
         self.connection = connection
-        self.sock_fd = connection.sock_fd
         self.__position = 0
         self.__recv_packet()
 

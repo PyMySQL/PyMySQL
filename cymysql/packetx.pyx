@@ -2,7 +2,6 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
-from libc.stdlib cimport malloc, free
 from cymysql.err import OperationalError
 from cymysql.constants import SERVER_STATUS
 
@@ -57,42 +56,17 @@ cdef class MysqlPacket(object):
     cdef bytes __data
     cdef int __data_length
     cdef int __position
-    cdef int sock_fd
 
     def __init__(self, connection):
         self.connection = connection
-        self.sock_fd = connection.sock_fd
         self.__position = 0
         self.__recv_packet()
 
 
     cdef bytes __recv_from_socket(self, int size):
-        cdef extern from "sys/socket.h":
-            int recv(int sock_fd, void * buf, int len, int flag)
         cdef bytes r
         cdef int recieved
-        cdef char allocated_buffer[8192]
-        cdef char *buf
-        cdef int next_start = 0
 
-        # read from socket descriptor
-        if self.sock_fd >= 0:
-            r = b''
-            if size <= 8192:
-                buf = allocated_buffer
-            else:
-                buf = <char *>malloc(size)
-            while size:
-                recieved = recv(self.sock_fd, buf + next_start, size, 0)
-                if recieved == 0:
-                    break
-                next_start += recieved
-                size -= recieved
-            r = buf[:next_start]
-            if size > 8192:
-                free(buf)
-            return r
-  
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)
