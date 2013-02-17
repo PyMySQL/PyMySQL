@@ -178,7 +178,10 @@ class Connection(object):
         if not issubclass(errorclass, Error):
             raise Error(errorclass, errorvalue)
         else:
-            raise errorclass(errorvalue)
+            if PYTHON3:
+                raise errorclass(errorvalue)
+            else:
+                raise errorclass(errorvalue[0], errorvalue[1])
 
 
     def __init__(self, host="localhost", user=None, passwd="",
