@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 '''
 
-VERSION = (0, 5, 2)
+VERSION = (0, 5, 3)
 
 from cymysql.constants import FIELD_TYPE
 try:
