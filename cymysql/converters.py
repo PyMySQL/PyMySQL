@@ -94,7 +94,7 @@ def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
 
 def escape_decimal(obj):
-    return unicode(obj)
+    return str(obj)
 
 def convert_datetime(connection, field, obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
