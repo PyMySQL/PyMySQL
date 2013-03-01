@@ -271,7 +271,7 @@ def convert_characters(connection, field, data):
     if field.flags & FLAG.SET:
         return convert_set(data.decode(field_charset))
     if field.flags & FLAG.BINARY:
-        if PYTHON3:
+        if PYTHON3 and field_charset != 'binary':
             return data.decode(field_charset)
         else:
             return data
