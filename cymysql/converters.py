@@ -271,7 +271,10 @@ def convert_characters(connection, field, data):
     if field.flags & FLAG.SET:
         return convert_set(data.decode(field_charset))
     if field.flags & FLAG.BINARY:
-        return data
+        if PYTHON3:
+            return data.decode(field_charset)
+        else:
+            return data
 
     if connection.use_unicode:
         data = data.decode(field_charset)
