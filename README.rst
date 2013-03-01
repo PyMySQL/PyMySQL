@@ -40,7 +40,8 @@ Example ::
 
    import cymysql
    conn = cymysql.connect(host='127.0.0.1', user='root', passwd='', db='database_name', charset='utf8')
+   cur = conn.cursor()
+   cur.execute('select foo, bar from baz')
    for r in cur.fetchall():
-      print r
-
+      print r[0], r[1]
 
