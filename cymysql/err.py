@@ -8,18 +8,18 @@ if PYTHON3:
     class MySQLError(Exception):
 
         """Exception related to operation with MySQL."""
-        def __init__(self, errno, message):
+        def __init__(self, errno, errmsg):
             self.errno = errno
-            self.message = message
-            super(MySQLError, self).__init__(errno, message)
+            self.errmsg = errmsg
+            super(MySQLError, self).__init__(errno, errmsg)
 else:
     class MySQLError(StandardError):
     
         """Exception related to operation with MySQL."""
-        def __init__(self, errno, message):
+        def __init__(self, errno, errmsg):
             self.errno = errno
-            self.message = message
-            super(MySQLError, self).__init__(errno, message)
+            self.errmsg = errmsg
+            super(MySQLError, self).__init__(errno, errmsg)
 
 class Warning(MySQLError):
 

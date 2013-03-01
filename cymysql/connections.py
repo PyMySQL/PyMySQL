@@ -178,10 +178,7 @@ class Connection(object):
         if not issubclass(errorclass, Error):
             raise Error(errorclass, errorvalue)
         else:
-            if PYTHON3:
-                raise errorclass(errorvalue)
-            else:
-                raise errorclass(errorvalue[0], errorvalue[1])
+            raise errorclass(errorvalue[0], errorvalue[1])
 
 
     def __init__(self, host="localhost", user=None, passwd="",
@@ -316,7 +313,7 @@ class Connection(object):
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
-            raise Error("Already closed")
+            raise Error(-1, "Already closed")
         send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
         self.socket.sendall(send_data)
         self.socket.close()
@@ -478,7 +475,7 @@ class Connection(object):
         #send_data = struct.pack('<i', len(sql) + 1) + command + sql
         # could probably be more efficient, at least it's correct
         if not self.socket:
-            self.errorhandler(None, InterfaceError, "(0, '')")
+            self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
         if ((PYTHON3 and isinstance(sql, str)) or 
             (not PYTHON3 and  isinstance(sql, unicode))):
