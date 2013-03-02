@@ -276,7 +276,7 @@ def convert_characters(connection, field, data):
         else:
             return data
 
-    if connection.use_unicode:
+    if connection.use_unicode or PYTHON3:
         data = data.decode(field_charset)
     elif connection.charset != field_charset:
         data = data.decode(field_charset)
