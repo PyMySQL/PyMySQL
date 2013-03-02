@@ -313,7 +313,7 @@ class Connection(object):
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
-            raise Error(-1, "Already closed")
+            raise Error("Already closed")
         send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
         self.socket.sendall(send_data)
         self.socket.close()
