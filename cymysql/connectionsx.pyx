@@ -177,8 +177,10 @@ class Connection(object):
 
         if not issubclass(errorclass, Error):
             raise Error(errorclass, errorvalue)
+        elif isinstance(errorvalue, errorclass):
+            raise errorvalue
         else:
-            raise errorclass(errorvalue[0], errorvalue[1])
+            raise errorclass(*errorvalue)
 
 
     def __init__(self, host="localhost", user=None, passwd="",
@@ -475,7 +477,7 @@ class Connection(object):
         #send_data = struct.pack('<i', len(sql) + 1) + command + sql
         # could probably be more efficient, at least it's correct
         if not self.socket:
-            self.errorhandler(None, InterfaceError, "(0, '')")
+            self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
         if ((PYTHON3 and isinstance(sql, str)) or 
             (not PYTHON3 and  isinstance(sql, unicode))):
