@@ -149,8 +149,4 @@ def _check_mysql_exception(errinfo):
 def raise_mysql_exception(data):
     errinfo = _get_error_info(data)
     _check_mysql_exception(errinfo)
-    
-
-
-
 
