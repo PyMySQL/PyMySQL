@@ -44,7 +44,7 @@ PYTHON3 = sys.version_info[0] > 2
 
 DEBUG = False
 
-DEFAULT_CHARSET = 'latin1'
+DEFAULT_CHARSET = 'utf8'
 
 def byte2int(b):
     if isinstance(b, int):
