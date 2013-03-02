@@ -500,7 +500,7 @@ class Connection(object):
             raise ValueError("Did not specify a username")
 
         charset_id = charset_by_name(self.charset).id
-        self.user = self.user.encode(self.charset)
+        user = self.user.encode(self.charset)
 
         data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
                      int2byte(charset_id) + int2byte(0)*23
@@ -520,7 +520,7 @@ class Connection(object):
                                                  cert_reqs=ssl.CERT_REQUIRED,
                                                  ca_certs=self.ca)
 
-        data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
+        data = data_init + user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
         if self.db:
             self.db = self.db.encode(self.charset)
