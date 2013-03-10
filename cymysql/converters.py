@@ -267,7 +267,7 @@ def convert_bit(connection, field, b):
     return b
 
 def convert_blob(connection, field, data):
-    return data
+    return convert_characters(connection, field, data)
 
 def convert_characters(connection, field, data):
     field_charset = charset_by_id(field.charsetnr).name
