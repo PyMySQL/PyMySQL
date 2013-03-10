@@ -21,9 +21,6 @@ def escape_item(val, charset):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    if PYTHON3 and isinstance(val, bytes):
-        # deal with py3k bytes
-        val = val.decode(charset)
     encoder = encoders[type(val)]
     val = encoder(val)
     if type(val) is str:
@@ -65,8 +62,7 @@ def escape_string(value):
             lambda match: ESCAPE_MAP.get(match.group(0)), value))
 
 def escape_bytes(value):
-    return ("'%s'" % ESCAPE_REGEX.sub(
-            lambda match: ESCAPE_MAP.get(match.group(0)), value))
+    return '0x' + ''.join([hex(c)[2:] for c in value])
 
 def escape_unicode(value):
     return escape_string(value)
