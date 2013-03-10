@@ -64,6 +64,10 @@ def escape_string(value):
     return ("'%s'" % ESCAPE_REGEX.sub(
             lambda match: ESCAPE_MAP.get(match.group(0)), value))
 
+def escape_bytes(value):
+    return ("'%s'" % ESCAPE_REGEX.sub(
+            lambda match: ESCAPE_MAP.get(match.group(0)), value))
+
 def escape_unicode(value):
     return escape_string(value)
 
@@ -319,7 +323,10 @@ encoders = {
         datetime.time : escape_time,
         time.struct_time : escape_struct_time,
         }
-if not PYTHON3:
+
+if PYTHON3:
+    encoders[bytes] = escape_bytes
+else:
     encoders[unicode] = escape_unicode
     encoders[long] = escape_long
 
