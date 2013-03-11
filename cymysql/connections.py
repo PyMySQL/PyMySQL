@@ -432,28 +432,25 @@ class Connection(object):
             self.errorhandler(None, exc, value)
 
     def _connect(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            t = sock.gettimeout()
+            sock.settimeout(self.connect_timeout)
             if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                t = sock.gettimeout()
-                sock.settimeout(self.connect_timeout)
                 sock.connect(self.unix_socket)
-                sock.settimeout(t)
                 self.host_info = "Localhost via UNIX socket"
                 if DEBUG: print('connected using unix_socket')
             else:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                t = sock.gettimeout()
-                sock.settimeout(self.connect_timeout)
                 sock.connect((self.host, self.port))
-                sock.settimeout(t)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
-            self.socket = sock
-            self._get_server_information()
-            self._request_authentication()
+            sock.settimeout(t)
         except socket.error as e:
+            sock.close()
             raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
+        self.socket = sock
+        self._get_server_information()
+        self._request_authentication()
 
     def read_packet(self, packet_type=MysqlPacket):
       """Read an entire "mysql packet" in its entirety from the network
