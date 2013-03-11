@@ -311,7 +311,6 @@ class Connection(object):
 
             self.commit()
 
-
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
@@ -373,6 +372,11 @@ class Connection(object):
             self.rollback()
         else:
             self.commit()
+
+    def __del__(self):
+        if hasattr(self, 'socket') and self.socket:
+            self.socket.close()
+            self.socket = None
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql):
