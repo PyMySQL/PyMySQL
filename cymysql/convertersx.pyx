@@ -62,7 +62,7 @@ def escape_string(value):
             lambda match: ESCAPE_MAP.get(match.group(0)), value))
 
 def escape_bytes(value):
-    return '0x' + ''.join([hex(c)[2:] for c in value])
+    return '0x' + ''.join([('0'+hex(c)[2:])[-2:] for c in value])
 
 def escape_unicode(value):
     return escape_string(value)
