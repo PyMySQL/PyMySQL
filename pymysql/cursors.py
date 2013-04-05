@@ -92,6 +92,9 @@ class Cursor(object):
 
         # TODO: make sure that conn.escape is correct
 
+        if isinstance(query, bytes):
+            query = query.decode()
+
         if isinstance(query, unicode):
             query = query.encode(charset)
 
