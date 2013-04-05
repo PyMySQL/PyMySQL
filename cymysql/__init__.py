@@ -23,9 +23,10 @@ THE SOFTWARE.
 
 '''
 
+import sys
+
 VERSION = (0, 5, 5)
 
-from cymysql.constants import FIELD_TYPE
 try:
     import convertresx as converters
     from cymysql.convertersx import escape_dict, escape_sequence, escape_string
@@ -37,23 +38,13 @@ from cymysql.err import Warning, Error, InterfaceError, DataError, \
 from cymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
-import sys
-
-try:
-    frozenset
-except NameError:
-    from sets import ImmutableSet as frozenset
-    try:
-        from sets import BaseSet as set
-    except ImportError:
-        from sets import Set as set
-
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
 
-class DBAPISet(frozenset):
+from cymysql.constants import FIELD_TYPE
 
+class DBAPISet(frozenset):
 
     def __ne__(self, other):
         if isinstance(other, set):
