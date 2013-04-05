@@ -3,5 +3,7 @@ python:
   - "2.6"
   - "2.7"
   - "3.3"
+before_script:
+  - mysql -e 'create database test_cymysql;'
 script:
   - python setup.py test
