@@ -327,7 +327,6 @@ class MySQLResult(object):
         rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
                                             for i in range(len(self.fields))]))
 
-      self.affected_rows = len(rows)
       self.rows = rows
 
     def _get_descriptions(self):
