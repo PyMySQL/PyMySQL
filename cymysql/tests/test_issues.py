@@ -237,8 +237,9 @@ class TestNewIssues(base.PyMySQLTestCase):
         c = conn.cursor()
         c.execute("SELECT @foo")
         self.assertEqual((None,), c.fetchone())
-        self.assertEqual(0, c.execute("SET @foo = 'bar'"))
         c.execute("set @foo = 'bar'")
+        c.execute("SELECT @foo")
+        self.assertEqual(('bar',), c.fetchone())
 
     def test_issue_38(self):
         conn = self.connections[0]
