@@ -318,22 +318,14 @@ cdef class MySQLResult(object):
 
     def read(self):
         self.first_packet = self.connection.read_packet()
-
-        # TODO: use classes for different packet types?
         if self.first_packet.is_ok_packet():
-            self._read_ok_packet()
+            (self.affected_rows, self.insert_id,
+                self.server_status, self.warning_count,
+                self.message) = self.first_packet.read_ok_packet()
         else:
-            self._read_result_packet()
-
-    cdef object _read_ok_packet(self):
-        (self.affected_rows, self.insert_id,
-            self.server_status, self.warning_count,
-            self.message) = self.first_packet.read_ok_packet()
-
-    cdef object _read_result_packet(self):
-        self.field_count = ord(self.first_packet.read(1))
-        self._get_descriptions()
-        self._read_rowdata_packet()
+            self.field_count = ord(self.first_packet.read(1))
+            self._get_descriptions()
+            self._read_rowdata_packet()
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
