@@ -108,7 +108,6 @@ class Cursor(object):
 
             query = query % escaped_args
 
-        result = 0
         try:
             self._query(query)
         except:

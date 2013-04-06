@@ -108,7 +108,6 @@ class Cursor(object):
 
             query = query % escaped_args
 
-        result = 0
         try:
             self._query(query)
         except:
@@ -118,7 +117,6 @@ class Cursor(object):
             self.errorhandler(self, exc, value)
 
         self._executed = query
-        return result
 
     def executemany(self, query, args):
         ''' Run several data against one query '''
