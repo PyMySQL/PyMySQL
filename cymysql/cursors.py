@@ -123,7 +123,6 @@ class Cursor(object):
         if not args:
             return
 
-        self.rowcount = sum([ self.execute(query, arg) for arg in args ])
         return self.rowcount
 
 
@@ -227,7 +226,6 @@ class Cursor(object):
 
     def _do_get_result(self):
         conn = self._get_db()
-        self.rowcount = conn._result.affected_rows
 
         self.rownumber = 0
         self.description = conn._result.description
