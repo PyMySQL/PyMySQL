@@ -75,9 +75,9 @@ datetime NOT NULL DEFAULT '0000-00-00 00:00:00', `echeance` int(1) NOT NULL
 DEFAULT '0', `me` double DEFAULT NULL, `mo` double DEFAULT NULL, PRIMARY
 KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         try:
-            self.assertEqual(0, c.execute("SELECT * FROM test"))
+            c.execute("SELECT * FROM test")
             c.execute("ALTER TABLE `test` ADD INDEX `idx_station` (`station`)")
-            self.assertEqual(0, c.execute("SELECT * FROM test"))
+            c.execute("SELECT * FROM test")
         finally:
             c.execute("drop table test")
 
