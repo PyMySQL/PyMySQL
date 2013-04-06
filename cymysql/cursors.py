@@ -88,8 +88,6 @@ class Cursor(object):
         charset = conn.charset
         del self.messages[:]
 
-        # TODO: make sure that conn.escape is correct
-
         if PYTHON3 and (not isinstance(query, str)):
             query = query.decode(charset)
         if (not PYTHON3) and isinstance(query, unicode):
@@ -122,12 +120,8 @@ class Cursor(object):
     def executemany(self, query, args):
         ''' Run several data against one query '''
         del self.messages[:]
-        #conn = self._get_db()
         if not args:
             return
-        #charset = conn.charset
-        #if isinstance(query, unicode):
-        #    query = query.encode(charset)
 
         self.rowcount = sum([ self.execute(query, arg) for arg in args ])
         return self.rowcount
