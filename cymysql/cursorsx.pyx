@@ -38,6 +38,10 @@ class Cursor(object):
         '''
         self.close()
 
+    @property
+    def rowcount(self):
+        return -1
+
     def close(self):
         '''
         Closing a cursor just exhausts all remaining data.
@@ -107,7 +111,7 @@ class Cursor(object):
 
         result = 0
         try:
-            result = self._query(query)
+            self._query(query)
         except:
             exc, value, tb = exc_info()
             del tb
@@ -115,16 +119,13 @@ class Cursor(object):
             self.errorhandler(self, exc, value)
 
         self._executed = query
-        return result
 
     def executemany(self, query, args):
         ''' Run several data against one query '''
         del self.messages[:]
-        if not args:
-            return
 
-        return self.rowcount
-
+        for params in args:
+            self.execute(query, params)
 
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
@@ -222,7 +223,6 @@ class Cursor(object):
         self._last_executed = q
         conn.query(q)
         self._do_get_result()
-        return self.rowcount
 
     def _do_get_result(self):
         conn = self._get_db()

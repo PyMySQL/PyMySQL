@@ -24,7 +24,6 @@ class Cursor(object):
         self.connection = proxy(connection)
         self.description = None
         self.rownumber = 0
-        self.rowcount = -1
         self.arraysize = 1
         self._executed = None
         self.messages = []
@@ -37,6 +36,10 @@ class Cursor(object):
         When this gets GC'd close it.
         '''
         self.close()
+
+    @property
+    def rowcount(self):
+        return -1
 
     def close(self):
         '''
@@ -107,7 +110,7 @@ class Cursor(object):
 
         result = 0
         try:
-            result = self._query(query)
+            self._query(query)
         except:
             exc, value, tb = exc_info()
             del tb
@@ -120,11 +123,9 @@ class Cursor(object):
     def executemany(self, query, args):
         ''' Run several data against one query '''
         del self.messages[:]
-        if not args:
-            return
 
-        return self.rowcount
-
+        for params in args:
+            self.execute(query, params)
 
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
@@ -222,7 +223,6 @@ class Cursor(object):
         self._last_executed = q
         conn.query(q)
         self._do_get_result()
-        return self.rowcount
 
     def _do_get_result(self):
         conn = self._get_db()
