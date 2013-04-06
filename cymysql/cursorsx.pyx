@@ -24,7 +24,6 @@ class Cursor(object):
         self.connection = proxy(connection)
         self.description = None
         self.rownumber = 0
-        self.rowcount = -1
         self.arraysize = 1
         self._executed = None
         self.messages = []
