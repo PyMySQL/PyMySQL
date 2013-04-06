@@ -9,6 +9,7 @@ install:
 
 before_script:
   - mysql -e 'create database test_cymysql;'
+  - mysql -e 'create database test_cymysql2;'
 
 script:
   - python setup.py test
