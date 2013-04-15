@@ -294,7 +294,6 @@ class Connection(object):
         self.decoders = conv
 
         self._result = None
-        self._affected_rows = 0
         self.host_info = "Not connected"
 
         self.autocommit(False)
@@ -383,15 +382,16 @@ class Connection(object):
         if DEBUG:
             print("sending query: %s" % sql)
         self._execute_command(COM_QUERY, sql)
-        self._affected_rows = self._read_query_result()
-        return self._affected_rows
+        self._result = self._read_query_result()
 
     def next_result(self):
-        self._affected_rows = self._read_query_result()
-        return self._affected_rows
+        self._result = self._read_query_result()
 
     def affected_rows(self):
-        return self._affected_rows
+        if self._result:
+            self._result._affected_rows
+        else:
+            return 0
 
     def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
@@ -465,8 +465,7 @@ class Connection(object):
     def _read_query_result(self):
         result = MySQLResult(self)
         result.read()
-        self._result = result
-        return result.affected_rows
+        return result
 
     def insert_id(self):
         if self._result:
