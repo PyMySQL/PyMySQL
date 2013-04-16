@@ -3,3 +3,4 @@ __pycache__
 py3k
 dist
 PyMySQL.egg-info
+build

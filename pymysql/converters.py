@@ -100,7 +100,10 @@ def escape_date(obj):
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
 
-def convert_datetime(connection, field, obj):
+def Thing2Literal(o, d):
+    return "'%s'" % escape_string(str(o))
+
+def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
@@ -116,22 +119,20 @@ def convert_datetime(connection, field, obj):
       True
 
     """
-    if not isinstance(obj, unicode):
-        obj = obj.decode(connection.charset)
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
         sep = 'T'
     else:
-        return convert_date(connection, field, obj)
+        return convert_date(obj)
 
     try:
         ymd, hms = obj.split(sep, 1)
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
-        return convert_date(connection, field, obj)
+        return convert_date(obj)
 
-def convert_timedelta(connection, field, obj):
+def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
 
       >>> timedelta_or_None('25:06:17')
@@ -166,7 +167,7 @@ def convert_timedelta(connection, field, obj):
     except ValueError:
         return None
 
-def convert_time(connection, field, obj):
+def convert_time(obj):
     """Returns a TIME column as a time object:
 
       >>> time_or_None('15:06:17')
@@ -199,7 +200,7 @@ def convert_time(connection, field, obj):
     except ValueError:
         return None
 
-def convert_date(connection, field, obj):
+def convert_date(obj):
     """Returns a DATE column as a date object:
 
       >>> date_or_None('2007-02-26')
@@ -214,13 +215,11 @@ def convert_date(connection, field, obj):
 
     """
     try:
-        if not isinstance(obj, unicode):
-            obj = obj.decode(connection.charset)
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
         return None
 
-def convert_mysql_timestamp(connection, field, timestamp):
+def convert_mysql_timestamp(timestamp):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
 
     MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
@@ -241,11 +240,8 @@ def convert_mysql_timestamp(connection, field, timestamp):
       True
 
     """
-    if not isinstance(timestamp, unicode):
-        timestamp = timestamp.decode(connection.charset)
-
     if timestamp[4] == '-':
-        return convert_datetime(connection, field, timestamp)
+        return convert_datetime(timestamp)
     timestamp += "0"*(14-len(timestamp)) # padding
     year, month, day, hour, minute, second = \
         int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
@@ -258,7 +254,7 @@ def convert_mysql_timestamp(connection, field, timestamp):
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(connection, field, b):
+def convert_bit(b):
     #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
     #return struct.unpack(">Q", b)[0]
     #
@@ -280,13 +276,13 @@ def convert_characters(connection, field, data):
         data = data.encode(connection.charset)
     return data
 
-def convert_int(connection, field, data):
+def convert_int(data):
     return int(data)
 
-def convert_long(connection, field, data):
+def convert_long(data):
     return long(data)
 
-def convert_float(connection, field, data):
+def convert_float(data):
     return float(data)
 
 encoders = {
@@ -342,8 +338,7 @@ conversions = decoders  # for MySQLdb compatibility
 try:
     # python version > 2.3
     from decimal import Decimal
-    def convert_decimal(connection, field, data):
-        data = data.decode(connection.charset)
+    def convert_decimal(data):
         return Decimal(data)
     decoders[FIELD_TYPE.DECIMAL] = convert_decimal
     decoders[FIELD_TYPE.NEWDECIMAL] = convert_decimal

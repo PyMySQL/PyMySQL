@@ -1,3 +1,4 @@
+from pymysql.converters import Thing2Literal
 from pymysql.tests import base
 from pymysql import util
 
@@ -54,6 +55,9 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual((1,2,3), c.fetchone())
         finally:
             c.execute("drop table test_dict")
+
+    def test_thing2literal(self):
+        self.assertEqual('2' == Thing2Literal(2, {}))
 
     def test_string(self):
         conn = self.connections[0]
@@ -166,6 +170,13 @@ class TestCursor(base.PyMySQLTestCase):
     #    c.execute("select * from mysql.user")
     #
     #    self.assertEqual(r, c.description)
+
+    def test_select_db(self):
+        conn = self.connections[0]
+        try:
+            conn.select_db('test_pymysql')
+        finally:
+            pass
 
     def test_fetch_no_result(self):
         """ test a fetchone() with no rows """

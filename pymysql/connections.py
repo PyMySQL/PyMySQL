@@ -15,10 +15,12 @@ try:
 except ImportError:
     SSL_ENABLED = False
 
+import traceback
 import struct
 import sys
 import os
 import ConfigParser
+from functools import partial
 
 try:
     import cStringIO as StringIO
@@ -197,6 +199,7 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     del connection
 
     if not issubclass(errorclass, Error):
+        traceback.print_exc()
         raise Error(errorclass, errorvalue)
     else:
         raise errorclass, errorvalue
@@ -599,7 +602,6 @@ class Connection(object):
 
             self.commit()
 
-
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
@@ -644,6 +646,10 @@ class Connection(object):
         except:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
+
+    def select_db(self, db):
+        self.db = db
+        self.query("USE %s" % db)
 
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''
@@ -976,7 +982,7 @@ class MySQLResult(object):
         else:
             self.field_count = byte2int(first_packet.read(1))
             self._get_descriptions()
-            
+
             # Apparently, MySQLdb picks this number because it's the maximum
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
             # we set it to this instead of None, which would be preferred.
@@ -1006,7 +1012,7 @@ class MySQLResult(object):
     def _read_rowdata_packet_unbuffered(self):
         # Check if in an active query
         if self.unbuffered_active == False: return
-        
+
         # EOF
         packet = self.connection.read_packet()
         if self._check_packet_is_eof(packet):
@@ -1022,7 +1028,11 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    converted = converter(self.connection, field, data)
+                    if converter.func_name == 'convert_characters':
+                        converter = partial(converter, self.connection, field)
+                    elif not isinstance(data, unicode):
+                        data = data.decode(self.connection.charset)
+                    converted = converter(data)
             row.append(converted)
 
         self.affected_rows = 1
@@ -1056,7 +1066,11 @@ class MySQLResult(object):
                 converter = self.connection.decoders[field.type_code]
                 if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
                 if data != None:
-                    converted = converter(self.connection, field, data)
+                    if converter.func_name == 'convert_characters':
+                        converter = partial(converter, self.connection, field)
+                    elif not isinstance(data, unicode):
+                        data = data.decode(self.connection.charset)
+                    converted = converter(data)
             row.append(converted)
 
         rows.append(tuple(row))
