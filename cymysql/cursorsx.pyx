@@ -22,14 +22,12 @@ class Cursor(object):
         '''
         from weakref import proxy
         self.connection = proxy(connection)
-        self.description = None
         self.rownumber = 0
         self.arraysize = 1
         self._executed = None
         self.messages = []
         self.errorhandler = connection.errorhandler
-        self._has_next = None
-        self._rows = ()
+        self._result = None
 
     def __del__(self):
         '''
@@ -40,6 +38,14 @@ class Cursor(object):
     @property
     def rowcount(self):
         return -1
+
+    @property
+    def description(self):
+        return self._result.description if self._result else None
+
+    @property
+    def lastrowid(self):
+        return self._result.insert_id if self._result else None
 
     def close(self):
         '''
@@ -76,7 +82,7 @@ class Cursor(object):
             self.fetchall()
         del self.messages[:]
 
-        if not self._has_next:
+        if not self._result or not self._result.has_next:
             return None
         connection = self._get_db()
         connection.next_result()
@@ -174,9 +180,9 @@ class Cursor(object):
     def fetchone(self):
         ''' Fetch the next row '''
         self._check_executed()
-        if self._rows is None or self.rownumber >= len(self._rows):
+        if self._result is None or self._result.rows is None or self.rownumber >= len(self._result.rows):
             return None
-        result = self._rows[self.rownumber]
+        result = self._result.rows[self.rownumber]
         self.rownumber += 1
         return result
 
@@ -184,22 +190,22 @@ class Cursor(object):
         ''' Fetch several rows '''
         self._check_executed()
         end = self.rownumber + (size or self.arraysize)
-        result = self._rows[self.rownumber:end]
-        if self._rows is None:
+        if self._result is None:
             return None
-        self.rownumber = min(end, len(self._rows))
+        result = self._result.rows[self.rownumber:end]
+        self.rownumber = min(end, len(self._result.rows))
         return result
 
     def fetchall(self):
         ''' Fetch all the rows '''
         self._check_executed()
-        if self._rows is None:
+        if self._result is None:
             return None
         if self.rownumber:
-            result = self._rows[self.rownumber:]
+            result = self._result.rows[self.rownumber:]
         else:
-            result = self._rows
-        self.rownumber = len(self._rows)
+            result = self._result.rows
+        self.rownumber = len(self._result.rows) if self._result.rows else 0
         return result
 
     def scroll(self, value, mode='relative'):
@@ -212,7 +218,7 @@ class Cursor(object):
             self.errorhandler(self, ProgrammingError,
                     "unknown scroll mode %s" % mode)
 
-        if r < 0 or r >= len(self._rows):
+        if r < 0 or r >= len(self._result.rows):
             self.errorhandler(self, IndexError, "out of range")
         self.rownumber = r
 
@@ -226,10 +232,7 @@ class Cursor(object):
         conn = self._get_db()
 
         self.rownumber = 0
-        self.description = conn._result.description
-        self.lastrowid = conn._result.insert_id
-        self._rows = conn._result.rows
-        self._has_next = conn._result.has_next
+        self._result = conn._result
 
     def __iter__(self):
         return iter(self.fetchone, None)
@@ -257,31 +260,31 @@ class DictCursor(Cursor):
     def fetchone(self):
         ''' Fetch the next row '''
         self._check_executed()
-        if self._rows is None or self.rownumber >= len(self._rows):
+        if self._result is None or self.rownumber >= len(self._result.rows):
             return None
-        result = dict(zip(self._fields, self._rows[self.rownumber]))
+        result = dict(zip(self._fields, self._result.rows[self.rownumber]))
         self.rownumber += 1
         return result
 
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
         self._check_executed()
-        if self._rows is None:
+        if self._result is None:
             return None
         end = self.rownumber + (size or self.arraysize)
-        result = [ dict(zip(self._fields, r)) for r in self._rows[self.rownumber:end] ]
-        self.rownumber = min(end, len(self._rows))
+        result = [ dict(zip(self._fields, r)) for r in self._result.rows[self.rownumber:end] ]
+        self.rownumber = min(end, len(self._result.rows))
         return tuple(result)
 
     def fetchall(self):
         ''' Fetch all the rows '''
         self._check_executed()
-        if self._rows is None:
+        if self._result is None:
             return None
         if self.rownumber:
-            result = [ dict(zip(self._fields, r)) for r in self._rows[self.rownumber:] ]
+            result = [ dict(zip(self._fields, r)) for r in self._result.rows[self.rownumber:] ]
         else:
-            result = [ dict(zip(self._fields, r)) for r in self._rows ]
-        self.rownumber = len(self._rows)
+            result = [ dict(zip(self._fields, r)) for r in self._result.rows ]
+        self.rownumber = len(self._result.rows)
         return tuple(result)
 
