@@ -22,7 +22,6 @@ class Cursor(object):
         '''
         from weakref import proxy
         self.connection = proxy(connection)
-        self.rownumber = 0
         self.arraysize = 1
         self._executed = None
         self.messages = []
@@ -180,20 +179,22 @@ class Cursor(object):
     def fetchone(self):
         ''' Fetch the next row '''
         self._check_executed()
-        if self._result is None or self._result.rows is None or self.rownumber >= len(self._result.rows):
+        if self._result is None:
             return None
-        result = self._result.rows[self.rownumber]
-        self.rownumber += 1
-        return result
+        return self._result.fetchone()
 
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
         self._check_executed()
-        end = self.rownumber + (size or self.arraysize)
+        size = size or self.arraysize
         if self._result is None:
             return None
-        result = self._result.rows[self.rownumber:end]
-        self.rownumber = min(end, len(self._result.rows))
+        result = []
+        for i in range(size):
+            r = self._result.fetchone()
+            if not r:
+                break
+            result.append(r)
         return result
 
     def fetchall(self):
@@ -201,11 +202,13 @@ class Cursor(object):
         self._check_executed()
         if self._result is None:
             return None
-        if self.rownumber:
-            result = self._result.rows[self.rownumber:]
-        else:
-            result = self._result.rows
-        self.rownumber = len(self._result.rows) if self._result.rows else 0
+        result = []
+
+        r = self._result.fetchone()
+        while r:
+            result.append(r)
+            r = self._result.fetchone()
+
         return result
 
     def _query(self, q):
@@ -217,7 +220,6 @@ class Cursor(object):
     def _do_get_result(self):
         conn = self._get_db()
 
-        self.rownumber = 0
         self._result = conn._result
 
     def __iter__(self):
@@ -246,20 +248,19 @@ class DictCursor(Cursor):
     def fetchone(self):
         ''' Fetch the next row '''
         self._check_executed()
-        if self._result is None or self.rownumber >= len(self._result.rows):
+        if self._result is None:
             return None
-        result = dict(zip(self._fields, self._result.rows[self.rownumber]))
-        self.rownumber += 1
-        return result
+        r = super(DictCursor, self).fetchone()
+        if not r:
+            return None
+        return  dict(zip(self._fields, r))
 
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
         self._check_executed()
         if self._result is None:
             return None
-        end = self.rownumber + (size or self.arraysize)
-        result = [ dict(zip(self._fields, r)) for r in self._result.rows[self.rownumber:end] ]
-        self.rownumber = min(end, len(self._result.rows))
+        result = [ dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchmany(size)]
         return tuple(result)
 
     def fetchall(self):
@@ -267,10 +268,6 @@ class DictCursor(Cursor):
         self._check_executed()
         if self._result is None:
             return None
-        if self.rownumber:
-            result = [ dict(zip(self._fields, r)) for r in self._result.rows[self.rownumber:] ]
-        else:
-            result = [ dict(zip(self._fields, r)) for r in self._result.rows ]
-        self.rownumber = len(self._result.rows)
+        result = [ dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchall() ]
         return tuple(result)
 

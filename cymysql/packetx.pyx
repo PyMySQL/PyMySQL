@@ -363,7 +363,7 @@ cdef class MySQLResult(object):
         self.description = tuple(description)
 
     def fetchone(self):
-        if len(self.rows):
+        if self.rows and len(self.rows):
             return self.rows.pop(0)
         return None
 
