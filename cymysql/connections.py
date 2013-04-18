@@ -22,10 +22,7 @@ try:
     from cymysql.charsetx import charset_by_name, charset_by_id
 except ImportError:
     from cymysql.charset import charset_by_name, charset_by_id
-try:
-    from cymysql.cursorsx import Cursor
-except ImportError:
-    from cymysql.cursors import Cursor
+from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
 try:
