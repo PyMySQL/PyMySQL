@@ -208,20 +208,6 @@ class Cursor(object):
         self.rownumber = len(self._result.rows) if self._result.rows else 0
         return result
 
-    def scroll(self, value, mode='relative'):
-        self._check_executed()
-        if mode == 'relative':
-            r = self.rownumber + value
-        elif mode == 'absolute':
-            r = value
-        else:
-            self.errorhandler(self, ProgrammingError,
-                    "unknown scroll mode %s" % mode)
-
-        if r < 0 or r >= len(self._result.rows):
-            self.errorhandler(self, IndexError, "out of range")
-        self.rownumber = r
-
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
