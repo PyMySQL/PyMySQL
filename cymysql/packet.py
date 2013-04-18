@@ -334,3 +334,9 @@ class MySQLResult(object):
         eof_packet = self.connection.read_packet()
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
+
+    def fetchone(self):
+        if len(self.rows):
+            return self.rows.pop(0)
+        return None
+
