@@ -298,7 +298,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 # TODO: move OK and EOF packet parsing/logic into a proper subclass
 #       of MysqlPacket like has been done with FieldDescriptorPacket.
 cdef class MySQLResult(object):
-    cdef public object affected_rows, insert_id, rows, has_next
+    cdef public object affected_rows, insert_id, rest_rows, has_next
     cdef public object message, description
     cdef public object server_status, warning_count, field_count
     cdef object connection, first_packet, fields
@@ -315,10 +315,10 @@ cdef class MySQLResult(object):
         self.description = None
         self.has_next = None
         self.has_result = False
-        self.rows = None
+        self.rest_rows = None
 
     def read(self):
-        self.rows = None
+        self.rest_rows = None
         self.first_packet = self.connection.read_packet()
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
@@ -335,9 +335,9 @@ cdef class MySQLResult(object):
     #       memory efficient and lower-latency to client...
     def _read_rowdata_packet(self):
         """Read a rowdata packet for each data row in the result set."""
-        if (not self.has_result) or (self.rows is not None):   # already read
+        if (not self.has_result) or (self.rest_rows is not None):   # already read
             return
-        rows = []
+        rest_rows = []
         decoders = self.connection.decoders
         while True:
             packet = self.connection.read_packet()
@@ -347,9 +347,9 @@ cdef class MySQLResult(object):
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
+            rest_rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
                                             for i in range(len(self.fields))]))
-        self.rows = rows
+        self.rest_rows = rest_rows
 
     cdef object _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
@@ -366,7 +366,7 @@ cdef class MySQLResult(object):
         self.description = tuple(description)
 
     def fetchone(self):
-        if self.rows and len(self.rows):
-            return self.rows.pop(0)
+        if self.rest_rows and len(self.rest_rows):
+            return self.rest_rows.pop(0)
         return None
 
