@@ -329,13 +329,10 @@ cdef class MySQLResult(object):
             self.field_count = ord(self.first_packet.read(1))
             self._get_descriptions()
             self.has_result = True
-            self._read_rowdata_packet()
 
-    # TODO: implement this as an iteratable so that it is more
-    #       memory efficient and lower-latency to client...
-    def _read_rowdata_packet(self):
-        """Read a rowdata packet for each data row in the result set."""
-        if (not self.has_result) or (self.rest_rows is not None):   # already read
+    def read_rest_rowdata_packet(self):
+        """Read rest rowdata packets for each data row in the result set."""
+        if (not self.has_result) or (self.rest_rows is not None):
             return
         rest_rows = []
         decoders = self.connection.decoders
@@ -347,8 +344,8 @@ cdef class MySQLResult(object):
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
-                                            for i in range(len(self.fields))]))
+            rest_rows.append(tuple([packet.read_decode_data(decoders,
+                            self.fields[i]) for i in range(len(self.fields))]))
         self.rest_rows = rest_rows
 
     cdef object _get_descriptions(self):
@@ -366,7 +363,20 @@ cdef class MySQLResult(object):
         self.description = tuple(description)
 
     def fetchone(self):
-        if self.rest_rows and len(self.rest_rows):
+        if not self.has_result:
+            return None
+        if self.rest_rows is None:
+            decoders = self.connection.decoders
+            packet = self.connection.read_packet()
+            if packet.is_eof_packet():
+                self.warning_count = unpack_uint16(packet.read(2))
+                server_status = unpack_uint16(packet.read(2))
+                self.has_next = (server_status
+                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+                self.rest_rows = []
+                return None
+            return tuple([packet.read_decode_data(decoders, self.fields[i])
+                                            for i in range(len(self.fields))])
+        elif len(self.rest_rows):
             return self.rest_rows.pop(0)
         return None
-

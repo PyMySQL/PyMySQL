@@ -70,7 +70,7 @@ class Cursor(object):
 
     def _flush(self):
         if self._result:
-            self._result._read_rowdata_packet()
+            self._result.read_rest_rowdata_packet()
 
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
