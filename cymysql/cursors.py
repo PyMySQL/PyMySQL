@@ -20,8 +20,7 @@ class Cursor(object):
         Do not create an instance of a Cursor yourself. Call
         connections.Connection.cursor().
         '''
-        from weakref import proxy
-        self.connection = proxy(connection)
+        self.connection = connection
         self.arraysize = 1
         self._executed = None
         self.messages = []
@@ -69,6 +68,10 @@ class Cursor(object):
         if not self._executed:
             self.errorhandler(self, ProgrammingError, "execute() first")
 
+    def _flush(self):
+        if self._result:
+            self._result._read_rowdata_packet()
+
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
 
@@ -93,6 +96,9 @@ class Cursor(object):
         from sys import exc_info
 
         conn = self._get_db()
+        if hasattr(conn, "_last_execute_cursor"):
+            conn._last_execute_cursor._flush()
+
         charset = conn.charset
         del self.messages[:]
 
@@ -122,6 +128,7 @@ class Cursor(object):
             self.errorhandler(self, exc, value)
 
         self._executed = query
+        conn._last_execute_cursor = self
 
     def executemany(self, query, args):
         ''' Run several data against one query '''

@@ -313,25 +313,29 @@ cdef class MySQLResult(object):
         self.message = None
         self.field_count = 0
         self.description = None
-        self.rows = None
         self.has_next = None
+        self.has_result = False
+        self.rows = None
 
     def read(self):
+        self.rows = None
         self.first_packet = self.connection.read_packet()
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
                 self.server_status, self.warning_count,
                 self.message) = self.first_packet.read_ok_packet()
+            self.has_result = False
         else:
             self.field_count = ord(self.first_packet.read(1))
             self._get_descriptions()
+            self.has_result = True
             self._read_rowdata_packet()
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
     def _read_rowdata_packet(self):
         """Read a rowdata packet for each data row in the result set."""
-        if self.rows is not None:   # already read
+        if (not self.has_result) or (self.rows is not None):   # already read
             return
         rows = []
         decoders = self.connection.decoders
