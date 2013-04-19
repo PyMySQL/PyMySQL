@@ -329,24 +329,23 @@ cdef class MySQLResult(object):
 
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
-    cdef object _read_rowdata_packet(self):
-      """Read a rowdata packet for each data row in the result set."""
-      cdef int i
-      cdef object rows
-      rows = []
-      decoders = self.connection.decoders
-      while True:
-        packet = self.connection.read_packet()
-        if packet.is_eof_packet():
-            self.warning_count = unpack_uint16(packet.read(2))
-            server_status = unpack_uint16(packet.read(2))
-            self.has_next = (server_status
+    def _read_rowdata_packet(self):
+        """Read a rowdata packet for each data row in the result set."""
+        if self.rows is not None:   # already read
+            return
+        rows = []
+        decoders = self.connection.decoders
+        while True:
+            packet = self.connection.read_packet()
+            if packet.is_eof_packet():
+                self.warning_count = unpack_uint16(packet.read(2))
+                server_status = unpack_uint16(packet.read(2))
+                self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
-            break
-        rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
+                break
+            rows.append(tuple([packet.read_decode_data(decoders, self.fields[i])
                                             for i in range(len(self.fields))]))
-
-      self.rows = rows
+        self.rows = rows
 
     cdef object _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
