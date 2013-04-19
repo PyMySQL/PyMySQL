@@ -298,7 +298,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 # TODO: move OK and EOF packet parsing/logic into a proper subclass
 #       of MysqlPacket like has been done with FieldDescriptorPacket.
 cdef class MySQLResult(object):
-    cdef public object affected_rows, insert_id, rest_rows, has_next
+    cdef public object affected_rows, insert_id, rest_rows, has_next, has_result
     cdef public object message, description
     cdef public object server_status, warning_count, field_count
     cdef object connection, first_packet, fields
