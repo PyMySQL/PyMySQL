@@ -16,7 +16,7 @@ Hajime Nakagami <nakagami@gmail.com>.
 It still can work without Cython as a pure python driver.
 
 Documentation on the MySQL client/server protocol can be found here:
-http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol .
+http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
 Requirements
 -------------
