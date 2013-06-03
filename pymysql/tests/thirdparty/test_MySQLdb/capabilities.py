@@ -44,7 +44,7 @@ class DatabaseTest(unittest.TestCase):
     def table_exists(self, name):
         try:
             self.cursor.execute('select * from %s where 1=0' % name)
-        except:
+        except Exception:
             return False
         else:
             return True

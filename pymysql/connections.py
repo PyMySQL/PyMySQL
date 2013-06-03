@@ -537,7 +537,7 @@ class Connection(object):
             def _config(key, default):
                 try:
                     return cfg.get(read_default_group,key)
-                except:
+                except Exception:
                     return default
 
             user = _config("user",user)
@@ -623,7 +623,7 @@ class Connection(object):
             self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
                                       self.escape(self.autocommit_mode))
             self.read_packet()
-        except:
+        except Exception:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, self.autocommit_mode)
 
@@ -632,7 +632,7 @@ class Connection(object):
         try:
             self._execute_command(COM_QUERY, "COMMIT")
             self.read_packet()
-        except:
+        except Exception:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
@@ -641,7 +641,7 @@ class Connection(object):
         try:
             self._execute_command(COM_QUERY, "ROLLBACK")
             self.read_packet()
-        except:
+        except Exception:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
@@ -689,7 +689,7 @@ class Connection(object):
         arg = struct.pack('<I', thread_id)
         try:
             self._execute_command(COM_PROCESS_KILL, arg)
-        except:
+        except Exception:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
             return
@@ -702,7 +702,7 @@ class Connection(object):
             self._execute_command(COM_PING, "")
             pkt = self.read_packet()
             return pkt.is_ok_packet()
-        except:
+        except Exception:
             if reconnect:
                 self._connect()
                 return self.ping(False)
@@ -718,7 +718,7 @@ class Connection(object):
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
-        except:
+        except Exception:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
