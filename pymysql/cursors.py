@@ -49,7 +49,7 @@ class Cursor(object):
         try:
             while self.nextset():
                 pass
-        except:
+        except Exception:
             pass
 
         self.connection = None
@@ -110,7 +110,7 @@ class Cursor(object):
         result = 0
         try:
             result = self._query(query)
-        except:
+        except Exception:
             exc, value, tb = exc_info()
             del tb
             self.messages.append((exc,value))
@@ -318,7 +318,7 @@ class SSCursor(Cursor):
         try:
             if self._has_next:
                 while self.nextset(): pass
-        except: pass
+        except Exception: pass
 
     def _query(self, q):
         conn = self._get_db()

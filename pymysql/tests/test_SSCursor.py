@@ -3,7 +3,7 @@ import sys
 try:
     from pymysql.tests import base
     import pymysql.cursors
-except:
+except Exception:
     # For local testing from top-level directory, without installing
     sys.path.append('../pymysql')
     from pymysql.tests import base
