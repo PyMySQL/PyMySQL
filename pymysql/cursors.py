@@ -408,3 +408,5 @@ class SSCursor(Cursor):
             end = value - self.rownumber
             for i in range(0, end): self.read_next()
             self.rownumber = value
+
+class SSDictCursor(SSCursor): pass
