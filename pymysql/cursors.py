@@ -409,4 +409,22 @@ class SSCursor(Cursor):
             for i in range(0, end): self.read_next()
             self.rownumber = value
 
-class SSDictCursor(SSCursor): pass
+class SSDictCursor(SSCursor):
+    """ An unbuffered cursor, which returns results as a dictionary """
+    
+    def execute(self, query, args=None):
+        result = super(SSDictCursor, self).execute(query, args)
+        if self.description:
+            self._fields = [field[0] for field in self.description]
+        
+        return result
+    
+    def read_next(self):
+        """ Read next row """
+    
+        row = super(SSDictCursor, self).read_next()
+        if row is not None:
+            return dict(zip(self._fields, row))
+        
+        return None
+    
