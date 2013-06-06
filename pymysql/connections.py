@@ -901,7 +901,7 @@ class Connection(object):
         self.server_version = data[i:server_end].decode(self.charset)
 
         i = server_end + 1
-        self.server_thread_id = struct.unpack('<h', data[i:i+2])
+        self.server_thread_id = struct.unpack('<I', data[i:i+4])
 
         i += 4
         self.salt = data[i:i+8]
