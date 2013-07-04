@@ -429,15 +429,18 @@ class Connection(object):
             self.errorhandler(None, exc, value)
 
     def _connect(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            t = sock.gettimeout()
-            sock.settimeout(self.connect_timeout)
             if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                t = sock.gettimeout()
+                sock.settimeout(self.connect_timeout)
                 sock.connect(self.unix_socket)
                 self.host_info = "Localhost via UNIX socket"
                 if DEBUG: print('connected using unix_socket')
             else:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                t = sock.gettimeout()
+                sock.settimeout(self.connect_timeout)
                 sock.connect((self.host, self.port))
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
