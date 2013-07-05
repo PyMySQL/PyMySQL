@@ -162,8 +162,6 @@ class Connection(object):
 
     def errorhandler(connection, cursor, errorclass, errorvalue):
         err = errorclass, errorvalue
-        if DEBUG:
-            raise
 
         if cursor:
             cursor.messages.append(err)
