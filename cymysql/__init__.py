@@ -90,17 +90,11 @@ def Connect(*args, **kwargs):
         from cymysql.connections import Connection
     return Connection(*args, **kwargs)
 
-def get_client_info():  # for MySQLdb compatibility
-  return '%s.%s.%s' % VERSION
-
 connect = Connection = Connect
-
-# we include a doctored version_info here for MySQLdb compatibility
-version_info = (1,2,2,"final",0)
 
 NULL = "NULL"
 
-__version__ = get_client_info()
+__version__ = '%s.%s.%s' % VERSION
 
 def thread_safe():
     return True # match MySQLdb.thread_safe()
@@ -112,8 +106,6 @@ __all__ = [
     'InterfaceError', 'InternalError', 'MySQLError', 'NULL', 'NUMBER',
     'NotSupportedError', 'DBAPISet', 'OperationalError', 'ProgrammingError',
     'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel', 'connect',
-    'constants', 'converters', 'cursors',
-    'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
-    'paramstyle', 'threadsafety', 'version_info',
-    "NULL","__version__",
+    'constants', 'converters', 'cursors', 'escape_dict', 'escape_sequence',
+    'escape_string', 'paramstyle', 'threadsafety', "NULL","__version__",
     ]

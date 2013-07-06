@@ -31,12 +31,6 @@ class CoreModule(unittest.TestCase):
         """Version information sanity."""
         self.assertTrue(isinstance(_mysql.__version__, str))
 
-        self.assertTrue(isinstance(_mysql.version_info, tuple))
-        self.assertEqual(len(_mysql.version_info), 5)
-
-    def test_client_info(self):
-        self.assertTrue(isinstance(_mysql.get_client_info(), str))
-
     def test_thread_safe(self):
         self.assertTrue(isinstance(_mysql.thread_safe(), int))
 
