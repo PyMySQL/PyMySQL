@@ -96,9 +96,6 @@ NULL = "NULL"
 
 __version__ = '%s.%s.%s' % VERSION
 
-def thread_safe():
-    return True # match MySQLdb.thread_safe()
-
 __all__ = [
     'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',
     'Time', 'Timestamp', 'DateFromTicks', 'TimeFromTicks', 'TimestampFromTicks',
