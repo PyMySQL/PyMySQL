@@ -105,13 +105,6 @@ __version__ = get_client_info()
 def thread_safe():
     return True # match MySQLdb.thread_safe()
 
-def install_as_MySQLdb():
-    """
-    After this function is called, any application that imports MySQLdb or
-    _mysql will unwittingly actually use 
-    """
-    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["cymysql"]
-
 __all__ = [
     'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',
     'Time', 'Timestamp', 'DateFromTicks', 'TimeFromTicks', 'TimestampFromTicks',
@@ -122,8 +115,5 @@ __all__ = [
     'constants', 'converters', 'cursors',
     'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
     'paramstyle', 'threadsafety', 'version_info',
-
-    "install_as_MySQLdb",
-
     "NULL","__version__",
     ]
