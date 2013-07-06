@@ -27,6 +27,24 @@ UNSIGNED_INT24_LENGTH = 3
 UNSIGNED_INT64_LENGTH = 8
 
 
+def byte2int(b):
+    if isinstance(b, int):
+        return b
+    else:
+        return ord(b)
+
+def int2byte(i):
+    if PYTHON3:
+        return bytes([i])
+    else:
+        return chr(i)
+
+def pack_int24(n):
+    if PYTHON3:
+        return bytes([n&0xFF, (n>>8)&0xFF,(n>>16)&0xFF])
+    else:
+        return chr(n&0xFF) + chr((n>>8)&0xFF) + chr((n>>16)&0xFF)
+
 def unpack_uint16(n):
     if PYTHON3:
         return n[0] + (n[1] << 8)

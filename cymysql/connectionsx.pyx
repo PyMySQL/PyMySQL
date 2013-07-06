@@ -34,32 +34,16 @@ from cymysql.err import raise_mysql_exception, Warning, Error, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 try:
     from cymysql.packetx import MysqlPacket, FieldDescriptorPacket, MySQLResult
+    from cymysql.packetx import byte2int, int2byte, pack_int24
 except ImportError:
     from cymysql.packet import MysqlPacket, FieldDescriptorPacket, MySQLResult
+    from cymysql.packet import byte2int, int2byte, pack_int24
 
 PYTHON3 = sys.version_info[0] > 2
 
 DEBUG = False
 
 DEFAULT_CHARSET = 'utf8'
-
-cdef int byte2int(b):
-    if isinstance(b, int):
-        return b
-    else:
-        return ord(b)
-
-cdef bytes int2byte(int i):
-    if PYTHON3:
-        return bytes([i])
-    else:
-        return chr(i)
-
-cdef bytes pack_int24(int n):
-    if PYTHON3:
-        return bytes([n&0xFF, (n>>8)&0xFF,(n>>16)&0xFF])
-    else:
-        return chr(n&0xFF) + chr((n>>8)&0xFF) + chr((n>>16)&0xFF)
 
 def dump_packet(data):
     
