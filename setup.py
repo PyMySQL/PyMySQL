@@ -6,9 +6,9 @@ try:
     from Cython.Distutils import build_ext
     cmdclass = {'build_ext': build_ext}
     ext_modules = [Extension("cymysql.packetx", ["cymysql/packetx.pyx"]),
-        Extension("cymysql.convertersx", ["cymysql/converters.py"]),
-        Extension("cymysql.connectionsx", ["cymysql/connectionsx.pyx"]),
         Extension("cymysql.charsetx", ["cymysql/charsetx.pyx"]),
+        Extension("cymysql.connectionsx", ["cymysql/connections.py"]),
+        Extension("cymysql.convertersx", ["cymysql/converters.py"]),
     ]
 except ImportError:
     cmdclass = {}
