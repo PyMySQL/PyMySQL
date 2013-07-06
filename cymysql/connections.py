@@ -103,56 +103,6 @@ def _my_crypt(message1, message2):
         result += struct.pack('B', x)
     return result
 
-# old_passwords support ported from libmysql/password.c
-SCRAMBLE_LENGTH_323 = 8
-
-class RandStruct_323(object):
-    def __init__(self, seed1, seed2):
-        self.max_value = 0x3FFFFFFF
-        self.seed1 = seed1 % self.max_value
-        self.seed2 = seed2 % self.max_value
-
-    def my_rnd(self):
-        self.seed1 = (self.seed1 * 3 + self.seed2) % self.max_value
-        self.seed2 = (self.seed1 + self.seed2 + 33) % self.max_value
-        return float(self.seed1) / float(self.max_value)
-
-def _scramble_323(password, message):
-    hash_pass = _hash_password_323(password)
-    hash_message = _hash_password_323(message[:SCRAMBLE_LENGTH_323])
-    hash_pass_n = struct.unpack(">LL", hash_pass)
-    hash_message_n = struct.unpack(">LL", hash_message)
-
-    rand_st = RandStruct_323(hash_pass_n[0] ^ hash_message_n[0],
-                             hash_pass_n[1] ^ hash_message_n[1])
-    outbuf = StringIO()
-    for _ in range(min(SCRAMBLE_LENGTH_323, len(message))):
-        outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
-    extra = int2byte(int(rand_st.my_rnd() * 31))
-    out = outbuf.getvalue()
-    outbuf = StringIO()
-    for c in out:
-        outbuf.write(int2byte(byte2int(c) ^ byte2int(extra)))
-    return outbuf.getvalue()
-
-def _hash_password_323(password):
-    nr = 1345345333
-    add = 7
-    nr2 = 0x12345671
-
-    for c in [byte2int(x) for x in password if x not in (' ', '\t')]:
-        nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
-        nr2= (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
-        add= (add + c) & 0xFFFFFFFF
-
-    r1 = nr & ((1 << 31) - 1) # kill sign bits
-    r2 = nr2 & ((1 << 31) - 1)
-
-    # pack
-    return struct.pack(">LL", r1, r2)
-
-
-
 class Connection(object):
     """
     Representation of a socket with a mysql server.
@@ -544,17 +494,7 @@ class Connection(object):
 
         if auth_packet.is_eof_packet():
             # send legacy handshake
-            #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
-            # TODO: is this the correct charset?
-            data = _scramble_323(self.password.encode(self.charset), self.salt.encode(self.charset)) + int2byte(0)
-            data = pack_int24(len(data)) + int2byte(next_packet) + data
-
-            self.socket.sendall(data)
-            auth_packet = MysqlPacket(self)
-            _errno, _data = auth_packet.check_error()
-            if _errno:
-                raise_mysql_exception(_data)
-            if DEBUG: dump_packet(auth_packet.get_all_data())
+            raise NotImplementedError("old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table.")
 
     # _mysql support
     def thread_id(self):
