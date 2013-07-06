@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 import sys
 
-VERSION = (0, 6, 1)
+VERSION = (0, 6, 2)
 
 try:
     import convertresx as converters
