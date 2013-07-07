@@ -47,6 +47,9 @@ def unpack_uint32(n):
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
 def read_mysqlpacket(connection):
+    return _read_mysqlpacket(connection)
+
+def _read_mysqlpacket(connection):
       packet = MysqlPacket(connection)
       _errno, _data = packet.check_error()
       if _errno:

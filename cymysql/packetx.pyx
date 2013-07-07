@@ -47,6 +47,9 @@ cdef int unpack_uint32(bytes n):
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
 def read_mysqlpacket(connection):
+    return _read_mysqlpacket(connection)
+
+cdef object _read_mysqlpacket(connection):
       packet = MysqlPacket(connection)
       _errno, _data = packet.check_error()
       if _errno:
@@ -335,7 +338,7 @@ cdef class MySQLResult(object):
 
     def read(self):
         self.rest_rows = None
-        self.first_packet = read_mysqlpacket(self.connection)
+        self.first_packet = _read_mysqlpacket(self.connection)
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
                 self.server_status, self.warning_count,
@@ -352,7 +355,7 @@ cdef class MySQLResult(object):
             return
         rest_rows = []
         while True:
-            packet = read_mysqlpacket(self.connection)
+            packet = _read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
@@ -373,7 +376,7 @@ cdef class MySQLResult(object):
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = read_mysqlpacket(self.connection)
+        eof_packet = _read_mysqlpacket(self.connection)
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
@@ -381,7 +384,7 @@ cdef class MySQLResult(object):
         if not self.has_result:
             return None
         if self.rest_rows is None:
-            packet = read_mysqlpacket(self.connection)
+            packet = _read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
