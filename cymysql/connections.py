@@ -33,9 +33,9 @@ from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 try:
-    from cymysql.packetx import read_mysqlpacket, MysqlPacket, MySQLResult
+    from cymysql.packetx import read_mysqlpacket, MySQLResult
 except ImportError:
-    from cymysql.packet import read_mysqlpacket, MysqlPacket, MySQLResult
+    from cymysql.packet import read_mysqlpacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -400,7 +400,7 @@ class Connection(object):
         self._get_server_information()
         self._request_authentication()
 
-    def read_packet(self, packet_type=MysqlPacket):
+    def read_packet(self):
       """Read an entire "mysql packet" in its entirety from the network
       and return a MysqlPacket type that represents the results."""
       return read_mysqlpacket(self)
@@ -477,11 +477,8 @@ class Connection(object):
         if DEBUG: dump_packet(data)
 
         self.socket.sendall(data)
+        auth_packet = read_mysqlpacket(self)
 
-        auth_packet = MysqlPacket(self)
-        _errno, _data = auth_packet.check_error()
-        if _errno:
-            raise_mysql_exception(_data)
         if DEBUG: dump_packet(auth_packet.get_all_data())
 
         # if old_passwords is enabled the packet will be 1 byte long and
@@ -506,7 +503,7 @@ class Connection(object):
 
     def _get_server_information(self):
         i = 0
-        packet = MysqlPacket(self)
+        packet = read_mysqlpacket(self)
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
