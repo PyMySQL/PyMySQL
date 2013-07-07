@@ -46,14 +46,14 @@ cdef int unpack_uint32(bytes n):
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
-cdef object read_mysqlpacket(connection):
+def read_mysqlpacket(connection):
       packet = MysqlPacket(connection)
       _errno, _data = packet.check_error()
       if _errno:
         raise_mysql_exception(_data)
       return packet
 
-def read_fielddescriptorpacket(connection):
+cdef read_fielddescriptorpacket(connection):
       packet = FieldDescriptorPacket(connection)
       _errno, _data = packet.check_error()
       if _errno:
