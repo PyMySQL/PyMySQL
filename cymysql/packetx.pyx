@@ -27,24 +27,6 @@ cdef int UNSIGNED_INT24_LENGTH = 3
 cdef int UNSIGNED_INT64_LENGTH = 8
 
 
-cdef int byte2int(b):
-    if isinstance(b, int):
-        return b
-    else:
-        return ord(b)
-
-cdef bytes int2byte(int i):
-    if PYTHON3:
-        return bytes([i])
-    else:
-        return chr(i)
-
-cdef bytes pack_int24(int n):
-    if PYTHON3:
-        return bytes([n&0xFF, (n>>8)&0xFF,(n>>16)&0xFF])
-    else:
-        return chr(n&0xFF) + chr((n>>8)&0xFF) + chr((n>>16)&0xFF)
-
 cdef int unpack_uint16(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8)
