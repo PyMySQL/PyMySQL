@@ -337,8 +337,9 @@ class MySQLResult(object):
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(tuple([packet.read_decode_data(self.decoders,
-                            self.fields[i]) for i in range(len(self.fields))]))
+            rest_rows.append(tuple(
+                [packet.read_decode_data(self.decoders, f) for f in self.fields]
+            ))
         self.rest_rows = rest_rows
 
     def _get_descriptions(self):
@@ -366,8 +367,9 @@ class MySQLResult(object):
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
-            return tuple([packet.read_decode_data(self.decoders, self.fields[i])
-                                            for i in range(len(self.fields))])
+            return tuple(
+                [packet.read_decode_data(self.decoders, f) for f in self.fields]
+            )
         elif len(self.rest_rows):
             return self.rest_rows.pop(0)
         return None
