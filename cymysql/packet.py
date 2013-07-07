@@ -2,7 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
-from cymysql.err import OperationalError
+from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
 
 PYTHON3 = sys.version_info[0] > 2
