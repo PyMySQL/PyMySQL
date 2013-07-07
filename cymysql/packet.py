@@ -189,13 +189,17 @@ class MysqlPacket(object):
             return None
         return self._read(length)
 
-    def read_decode_data(self, decoders, field):
-        data = self._read_length_coded_string()
-        if data != None:
-            func = decoders.get(field.type_code)
-            if func:
-                return func(self.connection, field, data)
-        return None
+    def read_decode_data(self, decoders, fields):
+        r = []
+        for field in fields:
+            data = self._read_length_coded_string()
+            if data != None:
+                func = decoders.get(field.type_code)
+                if func:
+                    r.append(func(self.connection, field, data))
+            r.append(None)
+
+        return tuple(r)
  
     def is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0
@@ -337,9 +341,8 @@ class MySQLResult(object):
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(tuple(
-                [packet.read_decode_data(self.decoders, f) for f in self.fields]
-            ))
+            rest_rows.append(
+                packet.read_decode_data(self.decoders, self.fields))
         self.rest_rows = rest_rows
 
     def _get_descriptions(self):
@@ -367,9 +370,7 @@ class MySQLResult(object):
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
-            return tuple(
-                [packet.read_decode_data(self.decoders, f) for f in self.fields]
-            )
+            return packet.read_decode_data(self.decoders, self.fields)
         elif len(self.rest_rows):
             return self.rest_rows.pop(0)
         return None
