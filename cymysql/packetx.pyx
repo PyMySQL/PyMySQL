@@ -316,6 +316,7 @@ cdef class MySQLResult(object):
     cdef public object message, description
     cdef public object server_status, warning_count, field_count
     cdef object connection, first_packet, fields
+    cdef object decoders
 
     def __init__(self, connection):
         from weakref import proxy
@@ -330,6 +331,7 @@ cdef class MySQLResult(object):
         self.has_next = None
         self.has_result = False
         self.rest_rows = None
+        self.decoders = self.connection.decoders
 
     def read(self):
         self.rest_rows = None
@@ -349,7 +351,6 @@ cdef class MySQLResult(object):
         if (not self.has_result) or (self.rest_rows is not None):
             return
         rest_rows = []
-        decoders = self.connection.decoders
         while True:
             packet = read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
@@ -358,7 +359,7 @@ cdef class MySQLResult(object):
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(tuple([packet.read_decode_data(decoders,
+            rest_rows.append(tuple([packet.read_decode_data(self.decoders,
                             self.fields[i]) for i in range(len(self.fields))]))
         self.rest_rows = rest_rows
 
@@ -380,7 +381,6 @@ cdef class MySQLResult(object):
         if not self.has_result:
             return None
         if self.rest_rows is None:
-            decoders = self.connection.decoders
             packet = read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
@@ -389,7 +389,7 @@ cdef class MySQLResult(object):
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
-            return tuple([packet.read_decode_data(decoders, self.fields[i])
+            return tuple([packet.read_decode_data(self.decoders, self.fields[i])
                                             for i in range(len(self.fields))])
         elif len(self.rest_rows):
             return self.rest_rows.pop(0)
