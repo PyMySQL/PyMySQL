@@ -46,6 +46,20 @@ def unpack_uint32(n):
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
+def read_mysqlpacket(connection):
+      packet = MysqlPacket(connection)
+      _errno, _data = packet.check_error()
+      if _errno:
+        raise_mysql_exception(_data)
+      return packet
+
+def read_fielddescriptorpacket(connection):
+      packet = FieldDescriptorPacket(connection)
+      _errno, _data = packet.check_error()
+      if _errno:
+        raise_mysql_exception(_data)
+      return packet
+
 
 class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
@@ -294,7 +308,7 @@ class MySQLResult(object):
 
     def read(self):
         self.rest_rows = None
-        self.first_packet = self.connection.read_packet()
+        self.first_packet = read_mysqlpacket(self.connection)
 
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
@@ -313,7 +327,7 @@ class MySQLResult(object):
         rest_rows = []
         decoders = self.connection.decoders
         while True:
-            packet = self.connection.read_packet()
+            packet = read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
@@ -329,11 +343,11 @@ class MySQLResult(object):
         self.fields = []
         description = []
         for i in range(self.field_count):
-            field = self.connection.read_packet(FieldDescriptorPacket)
+            field = read_fielddescriptorpacket(self.connection)
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = self.connection.read_packet()
+        eof_packet = read_mysqlpacket(self.connection)
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
@@ -342,7 +356,7 @@ class MySQLResult(object):
             return None
         if self.rest_rows is None:
             decoders = self.connection.decoders
-            packet = self.connection.read_packet()
+            packet = read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))

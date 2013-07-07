@@ -2,7 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
-from cymysql.err import OperationalError
+from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
 
 cdef int PYTHON3 = sys.version_info[0] > 2
@@ -45,6 +45,20 @@ cdef int unpack_uint32(bytes n):
     else:
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
+
+cdef object read_mysqlpacket(connection):
+      packet = MysqlPacket(connection)
+      _errno, _data = packet.check_error()
+      if _errno:
+        raise_mysql_exception(_data)
+      return packet
+
+def read_fielddescriptorpacket(connection):
+      packet = FieldDescriptorPacket(connection)
+      _errno, _data = packet.check_error()
+      if _errno:
+        raise_mysql_exception(_data)
+      return packet
 
 
 cdef class MysqlPacket(object):
@@ -172,7 +186,7 @@ cdef class MysqlPacket(object):
             # TODO: what was 'longlong'?  confirm it wasn't used?
             return -1
   
-    def read_length_coded_string(self):
+    cdef read_length_coded_string(self):
         return self._read_length_coded_string()
 
     cdef bytes _read_length_coded_string(self):
@@ -319,7 +333,7 @@ cdef class MySQLResult(object):
 
     def read(self):
         self.rest_rows = None
-        self.first_packet = self.connection.read_packet()
+        self.first_packet = read_mysqlpacket(self.connection)
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
                 self.server_status, self.warning_count,
@@ -337,7 +351,7 @@ cdef class MySQLResult(object):
         rest_rows = []
         decoders = self.connection.decoders
         while True:
-            packet = self.connection.read_packet()
+            packet = read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
@@ -354,11 +368,11 @@ cdef class MySQLResult(object):
         self.fields = []
         description = []
         for i in range(self.field_count):
-            field = self.connection.read_packet(FieldDescriptorPacket)
+            field = read_fielddescriptorpacket(self.connection)
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = self.connection.read_packet()
+        eof_packet = read_mysqlpacket(self.connection)
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
@@ -367,7 +381,7 @@ cdef class MySQLResult(object):
             return None
         if self.rest_rows is None:
             decoders = self.connection.decoders
-            packet = self.connection.read_packet()
+            packet = read_mysqlpacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
