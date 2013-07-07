@@ -209,11 +209,11 @@ cdef class MysqlPacket(object):
         r = []
         for field in fields:
             data = self._read_length_coded_string()
-            if data != None:
-                func = decoders.get(field.type_code)
-                if func:
-                    r.append(func(self.connection, field, data))
-            r.append(None)
+            func = decoders.get(field.type_code)
+            if data != None and func:
+                r.append(func(self.connection, field, data))
+            else:
+                r.append(None)
 
         return tuple(r)
   
