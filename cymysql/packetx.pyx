@@ -205,12 +205,10 @@ cdef class MysqlPacket(object):
         return self._read(length)
 
     cdef object _read_decode_data(self, charset, decoders, field, use_unicode):
-        data = self._read_length_coded_string()
-        func = decoders.get(field.type_code)
-        if data != None and func:
-            return func(charset, field, data, use_unicode)
-        else:
+        cdef bytes data = self._read_length_coded_string()
+        if data is None:
             return None
+        return decoders[field.type_code](charset, field, data, use_unicode)
 
     def read_decode_data(self, decoders, fields):
         charset = self.connection.charset
