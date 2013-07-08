@@ -354,3 +354,5 @@ decoders = {
         FIELD_TYPE.VARCHAR: convert_characters,
         }
 
+def get_decode_value(type_code, charset, field, data, use_unicode):
+    return decoders[type_code](charset, field, data, use_unicode)

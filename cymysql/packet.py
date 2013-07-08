@@ -4,7 +4,7 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
-from cymysql.converters import decoders
+from cymysql.converters import get_decode_value
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -194,7 +194,7 @@ class MysqlPacket(object):
         data = self._read_length_coded_string()
         if data is None:
             return None
-        return decoders[field.type_code](charset, field, data, use_unicode)
+        return get_decode_value(field.type_code, charset, field, data, use_unicode)
 
     def read_decode_data(self, fields):
         charset = self.connection.charset
