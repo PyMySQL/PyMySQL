@@ -26,9 +26,9 @@ from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
 try:
-    from cymysql.convertersx import escape_item, encoders, decoders
+    from cymysql.convertersx import escape_item
 except ImportError:
-    from cymysql.converters import escape_item, encoders, decoders
+    from cymysql.converters import escape_item
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
@@ -235,8 +235,6 @@ class Connection(object):
 
         self.messages = []
         self.set_charset(charset)
-        self.encoders = encoders
-        self.decoders = decoders
 
         self._result = None
         self.host_info = "Not connected"

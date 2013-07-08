@@ -4,6 +4,7 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
+from cymysql.converters import decoders
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -189,16 +190,16 @@ class MysqlPacket(object):
             return None
         return self._read(length)
 
-    def _read_decode_data(self, charset, decoders, field, use_unicode):
+    def _read_decode_data(self, charset, field, use_unicode):
         data = self._read_length_coded_string()
         if data is None:
             return None
         return decoders[field.type_code](charset, field, data, use_unicode)
 
-    def read_decode_data(self, decoders, fields):
+    def read_decode_data(self, fields):
         charset = self.connection.charset
         use_unicode = self.connection.use_unicode
-        return tuple([self._read_decode_data(charset, decoders, f, use_unicode)
+        return tuple([self._read_decode_data(charset, f, use_unicode)
                                                             for f in fields])
  
     def is_ok_packet(self):
@@ -312,7 +313,6 @@ class MySQLResult(object):
         self.has_next = None
         self.has_result = False
         self.rest_rows = None
-        self.decoders = self.connection.decoders
 
     def read(self):
         self.rest_rows = None
@@ -342,7 +342,7 @@ class MySQLResult(object):
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
             rest_rows.append(
-                packet.read_decode_data(self.decoders, self.fields))
+                packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
 
     def _get_descriptions(self):
@@ -370,7 +370,7 @@ class MySQLResult(object):
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
-            return packet.read_decode_data(self.decoders, self.fields)
+            return packet.read_decode_data(self.fields)
         elif len(self.rest_rows):
             return self.rest_rows.pop(0)
         return None
