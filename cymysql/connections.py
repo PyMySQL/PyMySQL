@@ -131,7 +131,7 @@ class Connection(object):
     def __init__(self, host="localhost", user=None, passwd="",
                  db=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
-                 read_default_file=None, conv=decoders, use_unicode=None,
+                 read_default_file=None, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None):
@@ -236,7 +236,7 @@ class Connection(object):
         self.messages = []
         self.set_charset(charset)
         self.encoders = encoders
-        self.decoders = conv
+        self.decoders = decoders
 
         self._result = None
         self.host_info = "Not connected"
