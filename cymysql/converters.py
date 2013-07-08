@@ -96,7 +96,7 @@ def escape_struct_time(obj):
 def escape_decimal(obj):
     return str(obj)
 
-def convert_datetime(connection, field, obj):
+def convert_datetime(charset, field, obj, use_unicode):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
@@ -114,21 +114,21 @@ def convert_datetime(connection, field, obj):
     """
     if ((PYTHON3 and not isinstance(obj, str)) or 
         (not PYTHON3 and not isinstance(obj, unicode))):
-        obj = obj.decode(connection.charset)
+        obj = obj.decode(charset)
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
         sep = 'T'
     else:
-        return convert_date(connection, field, obj)
+        return convert_date(charset, field, obj, use_unicode)
 
     try:
         ymd, hms = obj.split(sep, 1)
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
-        return convert_date(connection, field, obj)
+        return convert_date(charset, field, obj, use_unicode)
 
-def convert_timedelta(connection, field, obj):
+def convert_timedelta(charset, field, obj, use_unicode):
     """Returns a TIME column as a timedelta object:
 
       >>> timedelta_or_None('25:06:17')
@@ -149,7 +149,7 @@ def convert_timedelta(connection, field, obj):
         microseconds = 0
         if ((PYTHON3 and not isinstance(obj, str)) or 
             (not PYTHON3 and not isinstance(obj, unicode))):
-            obj = obj.decode(connection.charset)
+            obj = obj.decode(charset)
         if "." in obj:
             (obj, tail) = obj.split('.')
             microseconds = int(tail)
@@ -164,7 +164,7 @@ def convert_timedelta(connection, field, obj):
     except ValueError:
         return None
 
-def convert_time(connection, field, obj):
+def convert_time(charset, field, obj, use_unicode):
     """Returns a TIME column as a time object:
 
       >>> time_or_None('15:06:17')
@@ -197,7 +197,7 @@ def convert_time(connection, field, obj):
     except ValueError:
         return None
 
-def convert_date(connection, field, obj):
+def convert_date(charset, field, obj, use_unicode):
     """Returns a DATE column as a date object:
 
       >>> date_or_None('2007-02-26')
@@ -214,12 +214,12 @@ def convert_date(connection, field, obj):
     try:
         if ((PYTHON3 and not isinstance(obj, str)) or
             (not PYTHON3 and not isinstance(obj, unicode))):
-            obj = obj.decode(connection.charset)
+            obj = obj.decode(charset)
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
         return None
 
-def convert_mysql_timestamp(connection, field, timestamp):
+def convert_mysql_timestamp(charset, field, timestamp, use_unicode):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
 
     MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
@@ -242,10 +242,10 @@ def convert_mysql_timestamp(connection, field, timestamp):
     """
     if ((PYTHON3 and not isinstance(timestamp, str)) or
         (not PYTHON3 and not isinstance(timestamp, unicode))):
-        timestamp = timestamp.decode(connection.charset)
+        timestamp = timestamp.decode(charset)
 
     if timestamp[4] == '-':
-        return convert_datetime(connection, field, timestamp)
+        return convert_datetime(charset, field, timestamp, use_unicode)
     timestamp += "0"*(14-len(timestamp)) # padding
     year, month, day, hour, minute, second = \
         int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
@@ -258,7 +258,7 @@ def convert_mysql_timestamp(connection, field, timestamp):
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(connection, field, b):
+def convert_bit(charset, field, b, use_unicode):
     #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
     #return struct.unpack(">Q", b)[0]
     #
@@ -266,10 +266,10 @@ def convert_bit(connection, field, b):
     # so we shouldn't either
     return b
 
-def convert_blob(connection, field, data):
-    return convert_characters(connection, field, data)
+def convert_blob(charset, field, data, use_unicode):
+    return convert_characters(charset, field, data, use_unicode)
 
-def convert_characters(connection, field, data):
+def convert_characters(charset, field, data, use_unicode):
     field_charset = charset_by_id(field.charsetnr).name
     if field.flags & FLAG.SET:
         return convert_set(data.decode(field_charset))
@@ -279,27 +279,27 @@ def convert_characters(connection, field, data):
         else:
             return data
 
-    if connection.use_unicode or PYTHON3:
+    if use_unicode or PYTHON3:
         data = data.decode(field_charset)
-    elif connection.charset != field_charset:
+    elif charset != field_charset:
         data = data.decode(field_charset)
-        data = data.encode(connection.charset)
+        data = data.encode(charset)
     return data
 
-def convert_int(connection, field, data):
+def convert_int(charset, field, data, use_unicode):
     return int(data)
 
-def convert_long(connection, field, data):
+def convert_long(charset, field, data, use_unicode):
     if PYTHON3:
         return int(data)
     else:
         return long(data)
 
-def convert_float(connection, field, data):
+def convert_float(charset, field, data, use_unicode):
     return float(data)
 
-def convert_decimal(connection, field, data):
-    data = data.decode(connection.charset)
+def convert_decimal(charset, field, data, use_unicode):
+    data = data.decode(charset)
     return Decimal(data)
 
 encoders = {

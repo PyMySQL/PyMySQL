@@ -207,11 +207,13 @@ cdef class MysqlPacket(object):
 
     def read_decode_data(self, decoders, fields):
         r = []
+        charset = self.connection.charset
+        use_unicode = self.connection.use_unicode
         for field in fields:
             data = self._read_length_coded_string()
             func = decoders.get(field.type_code)
             if data != None and func:
-                r.append(func(self.connection, field, data))
+                r.append(func(charset, field, data, use_unicode))
             else:
                 r.append(None)
 
