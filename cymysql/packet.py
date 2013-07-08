@@ -4,7 +4,7 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
-from cymysql.converters import get_decode_value
+from cymysql.converters import get_decode_values
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -190,17 +190,14 @@ class MysqlPacket(object):
             return None
         return self._read(length)
 
-    def _read_decode_data(self, charset, field, use_unicode):
-        data = self._read_length_coded_string()
-        if data is None:
-            return None
-        return get_decode_value(field.type_code, charset, field, data, use_unicode)
-
     def read_decode_data(self, fields):
-        charset = self.connection.charset
-        use_unicode = self.connection.use_unicode
-        return tuple([self._read_decode_data(charset, f, use_unicode)
-                                                            for f in fields])
+        values = [self.read_length_coded_string() for f in fields]
+        return tuple(
+            get_decode_values(self.connection.charset,
+                fields,
+                values,
+                self.connection.use_unicode)
+        )
  
     def is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0

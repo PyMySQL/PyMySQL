@@ -354,5 +354,13 @@ decoders = {
         FIELD_TYPE.VARCHAR: convert_characters,
         }
 
-def get_decode_value(type_code, charset, field, data, use_unicode):
-    return decoders[type_code](charset, field, data, use_unicode)
+def get_decode_values(charset, fields, values, use_unicode):
+    r = []
+    for i, value in enumerate(values):
+        if value:
+            v = decoders[fields[i].type_code](charset, fields[i], value, use_unicode)
+            r.append(v)
+        else:
+            r.append(None)
+    return r
+
