@@ -353,5 +353,4 @@ decoders = {
         FIELD_TYPE.VAR_STRING: convert_characters,
         FIELD_TYPE.VARCHAR: convert_characters,
         }
-conversions = decoders  # for MySQLdb compatibility
 
