@@ -189,20 +189,20 @@ class MysqlPacket(object):
             return None
         return self._read(length)
 
+    def _read_decode_data(self, charset, decoders, field, use_unicode):
+        data = self._read_length_coded_string()
+        func = decoders.get(field.type_code)
+        if data != None and func:
+            return func(charset, field, data, use_unicode)
+        else:
+            return None
+
     def read_decode_data(self, decoders, fields):
-        r = []
         charset = self.connection.charset
         use_unicode = self.connection.use_unicode
-        for field in fields:
-            data = self._read_length_coded_string()
-            func = decoders.get(field.type_code)
-            if data != None and func:
-                r.append(func(charset, field, data, use_unicode))
-            else:
-                r.append(None)
+        return tuple([self._read_decode_data(charset, decoders, f, use_unicode)
+                                                            for f in fields])
 
-        return tuple(r)
-  
  
     def is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0

@@ -63,7 +63,6 @@ cdef read_fielddescriptorpacket(connection):
         raise_mysql_exception(_data)
       return packet
 
-
 cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
@@ -205,20 +204,20 @@ cdef class MysqlPacket(object):
             return None
         return self._read(length)
 
+    cdef object _read_decode_data(self, charset, decoders, field, use_unicode):
+        data = self._read_length_coded_string()
+        func = decoders.get(field.type_code)
+        if data != None and func:
+            return func(charset, field, data, use_unicode)
+        else:
+            return None
+
     def read_decode_data(self, decoders, fields):
-        r = []
         charset = self.connection.charset
         use_unicode = self.connection.use_unicode
-        for field in fields:
-            data = self._read_length_coded_string()
-            func = decoders.get(field.type_code)
-            if data != None and func:
-                r.append(func(charset, field, data, use_unicode))
-            else:
-                r.append(None)
+        return tuple([self._read_decode_data(charset, decoders, f, use_unicode)
+                                                            for f in fields])
 
-        return tuple(r)
-  
     def is_ok_packet(self):
         return ord(self.get_bytes(0)) == 0
 
