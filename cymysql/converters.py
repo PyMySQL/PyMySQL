@@ -357,7 +357,7 @@ decoders = {
 def get_decode_values(charset, fields, values, use_unicode):
     r = []
     for i, value in enumerate(values):
-        if value:
+        if value is not None:
             v = decoders[fields[i].type_code](charset, fields[i], value, use_unicode)
             r.append(v)
         else:
