@@ -28,8 +28,10 @@ import sys
 VERSION = (0, 6, 3)
 
 try:
+    from cymysql import convertersx as converters
     from cymysql.convertersx import escape_dict, escape_sequence, escape_string
 except ImportError:
+    from cymysql import converters
     from cymysql.converters import escape_dict, escape_sequence, escape_string
 from cymysql.err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
