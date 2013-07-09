@@ -76,8 +76,6 @@ class MysqlPacket(object):
         self.__recv_packet()
 
     def __recv_from_socket(self, size):
-        return self.connection.socket.recv(size)
-
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)

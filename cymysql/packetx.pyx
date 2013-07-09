@@ -81,8 +81,6 @@ cdef class MysqlPacket(object):
 
 
     cdef bytes __recv_from_socket(self, int size):
-        return self.connection.socket.recv(size)
-
         cdef bytes r
         cdef int recieved
 
