@@ -80,7 +80,7 @@ cdef class MysqlPacket(object):
         self.__recv_packet()
 
 
-    cdef bytes __recv_from_socket(self, int size, atomic=False):
+    cdef bytes __recv_from_socket(self, int size, atomic):
         cdef bytes r
         cdef int recieved
 
@@ -102,7 +102,7 @@ cdef class MysqlPacket(object):
         cdef bytes packet_header, recv_data
         cdef int bytes_to_read
 
-        packet_header = self.__recv_from_socket(4, atomic=True)
+        packet_header = self.__recv_from_socket(4, True)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
@@ -110,7 +110,7 @@ cdef class MysqlPacket(object):
         self.packet_number = ord(packet_header[3:])
         # TODO: check packet_num is correct (+1 from last packet)
   
-        recv_data = self.__recv_from_socket(bytes_to_read)
+        recv_data = self.__recv_from_socket(bytes_to_read, False)
         if len(recv_data) < bytes_to_read:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
