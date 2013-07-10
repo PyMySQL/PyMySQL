@@ -1,0 +1,4 @@
+108c108
+<             query = query % escaped_args
+---
+>             query = query.decode(charset) % escaped_args
