@@ -324,8 +324,7 @@ cdef class MySQLResult(object):
     cdef object connection, first_packet, fields
 
     def __init__(self, connection):
-        from weakref import proxy
-        self.connection = proxy(connection)
+        self.connection = connection
         self.affected_rows = None
         self.insert_id = None
         self.server_status = 0

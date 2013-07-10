@@ -299,8 +299,7 @@ class FieldDescriptorPacket(MysqlPacket):
 class MySQLResult(object):
 
     def __init__(self, connection):
-        from weakref import proxy
-        self.connection = proxy(connection)
+        self.connection = connection
         self.affected_rows = None
         self.insert_id = None
         self.server_status = 0
