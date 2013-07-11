@@ -1,7 +1,7 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
-import sys, select
+import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
 from cymysql.converters import get_decode_values
@@ -88,8 +88,7 @@ class MysqlPacket(object):
   
     def __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
-        select.select([self.connection.socket], [], [])
-        packet_header = self.connection.socket.recv(4)
+        packet_header = self.__recv_from_socket(4)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
@@ -299,7 +298,8 @@ class FieldDescriptorPacket(MysqlPacket):
 class MySQLResult(object):
 
     def __init__(self, connection):
-        self.connection = connection
+        from weakref import proxy
+        self.connection = proxy(connection)
         self.affected_rows = None
         self.insert_id = None
         self.server_status = 0

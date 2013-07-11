@@ -390,7 +390,7 @@ class Connection(object):
                 sock.connect((self.host, self.port))
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
-            sock.settimeout(1)
+            sock.settimeout(t)
         except socket.error as e:
             sock.close()
             raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
