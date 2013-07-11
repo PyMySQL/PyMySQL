@@ -348,6 +348,7 @@ cdef class MySQLResult(object):
             self.field_count = ord(self.first_packet.read(1))
             self._get_descriptions()
             self.has_result = True
+            self.read_rest_rowdata_packet()
 
     def read_rest_rowdata_packet(self):
         """Read rest rowdata packets for each data row in the result set."""
