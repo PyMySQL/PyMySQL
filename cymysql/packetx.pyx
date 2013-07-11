@@ -353,8 +353,6 @@ cdef class MySQLResult(object):
         """Read rest rowdata packets for each data row in the result set."""
         if (not self.has_result) or (self.rest_rows is not None):
             return
-        if select.select([self.connection.socket], [], [], 0)[0] == []:
-            return
         rest_rows = []
         while True:
             packet = _read_mysqlpacket(self.connection)
