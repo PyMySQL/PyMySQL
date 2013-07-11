@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 import sys
 
-VERSION = (0, 6, 3)
+VERSION = (0, 6, 4)
 
 try:
     from cymysql import convertersx as converters
