@@ -14,5 +14,4 @@ before_script:
 
 script:
   - python setup.py test
-  - python setup.py build_ext -i
-  - python setup.py test
+  - if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then python setup.py build_ext -i; python setup.py test; fi
