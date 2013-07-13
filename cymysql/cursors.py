@@ -35,6 +35,8 @@ class Cursor(object):
 
     @property
     def rowcount(self):
+        if self._result and self._result.affected_rows is not None:
+            return self._result.affected_rows
         return -1
 
     @property
@@ -136,6 +138,7 @@ class Cursor(object):
 
         for params in args:
             self.execute(query, params)
+        self._result = None
 
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
@@ -226,7 +229,6 @@ class Cursor(object):
 
     def _do_get_result(self):
         conn = self._get_db()
-
         self._result = conn._result
 
     def __iter__(self):
