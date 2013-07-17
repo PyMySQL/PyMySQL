@@ -540,7 +540,7 @@ class Connection(object):
             if not read_default_group:
                 read_default_group = "client"
 
-            cfg = configparser.Rawconfigparser()
+            cfg = configparser.RawConfigParser()
             cfg.read(os.path.expanduser(read_default_file))
 
             def _config(key, default):
