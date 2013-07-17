@@ -1,6 +1,6 @@
-====================
-PyMySQL Installation
-====================
+=======
+PyMySQL
+=======
 
 .. contents::
 ..
@@ -29,7 +29,9 @@ Requirements
 Installation
 ------------
 
-# pip install PyMySQL  
-# ... or ...  
-# python setup.py install
+``pip install PyMySQL``
+
+... or ...  
+
+``python setup.py install``
 
