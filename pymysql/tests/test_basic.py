@@ -185,7 +185,7 @@ class TestCursor(base.PyMySQLTestCase):
         c = conn.cursor()
         try:
             c.execute('create table test_aggregates (i integer)')
-            for i in xrange(0, 10):
+            for i in range(0, 10):
                 c.execute('insert into test_aggregates (i) values (%s)', (i,))
             c.execute('select sum(i) from test_aggregates')
             r, = c.fetchone()

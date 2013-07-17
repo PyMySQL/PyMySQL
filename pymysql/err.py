@@ -1,21 +1,9 @@
 import struct
 
-
-try:
-    StandardError, Warning
-except ImportError:
-    try:
-        from exceptions import StandardError, Warning
-    except ImportError:
-        import sys
-        e = sys.modules['exceptions']
-        StandardError = e.StandardError
-        Warning = e.Warning
-    
-from constants import ER
+from .constants import ER
 import sys
 
-class MySQLError(StandardError):
+class MySQLError(Exception):
     
     """Exception related to operation with MySQL."""
 
@@ -132,10 +120,10 @@ def _check_mysql_exception(errinfo):
     errno, sqlstate, errorvalue = errinfo 
     errorclass = error_map.get(errno, None)
     if errorclass:
-        raise errorclass, (errno,errorvalue)
+        raise errorclass(errno,errorvalue)
 
     # couldn't find the right error number
-    raise InternalError, (errno, errorvalue)
+    raise InternalError(errno, errorvalue)
 
 def raise_mysql_exception(data):
     errinfo = _get_error_info(data)

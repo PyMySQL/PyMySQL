@@ -2,12 +2,17 @@
 import struct
 import re
 
-try:
-    import cStringIO as StringIO
-except ImportError:
-    import StringIO
+from ._compat import PY2, text_type
 
-from err import Warning, Error, InterfaceError, DataError, \
+if PY2:
+    try:
+        import cStringIO as io
+    except ImportError:
+        import StringIO as io
+else:
+    import io
+
+from .err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
 
@@ -92,7 +97,7 @@ class Cursor(object):
 
         # TODO: make sure that conn.escape is correct
 
-        if isinstance(query, unicode):
+        if isinstance(query, text_type):
             query = query.encode(charset)
 
         if args is not None:
@@ -164,7 +169,7 @@ class Cursor(object):
         conn = self._get_db()
         for index, arg in enumerate(args):
             q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
-            if isinstance(q, unicode):
+            if isinstance(q, text_type):
                 q = q.encode(conn.charset)
             self._query(q)
             self.nextset()
@@ -172,7 +177,7 @@ class Cursor(object):
         q = "CALL %s(%s)" % (procname,
                              ','.join(['@_%s_%d' % (procname, i)
                                        for i in range(len(args))]))
-        if isinstance(q, unicode):
+        if isinstance(q, text_type):
             q = q.encode(conn.charset)
         self._query(q)
         self._executed = q
