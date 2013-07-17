@@ -143,7 +143,7 @@ class DatabaseTest(unittest.TestCase):
         columndefs = ( 'col1 INT', 'col2 VARCHAR(255)')
         def generator(row, col):
             if col == 0: return row
-            else: return ('%i' % (row%10))*((255-self.rows/2)+row)
+            else: return ('%i' % (row%10))*((255-self.rows//2)+row)
         self.create_table(columndefs)
         insert_statement = ('INSERT INTO %s VALUES (%s)' % 
                             (self.table,
