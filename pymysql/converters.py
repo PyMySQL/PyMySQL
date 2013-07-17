@@ -25,12 +25,12 @@ def escape_item(val, charset):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    if not PY2 and hasattr(val, "decode") and not isinstance(val, unicode):
+    if not PY2 and hasattr(val, "decode") and not isinstance(val, text_type):
         # deal with py3k bytes
         val = val.decode(charset)
     encoder = encoders[type(val)]
     val = encoder(val)
-    if type(val) in [str, int, unicode]:
+    if type(val) in [str, int, text_type]:
         return val
     val = val.encode(charset)
     return val
