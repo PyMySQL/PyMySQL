@@ -110,7 +110,7 @@ class Cursor(object):
                 #Worst case it will throw a Value error
                 escaped_args = conn.escape(args)
 
-            query = query % escaped_args
+            query = query.decode(charset) % escaped_args
 
         result = 0
         try:
