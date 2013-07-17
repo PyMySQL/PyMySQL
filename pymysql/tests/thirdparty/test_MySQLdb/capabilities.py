@@ -10,6 +10,7 @@ from time import time
 import array
 import unittest
 
+PY2 = sys.version_info[0] == 2
 
 class DatabaseTest(unittest.TestCase):
 
@@ -26,7 +27,7 @@ class DatabaseTest(unittest.TestCase):
         self.connection = db
         self.cursor = db.cursor()
         self.BLOBText = ''.join([chr(i) for i in range(256)] * 100);
-        if sys.version_info[0] == 2:
+        if PY2:
             self.BLOBUText = unicode().join(unichr(i) for i in range(16834))
         else:
             self.BLOBUText = "".join(chr(i) for i in range(16834))
@@ -279,7 +280,10 @@ class DatabaseTest(unittest.TestCase):
             if col == 0:
                 return row
             else:
-                return self.BLOBBinary # 'BLOB\000Binary ' * 1024
+                if PY2:
+                    return self.BLOBBinary # 'BLOB\000Binary ' * 1024
+                else:
+                    return self.BLOBBinary.encode('utf8') # 'BLOB\000Binary ' * 1024
         self.check_data_integrity(
                  ('col1 INT','col2 LONG BYTE'),
                  generator)
@@ -289,7 +293,10 @@ class DatabaseTest(unittest.TestCase):
             if col == 0:
                 return row
             else:
-                return self.BLOBBinary # 'BLOB\000Binary ' * 1024
+                if PY2:
+                    return self.BLOBBinary # 'BLOB\000Binary ' * 1024
+                else:
+                    return self.BLOBBinary.encode('utf8') # 'BLOB\000Binary ' * 1024
         self.check_data_integrity(
                  ('col1 INT','col2 BLOB'),
                  generator)
