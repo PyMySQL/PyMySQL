@@ -60,7 +60,7 @@ def escape_object(value):
     return str(value)
 
 def escape_int(value):
-    return value
+    return str(value)
 
 escape_long = escape_object
 
