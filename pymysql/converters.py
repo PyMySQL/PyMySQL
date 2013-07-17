@@ -68,8 +68,8 @@ def escape_float(value):
     return ('%.15g' % value)
 
 def escape_string(value):
-    return ("'{}'".format(ESCAPE_REGEX.sub(
-            lambda match: ESCAPE_MAP.get(match.group(0)), value)))
+    return ("'%s'" % (ESCAPE_REGEX.sub(
+            lambda match: ESCAPE_MAP.get(match.group(0)), value),))
 
 def escape_unicode(value):
     return escape_string(value)
