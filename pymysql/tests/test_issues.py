@@ -143,7 +143,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("insert into issue17 (x) values ('hello, world!')")
             c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
             conn.commit()
-            
+
             conn2 = pymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
             c2 = conn2.cursor()
             c2.execute("select x from issue17")
@@ -229,7 +229,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
-        
+
         try:
             c.execute("create table issue38 (id integer, data mediumblob)")
             c.execute("insert into issue38 values (1, %s)", (datum,))

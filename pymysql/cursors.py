@@ -304,22 +304,22 @@ class SSCursor(Cursor):
     """
     Unbuffered Cursor, mainly useful for queries that return a lot of data,
     or for connections to remote servers over a slow network.
-    
+
     Instead of copying every row of data into a buffer, this will fetch
     rows as needed. The upside of this, is the client uses much less memory,
     and rows are returned much faster when traveling over a slow network,
     or if the result set is very big.
-    
+
     There are limitations, though. The MySQL protocol doesn't support
     returning the total number of rows, so the only way to tell how many rows
     there are is to iterate over every row returned. Also, it currently isn't
     possible to scroll backwards, as only the current row is held in memory.
     """
-    
+
     def close(self):
         conn = self._get_db()
         conn._result._finish_unbuffered_query()
-        
+
         try:
             if self._has_next:
                 while self.nextset(): pass
@@ -331,31 +331,31 @@ class SSCursor(Cursor):
         conn.query(q, unbuffered=True)
         self._do_get_result()
         return self.rowcount
-    
+
     def read_next(self):
         """ Read next row """
-    
+
         conn = self._get_db()
         conn._result._read_rowdata_packet_unbuffered()
         return conn._result.rows
-    
+
     def fetchone(self):
         """ Fetch next row """
-        
+
         self._check_executed()
         row = self.read_next()
         if row is None:
             return None
         self.rownumber += 1
         return row
-    
+
     def fetchall(self):
         """
         Fetch all, as per MySQLdb. Pretty useless for large queries, as
         it is buffered. See fetchall_unbuffered(), if you want an unbuffered
         generator version of this method.
         """
-    
+
         rows = []
         while True:
             row = self.fetchone()
@@ -370,19 +370,19 @@ class SSCursor(Cursor):
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
-    
+
         row = self.fetchone()
         while row is not None:
             yield row
             row = self.fetchone()
-    
+
     def fetchmany(self, size=None):
         """ Fetch many """
-    
+
         self._check_executed()
         if size is None:
             size = self.arraysize
-        
+
         rows = []
         for i in range(0, size):
             row = self.read_next()
@@ -391,25 +391,25 @@ class SSCursor(Cursor):
             rows.append(row)
             self.rownumber += 1
         return tuple(rows)
-        
+
     def scroll(self, value, mode='relative'):
         self._check_executed()
         if not mode == 'relative' and not mode == 'absolute':
             self.errorhandler(self, ProgrammingError,
                     "unknown scroll mode %s" % mode)
-    
+
         if mode == 'relative':
             if value < 0:
                 self.errorhandler(self, NotSupportedError,
                     "Backwards scrolling not supported by this cursor")
-            
+
             for i in range(0, value): self.read_next()
             self.rownumber += value
         else:
             if value < self.rownumber:
                 self.errorhandler(self, NotSupportedError,
                     "Backwards scrolling not supported by this cursor")
-                
+
             end = value - self.rownumber
             for i in range(0, end): self.read_next()
             self.rownumber = value
