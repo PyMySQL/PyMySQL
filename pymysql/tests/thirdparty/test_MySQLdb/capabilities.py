@@ -3,7 +3,7 @@
     for functionality and memory leaks.
 
     Adapted from a script by M-A Lemburg.
-    
+
 """
 import sys
 from time import time
@@ -20,7 +20,7 @@ class DatabaseTest(unittest.TestCase):
     create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8"
     rows = 10
     debug = False
-    
+
     def setUp(self):
         import gc
         db = self.db_module.connect(*self.connect_args, **self.connect_kwargs)
@@ -34,18 +34,18 @@ class DatabaseTest(unittest.TestCase):
         self.BLOBBinary = self.db_module.Binary(''.join([chr(i) for i in range(256)] * 16))
 
     leak_test = True
-    
+
     def tearDown(self):
         if self.leak_test:
             import gc
             del self.cursor
             orphans = gc.collect()
             self.assertFalse(orphans, "%d orphaned objects found after deleting cursor" % orphans)
-            
+
             del self.connection
             orphans = gc.collect()
             self.assertFalse(orphans, "%d orphaned objects found after deleting connection" % orphans)
-            
+
     def table_exists(self, name):
         try:
             self.cursor.execute('select * from %s where 1=0' % name)
@@ -56,7 +56,7 @@ class DatabaseTest(unittest.TestCase):
 
     def quote_identifier(self, ident):
         return '"%s"' % ident
-    
+
     def new_table_name(self):
         i = id(self.cursor)
         while True:
@@ -69,14 +69,14 @@ class DatabaseTest(unittest.TestCase):
 
         """ Create a table using a list of column definitions given in
             columndefs.
-        
+
             generator must be a function taking arguments (row_number,
             col_number) returning a suitable data object for insertion
             into the table.
 
         """
         self.table = self.new_table_name()
-        self.cursor.execute('CREATE TABLE %s (%s) %s' % 
+        self.cursor.execute('CREATE TABLE %s (%s) %s' %
                             (self.table,
                              ',\n'.join(columndefs),
                              self.create_table_extra))
@@ -84,7 +84,7 @@ class DatabaseTest(unittest.TestCase):
     def check_data_integrity(self, columndefs, generator):
         # insert
         self.create_table(columndefs)
-        insert_statement = ('INSERT INTO %s VALUES (%s)' % 
+        insert_statement = ('INSERT INTO %s VALUES (%s)' %
                             (self.table,
                              ','.join(['%s'] * len(columndefs))))
         data = [ [ generator(i,j) for j in range(len(columndefs)) ]
@@ -113,7 +113,7 @@ class DatabaseTest(unittest.TestCase):
             if col == 0: return row
             else: return ('%i' % (row%10))*255
         self.create_table(columndefs)
-        insert_statement = ('INSERT INTO %s VALUES (%s)' % 
+        insert_statement = ('INSERT INTO %s VALUES (%s)' %
                             (self.table,
                              ','.join(['%s'] * len(columndefs))))
         data = [ [ generator(i,j) for j in range(len(columndefs)) ]
@@ -146,7 +146,7 @@ class DatabaseTest(unittest.TestCase):
             if col == 0: return row
             else: return ('%i' % (row%10))*((255-self.rows//2)+row)
         self.create_table(columndefs)
-        insert_statement = ('INSERT INTO %s VALUES (%s)' % 
+        insert_statement = ('INSERT INTO %s VALUES (%s)' %
                             (self.table,
                              ','.join(['%s'] * len(columndefs))))
 
@@ -160,7 +160,7 @@ class DatabaseTest(unittest.TestCase):
             self.fail("Over-long column did not generate warnings/exception with single insert")
 
         self.connection.rollback()
-        
+
         try:
             for i in range(self.rows):
                 data = []
@@ -175,7 +175,7 @@ class DatabaseTest(unittest.TestCase):
             self.fail("Over-long columns did not generate warnings/exception with execute()")
 
         self.connection.rollback()
-        
+
         try:
             data = [ [ generator(i,j) for j in range(len(columndefs)) ]
                      for i in range(self.rows) ]
@@ -300,4 +300,3 @@ class DatabaseTest(unittest.TestCase):
         self.check_data_integrity(
                  ('col1 INT','col2 BLOB'),
                  generator)
-

@@ -6,7 +6,7 @@ import datetime
 class TestDictCursor(base.PyMySQLTestCase):
 
     def test_DictCursor(self):
-        #all assert test compare to the structure as would come out from MySQLdb 
+        #all assert test compare to the structure as would come out from MySQLdb
         conn = self.connections[0]
         c = conn.cursor(pymysql.cursors.DictCursor)
         # create a table ane some data to query
@@ -30,7 +30,7 @@ class TestDictCursor(base.PyMySQLTestCase):
             c.execute("SELECT * from dictcursor where name='bob'")
             r = c.fetchall()
             self.assertEqual((bob,),r,"fetch a 1 row result via fetchall failed via DictCursor")
-            # same test again but iterate over the 
+            # same test again but iterate over the
             c.execute("SELECT * from dictcursor where name='bob'")
             for r in c:
                 self.assertEqual(bob, r,"fetch a 1 row result via iteration failed via DictCursor")

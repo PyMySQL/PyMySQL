@@ -17,4 +17,3 @@ class PyMySQLTestCase(unittest.TestCase):
     def tearDown(self):
         for connection in self.connections:
             connection.close()
-
