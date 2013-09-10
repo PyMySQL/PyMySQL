@@ -1,12 +1,20 @@
+import os
+import json
 import pymysql
 import unittest
 
 class PyMySQLTestCase(unittest.TestCase):
-    # Edit this to suit your test environment.
-    databases = [
-        {"host":"localhost","user":"root",
-         "passwd":"","db":"test_pymysql", "use_unicode": True},
-        {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
+    # You can specify your test environment creating a file named
+    #  "databases.json" or editing the `databases` variable below.
+    fname = "pymysql/tests/databases.json"
+    if os.path.exists(fname):
+        with open(fname) as f:
+            databases = json.load(f)
+    else:
+        databases = [
+            {"host":"localhost","user":"root",
+             "passwd":"","db":"test_pymysql", "use_unicode": True},
+            {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
 
     def setUp(self):
         self.connections = []
