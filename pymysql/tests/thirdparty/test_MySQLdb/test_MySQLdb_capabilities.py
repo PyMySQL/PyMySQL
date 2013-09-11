@@ -83,7 +83,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
         try:
             self.cursor.execute("describe some_non_existent_table");
         except self.connection.ProgrammingError as msg:
-            self.assertTrue(msg.args[0] == ER.NO_SUCH_TABLE)
+            self.assertEqual(msg.args[0], ER.NO_SUCH_TABLE)
 
     def test_insert_values(self):
         from pymysql.cursors import insert_values
