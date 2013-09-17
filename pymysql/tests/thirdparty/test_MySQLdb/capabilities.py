@@ -98,11 +98,11 @@ class DatabaseTest(unittest.TestCase):
         l = self.cursor.fetchall()
         if self.debug:
             print(l)
-        self.assertEquals(len(l), self.rows)
+        self.assertEqual(len(l), self.rows)
         try:
             for i in range(self.rows):
                 for j in range(len(columndefs)):
-                    self.assertEquals(l[i][j], generator(i,j))
+                    self.assertEqual(l[i][j], generator(i,j))
         finally:
             if not self.debug:
                 self.cursor.execute('drop table %s' % (self.table))
@@ -123,10 +123,10 @@ class DatabaseTest(unittest.TestCase):
         self.connection.commit()
         self.cursor.execute('select * from %s' % self.table)
         l = self.cursor.fetchall()
-        self.assertEquals(len(l), self.rows)
+        self.assertEqual(len(l), self.rows)
         for i in range(self.rows):
             for j in range(len(columndefs)):
-                self.assertEquals(l[i][j], generator(i,j))
+                self.assertEqual(l[i][j], generator(i,j))
         delete_statement = 'delete from %s where col1=%%s' % self.table
         self.cursor.execute(delete_statement, (0,))
         self.cursor.execute('select col1 from %s where col1=%s' % \

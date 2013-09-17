@@ -194,7 +194,7 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
                 s=cur.nextset()
                 if s:
                     empty = cur.fetchall()
-                    self.assertEquals(len(empty), 0,
+                    self.assertEqual(len(empty), 0,
                                       "non-empty result set after other result sets")
                     #warn("Incompatibility: MySQL returns an empty result set for the CALL itself",
                     #     Warning)
