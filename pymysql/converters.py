@@ -1,7 +1,6 @@
 import re
 import datetime
 import time
-import sys
 
 from ._compat import PY2, text_type, long_type
 
@@ -62,7 +61,6 @@ def escape_object(value):
 def escape_int(value):
     return str(value)
 
-escape_long = escape_object
 
 def escape_float(value):
     return ('%.15g' % value)
@@ -283,16 +281,13 @@ def convert_characters(connection, field, data):
 def convert_int(connection, field, data):
     return int(data)
 
-def convert_long(connection, field, data):
-    return long_type(data)
-
 def convert_float(connection, field, data):
     return float(data)
 
 encoders = {
         bool: escape_bool,
         int: escape_int,
-        long_type: escape_long,
+        long_type: escape_int,
         float: escape_float,
         str: escape_string,
         text_type: escape_unicode,
@@ -312,12 +307,12 @@ decoders = {
         FIELD_TYPE.BIT: convert_bit,
         FIELD_TYPE.TINY: convert_int,
         FIELD_TYPE.SHORT: convert_int,
-        FIELD_TYPE.LONG: convert_long,
+        FIELD_TYPE.LONG: convert_int,
         FIELD_TYPE.FLOAT: convert_float,
         FIELD_TYPE.DOUBLE: convert_float,
         FIELD_TYPE.DECIMAL: convert_float,
         FIELD_TYPE.NEWDECIMAL: convert_float,
-        FIELD_TYPE.LONGLONG: convert_long,
+        FIELD_TYPE.LONGLONG: convert_int,
         FIELD_TYPE.INT24: convert_int,
         FIELD_TYPE.YEAR: convert_int,
         FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
