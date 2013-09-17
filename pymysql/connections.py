@@ -207,6 +207,8 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
 
     if not issubclass(errorclass, Error):
         raise Error(errorclass, errorvalue)
+    elif isinstance(errorvalue, errorclass):
+        raise errorvalue
     else:
         raise errorclass(errorvalue)
 

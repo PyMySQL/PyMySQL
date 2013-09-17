@@ -118,7 +118,6 @@ class Cursor(object):
         except:
             exc, value, tb = exc_info()
             del tb
-            self.messages.append((exc,value))
             self.errorhandler(self, exc, value)
 
         self._executed = query
