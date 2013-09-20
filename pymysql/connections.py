@@ -832,11 +832,10 @@ class Connection(object):
             raise ValueError("Did not specify a username")
 
         charset_id = charset_by_name(self.charset).id
-        if (PY2 and isinstance(self.user, unicode) or
-                not PY2 and isinstance(self.user, str)):
+        if isinstance(self.user, text_type):
             self.user = self.user.encode(self.charset)
 
-        data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
+        data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) +
                      int2byte(charset_id) + int2byte(0)*23
 
         next_packet = 1
