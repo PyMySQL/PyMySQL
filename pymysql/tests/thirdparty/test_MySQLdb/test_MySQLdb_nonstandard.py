@@ -5,6 +5,10 @@ import pymysql
 _mysql = pymysql
 from pymysql.constants import FIELD_TYPE
 from pymysql.tests import base
+from pymysql._compat import PY2
+
+if not PY2:
+    basestring = str
 
 
 class TestDBAPISet(unittest.TestCase):
@@ -30,13 +34,13 @@ class CoreModule(unittest.TestCase):
 
     def test_version(self):
         """Version information sanity."""
-        self.assertTrue(isinstance(_mysql.__version__, str))
+        self.assertTrue(isinstance(_mysql.__version__, basestring))
 
         self.assertTrue(isinstance(_mysql.version_info, tuple))
         self.assertEqual(len(_mysql.version_info), 5)
 
     def test_client_info(self):
-        self.assertTrue(isinstance(_mysql.get_client_info(), str))
+        self.assertTrue(isinstance(_mysql.get_client_info(), basestring))
 
     def test_thread_safe(self):
         self.assertTrue(isinstance(_mysql.thread_safe(), int))
@@ -72,12 +76,11 @@ class CoreAPI(unittest.TestCase):
                           #self.conn.dump_debug_info)
 
     def test_charset_name(self):
-        self.assertTrue(isinstance(self.conn.character_set_name(), str),
+        self.assertTrue(isinstance(self.conn.character_set_name(), basestring),
                         "Should return a string.")
 
     def test_host_info(self):
-        self.assertTrue(isinstance(self.conn.get_host_info(), str),
-                        "Should return a string.")
+        assert isinstance(self.conn.get_host_info(), basestring), "should return a string"
 
     def test_proto_info(self):
         self.assertTrue(isinstance(self.conn.get_proto_info(), int),
@@ -88,7 +91,7 @@ class CoreAPI(unittest.TestCase):
             self.assertTrue(isinstance(self.conn.get_server_info(), basestring),
                             "Should return an str.")
         else:
-            self.assertTrue(isinstance(self.conn.get_server_info(), str),
+            self.assertTrue(isinstance(self.conn.get_server_info(), basestring),
                             "Should return an str.")
 
 if __name__ == "__main__":

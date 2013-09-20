@@ -755,7 +755,7 @@ class Connection(object):
 
             self._send_autocommit_mode()
         except socket.error as e:
-            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
+            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
     def read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
@@ -832,7 +832,9 @@ class Connection(object):
             raise ValueError("Did not specify a username")
 
         charset_id = charset_by_name(self.charset).id
-        self.user = self.user.encode(self.charset)
+        if (PY2 and isinstance(self.user, unicode) or
+                not PY2 and isinstance(self.user, str)):
+            self.user = self.user.encode(self.charset)
 
         data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
                      int2byte(charset_id) + int2byte(0)*23
