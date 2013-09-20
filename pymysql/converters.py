@@ -66,11 +66,14 @@ def escape_float(value):
     return ('%.15g' % value)
 
 def escape_string(value):
-    return ("'%s'" % (ESCAPE_REGEX.sub(
+    return ("%s" % (ESCAPE_REGEX.sub(
             lambda match: ESCAPE_MAP.get(match.group(0)), value),))
 
+def escape_str(value):
+    return "'%s'" % escape_string(value)
+
 def escape_unicode(value):
-    return escape_string(value)
+    return escape_str(value)
 
 def escape_None(value):
     return 'NULL'
@@ -79,7 +82,7 @@ def escape_timedelta(obj):
     seconds = int(obj.seconds) % 60
     minutes = int(obj.seconds // 60) % 60
     hours = int(obj.seconds // 3600) % 24 + int(obj.days) * 24
-    return escape_string('%02d:%02d:%02d' % (hours, minutes, seconds))
+    return escape_str('%02d:%02d:%02d' % (hours, minutes, seconds))
 
 def escape_time(obj):
     s = "%02d:%02d:%02d" % (int(obj.hour), int(obj.minute),
@@ -87,13 +90,13 @@ def escape_time(obj):
     if obj.microsecond:
         s += ".%f" % obj.microsecond
 
-    return escape_string(s)
+    return escape_str(s)
 
 def escape_datetime(obj):
-    return escape_string(obj.strftime("%Y-%m-%d %H:%M:%S"))
+    return escape_str(obj.strftime("%Y-%m-%d %H:%M:%S"))
 
 def escape_date(obj):
-    return escape_string(obj.strftime("%Y-%m-%d"))
+    return escape_str(obj.strftime("%Y-%m-%d"))
 
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
@@ -289,7 +292,7 @@ encoders = {
         int: escape_int,
         long_type: escape_int,
         float: escape_float,
-        str: escape_string,
+        str: escape_str,
         text_type: escape_unicode,
         tuple: escape_sequence,
         list:escape_sequence,
