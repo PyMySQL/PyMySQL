@@ -16,4 +16,4 @@ before_script:
     - "mysql -e 'create database test_pymysql2;'"
     - "cp .travis.databases.json pymysql/tests/databases.json"
 
-test_script: "py.test pymysql/tests"
+script: "py.test pymysql/tests"
