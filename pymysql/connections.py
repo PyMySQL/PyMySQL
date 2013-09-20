@@ -755,7 +755,7 @@ class Connection(object):
 
             self._send_autocommit_mode()
         except socket.error as e:
-            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
+            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
     def read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network

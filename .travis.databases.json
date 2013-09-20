@@ -1,4 +1,4 @@
 [
-    {"host": "loclahost", "user": "root", "passwd": "", "db": "test_pymysql", "unix_socket": "/var/run/mysqld/mysqld.sock", "use_unicode": true},
-    {"host": "loclahost", "user": "root", "passwd": "", "db": "test_pymysql2", "unix_socket": "/var/run/mysqld/mysqld.sock"}
+    {"host": "loclahost", "user": "root", "passwd": "", "db": "test_pymysql",  "use_unicode": true},
+    {"host": "loclahost", "user": "root", "passwd": "", "db": "test_pymysql2" }
 ]
