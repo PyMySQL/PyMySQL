@@ -630,8 +630,8 @@ class Connection(object):
             self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
                                       self.escape(self.autocommit_mode))
             self.read_packet()
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, self.autocommit_mode)
 
     def commit(self):
@@ -639,8 +639,8 @@ class Connection(object):
         try:
             self._execute_command(COM_QUERY, "COMMIT")
             self.read_packet()
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
 
     def rollback(self):
@@ -648,8 +648,8 @@ class Connection(object):
         try:
             self._execute_command(COM_QUERY, "ROLLBACK")
             self.read_packet()
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
 
     def escape(self, obj):
@@ -696,8 +696,8 @@ class Connection(object):
         arg = struct.pack('<I', thread_id)
         try:
             self._execute_command(COM_PROCESS_KILL, arg)
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
             return
         pkt = self.read_packet()
@@ -709,12 +709,12 @@ class Connection(object):
             self._execute_command(COM_PING, "")
             pkt = self.read_packet()
             return pkt.is_ok_packet()
-        except:
+        except Exception:
             if reconnect:
                 self._connect()
                 return self.ping(False)
             else:
-                exc,value,tb = sys.exc_info()
+                exc, value = sys.exc_info()[:2]
                 self.errorhandler(None, exc, value)
                 return
 
@@ -725,8 +725,8 @@ class Connection(object):
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
 
     def _connect(self):

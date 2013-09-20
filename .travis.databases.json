@@ -1,0 +1,4 @@
+[
+    {"host": "loclahost", "user": "travis", "passwd": "", "db": "test_pymysql", "use_unicode": true},
+    {"host": "loclahost", "user": "travis", "passwd": "", "db": "test_pymysql2"}
+]
