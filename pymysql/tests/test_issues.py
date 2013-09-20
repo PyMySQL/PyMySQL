@@ -55,7 +55,10 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_6(self):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
-        conn = pymysql.connect(host="localhost",user="root",passwd="",db="mysql")
+        # ToDo: this test requires access to db 'mysql'.
+        kwargs = self.databases[0].copy()
+        kwargs['db'] = "mysql"
+        conn = pymysql.connect(**kwargs)
         c = conn.cursor()
         c.execute("select * from user")
         conn.close()
@@ -162,7 +165,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
 
     def test_issue_33(self):
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         try:
             c.execute(b"create table hei\xc3\x9fe (name varchar(32))".decode("utf8"))
@@ -189,7 +192,9 @@ class TestNewIssues(base.PyMySQLTestCase):
         # kill connections[0]
         c.execute("show processlist")
         kill_id = None
-        for id,user,host,db,command,time,state,info in c.fetchall():
+        for row in c.fetchall():
+            id = row[0]
+            info = row[7]
             if info == "show processlist":
                 kill_id = id
                 break
@@ -257,7 +262,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             c.execute("drop table issue66")
 
     def test_issue_114(self):
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
         conn.autocommit(False)
         c = conn.cursor()
         c.execute("""select @@autocommit;""")
@@ -269,7 +274,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn.close()
 
         # Ensure autocommit() is still working
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
