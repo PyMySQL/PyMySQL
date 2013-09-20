@@ -151,13 +151,6 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         finally:
             c.execute("drop table issue17")
 
-def _uni(s, e):
-    # hack for py3
-    if sys.version_info[0] > 2:
-        return unicode(bytes(s, sys.getdefaultencoding()), e)
-    else:
-        return unicode(s, e)
-
 class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_34(self):
         try:
@@ -172,12 +165,12 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
         c = conn.cursor()
         try:
-            c.execute(_uni("create table hei\xc3\x9fe (name varchar(32))", "utf8"))
-            c.execute(_uni("insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')", "utf8"))
-            c.execute(_uni("select name from hei\xc3\x9fe", "utf8"))
-            self.assertEqual(_uni("Pi\xc3\xb1ata","utf8"), c.fetchone()[0])
+            c.execute(b"create table hei\xc3\x9fe (name varchar(32))".decode("utf8"))
+            c.execute(b"insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')".decode("utf8"))
+            c.execute(b"select name from hei\xc3\x9fe".decode("utf8"))
+            self.assertEqual(b"Pi\xc3\xb1ata".decode("utf8"), c.fetchone()[0])
         finally:
-            c.execute(_uni("drop table hei\xc3\x9fe", "utf8"))
+            c.execute(b"drop table hei\xc3\x9fe".decode("utf8"))
 
     @unittest.skip("This test requires manual intervention")
     def test_issue_35(self):
