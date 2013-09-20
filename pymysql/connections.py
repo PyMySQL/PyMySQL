@@ -856,7 +856,8 @@ class Connection(object):
         data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
         if self.db:
-            self.db = self.db.encode(self.charset)
+            if isinstance(self.db, text_type):
+                self.db = self.db.encode(self.charset)
             data += self.db + int2byte(0)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
