@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 from . import dbapi20
-import unittest
 import pymysql
 from pymysql.tests import base
 
-# compatibility:
-if not hasattr(unittest, "expectedFailure"):
-    unittest.expectedFailure = lambda f: f
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+
 
 class test_MySQLdb(dbapi20.DatabaseAPI20Test):
     driver = pymysql

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 from . import capabilities
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 import pymysql
 from pymysql.tests import base
 import warnings

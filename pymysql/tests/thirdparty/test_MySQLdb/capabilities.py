@@ -8,7 +8,10 @@
 import sys
 from time import time
 import array
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 PY2 = sys.version_info[0] == 2
 

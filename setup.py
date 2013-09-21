@@ -19,7 +19,10 @@ class TestCommand(Command):
         Finds all the tests modules in tests/, and runs them.
         '''
         from pymysql import tests
-        import unittest
+        try:
+            import unittest2 as unittest
+        except ImportError:
+            import unittest
         unittest.main(tests, argv=sys.argv[:1])
 
 version_tuple = __import__('pymysql').VERSION
