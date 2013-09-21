@@ -8,12 +8,11 @@ python:
 
 install:
     - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install --use-mirrors unittest2; fi
-    - "pip install -M pytest"
-    - "python setup.py develop"
+    - python setup.py develop
 
 before_script:
     - "mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - "mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
-    - "cp .travis.databases.json pymysql/tests/databases.json"
+    - cp .travis.databases.json pymysql/tests/databases.json
 
-script: "py.test pymysql/tests"
+script: python setup.py test
