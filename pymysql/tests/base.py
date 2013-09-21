@@ -1,7 +1,10 @@
 import os
 import json
 import pymysql
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 class PyMySQLTestCase(unittest.TestCase):
     # You can specify your test environment creating a file named

@@ -1,5 +1,8 @@
 import sys
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 import pymysql
 _mysql = pymysql

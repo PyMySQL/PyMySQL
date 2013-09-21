@@ -1,8 +1,9 @@
 import pymysql
 from pymysql.tests import base
-import unittest
-
-import sys
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 try:
     import imp
@@ -12,9 +13,6 @@ except AttributeError:
 
 import datetime
 
-# backwards compatibility:
-if not hasattr(unittest, "skip"):
-    unittest.skip = lambda message: lambda f: f
 
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
