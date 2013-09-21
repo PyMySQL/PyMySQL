@@ -17,7 +17,7 @@ cur.execute("SELECT Host,User FROM user")
 # print r
 # ...or...
 for r in cur.fetchall():
-   print r
+   print(r)
 
 cur.close()
 conn.close()

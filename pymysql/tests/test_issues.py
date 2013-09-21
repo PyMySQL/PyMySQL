@@ -55,7 +55,10 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_6(self):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
-        conn = pymysql.connect(host="localhost",user="root",passwd="",db="mysql")
+        # ToDo: this test requires access to db 'mysql'.
+        kwargs = self.databases[0].copy()
+        kwargs['db'] = "mysql"
+        conn = pymysql.connect(**kwargs)
         c = conn.cursor()
         c.execute("select * from user")
         conn.close()
@@ -106,14 +109,6 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         finally:
             cur.execute("drop table issue13")
 
-    def test_issue_14(self):
-        """ typo in converters.py """
-        self.assertEqual('1', pymysql.converters.escape_item(1, "utf8"))
-        self.assertEqual('1', pymysql.converters.escape_item(1L, "utf8"))
-
-        self.assertEqual('1', pymysql.converters.escape_object(1))
-        self.assertEqual('1', pymysql.converters.escape_object(1L))
-
     def test_issue_15(self):
         """ query should be expanded before perform character encoding """
         conn = self.connections[0]
@@ -151,7 +146,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("insert into issue17 (x) values ('hello, world!')")
             c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
             conn.commit()
-            
+
             conn2 = pymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
             c2 = conn2.cursor()
             c2.execute("select x from issue17")
@@ -159,43 +154,36 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         finally:
             c.execute("drop table issue17")
 
-def _uni(s, e):
-    # hack for py3
-    if sys.version_info[0] > 2:
-        return unicode(bytes(s, sys.getdefaultencoding()), e)
-    else:
-        return unicode(s, e)
-
 class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_34(self):
         try:
             pymysql.connect(host="localhost", port=1237, user="root")
             self.fail()
-        except pymysql.OperationalError, e:
+        except pymysql.OperationalError as e:
             self.assertEqual(2003, e.args[0])
         except:
             self.fail()
 
     def test_issue_33(self):
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         try:
-            c.execute(_uni("create table hei\xc3\x9fe (name varchar(32))", "utf8"))
-            c.execute(_uni("insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')", "utf8"))
-            c.execute(_uni("select name from hei\xc3\x9fe", "utf8"))
-            self.assertEqual(_uni("Pi\xc3\xb1ata","utf8"), c.fetchone()[0])
+            c.execute(b"create table hei\xc3\x9fe (name varchar(32))".decode("utf8"))
+            c.execute(b"insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')".decode("utf8"))
+            c.execute(b"select name from hei\xc3\x9fe".decode("utf8"))
+            self.assertEqual(b"Pi\xc3\xb1ata".decode("utf8"), c.fetchone()[0])
         finally:
-            c.execute(_uni("drop table hei\xc3\x9fe", "utf8"))
+            c.execute(b"drop table hei\xc3\x9fe".decode("utf8"))
 
     @unittest.skip("This test requires manual intervention")
     def test_issue_35(self):
         conn = self.connections[0]
         c = conn.cursor()
-        print "sudo killall -9 mysqld within the next 10 seconds"
+        print("sudo killall -9 mysqld within the next 10 seconds")
         try:
             c.execute("select sleep(10)")
             self.fail()
-        except pymysql.OperationalError, e:
+        except pymysql.OperationalError as e:
             self.assertEqual(2013, e.args[0])
 
     def test_issue_36(self):
@@ -204,7 +192,9 @@ class TestNewIssues(base.PyMySQLTestCase):
         # kill connections[0]
         c.execute("show processlist")
         kill_id = None
-        for id,user,host,db,command,time,state,info in c.fetchall():
+        for row in c.fetchall():
+            id = row[0]
+            info = row[7]
             if info == "show processlist":
                 kill_id = id
                 break
@@ -237,7 +227,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
-        
+
         try:
             c.execute("create table issue38 (id integer, data mediumblob)")
             c.execute("insert into issue38 values (1, %s)", (datum,))
@@ -248,7 +238,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         big_sql = "select * from issue54 where "
-        big_sql += " and ".join("%d=%d" % (i,i) for i in xrange(0, 100000))
+        big_sql += " and ".join("%d=%d" % (i,i) for i in range(0, 100000))
 
         try:
             c.execute("create table issue54 (id integer primary key)")
@@ -272,7 +262,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             c.execute("drop table issue66")
 
     def test_issue_114(self):
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
         conn.autocommit(False)
         c = conn.cursor()
         c.execute("""select @@autocommit;""")
@@ -284,7 +274,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn.close()
 
         # Ensure autocommit() is still working
-        conn = pymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])

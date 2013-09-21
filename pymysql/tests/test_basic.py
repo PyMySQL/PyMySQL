@@ -92,7 +92,7 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
         finally:
             c.execute("drop table test_big_blob")
-    
+
     def test_untyped(self):
         """ test conversion of null, empty string """
         conn = self.connections[0]
@@ -101,7 +101,7 @@ class TestConversion(base.PyMySQLTestCase):
         self.assertEqual((None,u''), c.fetchone())
         c.execute("select '',null")
         self.assertEqual((u'',None), c.fetchone())
-    
+
     def test_datetime(self):
         """ test conversion of null, empty string """
         conn = self.connections[0]
@@ -185,7 +185,7 @@ class TestCursor(base.PyMySQLTestCase):
         c = conn.cursor()
         try:
             c.execute('create table test_aggregates (i integer)')
-            for i in xrange(0, 10):
+            for i in range(0, 10):
                 c.execute('insert into test_aggregates (i) values (%s)', (i,))
             c.execute('select sum(i) from test_aggregates')
             r, = c.fetchone()

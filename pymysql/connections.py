@@ -1,6 +1,9 @@
 # Python implementation of the MySQL client-server protocol
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
+from __future__ import print_function
+from ._compat import PY2, range_type, text_type
+
 try:
     import hashlib
     sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
@@ -18,12 +21,18 @@ except ImportError:
 import struct
 import sys
 import os
-import ConfigParser
+if PY2:
+    import ConfigParser as configparser
+else:
+    import configparser
 
-try:
-    import cStringIO as StringIO
-except ImportError:
-    import StringIO
+if PY2:
+    try:
+        import cStringIO as io
+    except ImportError:
+        import StringIO as io
+else:
+    import io
 
 try:
     import getpass
@@ -31,15 +40,15 @@ try:
 except ImportError:
     DEFAULT_USER = None
 
-from charset import MBLENGTH, charset_by_name, charset_by_id
-from cursors import Cursor
-from constants import FIELD_TYPE, FLAG
-from constants import SERVER_STATUS
-from constants.CLIENT import *
-from constants.COMMAND import *
-from util import join_bytes, byte2int, int2byte
-from converters import escape_item, encoders, decoders
-from err import raise_mysql_exception, Warning, Error, \
+from .charset import MBLENGTH, charset_by_name, charset_by_id
+from .cursors import Cursor
+from .constants import FIELD_TYPE, FLAG
+from .constants import SERVER_STATUS
+from .constants.CLIENT import *
+from .constants.COMMAND import *
+from .util import join_bytes, byte2int, int2byte
+from .converters import escape_item, encoders, decoders
+from .err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 
@@ -59,33 +68,33 @@ DEFAULT_CHARSET = 'latin1'
 
 
 def dump_packet(data):
-    
+
     def is_ascii(data):
         if byte2int(data) >= 65 and byte2int(data) <= 122: #data.isalnum():
             return data
         return '.'
-    
+
     try:
-        print "packet length %d" % len(data)
-        print "method call[1]: %s" % sys._getframe(1).f_code.co_name
-        print "method call[2]: %s" % sys._getframe(2).f_code.co_name
-        print "method call[3]: %s" % sys._getframe(3).f_code.co_name
-        print "method call[4]: %s" % sys._getframe(4).f_code.co_name
-        print "method call[5]: %s" % sys._getframe(5).f_code.co_name
-        print "-" * 88
+        print("packet length {}".format(len(data)))
+        print("method call[1]: {}".format(sys._getframe(1).f_code.co_name))
+        print("method call[2]: {}".format(sys._getframe(2).f_code.co_name))
+        print("method call[3]: {}".format(sys._getframe(3).f_code.co_name))
+        print("method call[4]: {}".format(sys._getframe(4).f_code.co_name))
+        print("method call[5]: {}".format(sys._getframe(5).f_code.co_name))
+        print("-" * 88)
     except ValueError: pass
-    dump_data = [data[i:i+16] for i in xrange(len(data)) if i%16 == 0]
+    dump_data = [data[i:i+16] for i in range_type(len(data)) if i%16 == 0]
     for d in dump_data:
-        print ' '.join(map(lambda x:"%02X" % byte2int(x), d)) + \
+        print(' '.join(map(lambda x:"{:02X}".format(byte2int(x)), d)) + \
                 '   ' * (16 - len(d)) + ' ' * 2 + \
-                ' '.join(map(lambda x:"%s" % is_ascii(x), d))
-    print "-" * 88
-    print ""
+                ' '.join(map(lambda x:"{}".format(is_ascii(x)), d)))
+    print("-" * 88)
+    print("")
 
 def _scramble(password, message):
     if password == None or len(password) == 0:
         return int2byte(0)
-    if DEBUG: print 'password=' + password
+    if DEBUG: print('password=' + password)
     stage1 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
@@ -97,7 +106,7 @@ def _scramble(password, message):
 def _my_crypt(message1, message2):
     length = len(message1)
     result = struct.pack('B', length)
-    for i in xrange(length):
+    for i in range_type(length):
         x = (struct.unpack('B', message1[i:i+1])[0] ^ \
              struct.unpack('B', message2[i:i+1])[0])
         result += struct.pack('B', x)
@@ -108,13 +117,13 @@ SCRAMBLE_LENGTH_323 = 8
 
 class RandStruct_323(object):
     def __init__(self, seed1, seed2):
-        self.max_value = 0x3FFFFFFFL
+        self.max_value = 0x3FFFFFFF
         self.seed1 = seed1 % self.max_value
         self.seed2 = seed2 % self.max_value
 
     def my_rnd(self):
-        self.seed1 = (self.seed1 * 3L + self.seed2) % self.max_value
-        self.seed2 = (self.seed1 + self.seed2 + 33L) % self.max_value
+        self.seed1 = (self.seed1 * 3 + self.seed2) % self.max_value
+        self.seed2 = (self.seed1 + self.seed2 + 33) % self.max_value
         return float(self.seed1) / float(self.max_value)
 
 def _scramble_323(password, message):
@@ -125,28 +134,28 @@ def _scramble_323(password, message):
 
     rand_st = RandStruct_323(hash_pass_n[0] ^ hash_message_n[0],
                              hash_pass_n[1] ^ hash_message_n[1])
-    outbuf = StringIO.StringIO()
-    for _ in xrange(min(SCRAMBLE_LENGTH_323, len(message))):
+    outbuf = io.StringIO()
+    for _ in range_type(min(SCRAMBLE_LENGTH_323, len(message))):
         outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
     extra = int2byte(int(rand_st.my_rnd() * 31))
     out = outbuf.getvalue()
-    outbuf = StringIO.StringIO()
+    outbuf = io.StringIO()
     for c in out:
         outbuf.write(int2byte(byte2int(c) ^ byte2int(extra)))
     return outbuf.getvalue()
 
 def _hash_password_323(password):
-    nr = 1345345333L
-    add = 7L
-    nr2 = 0x12345671L
+    nr = 1345345333
+    add = 7
+    nr2 = 0x12345671
 
     for c in [byte2int(x) for x in password if x not in (' ', '\t')]:
         nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
         nr2= (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
         add= (add + c) & 0xFFFFFFFF
 
-    r1 = nr & ((1L << 31) - 1L) # kill sign bits
-    r2 = nr2 & ((1L << 31) - 1L)
+    r1 = nr & ((1 << 31) - 1) # kill sign bits
+    r2 = nr2 & ((1 << 31) - 1)
 
     # pack
     return struct.pack(">LL", r1, r2)
@@ -155,7 +164,7 @@ def pack_int24(n):
     return struct.pack('BBB', n&0xFF, (n>>8)&0xFF, (n>>16)&0xFF)
 
 def unpack_uint16(n):
-  return struct.unpack('<H', n[0:2])[0]
+    return struct.unpack('<H', n[0:2])[0]
 
 
 # TODO: stop using bit-shifting in these functions...
@@ -198,213 +207,215 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
 
     if not issubclass(errorclass, Error):
         raise Error(errorclass, errorvalue)
+    elif isinstance(errorvalue, errorclass):
+        raise errorvalue
     else:
-        raise errorclass, errorvalue
+        raise errorclass(errorvalue)
 
 
 class MysqlPacket(object):
-  """Representation of a MySQL response packet.  Reads in the packet
-  from the network socket, removes packet header and provides an interface
-  for reading/parsing the packet results."""
+    """Representation of a MySQL response packet.  Reads in the packet
+    from the network socket, removes packet header and provides an interface
+    for reading/parsing the packet results."""
 
-  def __init__(self, connection):
-    self.connection = connection
-    self.__position = 0
-    self.__recv_packet()
+    def __init__(self, connection):
+        self.connection = connection
+        self.__position = 0
+        self.__recv_packet()
 
-  def __recv_packet(self):
-    """Parse the packet header and read entire packet payload into buffer."""
-    packet_header = self.connection.rfile.read(4)
-    if len(packet_header) < 4:
-        raise OperationalError(2013, "Lost connection to MySQL server during query")
+    def __recv_packet(self):
+        """Parse the packet header and read entire packet payload into buffer."""
+        packet_header = self.connection._read_bytes(4)
+        if len(packet_header) < 4:
+            raise OperationalError(2013, "Lost connection to MySQL server during query")
 
-    if DEBUG: dump_packet(packet_header)
-    packet_length_bin = packet_header[:3]
-    self.__packet_number = byte2int(packet_header[3])
-    # TODO: check packet_num is correct (+1 from last packet)
+        if DEBUG: dump_packet(packet_header)
+        packet_length_bin = packet_header[:3]
+        self.__packet_number = byte2int(packet_header[3])
+        # TODO: check packet_num is correct (+1 from last packet)
 
-    bin_length = packet_length_bin + int2byte(0)  # pad little-endian number
-    bytes_to_read = struct.unpack('<I', bin_length)[0]
-    recv_data = self.connection.rfile.read(bytes_to_read)
-    if len(recv_data) < bytes_to_read:
-        raise OperationalError(2013, "Lost connection to MySQL server during query")
-    if DEBUG: dump_packet(recv_data)
-    self.__data = recv_data
+        bin_length = packet_length_bin + int2byte(0)  # pad little-endian number
+        bytes_to_read = struct.unpack('<I', bin_length)[0]
+        recv_data = self.connection._read_bytes(bytes_to_read)
+        if len(recv_data) < bytes_to_read:
+            raise OperationalError(2013, "Lost connection to MySQL server during query")
+        if DEBUG: dump_packet(recv_data)
+        self.__data = recv_data
 
-  def packet_number(self): return self.__packet_number
+    def packet_number(self): return self.__packet_number
 
-  def get_all_data(self): return self.__data
+    def get_all_data(self): return self.__data
 
-  def read(self, size):
-    """Read the first 'size' bytes in packet and advance cursor past them."""
-    result = self.peek(size)
-    self.advance(size)
-    return result
+    def read(self, size):
+        """Read the first 'size' bytes in packet and advance cursor past them."""
+        result = self.peek(size)
+        self.advance(size)
+        return result
 
-  def read_all(self):
-    """Read all remaining data in the packet.
+    def read_all(self):
+        """Read all remaining data in the packet.
 
-    (Subsequent read() or peek() will return errors.)
-    """
-    result = self.__data[self.__position:]
-    self.__position = None  # ensure no subsequent read() or peek()
-    return result
+        (Subsequent read() or peek() will return errors.)
+        """
+        result = self.__data[self.__position:]
+        self.__position = None  # ensure no subsequent read() or peek()
+        return result
 
-  def advance(self, length):
-    """Advance the cursor in data buffer 'length' bytes."""
-    new_position = self.__position + length
-    if new_position < 0 or new_position > len(self.__data):
-      raise Exception('Invalid advance amount (%s) for cursor.  '
-                      'Position=%s' % (length, new_position))
-    self.__position = new_position
+    def advance(self, length):
+        """Advance the cursor in data buffer 'length' bytes."""
+        new_position = self.__position + length
+        if new_position < 0 or new_position > len(self.__data):
+            raise Exception('Invalid advance amount (%s) for cursor.  '
+                            'Position=%s' % (length, new_position))
+        self.__position = new_position
 
-  def rewind(self, position=0):
-    """Set the position of the data buffer cursor to 'position'."""
-    if position < 0 or position > len(self.__data):
-      raise Exception("Invalid position to rewind cursor to: %s." % position)
-    self.__position = position
+    def rewind(self, position=0):
+        """Set the position of the data buffer cursor to 'position'."""
+        if position < 0 or position > len(self.__data):
+            raise Exception("Invalid position to rewind cursor to: %s." % position)
+        self.__position = position
 
-  def peek(self, size):
-    """Look at the first 'size' bytes in packet without moving cursor."""
-    result = self.__data[self.__position:(self.__position+size)]
-    if len(result) != size:
-      error = ('Result length not requested length:\n'
-               'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-               % (size, len(result), self.__position, len(self.__data)))
-      if DEBUG:
-        print error
-        self.dump()
-      raise AssertionError(error)
-    return result
+    def peek(self, size):
+        """Look at the first 'size' bytes in packet without moving cursor."""
+        result = self.__data[self.__position:(self.__position+size)]
+        if len(result) != size:
+            error = ('Result length not requested length:\n'
+                     'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
+                     % (size, len(result), self.__position, len(self.__data)))
+            if DEBUG:
+                print(error)
+                self.dump()
+            raise AssertionError(error)
+        return result
 
-  def get_bytes(self, position, length=1):
-    """Get 'length' bytes starting at 'position'.
+    def get_bytes(self, position, length=1):
+        """Get 'length' bytes starting at 'position'.
 
-    Position is start of payload (first four packet header bytes are not
-    included) starting at index '0'.
+        Position is start of payload (first four packet header bytes are not
+        included) starting at index '0'.
 
-    No error checking is done.  If requesting outside end of buffer
-    an empty string (or string shorter than 'length') may be returned!
-    """
-    return self.__data[position:(position+length)]
+        No error checking is done.  If requesting outside end of buffer
+        an empty string (or string shorter than 'length') may be returned!
+        """
+        return self.__data[position:(position+length)]
 
-  def read_length_coded_binary(self):
-    """Read a 'Length Coded Binary' number from the data buffer.
+    def read_length_coded_binary(self):
+        """Read a 'Length Coded Binary' number from the data buffer.
 
-    Length coded numbers can be anywhere from 1 to 9 bytes depending
-    on the value of the first byte.
-    """
-    c = byte2int(self.read(1))
-    if c == NULL_COLUMN:
-      return None
-    if c < UNSIGNED_CHAR_COLUMN:
-      return c
-    elif c == UNSIGNED_SHORT_COLUMN:
-      return unpack_uint16(self.read(UNSIGNED_SHORT_LENGTH))
-    elif c == UNSIGNED_INT24_COLUMN:
-      return unpack_int24(self.read(UNSIGNED_INT24_LENGTH))
-    elif c == UNSIGNED_INT64_COLUMN:
-      # TODO: what was 'longlong'?  confirm it wasn't used?
-      return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
+        Length coded numbers can be anywhere from 1 to 9 bytes depending
+        on the value of the first byte.
+        """
+        c = byte2int(self.read(1))
+        if c == NULL_COLUMN:
+            return None
+        if c < UNSIGNED_CHAR_COLUMN:
+            return c
+        elif c == UNSIGNED_SHORT_COLUMN:
+            return unpack_uint16(self.read(UNSIGNED_SHORT_LENGTH))
+        elif c == UNSIGNED_INT24_COLUMN:
+            return unpack_int24(self.read(UNSIGNED_INT24_LENGTH))
+        elif c == UNSIGNED_INT64_COLUMN:
+            # TODO: what was 'longlong'?  confirm it wasn't used?
+            return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
 
-  def read_length_coded_string(self):
-    """Read a 'Length Coded String' from the data buffer.
+    def read_length_coded_string(self):
+        """Read a 'Length Coded String' from the data buffer.
 
-    A 'Length Coded String' consists first of a length coded
-    (unsigned, positive) integer represented in 1-9 bytes followed by
-    that many bytes of binary data.  (For example "cat" would be "3cat".)
-    """
-    length = self.read_length_coded_binary()
-    if length is None:
-        return None
-    return self.read(length)
+        A 'Length Coded String' consists first of a length coded
+        (unsigned, positive) integer represented in 1-9 bytes followed by
+        that many bytes of binary data.  (For example "cat" would be "3cat".)
+        """
+        length = self.read_length_coded_binary()
+        if length is None:
+            return None
+        return self.read(length)
 
-  def is_ok_packet(self):
-    return byte2int(self.get_bytes(0)) == 0
+    def is_ok_packet(self):
+        return byte2int(self.get_bytes(0)) == 0
 
-  def is_eof_packet(self):
-    return byte2int(self.get_bytes(0)) == 254  # 'fe'
+    def is_eof_packet(self):
+        return byte2int(self.get_bytes(0)) == 254  # 'fe'
 
-  def is_resultset_packet(self):
-    field_count = byte2int(self.get_bytes(0))
-    return field_count >= 1 and field_count <= 250
+    def is_resultset_packet(self):
+        field_count = byte2int(self.get_bytes(0))
+        return field_count >= 1 and field_count <= 250
 
-  def is_error_packet(self):
-    return byte2int(self.get_bytes(0)) == 255
+    def is_error_packet(self):
+        return byte2int(self.get_bytes(0)) == 255
 
-  def check_error(self):
-    if self.is_error_packet():
-      self.rewind()
-      self.advance(1)  # field_count == error (we already know that)
-      errno = unpack_uint16(self.read(2))
-      if DEBUG: print "errno = %d" % errno
-      raise_mysql_exception(self.__data)
+    def check_error(self):
+        if self.is_error_packet():
+            self.rewind()
+            self.advance(1)  # field_count == error (we already know that)
+            errno = unpack_uint16(self.read(2))
+            if DEBUG: print("errno = {}".format(errno))
+            raise_mysql_exception(self.__data)
 
-  def dump(self):
-    dump_packet(self.__data)
+    def dump(self):
+        dump_packet(self.__data)
 
 
 class FieldDescriptorPacket(MysqlPacket):
-  """A MysqlPacket that represents a specific column's metadata in the result.
+    """A MysqlPacket that represents a specific column's metadata in the result.
 
-  Parsing is automatically done and the results are exported via public
-  attributes on the class such as: db, table_name, name, length, type_code.
-  """
-
-  def __init__(self, *args):
-    MysqlPacket.__init__(self, *args)
-    self.__parse_field_descriptor()
-
-  def __parse_field_descriptor(self):
-    """Parse the 'Field Descriptor' (Metadata) packet.
-
-    This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
+    Parsing is automatically done and the results are exported via public
+    attributes on the class such as: db, table_name, name, length, type_code.
     """
-    self.catalog = self.read_length_coded_string()
-    self.db = self.read_length_coded_string()
-    self.table_name = self.read_length_coded_string()
-    self.org_table = self.read_length_coded_string()
-    self.name = self.read_length_coded_string().decode(self.connection.charset)
-    self.org_name = self.read_length_coded_string()
-    self.advance(1)  # non-null filler
-    self.charsetnr = struct.unpack('<H', self.read(2))[0]
-    self.length = struct.unpack('<I', self.read(4))[0]
-    self.type_code = byte2int(self.read(1))
-    self.flags = struct.unpack('<H', self.read(2))[0]
-    self.scale = byte2int(self.read(1))  # "decimals"
-    self.advance(2)  # filler (always 0x00)
 
-    # 'default' is a length coded binary and is still in the buffer?
-    # not used for normal result sets...
+    def __init__(self, *args):
+        MysqlPacket.__init__(self, *args)
+        self.__parse_field_descriptor()
 
-  def description(self):
-    """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
-    desc = []
-    desc.append(self.name)
-    desc.append(self.type_code)
-    desc.append(None) # TODO: display_length; should this be self.length?
-    desc.append(self.get_column_length()) # 'internal_size'
-    desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
-    desc.append(self.scale)
+    def __parse_field_descriptor(self):
+        """Parse the 'Field Descriptor' (Metadata) packet.
 
-    # 'null_ok' -- can this be True/False rather than 1/0?
-    #              if so just do:  desc.append(bool(self.flags % 2 == 0))
-    if self.flags % 2 == 0:
-      desc.append(1)
-    else:
-      desc.append(0)
-    return tuple(desc)
+        This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
+        """
+        self.catalog = self.read_length_coded_string()
+        self.db = self.read_length_coded_string()
+        self.table_name = self.read_length_coded_string()
+        self.org_table = self.read_length_coded_string()
+        self.name = self.read_length_coded_string().decode(self.connection.charset)
+        self.org_name = self.read_length_coded_string()
+        self.advance(1)  # non-null filler
+        self.charsetnr = struct.unpack('<H', self.read(2))[0]
+        self.length = struct.unpack('<I', self.read(4))[0]
+        self.type_code = byte2int(self.read(1))
+        self.flags = struct.unpack('<H', self.read(2))[0]
+        self.scale = byte2int(self.read(1))  # "decimals"
+        self.advance(2)  # filler (always 0x00)
 
-  def get_column_length(self):
-    if self.type_code == FIELD_TYPE.VAR_STRING:
-      mblen = MBLENGTH.get(self.charsetnr, 1)
-      return self.length // mblen
-    return self.length
+        # 'default' is a length coded binary and is still in the buffer?
+        # not used for normal result sets...
 
-  def __str__(self):
-    return ('%s %s.%s.%s, type=%s'
-            % (self.__class__, self.db, self.table_name, self.name,
-               self.type_code))
+    def description(self):
+        """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
+        desc = []
+        desc.append(self.name)
+        desc.append(self.type_code)
+        desc.append(None) # TODO: display_length; should this be self.length?
+        desc.append(self.get_column_length()) # 'internal_size'
+        desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
+        desc.append(self.scale)
+
+        # 'null_ok' -- can this be True/False rather than 1/0?
+        #              if so just do:  desc.append(bool(self.flags % 2 == 0))
+        if self.flags % 2 == 0:
+            desc.append(1)
+        else:
+            desc.append(0)
+        return tuple(desc)
+
+    def get_column_length(self):
+        if self.type_code == FIELD_TYPE.VAR_STRING:
+            mblen = MBLENGTH.get(self.charsetnr, 1)
+            return self.length // mblen
+        return self.length
+
+    def __str__(self):
+        return ('%s %s.%s.%s, type=%s'
+                % (self.__class__, self.db, self.table_name, self.name,
+                   self.type_code))
 
 class OKPacketWrapper(object):
     """
@@ -417,20 +428,20 @@ class OKPacketWrapper(object):
         if not from_packet.is_ok_packet():
             raise ValueError('Cannot create ' + str(self.__class__.__name__)
                 + ' object from invalid packet type')
-        
+
         self.packet = from_packet
         self.packet.advance(1)
-        
+
         self.affected_rows = self.packet.read_length_coded_binary()
         self.insert_id = self.packet.read_length_coded_binary()
         self.server_status = struct.unpack('<H', self.packet.read(2))[0]
         self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
         self.message = self.packet.read_all()
-    
+
     def __getattr__(self, key):
         if hasattr(self.packet, key):
             return getattr(self.packet, key)
-        
+
         raise AttributeError(str(self.__class__)
             + " instance has no attribute '" + key + "'")
 
@@ -445,7 +456,7 @@ class EOFPacketWrapper(object):
         if not from_packet.is_eof_packet():
             raise ValueError('Cannot create ' + str(self.__class__.__name__)
                 + ' object from invalid packet type')
-        
+
         self.packet = from_packet
         self.warning_count = self.packet.read(2)
         server_status = struct.unpack('<h', self.packet.read(2))[0]
@@ -455,7 +466,7 @@ class EOFPacketWrapper(object):
     def __getattr__(self, key):
         if hasattr(self.packet, key):
             return getattr(self.packet, key)
-        
+
         raise AttributeError(str(self.__class__)
             + " instance has no attribute '" + key + "'")
 
@@ -504,20 +515,20 @@ class Connection(object):
             use_unicode = True
 
         if compress or named_pipe:
-            raise NotImplementedError, "compress and named_pipe arguments are not supported"
+            raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        if ssl and (ssl.has_key('capath') or ssl.has_key('cipher')):
-            raise NotImplementedError, 'ssl options capath and cipher are not supported'
+        if ssl and ('capath' in ssl or 'cipher' in ssl):
+            raise NotImplementedError('ssl options capath and cipher are not supported')
 
         self.ssl = False
         if ssl:
             if not SSL_ENABLED:
-                raise NotImplementedError, "ssl module not found"
+                raise NotImplementedError("ssl module not found")
             self.ssl = True
             client_flag |= SSL
             for k in ('key', 'cert', 'ca'):
                 v = None
-                if ssl.has_key(k):
+                if k in ssl:
                     v = ssl[k]
                 setattr(self, k, v)
 
@@ -531,7 +542,7 @@ class Connection(object):
             if not read_default_group:
                 read_default_group = "client"
 
-            cfg = ConfigParser.RawConfigParser()
+            cfg = configparser.RawConfigParser()
             cfg.read(os.path.expanduser(read_default_file))
 
             def _config(key, default):
@@ -605,13 +616,9 @@ class Connection(object):
         if self.socket is None:
             raise Error("Already closed")
         send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
-        self.wfile.write(send_data)
-        self.wfile.close()
-        self.rfile.close()
+        self._write_bytes(send_data)
         self.socket.close()
         self.socket = None
-        self.rfile = None
-        self.wfile = None
 
     def autocommit(self, value):
         self.autocommit_mode = value
@@ -623,8 +630,8 @@ class Connection(object):
             self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
                                       self.escape(self.autocommit_mode))
             self.read_packet()
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, self.autocommit_mode)
 
     def commit(self):
@@ -632,8 +639,8 @@ class Connection(object):
         try:
             self._execute_command(COM_QUERY, "COMMIT")
             self.read_packet()
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
 
     def rollback(self):
@@ -641,8 +648,8 @@ class Connection(object):
         try:
             self._execute_command(COM_QUERY, "ROLLBACK")
             self.read_packet()
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
 
     def escape(self, obj):
@@ -673,7 +680,7 @@ class Connection(object):
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
         if DEBUG:
-            print "sending query: %s" % sql
+            print("sending query: {}".format(sql))
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
@@ -689,8 +696,8 @@ class Connection(object):
         arg = struct.pack('<I', thread_id)
         try:
             self._execute_command(COM_PROCESS_KILL, arg)
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
             return
         pkt = self.read_packet()
@@ -702,12 +709,12 @@ class Connection(object):
             self._execute_command(COM_PING, "")
             pkt = self.read_packet()
             return pkt.is_ok_packet()
-        except:
+        except Exception:
             if reconnect:
                 self._connect()
                 return self.ping(False)
             else:
-                exc,value,tb = sys.exc_info()
+                exc, value = sys.exc_info()[:2]
                 self.errorhandler(None, exc, value)
                 return
 
@@ -718,8 +725,8 @@ class Connection(object):
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
-        except:
-            exc,value,tb = sys.exc_info()
+        except Exception:
+            exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
 
     def _connect(self):
@@ -731,7 +738,7 @@ class Connection(object):
                 sock.connect(self.unix_socket)
                 sock.settimeout(t)
                 self.host_info = "Localhost via UNIX socket"
-                if DEBUG: print 'connected using unix_socket'
+                if DEBUG: print('connected using unix_socket')
             else:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 t = sock.gettimeout()
@@ -739,26 +746,41 @@ class Connection(object):
                 sock.connect((self.host, self.port))
                 sock.settimeout(t)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
-                if DEBUG: print 'connected using socket'
+                if DEBUG: print('connected using socket')
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket = sock
-            self.rfile = self.socket.makefile("rb")
-            self.wfile = self.socket.makefile("wb")
             self._get_server_information()
             self._request_authentication()
 
             self._send_autocommit_mode()
-        except socket.error, e:
-            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
+        except socket.error as e:
+            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
     def read_packet(self, packet_type=MysqlPacket):
-      """Read an entire "mysql packet" in its entirety from the network
-      and return a MysqlPacket type that represents the results."""
+        """Read an entire "mysql packet" in its entirety from the network
+        and return a MysqlPacket type that represents the results."""
 
-      packet = packet_type(self)
-      packet.check_error()
-      return packet
+        packet = packet_type(self)
+        packet.check_error()
+        return packet
+
+    def _read_bytes(self, num_bytes):
+        d = self.socket.recv(num_bytes)
+        num_bytes -= len(d)
+        if num_bytes == 0:
+            return d
+        buff = bytearray(d)
+        while num_bytes:
+            d = self.socket.recv(num_bytes)
+            if not d:
+                break
+            num_bytes -= len(d)
+            buff += d
+        return bytes(buff)
+
+    def _write_bytes(self, data):
+        return self.socket.sendall(data)
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
@@ -791,30 +813,27 @@ class Connection(object):
         if self._result is not None and self._result.unbuffered_active:
             self._result._finish_unbuffered_query()
 
-        if isinstance(sql, unicode):
+        if isinstance(sql, text_type):
             sql = sql.encode(self.charset)
 
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
-        self.wfile.write(prelude + sql)
-        self.wfile.flush()
+        self._write_bytes(prelude + sql)
         if DEBUG: dump_packet(prelude + sql)
 
     def _execute_command(self, command, sql):
         self._send_command(command, sql)
-        
-    def _request_authentication(self):
-        self._send_authentication()
 
-    def _send_authentication(self):
+    def _request_authentication(self):
         self.client_flag |= CAPABILITIES
         if self.server_version.startswith('5'):
             self.client_flag |= MULTI_RESULTS
 
         if self.user is None:
-            raise ValueError, "Did not specify a username"
+            raise ValueError("Did not specify a username")
 
         charset_id = charset_by_name(self.charset).id
-        self.user = self.user.encode(self.charset)
+        if isinstance(self.user, text_type):
+            self.user = self.user.encode(self.charset)
 
         data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
                      int2byte(charset_id) + int2byte(0)*23
@@ -827,20 +846,18 @@ class Connection(object):
 
             if DEBUG: dump_packet(data)
 
-            self.wfile.write(data)
-            self.wfile.flush()
+            self._write_bytes(data)
             self.socket = ssl.wrap_self.socketet(self.socket, keyfile=self.key,
                                                  certfile=self.cert,
                                                  ssl_version=ssl.PROTOCOL_TLSv1,
                                                  cert_reqs=ssl.CERT_REQUIRED,
                                                  ca_certs=self.ca)
-            self.rfile = self.socket.makefile("rb")
-            self.wfile = self.socket.makefile("wb")
 
         data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
         if self.db:
-            self.db = self.db.encode(self.charset)
+            if isinstance(self.db, text_type):
+                self.db = self.db.encode(self.charset)
             data += self.db + int2byte(0)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
@@ -848,8 +865,7 @@ class Connection(object):
 
         if DEBUG: dump_packet(data)
 
-        self.wfile.write(data)
-        self.wfile.flush()
+        self._write_bytes(data)
 
         auth_packet = MysqlPacket(self)
         auth_packet.check_error()
@@ -865,8 +881,7 @@ class Connection(object):
             data = _scramble_323(self.password.encode(self.charset), self.salt.encode(self.charset)) + int2byte(0)
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
-            self.wfile.write(data)
-            self.wfile.flush()
+            self._write_bytes(data)
             auth_packet = MysqlPacket(self)
             auth_packet.check_error()
             if DEBUG: auth_packet.dump()
@@ -976,7 +991,7 @@ class MySQLResult(object):
         else:
             self.field_count = byte2int(first_packet.read(1))
             self._get_descriptions()
-            
+
             # Apparently, MySQLdb picks this number because it's the maximum
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
             # we set it to this instead of None, which would be preferred.
@@ -1006,7 +1021,7 @@ class MySQLResult(object):
     def _read_rowdata_packet_unbuffered(self):
         # Check if in an active query
         if self.unbuffered_active == False: return
-        
+
         # EOF
         packet = self.connection.read_packet()
         if self._check_packet_is_eof(packet):
@@ -1020,7 +1035,7 @@ class MySQLResult(object):
             converted = None
             if field.type_code in self.connection.decoders:
                 converter = self.connection.decoders[field.type_code]
-                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
+                if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
                 if data != None:
                     converted = converter(self.connection, field, data)
             row.append(converted)
@@ -1041,35 +1056,35 @@ class MySQLResult(object):
     # TODO: implement this as an iteratable so that it is more
     #       memory efficient and lower-latency to client...
     def _read_rowdata_packet(self):
-      """Read a rowdata packet for each data row in the result set."""
-      rows = []
-      while True:
-        packet = self.connection.read_packet()
-        if self._check_packet_is_eof(packet):
-            break
+        """Read a rowdata packet for each data row in the result set."""
+        rows = []
+        while True:
+            packet = self.connection.read_packet()
+            if self._check_packet_is_eof(packet):
+                break
 
-        row = []
-        for field in self.fields:
-            data = packet.read_length_coded_string()
-            converted = None
-            if field.type_code in self.connection.decoders:
-                converter = self.connection.decoders[field.type_code]
-                if DEBUG: print "DEBUG: field=%s, converter=%s" % (field, converter)
-                if data != None:
-                    converted = converter(self.connection, field, data)
-            row.append(converted)
+            row = []
+            for field in self.fields:
+                data = packet.read_length_coded_string()
+                converted = None
+                if field.type_code in self.connection.decoders:
+                    converter = self.connection.decoders[field.type_code]
+                    if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+                    if data != None:
+                        converted = converter(self.connection, field, data)
+                row.append(converted)
 
-        rows.append(tuple(row))
+            rows.append(tuple(row))
 
-      self.affected_rows = len(rows)
-      self.rows = tuple(rows)
-      if DEBUG: self.rows
+        self.affected_rows = len(rows)
+        self.rows = tuple(rows)
+        if DEBUG: self.rows
 
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         self.fields = []
         description = []
-        for i in xrange(self.field_count):
+        for i in range_type(self.field_count):
             field = self.connection.read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import capabilities
+from . import capabilities
 import unittest
 import pymysql
 from pymysql.tests import base
@@ -18,7 +18,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
 
     create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8"
     leak_test = False
-    
+
     def quote_identifier(self, ident):
         return "`%s`" % ident
 
@@ -40,7 +40,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
         self.check_data_integrity(
             ('col1 TINYINT',),
             generator)
-        
+
     def test_stored_procedures(self):
         db = self.connection
         c = self.cursor
@@ -49,7 +49,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
             c.executemany("INSERT INTO %s (pos,tree) VALUES (%%s,%%s)" % self.table,
                           list(enumerate('ash birch cedar larch pine'.split())))
             db.commit()
-            
+
             c.execute("""
             CREATE PROCEDURE test_sp(IN t VARCHAR(255))
             BEGIN
@@ -57,11 +57,11 @@ class test_MySQLdb(capabilities.DatabaseTest):
             END
             """ % self.table)
             db.commit()
-    
+
             c.callproc('test_sp', ('larch',))
             rows = c.fetchall()
-            self.assertEquals(len(rows), 1)
-            self.assertEquals(rows[0][0], 3)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0][0], 3)
             c.nextset()
         finally:
             c.execute("DROP PROCEDURE IF EXISTS test_sp")
@@ -82,9 +82,9 @@ class test_MySQLdb(capabilities.DatabaseTest):
         from pymysql.constants import ER
         try:
             self.cursor.execute("describe some_non_existent_table");
-        except self.connection.ProgrammingError, msg:
-            self.assertTrue(msg.args[0] == ER.NO_SUCH_TABLE)
-    
+        except self.connection.ProgrammingError as msg:
+            self.assertEqual(msg.args[0], ER.NO_SUCH_TABLE)
+
     def test_insert_values(self):
         from pymysql.cursors import insert_values
         query = """INSERT FOO (a, b, c) VALUES (a, b, c)"""
@@ -92,24 +92,23 @@ class test_MySQLdb(capabilities.DatabaseTest):
         self.assertTrue(matched)
         values = matched.group(1)
         self.assertTrue(values == "(a, b, c)")
-        
+
     def test_ping(self):
         self.connection.ping()
 
     def test_literal_int(self):
         self.assertTrue("2" == self.connection.literal(2))
-    
+
     def test_literal_float(self):
         self.assertTrue("3.1415" == self.connection.literal(3.1415))
-        
+
     def test_literal_string(self):
         self.assertTrue("'foo'" == self.connection.literal("foo"))
-        
-    
+
+
 if __name__ == '__main__':
     if test_MySQLdb.leak_test:
         import gc
         gc.enable()
         gc.set_debug(gc.DEBUG_LEAK)
     unittest.main()
-
