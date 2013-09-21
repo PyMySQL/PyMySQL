@@ -15,7 +15,11 @@ __rcs_id__  = '$Id$'
 __version__ = '$Revision$'[11:-2]
 __author__ = 'Stuart Bishop <zen@shangri-la.dropbear.id.au>'
 
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+
 import time
 
 # $Log$
