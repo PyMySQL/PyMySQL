@@ -6,8 +6,8 @@ PyMySQL
 ..
 
 
-.. image:: https://secure.travis-ci.org/lecram/PyMySQL.png
-   :target: https://secure.travis-ci.org/lecram/PyMySQL
+.. image:: https://secure.travis-ci.org/PyMySQL/PyMySQL.png
+   :target: https://secure.travis-ci.org/PyMySQL/PyMySQL
   
 This package contains a pure-Python MySQL client library.
 Documentation on the MySQL client/server protocol can be found here:
