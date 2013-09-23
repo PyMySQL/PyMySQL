@@ -261,6 +261,7 @@ class Cursor(object):
 
 class DictCursor(Cursor):
     """A cursor which returns results as a dictionary"""
+    # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
     def execute(self, query, args=None):
