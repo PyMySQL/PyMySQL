@@ -328,4 +328,10 @@ decoders = {
         FIELD_TYPE.DECIMAL: Decimal,
         FIELD_TYPE.NEWDECIMAL: Decimal,
         }
-conversions = decoders  # for MySQLdb compatibility
+
+
+# for MySQLdb compatibility
+conversions = decoders
+
+def Thing2Literal(obj):
+    return escape_str(str(obj))
