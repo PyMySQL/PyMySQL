@@ -159,7 +159,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
         except pymysql.OperationalError as e:
             self.assertEqual(2003, e.args[0])
-        except:
+        except Exception:
             self.fail()
 
     def test_issue_33(self):
@@ -202,7 +202,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         try:
             c.execute("show tables")
             self.fail()
-        except:
+        except Exception:
             pass
         # check the process list from the other connection
         try:

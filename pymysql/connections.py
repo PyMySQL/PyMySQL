@@ -548,7 +548,7 @@ class Connection(object):
             def _config(key, default):
                 try:
                     return cfg.get(read_default_group,key)
-                except:
+                except Exception:
                     return default
 
             user = _config("user",user)
