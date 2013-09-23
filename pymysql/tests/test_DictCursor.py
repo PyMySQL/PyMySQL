@@ -5,9 +5,9 @@ import datetime
 
 
 class TestDictCursor(base.PyMySQLTestCase):
-    bob =  {'name':'bob', 'age':21, 'DOB': datetime.datetime(1990, 2, 6, 23, 4, 56)}
-    jim =  {'name':'jim', 'age':56, 'DOB': datetime.datetime(1955, 5, 9, 13, 12, 45)}
-    fred = {'name':'fred', 'age':100, 'DOB': datetime.datetime(1911, 9, 12, 1, 1, 1)}
+    bob = {'name': 'bob', 'age': 21, 'DOB': datetime.datetime(1990, 2, 6, 23, 4, 56)}
+    jim = {'name': 'jim', 'age': 56, 'DOB': datetime.datetime(1955, 5, 9, 13, 12, 45)}
+    fred = {'name': 'fred', 'age': 100, 'DOB': datetime.datetime(1911, 9, 12, 1, 1, 1)}
 
     def setUp(self):
         super(TestDictCursor, self).setUp()
@@ -16,9 +16,9 @@ class TestDictCursor(base.PyMySQLTestCase):
 
         # create a table ane some data to query
         c.execute("""CREATE TABLE dictcursor (name char(20), age int , DOB datetime)""")
-        data = [("bob",21,"1990-02-06 23:04:56"),
-                ("jim",56,"1955-05-09 13:12:45"),
-                ("fred",100,"1911-09-12 01:01:01")]
+        data = [("bob", 21, "1990-02-06 23:04:56"),
+                ("jim", 56, "1955-05-09 13:12:45"),
+                ("fred", 100, "1911-09-12 01:01:01")]
         c.executemany("insert into dictcursor values (%s,%s,%s)", data)
 
     def tearDown(self):
@@ -61,39 +61,36 @@ class TestDictCursor(base.PyMySQLTestCase):
         self.assertEqual([bob, jim], r, "fetchmany failed via DictCursor")
 
     def test_custom_dict(self):
-        from collections import OrderedDict
+        class MyDict(dict): pass
 
-        class OrderedDictCursor(pymysql.cursors.DictCursor):
-            dict_type = OrderedDict
+        class MyDictCursor(pymysql.cursors.DictCursor):
+            dict_type = MyDict
 
         keys = ['name', 'age', 'DOB']
-        bob = OrderedDict([(k, self.bob[k]) for k in keys])
-        jim = OrderedDict([(k, self.jim[k]) for k in keys])
-        fred = OrderedDict([(k, self.fred[k]) for k in keys])
+        bob = MyDict([(k, self.bob[k]) for k in keys])
+        jim = MyDict([(k, self.jim[k]) for k in keys])
+        fred = MyDict([(k, self.fred[k]) for k in keys])
 
-        cur = self.conn.cursor(OrderedDictCursor)
+        cur = self.conn.cursor(MyDictCursor)
         cur.execute("SELECT * FROM dictcursor WHERE name='bob'")
         r = cur.fetchone()
-        self.assertEqual(bob, r, "fetchone() returns OrderedDictCursor")
+        self.assertEqual(bob, r, "fetchone() returns MyDictCursor")
 
         cur.execute("SELECT * FROM dictcursor")
         r = cur.fetchall()
         self.assertEqual([bob, jim, fred], r,
-                         "fetchall failed via OrderedDictCursor")
+                         "fetchall failed via MyDictCursor")
 
         cur.execute("SELECT * FROM dictcursor")
         r = list(cur)
         self.assertEqual([bob, jim, fred], r,
-                         "list failed via OrderedDictCursor")
+                         "list failed via MyDictCursor")
 
         cur.execute("SELECT * FROM dictcursor")
         r = cur.fetchmany(2)
         self.assertEqual([bob, jim], r,
-                         "list failed via OrderedDictCursor")
+                         "list failed via MyDictCursor")
 
-
-
-__all__ = ["TestDictCursor"]
 
 if __name__ == "__main__":
     import unittest
