@@ -44,7 +44,7 @@ from .constants import SERVER_STATUS
 from .constants.CLIENT import *
 from .constants.COMMAND import *
 from .util import byte2int, int2byte
-from .converters import escape_item, encoders, decoders
+from .converters import escape_item, decoders
 from .err import (
     raise_mysql_exception, Warning, Error,
     InterfaceError, DataError, DatabaseError, OperationalError,
@@ -228,6 +228,9 @@ def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     if not issubclass(errorclass, Error):
         raise Error(errorclass, errorvalue)
     elif isinstance(errorvalue, errorclass):
+        # saving stacktrace when errorhandler is called in catch
+        if sys.exc_info()[1] is errorvalue:
+            raise
         raise errorvalue
     else:
         raise errorclass(errorvalue)
@@ -622,7 +625,6 @@ class Connection(object):
         self._connect()
 
         self.set_charset(charset)
-        self.encoders = encoders
         self.decoders = conv
 
         if sql_mode is not None:
