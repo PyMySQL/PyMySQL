@@ -624,30 +624,35 @@ class Connection(object):
         self.autocommit_mode = False
         self._connect()
 
-        self.set_charset(charset)
-        self.encoders = encoders  # Need for MySQLdb compatibility.
-        self.decoders = conv
+        try:
+            self.set_charset(charset)
+            self.encoders = encoders  # Need for MySQLdb compatibility.
+            self.decoders = conv
 
-        if sql_mode is not None:
-            c = self.cursor()
-            c.execute("SET sql_mode=%s", (sql_mode,))
+            if sql_mode is not None:
+                c = self.cursor()
+                c.execute("SET sql_mode=%s", (sql_mode,))
 
-        self.commit()
+            if init_command is not None:
+                c = self.cursor()
+                c.execute(init_command)
+                self.commit()
+        except:
+            if self.sock is not None:
+                self.close()
+            raise
 
-        if init_command is not None:
-            c = self.cursor()
-            c.execute(init_command)
-
-            self.commit()
 
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
             raise Error("Already closed")
         send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
-        self._write_bytes(send_data)
-        self.socket.close()
-        self.socket = None
+        try:
+            self._write_bytes(send_data)
+        finally:
+            self.socket.close()
+            self.socket = None
 
     def autocommit(self, value):
         self.autocommit_mode = value
@@ -762,6 +767,7 @@ class Connection(object):
             self.errorhandler(None, exc, value)
 
     def _connect(self):
+        sock = None
         try:
             if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -788,6 +794,11 @@ class Connection(object):
 
             self._send_autocommit_mode()
         except socket.error as e:
+            if sock is not None:
+                try:
+                    sock.close()
+                except socket.error:
+                    pass
             raise OperationalError(
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
