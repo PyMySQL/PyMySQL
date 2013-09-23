@@ -246,6 +246,7 @@ def charset_by_id(id):
 
 
 def charset_to_encoding(name):
+    """Convert MySQL's charset name to Python's codec name"""
     if name == 'utf8mb4':
         return 'utf8'
     return name
