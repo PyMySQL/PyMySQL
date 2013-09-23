@@ -43,7 +43,7 @@ from .constants import FIELD_TYPE, FLAG
 from .constants import SERVER_STATUS
 from .constants.CLIENT import *
 from .constants.COMMAND import *
-from .util import join_bytes, byte2int, int2byte
+from .util import byte2int, int2byte
 from .converters import escape_item, encoders, decoders
 from .err import (
     raise_mysql_exception, Warning, Error,
@@ -1055,19 +1055,9 @@ class MySQLResult(object):
             self.rows = None
             return
 
-        row = []
-        for field in self.fields:
-            data = packet.read_length_coded_string()
-            converted = None
-            if field.type_code in self.connection.decoders:
-                converter = self.connection.decoders[field.type_code]
-                if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
-                if data is not None:
-                    converted = converter(self.connection, field, data)
-            row.append(converted)
-
+        row = self._read_row_from_packet(packet)
         self.affected_rows = 1
-        self.rows = tuple((row))
+        self.rows = tuple((row,))
 
     def _finish_unbuffered_query(self):
         # After much reading on the MySQL protocol, it appears that there is,
@@ -1078,8 +1068,6 @@ class MySQLResult(object):
             if self._check_packet_is_eof(packet):
                 self.unbuffered_active = False
 
-    # TODO: implement this as an iteratable so that it is more
-    #       memory efficient and lower-latency to client...
     def _read_rowdata_packet(self):
         """Read a rowdata packet for each data row in the result set."""
         rows = []
@@ -1087,22 +1075,23 @@ class MySQLResult(object):
             packet = self.connection.read_packet()
             if self._check_packet_is_eof(packet):
                 break
-
-            row = []
-            for field in self.fields:
-                data = packet.read_length_coded_string()
-                converted = None
-                if field.type_code in self.connection.decoders:
-                    converter = self.connection.decoders[field.type_code]
-                    if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
-                    if data is not None:
-                        converted = converter(self.connection, field, data)
-                row.append(converted)
-
-            rows.append(tuple(row))
+            rows.append(self._read_row_from_packet(packet))
 
         self.affected_rows = len(rows)
         self.rows = tuple(rows)
+
+    def _read_row_from_packet(self, packet):
+        row = []
+        for field in self.fields:
+            data = packet.read_length_coded_string()
+            converted = None
+            if field.type_code in self.connection.decoders:
+                converter = self.connection.decoders[field.type_code]
+                if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+                if data is not None:
+                    converted = converter(self.connection, field, data)
+            row.append(converted)
+        return tuple(row)
 
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
