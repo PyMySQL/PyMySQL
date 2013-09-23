@@ -1,23 +1,19 @@
-import re
-import datetime
-import time
-
 from ._compat import PY2, text_type, long_type
 
-from .constants import FIELD_TYPE, FLAG
-from .charset import charset_by_id
+import binascii
+import datetime
+from decimal import Decimal
+import re
+import time
 
-try:
-    set
-except NameError:
-    try:
-        from sets import BaseSet as set
-    except ImportError:
-        from sets import Set as set
+from .constants import FIELD_TYPE, FLAG
+from .charset import charset_by_id, charset_to_encoding
+
 
 ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
+
 
 def escape_item(val, charset):
     if type(val) in [tuple, list, set]:
@@ -75,6 +71,9 @@ def escape_str(value):
 def escape_unicode(value):
     return escape_str(value)
 
+def escape_bytes(value):
+    return "x'%s'" % binascii.hexlify(value).decode()
+
 def escape_None(value):
     return 'NULL'
 
@@ -101,7 +100,7 @@ def escape_date(obj):
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
 
-def convert_datetime(connection, field, obj):
+def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
@@ -117,22 +116,21 @@ def convert_datetime(connection, field, obj):
       True
 
     """
-    if not isinstance(obj, text_type):
-        obj = obj.decode(connection.charset)
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
         sep = 'T'
     else:
-        return convert_date(connection, field, obj)
+        return convert_date(obj)
 
     try:
         ymd, hms = obj.split(sep, 1)
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
-        return convert_date(connection, field, obj)
+        return convert_date(obj)
 
-def convert_timedelta(connection, field, obj):
+
+def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
 
       >>> timedelta_or_None('25:06:17')
@@ -151,8 +149,6 @@ def convert_timedelta(connection, field, obj):
     """
     try:
         microseconds = 0
-        if not isinstance(obj, text_type):
-            obj = obj.decode(connection.charset)
         if "." in obj:
             (obj, tail) = obj.split('.')
             microseconds = int(tail)
@@ -167,7 +163,7 @@ def convert_timedelta(connection, field, obj):
     except ValueError:
         return None
 
-def convert_time(connection, field, obj):
+def convert_time(obj):
     """Returns a TIME column as a time object:
 
       >>> time_or_None('15:06:17')
@@ -200,7 +196,7 @@ def convert_time(connection, field, obj):
     except ValueError:
         return None
 
-def convert_date(connection, field, obj):
+def convert_date(obj):
     """Returns a DATE column as a date object:
 
       >>> date_or_None('2007-02-26')
@@ -215,13 +211,12 @@ def convert_date(connection, field, obj):
 
     """
     try:
-        if not isinstance(obj, text_type):
-            obj = obj.decode(connection.charset)
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
         return None
 
-def convert_mysql_timestamp(connection, field, timestamp):
+
+def convert_mysql_timestamp(timestamp):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
 
     MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
@@ -242,11 +237,8 @@ def convert_mysql_timestamp(connection, field, timestamp):
       True
 
     """
-    if not isinstance(timestamp, text_type):
-        timestamp = timestamp.decode(connection.charset)
-
     if timestamp[4] == '-':
-        return convert_datetime(connection, field, timestamp)
+        return convert_datetime(timestamp)
     timestamp += "0"*(14-len(timestamp)) # padding
     year, month, day, hour, minute, second = \
         int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
@@ -259,7 +251,7 @@ def convert_mysql_timestamp(connection, field, timestamp):
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(connection, field, b):
+def convert_bit(b):
     #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
     #return struct.unpack(">Q", b)[0]
     #
@@ -269,23 +261,18 @@ def convert_bit(connection, field, b):
 
 def convert_characters(connection, field, data):
     field_charset = charset_by_id(field.charsetnr).name
+    encoding = charset_to_encoding(field_charset)
     if field.flags & FLAG.SET:
-        return convert_set(data.decode(field_charset))
+        return convert_set(data.decode(encoding))
     if field.flags & FLAG.BINARY:
         return data
 
     if connection.use_unicode:
-        data = data.decode(field_charset)
+        data = data.decode(encoding)
     elif connection.charset != field_charset:
-        data = data.decode(field_charset)
-        data = data.encode(connection.charset)
+        data = data.decode(encoding)
+        data = data.encode(connection.encoding)
     return data
-
-def convert_int(connection, field, data):
-    return int(data)
-
-def convert_float(connection, field, data):
-    return float(data)
 
 encoders = {
         bool: escape_bool,
@@ -304,51 +291,41 @@ encoders = {
         datetime.timedelta : escape_timedelta,
         datetime.time : escape_time,
         time.struct_time : escape_struct_time,
+        Decimal: text_type,
         }
+
+
+def through(x):
+    return x
+
+if not PY2:
+    encoders[bytes] = escape_bytes
 
 decoders = {
         FIELD_TYPE.BIT: convert_bit,
-        FIELD_TYPE.TINY: convert_int,
-        FIELD_TYPE.SHORT: convert_int,
-        FIELD_TYPE.LONG: convert_int,
-        FIELD_TYPE.FLOAT: convert_float,
-        FIELD_TYPE.DOUBLE: convert_float,
-        FIELD_TYPE.DECIMAL: convert_float,
-        FIELD_TYPE.NEWDECIMAL: convert_float,
-        FIELD_TYPE.LONGLONG: convert_int,
-        FIELD_TYPE.INT24: convert_int,
-        FIELD_TYPE.YEAR: convert_int,
+        FIELD_TYPE.TINY: int,
+        FIELD_TYPE.SHORT: int,
+        FIELD_TYPE.LONG: int,
+        FIELD_TYPE.FLOAT: float,
+        FIELD_TYPE.DOUBLE: float,
+        FIELD_TYPE.DECIMAL: float,
+        FIELD_TYPE.NEWDECIMAL: float,
+        FIELD_TYPE.LONGLONG: int,
+        FIELD_TYPE.INT24: int,
+        FIELD_TYPE.YEAR: int,
         FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
         FIELD_TYPE.DATETIME: convert_datetime,
         FIELD_TYPE.TIME: convert_timedelta,
         FIELD_TYPE.DATE: convert_date,
         FIELD_TYPE.SET: convert_set,
-        FIELD_TYPE.BLOB: convert_characters,
-        FIELD_TYPE.TINY_BLOB: convert_characters,
-        FIELD_TYPE.MEDIUM_BLOB: convert_characters,
-        FIELD_TYPE.LONG_BLOB: convert_characters,
-        FIELD_TYPE.STRING: convert_characters,
-        FIELD_TYPE.VAR_STRING: convert_characters,
-        FIELD_TYPE.VARCHAR: convert_characters,
-        #FIELD_TYPE.BLOB: str,
-        #FIELD_TYPE.STRING: str,
-        #FIELD_TYPE.VAR_STRING: str,
-        #FIELD_TYPE.VARCHAR: str
+        FIELD_TYPE.BLOB: through,
+        FIELD_TYPE.TINY_BLOB: through,
+        FIELD_TYPE.MEDIUM_BLOB: through,
+        FIELD_TYPE.LONG_BLOB: through,
+        FIELD_TYPE.STRING: through,
+        FIELD_TYPE.VAR_STRING: through,
+        FIELD_TYPE.VARCHAR: through,
+        FIELD_TYPE.DECIMAL: Decimal,
+        FIELD_TYPE.NEWDECIMAL: Decimal,
         }
 conversions = decoders  # for MySQLdb compatibility
-
-try:
-    # python version > 2.3
-    from decimal import Decimal
-    def convert_decimal(connection, field, data):
-        data = data.decode(connection.charset)
-        return Decimal(data)
-    decoders[FIELD_TYPE.DECIMAL] = convert_decimal
-    decoders[FIELD_TYPE.NEWDECIMAL] = convert_decimal
-
-    def escape_decimal(obj):
-        return text_type(obj)
-    encoders[Decimal] = escape_decimal
-
-except ImportError:
-    pass

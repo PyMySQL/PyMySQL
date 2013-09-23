@@ -37,7 +37,7 @@ except ImportError:
     DEFAULT_USER = None
 
 
-from .charset import MBLENGTH, charset_by_name, charset_by_id, charset_to_encoding
+from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
 from .constants import FIELD_TYPE, FLAG
 from .constants import SERVER_STATUS
@@ -50,6 +50,16 @@ from .err import (
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
 
+
+TEXT_TYPES = set([
+    FIELD_TYPE.BIT,
+    FIELD_TYPE.BLOB,
+    FIELD_TYPE.LONG_BLOB,
+    FIELD_TYPE.MEDIUM_BLOB,
+    FIELD_TYPE.STRING,
+    FIELD_TYPE.TINY_BLOB,
+    FIELD_TYPE.VAR_STRING,
+    FIELD_TYPE.VARCHAR])
 
 sha_new = partial(hashlib.new, 'sha1')
 
@@ -207,8 +217,6 @@ def unpack_int64(n):
 
 def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
     err = errorclass, errorvalue
-    if DEBUG:
-        raise
 
     if cursor:
         cursor.messages.append(err)
@@ -427,9 +435,9 @@ class FieldDescriptorPacket(MysqlPacket):
         return self.length
 
     def __str__(self):
-        return ('%s %s.%s.%s, type=%s'
+        return ('%s %r.%r.%r, type=%s, flags=%x'
                 % (self.__class__, self.db, self.table_name, self.name,
-                   self.type_code))
+                   self.type_code, self.flags))
 
 
 class OKPacketWrapper(object):
@@ -593,7 +601,7 @@ class Connection(object):
         if use_unicode is not None:
             self.use_unicode = use_unicode
 
-        self.encoding = charset_to_encoding(self.charset)
+        self.encoding = charset_by_name(self.charset).encoding
 
         client_flag |= CAPABILITIES
         client_flag |= MULTI_STATEMENTS
@@ -697,10 +705,10 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
-        if DEBUG:
-            print("sending query: {}".format(sql))
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
+        if DEBUG:
+            print("sending query: {}".format(sql))
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
@@ -745,7 +753,7 @@ class Connection(object):
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
-                self.encoding = charset_to_encoding(charset)
+                self.encoding = charset_by_name(charset).encoding
         except Exception:
             exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
@@ -1081,16 +1089,26 @@ class MySQLResult(object):
         self.rows = tuple(rows)
 
     def _read_row_from_packet(self, packet):
+        use_unicode = self.connection.use_unicode
         row = []
         for field in self.fields:
             data = packet.read_length_coded_string()
-            converted = None
-            if field.type_code in self.connection.decoders:
-                converter = self.connection.decoders[field.type_code]
+            if data is not None:
+                field_type = field.type_code
+                if use_unicode:
+                    if field_type in TEXT_TYPES:
+                        charset = charset_by_id(field.charsetnr)
+                        if use_unicode and not charset.is_binary:
+                            # TEXTs with charset=binary means BINARY types.
+                            data = data.decode(charset.encoding)
+                    else:
+                        data = data.decode()
+
+                converter = self.connection.decoders.get(field_type)
                 if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
-                if data is not None:
-                    converted = converter(self.connection, field, data)
-            row.append(converted)
+                if converter is not None:
+                    data = converter(data)
+            row.append(data)
         return tuple(row)
 
     def _get_descriptions(self):
