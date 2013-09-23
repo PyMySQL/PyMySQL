@@ -100,6 +100,9 @@ class Cursor(object):
 
             query = query % escaped_args
 
+        if isinstance(query, unicode):
+            query = query.encode(charset)
+
         result = 0
         try:
             result = self._query(query)
