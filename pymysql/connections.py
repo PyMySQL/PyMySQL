@@ -904,6 +904,7 @@ class Connection(object):
     def _get_server_information(self):
         i = 0
         packet = MysqlPacket(self)
+        packet.check_error()
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
