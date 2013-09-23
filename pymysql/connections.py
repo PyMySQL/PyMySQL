@@ -699,6 +699,8 @@ class Connection(object):
     def query(self, sql, unbuffered=False):
         if DEBUG:
             print("sending query: {}".format(sql))
+        if isinstance(sql, text_type):
+            sql = sql.encode(self.encoding)
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows

@@ -1,22 +1,14 @@
 # -*- coding: utf-8 -*-
 import re
 
-from ._compat import PY2, text_type
-
-if PY2:
-    try:
-        import cStringIO as io
-    except ImportError:
-        import StringIO as io
-else:
-    import io
-
 from .err import (
     Warning, Error, InterfaceError, DataError,
     DatabaseError, OperationalError, IntegrityError, InternalError,
     NotSupportedError, ProgrammingError)
 
+
 insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
+
 
 class Cursor(object):
     '''
@@ -92,13 +84,12 @@ class Cursor(object):
         from sys import exc_info
 
         conn = self._get_db()
-        encoding = conn.encoding
         del self.messages[:]
 
         # TODO: make sure that conn.escape is correct
 
         if args is not None:
-            if isinstance(args, tuple) or isinstance(args, list):
+            if isinstance(args, (tuple, list)):
                 escaped_args = tuple(conn.escape(arg) for arg in args)
             elif isinstance(args, dict):
                 escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
@@ -108,9 +99,6 @@ class Cursor(object):
                 escaped_args = conn.escape(args)
 
             query = query % escaped_args
-
-        if isinstance(query, text_type):
-            query = query.encode(encoding)
 
         result = 0
         try:
@@ -125,16 +113,11 @@ class Cursor(object):
     def executemany(self, query, args):
         ''' Run several data against one query '''
         del self.messages[:]
-        #conn = self._get_db()
         if not args:
             return
-        #encoding = conn.encoding
-        #if isinstance(query, unicode):
-        #    query = query.encode(encoding)
 
         self.rowcount = sum([ self.execute(query, arg) for arg in args ])
         return self.rowcount
-
 
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
@@ -167,19 +150,14 @@ class Cursor(object):
         conn = self._get_db()
         for index, arg in enumerate(args):
             q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
-            if isinstance(q, text_type):
-                q = q.encode(conn.encoding)
             self._query(q)
             self.nextset()
 
         q = "CALL %s(%s)" % (procname,
                              ','.join(['@_%s_%d' % (procname, i)
                                        for i in range(len(args))]))
-        if isinstance(q, text_type):
-            q = q.encode(conn.encoding)
         self._query(q)
         self._executed = q
-
         return args
 
     def fetchone(self):
@@ -221,9 +199,9 @@ class Cursor(object):
             r = value
         else:
             self.errorhandler(self, ProgrammingError,
-                    "unknown scroll mode %s" % mode)
+                              "unknown scroll mode %s" % mode)
 
-        if r < 0 or r >= len(self._rows):
+        if not (0 <= r < len(self._rows)):
             self.errorhandler(self, IndexError, "out of range")
         self.rownumber = r
 
@@ -258,6 +236,7 @@ class Cursor(object):
     ProgrammingError = ProgrammingError
     NotSupportedError = NotSupportedError
 
+
 class DictCursor(Cursor):
     """A cursor which returns results as a dictionary"""
     # You can override this to use OrderedDict or other dict-like types.
@@ -266,7 +245,7 @@ class DictCursor(Cursor):
     def execute(self, query, args=None):
         result = super(DictCursor, self).execute(query, args)
         if self.description:
-            self._fields = [ field[0] for field in self.description ]
+            self._fields = [field[0] for field in self.description]
         return result
 
     def fetchone(self):
@@ -300,6 +279,7 @@ class DictCursor(Cursor):
         self.rownumber = len(self._rows)
         return result
 
+
 class SSCursor(Cursor):
     """
     Unbuffered Cursor, mainly useful for queries that return a lot of data,
@@ -322,8 +302,10 @@ class SSCursor(Cursor):
 
         try:
             if self._has_next:
-                while self.nextset(): pass
-        except Exception: pass
+                while self.nextset():
+                    pass
+        except Exception:
+            pass
 
     def _query(self, q):
         conn = self._get_db()
@@ -334,14 +316,12 @@ class SSCursor(Cursor):
 
     def read_next(self):
         """ Read next row """
-
         conn = self._get_db()
         conn._result._read_rowdata_packet_unbuffered()
         return conn._result.rows
 
     def fetchone(self):
         """ Fetch next row """
-
         self._check_executed()
         row = self.read_next()
         if row is None:
@@ -354,15 +334,15 @@ class SSCursor(Cursor):
         Fetch all, as per MySQLdb. Pretty useless for large queries, as
         it is buffered. See fetchall_unbuffered(), if you want an unbuffered
         generator version of this method.
-        """
 
+        """
         rows = []
         while True:
             row = self.fetchone()
             if row is None:
                 break
             rows.append(row)
-        return tuple(rows)
+        return rows
 
     def fetchall_unbuffered(self):
         """
@@ -384,32 +364,38 @@ class SSCursor(Cursor):
             size = self.arraysize
 
         rows = []
-        for i in range(0, size):
+        for i in range(size):
             row = self.read_next()
             if row is None:
                 break
             rows.append(row)
             self.rownumber += 1
-        return tuple(rows)
+        return rows
 
     def scroll(self, value, mode='relative'):
         self._check_executed()
         if not mode == 'relative' and not mode == 'absolute':
-            self.errorhandler(self, ProgrammingError,
-                    "unknown scroll mode %s" % mode)
+            self.errorhandler(
+                self, ProgrammingError,
+                "unknown scroll mode %s" % mode)
+            return
 
         if mode == 'relative':
             if value < 0:
-                self.errorhandler(self, NotSupportedError,
+                self.errorhandler(
+                    self, NotSupportedError,
                     "Backwards scrolling not supported by this cursor")
 
-            for i in range(0, value): self.read_next()
+            for _ in range(value):
+                self.read_next()
             self.rownumber += value
         else:
             if value < self.rownumber:
-                self.errorhandler(self, NotSupportedError,
+                self.errorhandler(
+                    self, NotSupportedError,
                     "Backwards scrolling not supported by this cursor")
 
             end = value - self.rownumber
-            for i in range(0, end): self.read_next()
+            for _ in range(end):
+                self.read_next()
             self.rownumber = value
