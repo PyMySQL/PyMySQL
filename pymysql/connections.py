@@ -44,7 +44,7 @@ from .constants import SERVER_STATUS
 from .constants.CLIENT import *
 from .constants.COMMAND import *
 from .util import byte2int, int2byte
-from .converters import escape_item, decoders
+from .converters import escape_item, encoders, decoders
 from .err import (
     raise_mysql_exception, Warning, Error,
     InterfaceError, DataError, DatabaseError, OperationalError,
@@ -625,6 +625,7 @@ class Connection(object):
         self._connect()
 
         self.set_charset(charset)
+        self.encoders = encoders  # Need for MySQLdb compatibility.
         self.decoders = conv
 
         if sql_mode is not None:
