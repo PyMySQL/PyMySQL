@@ -12,9 +12,10 @@ if PY2:
 else:
     import io
 
-from .err import Warning, Error, InterfaceError, DataError, \
-             DatabaseError, OperationalError, IntegrityError, InternalError, \
-            NotSupportedError, ProgrammingError
+from .err import (
+    Warning, Error, InterfaceError, DataError,
+    DatabaseError, OperationalError, IntegrityError, InternalError,
+    NotSupportedError, ProgrammingError)
 
 insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
 
@@ -115,9 +116,8 @@ class Cursor(object):
         result = 0
         try:
             result = self._query(query)
-        except:
-            exc, value, tb = exc_info()
-            del tb
+        except Exception:
+            exc, value = exc_info()[:2]
             self.errorhandler(self, exc, value)
 
         self._executed = query
@@ -261,6 +261,7 @@ class Cursor(object):
 
 class DictCursor(Cursor):
     """A cursor which returns results as a dictionary"""
+    dict_type = dict
 
     def execute(self, query, args=None):
         result = super(DictCursor, self).execute(query, args)
@@ -273,7 +274,7 @@ class DictCursor(Cursor):
         self._check_executed()
         if self._rows is None or self.rownumber >= len(self._rows):
             return None
-        result = dict(zip(self._fields, self._rows[self.rownumber]))
+        result = self.dict_type(zip(self._fields, self._rows[self.rownumber]))
         self.rownumber += 1
         return result
 
@@ -283,9 +284,9 @@ class DictCursor(Cursor):
         if self._rows is None:
             return None
         end = self.rownumber + (size or self.arraysize)
-        result = [ dict(zip(self._fields, r)) for r in self._rows[self.rownumber:end] ]
+        result = [self.dict_type(zip(self._fields, r)) for r in self._rows[self.rownumber:end]]
         self.rownumber = min(end, len(self._rows))
-        return tuple(result)
+        return result
 
     def fetchall(self):
         ''' Fetch all the rows '''
@@ -293,11 +294,11 @@ class DictCursor(Cursor):
         if self._rows is None:
             return None
         if self.rownumber:
-            result = [ dict(zip(self._fields, r)) for r in self._rows[self.rownumber:] ]
+            result = [self.dict_type(zip(self._fields, r)) for r in self._rows[self.rownumber:]]
         else:
-            result = [ dict(zip(self._fields, r)) for r in self._rows ]
+            result = [self.dict_type(zip(self._fields, r)) for r in self._rows]
         self.rownumber = len(self._rows)
-        return tuple(result)
+        return result
 
 class SSCursor(Cursor):
     """
