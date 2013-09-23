@@ -5,10 +5,23 @@ MBLENGTH = {
         91:2
         }
 
-class Charset:
+
+class Charset(object):
     def __init__(self, id, name, collation, is_default):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'
+
+    @property
+    def encoding(self):
+        name = self.name
+        if name == 'utf8mb4':
+            return 'utf8'
+        return name
+
+    @property
+    def is_binary(self):
+        return self.id == 63
+
 
 class Charsets:
     def __init__(self):
@@ -237,12 +250,8 @@ _charsets.add(Charset(242, 'utf8mb4', 'utf8mb4_hungarian_ci', ''))
 _charsets.add(Charset(243, 'utf8mb4', 'utf8mb4_sinhala_ci', ''))
 
 
-def charset_by_name(name):
-    return _charsets.by_name(name)
-
-
-def charset_by_id(id):
-    return _charsets.by_id(id)
+charset_by_name = _charsets.by_name
+charset_by_id = _charsets.by_id
 
 
 def charset_to_encoding(name):
