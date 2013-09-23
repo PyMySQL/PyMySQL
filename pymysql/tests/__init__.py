@@ -1,8 +1,8 @@
 from pymysql.tests.test_issues import *
 from pymysql.tests.test_basic import *
 from pymysql.tests.test_DictCursor import *
+from pymysql.tests.test_connection import TestConnection
 
-import sys
 from pymysql.tests.thirdparty import *
 
 if __name__ == "__main__":

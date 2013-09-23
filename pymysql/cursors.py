@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import struct
 import re
 
 from ._compat import PY2, text_type
@@ -93,7 +92,7 @@ class Cursor(object):
         from sys import exc_info
 
         conn = self._get_db()
-        charset = conn.charset
+        encoding = conn.encoding
         del self.messages[:]
 
         # TODO: make sure that conn.escape is correct
@@ -111,7 +110,7 @@ class Cursor(object):
             query = query % escaped_args
 
         if isinstance(query, text_type):
-            query = query.encode(charset)
+            query = query.encode(encoding)
 
         result = 0
         try:
@@ -129,9 +128,9 @@ class Cursor(object):
         #conn = self._get_db()
         if not args:
             return
-        #charset = conn.charset
+        #encoding = conn.encoding
         #if isinstance(query, unicode):
-        #    query = query.encode(charset)
+        #    query = query.encode(encoding)
 
         self.rowcount = sum([ self.execute(query, arg) for arg in args ])
         return self.rowcount
@@ -169,7 +168,7 @@ class Cursor(object):
         for index, arg in enumerate(args):
             q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
             if isinstance(q, text_type):
-                q = q.encode(conn.charset)
+                q = q.encode(conn.encoding)
             self._query(q)
             self.nextset()
 
@@ -177,7 +176,7 @@ class Cursor(object):
                              ','.join(['@_%s_%d' % (procname, i)
                                        for i in range(len(args))]))
         if isinstance(q, text_type):
-            q = q.encode(conn.charset)
+            q = q.encode(conn.encoding)
         self._query(q)
         self._executed = q
 
