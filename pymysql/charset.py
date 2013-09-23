@@ -236,8 +236,16 @@ _charsets.add(Charset(241, 'utf8mb4', 'utf8mb4_esperanto_ci', ''))
 _charsets.add(Charset(242, 'utf8mb4', 'utf8mb4_hungarian_ci', ''))
 _charsets.add(Charset(243, 'utf8mb4', 'utf8mb4_sinhala_ci', ''))
 
+
 def charset_by_name(name):
     return _charsets.by_name(name)
 
+
 def charset_by_id(id):
     return _charsets.by_id(id)
+
+
+def charset_to_encoding(name):
+    if name == 'utf8mb4':
+        return 'utf8'
+    return name

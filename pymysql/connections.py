@@ -40,7 +40,7 @@ try:
 except ImportError:
     DEFAULT_USER = None
 
-from .charset import MBLENGTH, charset_by_name, charset_by_id
+from .charset import MBLENGTH, charset_by_name, charset_by_id, charset_to_encoding
 from .cursors import Cursor
 from .constants import FIELD_TYPE, FLAG
 from .constants import SERVER_STATUS
@@ -375,7 +375,7 @@ class FieldDescriptorPacket(MysqlPacket):
         self.db = self.read_length_coded_string()
         self.table_name = self.read_length_coded_string()
         self.org_table = self.read_length_coded_string()
-        self.name = self.read_length_coded_string().decode(self.connection.charset)
+        self.name = self.read_length_coded_string().decode(self.connection.encoding)
         self.org_name = self.read_length_coded_string()
         self.advance(1)  # non-null filler
         self.charsetnr = struct.unpack('<H', self.read(2))[0]
@@ -576,6 +576,8 @@ class Connection(object):
         if use_unicode is not None:
             self.use_unicode = use_unicode
 
+        self.encoding = charset_to_encoding(self.charset)
+
         client_flag |= CAPABILITIES
         client_flag |= MULTI_STATEMENTS
         if self.db:
@@ -725,6 +727,7 @@ class Connection(object):
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
+                self.encoding = charset_to_encoding(charset)
         except Exception:
             exc, value = sys.exc_info()[:2]
             self.errorhandler(None, exc, value)
@@ -815,7 +818,7 @@ class Connection(object):
             self._result._finish_unbuffered_query()
 
         if isinstance(sql, text_type):
-            sql = sql.encode(self.charset)
+            sql = sql.encode(self.encoding)
 
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self._write_bytes(prelude + sql)
@@ -834,7 +837,7 @@ class Connection(object):
 
         charset_id = charset_by_name(self.charset).id
         if isinstance(self.user, text_type):
-            self.user = self.user.encode(self.charset)
+            self.user = self.user.encode(self.encoding)
 
         data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
                      int2byte(charset_id) + int2byte(0)*23
@@ -854,11 +857,11 @@ class Connection(object):
                                           cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
 
-        data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
+        data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.encoding), self.salt)
 
         if self.db:
             if isinstance(self.db, text_type):
-                self.db = self.db.encode(self.charset)
+                self.db = self.db.encode(self.encoding)
             data += self.db + int2byte(0)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
@@ -879,7 +882,7 @@ class Connection(object):
             # send legacy handshake
             #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
             # TODO: is this the correct charset?
-            data = _scramble_323(self.password.encode(self.charset), self.salt.encode(self.charset)) + int2byte(0)
+            data = _scramble_323(self.password.encode(self.encoding), self.salt.encode(self.encoding)) + int2byte(0)
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
             self._write_bytes(data)
@@ -915,7 +918,7 @@ class Connection(object):
         i += 1
         server_end = data.find(int2byte(0), i)
         # TODO: is this the correct charset? should it be default_charset?
-        self.server_version = data[i:server_end].decode(self.charset)
+        self.server_version = data[i:server_end].decode(self.encoding)
 
         i = server_end + 1
         self.server_thread_id = struct.unpack('<I', data[i:i+4])
