@@ -1,5 +1,5 @@
 # Python implementation of the MySQL client-server protocol
-#   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
+# http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type
@@ -848,11 +848,11 @@ class Connection(object):
             if DEBUG: dump_packet(data)
 
             self._write_bytes(data)
-            self.socket = ssl.wrap_self.socketet(self.socket, keyfile=self.key,
-                                                 certfile=self.cert,
-                                                 ssl_version=ssl.PROTOCOL_TLSv1,
-                                                 cert_reqs=ssl.CERT_REQUIRED,
-                                                 ca_certs=self.ca)
+            self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
+                                          certfile=self.cert,
+                                          ssl_version=ssl.PROTOCOL_TLSv1,
+                                          cert_reqs=ssl.CERT_REQUIRED,
+                                          ca_certs=self.ca)
 
         data = data_init + self.user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
