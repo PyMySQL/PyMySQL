@@ -6,6 +6,7 @@ before_install:
     - sudo apt-get update -qq -y
     - sudo apt-get -y dist-upgrade
     - sudo apt-get -y install pypy
+    - sudo rm -f /usr/local/pypy
 
 install:
     - pip install -M tox
