@@ -44,7 +44,7 @@ from .err import (
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
 
-if PY2:
+if sys.version_info[:2] == (2, 7):
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
