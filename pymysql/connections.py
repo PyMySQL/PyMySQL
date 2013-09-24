@@ -622,25 +622,12 @@ class Connection(object):
         self.messages = []
 
         self.autocommit_mode = False
+
+        self.encoders = encoders  # Need for MySQLdb compatibility.
+        self.decoders = conv
+        self.sql_mode = sql_mode
+        self.init_command = init_command
         self._connect()
-
-        try:
-            self.set_charset(charset)
-            self.encoders = encoders  # Need for MySQLdb compatibility.
-            self.decoders = conv
-
-            if sql_mode is not None:
-                c = self.cursor()
-                c.execute("SET sql_mode=%s", (sql_mode,))
-
-            if init_command is not None:
-                c = self.cursor()
-                c.execute(init_command)
-                self.commit()
-        except:
-            if self.sock is not None:
-                self.close()
-            raise
 
 
     def close(self):
@@ -713,10 +700,10 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
+        if DEBUG:
+            print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
-        if DEBUG:
-            print("sending query: {}".format(sql))
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
@@ -797,8 +784,17 @@ class Connection(object):
             self._get_server_information()
             self._request_authentication()
 
+            if self.sql_mode is not None:
+                c = self.cursor()
+                c.execute("SET sql_mode=%s", (self.sql_mode,))
+
+            if self.init_command is not None:
+                c = self.cursor()
+                c.execute(self.init_command)
+                self.commit()
+
             self._send_autocommit_mode()
-        except socket.error as e:
+        except Exception as e:
             if sock is not None:
                 try:
                     sock.close()
@@ -806,6 +802,7 @@ class Connection(object):
                     pass
             raise OperationalError(
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
+
 
     def read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
@@ -1125,6 +1122,7 @@ class MySQLResult(object):
 
                 converter = self.connection.decoders.get(field_type)
                 if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+                if DEBUG: print("DEBUG: DATA = ", data)
                 if converter is not None:
                     data = converter(data)
             row.append(data)
