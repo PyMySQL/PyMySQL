@@ -22,13 +22,7 @@ if PY2:
 else:
     import configparser
 
-if PY2:
-    try:
-        import cStringIO as io
-    except ImportError:
-        import StringIO as io
-else:
-    import io
+import io
 
 try:
     import getpass
@@ -150,12 +144,12 @@ def _scramble_323(password, message):
 
     rand_st = RandStruct_323(hash_pass_n[0] ^ hash_message_n[0],
                              hash_pass_n[1] ^ hash_message_n[1])
-    outbuf = io.StringIO()
+    outbuf = io.BytesIO()
     for _ in range_type(min(SCRAMBLE_LENGTH_323, len(message))):
         outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
     extra = int2byte(int(rand_st.my_rnd() * 31))
     out = outbuf.getvalue()
-    outbuf = io.StringIO()
+    outbuf = io.BytesIO()
     for c in out:
         outbuf.write(int2byte(byte2int(c) ^ byte2int(extra)))
     return outbuf.getvalue()
@@ -635,6 +629,7 @@ class Connection(object):
         finally:
             self.socket.close()
             self.socket = None
+            self._rfile = None
 
     def autocommit(self, value):
         self.autocommit_mode = value
@@ -776,6 +771,7 @@ class Connection(object):
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket = sock
+            self._rfile = io.open(sock.fileno(), 'rb', closefd=False)
             self._get_server_information()
             self._request_authentication()
 
@@ -790,6 +786,7 @@ class Connection(object):
 
             self._send_autocommit_mode()
         except Exception as e:
+            self._rfile = None
             if sock is not None:
                 try:
                     sock.close()
@@ -808,18 +805,7 @@ class Connection(object):
         return packet
 
     def _read_bytes(self, num_bytes):
-        d = self.socket.recv(num_bytes)
-        num_bytes -= len(d)
-        if num_bytes == 0:
-            return d
-        buff = bytearray(d)
-        while num_bytes:
-            d = self.socket.recv(num_bytes)
-            if not d:
-                break
-            num_bytes -= len(d)
-            buff += d
-        return bytes(buff)
+        return self._rfile.read(num_bytes)
 
     def _write_bytes(self, data):
         return self.socket.sendall(data)
