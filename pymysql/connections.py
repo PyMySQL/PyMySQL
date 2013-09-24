@@ -273,17 +273,25 @@ class MysqlPacket(object):
 
     def read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self.peek(size)
-        self.advance(size)
+        result = self.__data[self.__position:(self.__position+size)]
+        if len(result) != size:
+            error = ('Result length not requested length:\n'
+                     'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
+                     % (size, len(result), self.__position, len(self.__data)))
+            if DEBUG:
+                print(error)
+                self.dump()
+            raise AssertionError(error)
+        self.__position += size
         return result
 
     def read_all(self):
         """Read all remaining data in the packet.
 
-        (Subsequent read() or peek() will return errors.)
+        (Subsequent read() will return errors.)
         """
         result = self.__data[self.__position:]
-        self.__position = None  # ensure no subsequent read() or peek()
+        self.__position = None  # ensure no subsequent read()
         return result
 
     def advance(self, length):
@@ -299,19 +307,6 @@ class MysqlPacket(object):
         if position < 0 or position > len(self.__data):
             raise Exception("Invalid position to rewind cursor to: %s." % position)
         self.__position = position
-
-    def peek(self, size):
-        """Look at the first 'size' bytes in packet without moving cursor."""
-        result = self.__data[self.__position:(self.__position+size)]
-        if len(result) != size:
-            error = ('Result length not requested length:\n'
-                     'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                     % (size, len(result), self.__position, len(self.__data)))
-            if DEBUG:
-                print(error)
-                self.dump()
-            raise AssertionError(error)
-        return result
 
     def get_bytes(self, position, length=1):
         """Get 'length' bytes starting at 'position'.
