@@ -4,7 +4,6 @@ python: "2.7"
 before_install:
     - sudo add-apt-repository -y ppa:pypy/ppa
     - sudo apt-get update -qq -y
-    - sudo apt-get -y dist-upgrade
     - sudo apt-get -y install pypy
     - sudo rm -f /usr/local/pypy
 
