@@ -44,6 +44,16 @@ from .err import (
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
 
+if PY2:
+    # read method of file-like returned by sock.makefile() is very slow.
+    # So we copy io-based one from Python 3.
+    from ._socketio import SocketIO
+    def _makefile(sock, mode):
+        return io.BufferedReader(SocketIO(sock, mode))
+else:
+    def _makefile(sock, mode):
+        return sock.makefile(mode)
+
 
 TEXT_TYPES = set([
     FIELD_TYPE.BIT,
@@ -771,7 +781,7 @@ class Connection(object):
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket = sock
-            self._rfile = io.open(sock.fileno(), 'rb', closefd=False)
+            self._rfile = _makefile(sock, 'rb')
             self._get_server_information()
             self._request_authentication()
 
