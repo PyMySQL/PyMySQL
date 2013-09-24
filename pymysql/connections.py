@@ -741,6 +741,12 @@ class Connection(object):
 
     def ping(self, reconnect=True):
         ''' Check if the server is alive '''
+        if self.socket is None:
+            if reconnect:
+                self._connect()
+                reconnect = False
+            else:
+                raise Error("Already closed")
         try:
             self._execute_command(COM_PING, "")
             pkt = self.read_packet()
@@ -752,7 +758,6 @@ class Connection(object):
             else:
                 exc, value = sys.exc_info()[:2]
                 self.errorhandler(None, exc, value)
-                return
 
     def set_charset(self, charset):
         try:
