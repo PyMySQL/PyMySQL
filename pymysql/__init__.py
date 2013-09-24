@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 VERSION = (0, 5, None)
 
+from ._compat import text_type
 from .constants import FIELD_TYPE
 from .converters import escape_dict, escape_sequence, escape_string
 from .err import Warning, Error, InterfaceError, DataError, \
@@ -35,14 +36,6 @@ from .times import Date, Time, Timestamp, \
 
 import sys
 
-try:
-    frozenset
-except NameError:
-    from sets import ImmutableSet as frozenset
-    try:
-        from sets import BaseSet as set
-    except ImportError:
-        from sets import Set as set
 
 threadsafety = 1
 apilevel = "2.0"
@@ -82,6 +75,8 @@ ROWID     = DBAPISet()
 
 def Binary(x):
     """Return x as a binary type."""
+    if isinstance(x, text_type):
+        return x.encode()
     return bytes(x)
 
 def Connect(*args, **kwargs):

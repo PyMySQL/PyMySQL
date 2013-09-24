@@ -7,7 +7,6 @@
 """
 import sys
 from time import time
-import array
 try:
     import unittest2 as unittest
 except ImportError:
@@ -25,7 +24,6 @@ class DatabaseTest(unittest.TestCase):
     debug = False
 
     def setUp(self):
-        import gc
         db = self.db_module.connect(*self.connect_args, **self.connect_kwargs)
         self.connection = db
         self.cursor = db.cursor()
@@ -283,10 +281,7 @@ class DatabaseTest(unittest.TestCase):
             if col == 0:
                 return row
             else:
-                if PY2:
-                    return self.BLOBBinary # 'BLOB\000Binary ' * 1024
-                else:
-                    return self.BLOBBinary.encode('utf8') # 'BLOB\000Binary ' * 1024
+                return self.BLOBBinary # 'BLOB\000Binary ' * 1024
         self.check_data_integrity(
                  ('col1 INT','col2 LONG BYTE'),
                  generator)
@@ -296,10 +291,7 @@ class DatabaseTest(unittest.TestCase):
             if col == 0:
                 return row
             else:
-                if PY2:
-                    return self.BLOBBinary # 'BLOB\000Binary ' * 1024
-                else:
-                    return self.BLOBBinary.encode('utf8') # 'BLOB\000Binary ' * 1024
+                return self.BLOBBinary # 'BLOB\000Binary ' * 1024
         self.check_data_integrity(
                  ('col1 INT','col2 BLOB'),
                  generator)
