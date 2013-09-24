@@ -82,7 +82,7 @@ ROWID     = DBAPISet()
 
 def Binary(x):
     """Return x as a binary type."""
-    return str(x)
+    return bytes(x)
 
 def Connect(*args, **kwargs):
     """
