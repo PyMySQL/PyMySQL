@@ -1,22 +1,18 @@
 language: python
-
-python:
-    - "2.6"
-    - "2.7"
-    - "3.3"
-    - "pypy"
+python: "2.7"
 
 before_install:
+    - sudo add-apt-repository -y ppa:pypy/ppa
     - sudo apt-get update -qq -y
-    - sudo apt-get -y dist-upgrade
+    - sudo apt-get -y install pypy
+    - sudo rm -rf /usr/local/pypy
 
 install:
-    - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install --use-mirrors unittest2; fi
-    - python setup.py develop
+    - pip install -M tox
 
 before_script:
     - "mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - "mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - cp .travis.databases.json pymysql/tests/databases.json
 
-script: ./runtests.py
+script: tox
