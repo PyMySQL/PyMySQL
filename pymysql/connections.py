@@ -356,17 +356,17 @@ class MysqlPacket(object):
         return self.read(length)
 
     def is_ok_packet(self):
-        return byte2int(self.get_bytes(0)) == 0
+        return self.__data[0:1] == b'\0'
 
     def is_eof_packet(self):
-        return byte2int(self.get_bytes(0)) == 254  # 'fe'
+        return self.__data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
-        field_count = byte2int(self.get_bytes(0))
-        return field_count >= 1 and field_count <= 250
+        field_count = ord(self.__data[0:1])
+        return 1 <= field_count <= 250
 
     def is_error_packet(self):
-        return byte2int(self.get_bytes(0)) == 255
+        return self.__data[0:1] == b'\xff'
 
     def check_error(self):
         if self.is_error_packet():
