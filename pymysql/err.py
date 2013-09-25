@@ -4,42 +4,35 @@ from .constants import ER
 import sys
 
 class MySQLError(Exception):
-
     """Exception related to operation with MySQL."""
 
 
 class Warning(Warning, MySQLError):
-
     """Exception raised for important warnings like data truncations
     while inserting, etc."""
 
 class Error(MySQLError):
-
     """Exception that is the base class of all other error exceptions
     (not Warning)."""
 
 
 class InterfaceError(Error):
-
     """Exception raised for errors that are related to the database
     interface rather than the database itself."""
 
 
 class DatabaseError(Error):
-
     """Exception raised for errors that are related to the
     database."""
 
 
 class DataError(DatabaseError):
-
     """Exception raised for errors that are due to problems with the
     processed data like division by zero, numeric value out of range,
     etc."""
 
 
 class OperationalError(DatabaseError):
-
     """Exception raised for errors that are related to the database's
     operation and not necessarily under the control of the programmer,
     e.g. an unexpected disconnect occurs, the data source name is not
@@ -48,28 +41,24 @@ class OperationalError(DatabaseError):
 
 
 class IntegrityError(DatabaseError):
-
     """Exception raised when the relational integrity of the database
     is affected, e.g. a foreign key check fails, duplicate key,
     etc."""
 
 
 class InternalError(DatabaseError):
-
     """Exception raised when the database encounters an internal
     error, e.g. the cursor is not valid anymore, the transaction is
     out of sync, etc."""
 
 
 class ProgrammingError(DatabaseError):
-
     """Exception raised for programming errors, e.g. table not found
     or already exists, syntax error in the SQL statement, wrong number
     of parameters specified, etc."""
 
 
 class NotSupportedError(DatabaseError):
-
     """Exception raised in case a method or database API was used
     which is not supported by the database, e.g. requesting a
     .rollback() on a connection that does not support transaction or
@@ -104,18 +93,15 @@ del _map_error, ER
 
 def _get_error_info(data):
     errno = struct.unpack('<h', data[1:3])[0]
-    if sys.version_info[0] == 3:
-        is_41 = data[3] == ord("#")
-    else:
-        is_41 = data[3] == "#"
+    is_41 = data[3:4] == b"#"
     if is_41:
         # version 4.1
-        sqlstate = data[4:9].decode("utf8")
-        errorvalue = data[9:].decode("utf8")
+        sqlstate = data[4:9].decode("utf8", 'replace')
+        errorvalue = data[9:].decode("utf8", 'replace')
         return (errno, sqlstate, errorvalue)
     else:
         # version 4.0
-        return (errno, None, data[3:].decode("utf8"))
+        return (errno, None, data[3:].decode("utf8", 'replace'))
 
 def _check_mysql_exception(errinfo):
     errno, sqlstate, errorvalue = errinfo
