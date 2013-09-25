@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 
+from ._compat import range_type
+
 from .err import (
     Warning, Error, InterfaceError, DataError,
     DatabaseError, OperationalError, IntegrityError, InternalError,
@@ -155,7 +157,7 @@ class Cursor(object):
 
         q = "CALL %s(%s)" % (procname,
                              ','.join(['@_%s_%d' % (procname, i)
-                                       for i in range(len(args))]))
+                                       for i in range_type(len(args))]))
         self._query(q)
         self._executed = q
         return args
@@ -364,7 +366,7 @@ class SSCursor(Cursor):
             size = self.arraysize
 
         rows = []
-        for i in range(size):
+        for i in range_type(size):
             row = self.read_next()
             if row is None:
                 break
@@ -386,7 +388,7 @@ class SSCursor(Cursor):
                     self, NotSupportedError,
                     "Backwards scrolling not supported by this cursor")
 
-            for _ in range(value):
+            for _ in range_type(value):
                 self.read_next()
             self.rownumber += value
         else:
@@ -396,6 +398,6 @@ class SSCursor(Cursor):
                     "Backwards scrolling not supported by this cursor")
 
             end = value - self.rownumber
-            for _ in range(end):
+            for _ in range_type(end):
                 self.read_next()
             self.rownumber = value
