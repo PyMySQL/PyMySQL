@@ -1,7 +1,7 @@
 """
-SocketIO imported from socket module in Pytho 3
+SocketIO imported from socket module in Python 3.
 
-Copyright (c) 2001-2013 Python Software Foundation; All Rights Reserved
+Copyright (c) 2001-2013 Python Software Foundation; All Rights Reserved.
 """
 
 from socket import *
