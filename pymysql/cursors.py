@@ -118,7 +118,7 @@ class Cursor(object):
         if not args:
             return
 
-        self.rowcount = sum([ self.execute(query, arg) for arg in args ])
+        self.rowcount = sum(self.execute(query, arg) for arg in args)
         return self.rowcount
 
     def callproc(self, procname, args=()):
