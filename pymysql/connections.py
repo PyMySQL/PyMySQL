@@ -484,8 +484,10 @@ class EOFPacketWrapper(object):
                     self.__class__))
 
         self.packet = from_packet
-        self.warning_count = self.packet.read(2)
+        from_packet.advance(1)
+        self.warning_count = from_packet.read(2)
         server_status = struct.unpack('<h', self.packet.read(2))[0]
+        if DEBUG: print("server_status=", server_status)
         self.has_next = server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
     def __getattr__(self, key):

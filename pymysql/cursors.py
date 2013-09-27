@@ -83,9 +83,10 @@ class Cursor(object):
 
     def execute(self, query, args=None):
         ''' Execute a query '''
-        from sys import exc_info
-
         conn = self._get_db()
+
+        while self.nextset():
+            pass
         del self.messages[:]
 
         # TODO: make sure that conn.escape is correct
@@ -106,6 +107,7 @@ class Cursor(object):
         try:
             result = self._query(query)
         except Exception:
+            from sys import exc_info
             exc, value = exc_info()[:2]
             self.errorhandler(self, exc, value)
 
