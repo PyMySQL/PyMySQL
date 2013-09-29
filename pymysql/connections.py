@@ -108,12 +108,16 @@ UNSIGNED_INT64_LENGTH = 8
 
 DEFAULT_CHARSET = 'latin1'
 
+MAX_PACKET_LEN = 2**24-1
+
 
 def dump_packet(data):
 
     def is_ascii(data):
-        if byte2int(data) >= 65 and byte2int(data) <= 122: #data.isalnum():
-            return data
+        if 65 <= byte2int(data) <= 122: #data.isalnum():
+            if isinstance(data, int):
+                return chr(data)
+            return int2byte(data)
         return '.'
 
     try:
@@ -126,7 +130,7 @@ def dump_packet(data):
         print("-" * 88)
     except ValueError:
         pass
-    dump_data = [data[i:i+16] for i in range_type(len(data)) if i%16 == 0]
+    dump_data = [data[i:i+16] for i in range_type(0, min(len(data), 256), 16)]
     for d in dump_data:
         print(' '.join(map(lambda x:"{:02X}".format(byte2int(x)), d)) +
               '   ' * (16 - len(d)) + ' ' * 2 +
@@ -257,22 +261,28 @@ class MysqlPacket(object):
 
     def _recv_packet(self, connection):
         """Parse the packet header and read entire packet payload into buffer."""
-        packet_header = connection._read_bytes(4)
-        if len(packet_header) < 4:
-            raise OperationalError(2013, "Lost connection to MySQL server during query")
+        buff = b''
+        while True:
+            packet_header = connection._read_bytes(4)
+            if len(packet_header) < 4:
+                raise OperationalError(2013, "Lost connection to MySQL server during query")
 
-        if DEBUG: dump_packet(packet_header)
-        packet_length_bin = packet_header[:3]
-        self.__packet_number = byte2int(packet_header[3])
-        # TODO: check packet_num is correct (+1 from last packet)
+            if DEBUG: dump_packet(packet_header)
+            packet_length_bin = packet_header[:3]
 
-        bin_length = packet_length_bin + int2byte(0)  # pad little-endian number
-        bytes_to_read = struct.unpack('<I', bin_length)[0]
-        recv_data = connection._read_bytes(bytes_to_read)
-        if len(recv_data) < bytes_to_read:
-            raise OperationalError(2013, "Lost connection to MySQL server during query")
-        if DEBUG: dump_packet(recv_data)
-        self.__data = recv_data
+            #TODO: check sequence id
+            self.__packet_number = byte2int(packet_header[3])
+
+            bin_length = packet_length_bin + b'\0'  # pad little-endian number
+            bytes_to_read = struct.unpack('<I', bin_length)[0]
+            recv_data = connection._read_bytes(bytes_to_read)
+            if len(recv_data) < bytes_to_read:
+                raise OperationalError(2013, "Lost connection to MySQL server during query")
+            if DEBUG: dump_packet(recv_data)
+            buff += recv_data
+            if bytes_to_read < MAX_PACKET_LEN:
+                break
+        self.__data = buff
 
     def packet_number(self):
         return self.__packet_number
@@ -363,7 +373,9 @@ class MysqlPacket(object):
         return self.__data[0:1] == b'\0'
 
     def is_eof_packet(self):
-        return self.__data[0:1] == b'\xfe'
+        # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
+        # Caution: \xFE may be LengthEncodedInteger.
+        return len(self.__data) < 10 and self.__data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self.__data[0:1])
@@ -492,7 +504,7 @@ class EOFPacketWrapper(object):
         from_packet.advance(1)
         self.warning_count = struct.unpack('<h', from_packet.read(2))[0]
         self.server_status = struct.unpack('<h', self.packet.read(2))[0]
-        if DEBUG: print("server_status=", server_status)
+        if DEBUG: print("server_status=", self.server_status)
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
     def __getattr__(self, key):
@@ -700,8 +712,8 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
-        if DEBUG:
-            print("DEBUG: sending query:", sql)
+        #if DEBUG:
+        #    print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
         self._execute_command(COM_QUERY, sql)
@@ -809,7 +821,7 @@ class Connection(object):
         return self._rfile.read(num_bytes)
 
     def _write_bytes(self, data):
-        return self.socket.sendall(data)
+        self.socket.sendall(data)
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
@@ -843,9 +855,27 @@ class Connection(object):
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
 
-        prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
-        self._write_bytes(prelude + sql)
+        chunk_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
+
+        prelude = struct.pack('<i', chunk_size) + int2byte(command)
+        self._write_bytes(prelude + sql[:chunk_size-1])
         if DEBUG: dump_packet(prelude + sql)
+
+        if chunk_size < MAX_PACKET_LEN:
+            return
+
+        seq_id = 1
+        sql = sql[chunk_size-1:]
+        while True:
+            chunk_size = min(MAX_PACKET_LEN, len(sql))
+            prelude = struct.pack('<i', chunk_size)[:3]
+            data = prelude + int2byte(seq_id%256) + sql[:chunk_size]
+            self._write_bytes(data)
+            if DEBUG: dump_packet(data)
+            sql = sql[chunk_size:]
+            if not sql and chunk_size < MAX_PACKET_LEN:
+                break
+            seq_id += 1
 
     def _request_authentication(self):
         self.client_flag |= CAPABILITIES
