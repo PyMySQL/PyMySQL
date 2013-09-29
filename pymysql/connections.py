@@ -773,11 +773,7 @@ class Connection(object):
                 self.host_info = "Localhost via UNIX socket"
                 if DEBUG: print('connected using unix_socket')
             else:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                t = sock.gettimeout()
-                sock.settimeout(self.connect_timeout)
-                sock.connect((self.host, self.port))
-                sock.settimeout(t)
+                sock = socket.create_connection((self.host, self.port), self.connect_timeout)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
