@@ -1089,6 +1089,7 @@ class MySQLResult(object):
         row = self._read_row_from_packet(packet)
         self.affected_rows = 1
         self.rows = [row]
+        return row
 
     def _finish_unbuffered_query(self):
         # After much reading on the MySQL protocol, it appears that there is,
