@@ -28,8 +28,8 @@ class Cursor(object):
         self.rowcount = -1
         self.arraysize = 1
         self._executed = None
-        self._has_next = None
-        self._rows = ()
+        self._result = None
+        self._rows = None
 
     def __del__(self):
         '''
@@ -42,12 +42,17 @@ class Cursor(object):
         Closing a cursor just exhausts all remaining data.
         '''
         conn = self.connection
-        self.connection = None
-
-        if conn is None or conn() is None:
+        if conn is None:
             return
-        while self.nextset():
-            pass
+        if conn() is None:
+            self.connection = None
+            return
+
+        try:
+            while self.nextset():
+                pass
+        finally:
+            self.connection = None
 
     def _get_db(self):
         if not self.connection:
@@ -69,10 +74,13 @@ class Cursor(object):
 
     def nextset(self):
         ''' Get the next query set '''
-        if not self._has_next:
+        conn = self._get_db()
+        current_result = self._result
+        if current_result is None or current_result is not conn._result:
             return None
-        connection = self._get_db()
-        connection.next_result()
+        if not current_result.has_next:
+            return None
+        conn.next_result()
         self._do_get_result()
         return True
 
@@ -202,13 +210,14 @@ class Cursor(object):
 
     def _do_get_result(self):
         conn = self._get_db()
-        self.rowcount = conn._result.affected_rows
 
         self.rownumber = 0
-        self.description = conn._result.description
-        self.lastrowid = conn._result.insert_id
-        self._rows = conn._result.rows
-        self._has_next = conn._result.has_next
+        self._result = result = conn._result
+
+        self.rowcount = result.affected_rows
+        self.description = result.description
+        self.lastrowid = result.insert_id
+        self._rows = result.rows
 
     def __iter__(self):
         return iter(self.fetchone, None)
@@ -289,9 +298,8 @@ class SSCursor(Cursor):
         conn._result._finish_unbuffered_query()
 
         try:
-            if self._has_next:
-                while self.nextset():
-                    pass
+            while self.nextset():
+                pass
         except Exception:
             pass
 
