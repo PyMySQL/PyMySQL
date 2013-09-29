@@ -72,6 +72,10 @@ elif _py_version == (2, 6):
                 read += data
                 if len(read) == n:
                     return read
+
+    def _makefile(sock, mode):
+        assert mode == 'rb'
+        return SockFile(sock)
 else:
     # socket.makefile in Python 3 is nice.
     def _makefile(sock, mode):
