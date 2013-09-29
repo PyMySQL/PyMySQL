@@ -219,7 +219,8 @@ class Cursor(object):
         self._rows = result.rows
 
     def __iter__(self):
-        return iter(self.fetchone, None)
+        self._check_executed()
+        return iter(self._rows[self.rownumber:])
 
     Warning = Warning
     Error = Error
@@ -274,6 +275,10 @@ class DictCursor(Cursor):
             result = [self.dict_type(zip(self._fields, r)) for r in self._rows]
         self.rownumber = len(self._rows)
         return result
+
+    def __iter__(self):
+        self._check_executed()
+        return (self.dict_type(zip(self._fields, r)) for r in self._rows[self.rownumber:])
 
 
 class SSCursor(Cursor):
