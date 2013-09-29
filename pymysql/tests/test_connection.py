@@ -11,8 +11,11 @@ class TestConnection(base.PyMySQLTestCase):
 
     def test_largedata(self):
         """Large query and response (>=16MB)"""
-        t = 'a' * (16*1024*1024)
         cur = self.connections[0].cursor()
+        cur.execute("SELECT @@max_allowed_packet")
+        if cur.fetchone()[0] < 16*1024*1024 + 10:
+            print("Set max_allowed_packet to bigger than 17MB")
+        t = 'a' * (16*1024*1024)
         cur.execute("SELECT '" + t + "'")
         assert cur.fetchone()[0] == t
 
