@@ -1030,7 +1030,7 @@ class MySQLResult(object):
 
         row = self._read_row_from_packet(packet)
         self.affected_rows = 1
-        self.rows = tuple((row,))
+        self.rows = [row]
 
     def _finish_unbuffered_query(self):
         # After much reading on the MySQL protocol, it appears that there is,
@@ -1051,7 +1051,7 @@ class MySQLResult(object):
             rows.append(self._read_row_from_packet(packet))
 
         self.affected_rows = len(rows)
-        self.rows = tuple(rows)
+        self.rows = rows
 
     def _read_row_from_packet(self, packet):
         use_unicode = self.connection.use_unicode

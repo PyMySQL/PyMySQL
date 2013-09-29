@@ -39,7 +39,7 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("insert into test_datatypes (i, l) values (2,4), (6,8), (10,12)")
             c.execute("select l from test_datatypes where i in %s order by i", ((2,6),))
             r = c.fetchall()
-            self.assertEqual(((4,),(8,)), r)
+            self.assertEqual([(4,),(8,)], r)
         finally:
             c.execute("drop table test_datatypes")
 
