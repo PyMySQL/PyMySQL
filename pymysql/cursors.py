@@ -294,7 +294,8 @@ class SSCursor(Cursor):
 
     def close(self):
         conn = self._get_db()
-        conn._result._finish_unbuffered_query()
+        if conn._result is not None:
+            conn._result._finish_unbuffered_query()
 
         try:
             while self.nextset():
@@ -388,3 +389,22 @@ class SSCursor(Cursor):
             self.rownumber = value
         else:
             raise ProgrammingError("unknown scroll mode %s" % mode)
+
+
+class SSDictCursor(SSCursor):
+    """ An unbuffered cursor, which returns results as a dictionary """
+
+    def execute(self, query, args=None):
+        result = super(SSDictCursor, self).execute(query, args)
+        if self.description:
+            self._fields = [field[0] for field in self.description]
+        return result
+
+    def read_next(self):
+        """ Read next row """
+
+        row = super(SSDictCursor, self).read_next()
+        if row is not None:
+            return dict(zip(self._fields, row))
+
+        return None
