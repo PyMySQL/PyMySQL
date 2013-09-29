@@ -83,14 +83,6 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         except DeprecationWarning:
             self.fail()
 
-    def test_issue_10(self):
-        """ Allocate a variable to return when the exception handler is permissive """
-        conn = self.connections[0]
-        conn.errorhandler = lambda cursor, errorclass, errorvalue: None
-        cur = conn.cursor()
-        cur.execute( "create table t( n int )" )
-        cur.execute( "create table t( n int )" )
-
     def test_issue_13(self):
         """ can't handle large result fields """
         conn = self.connections[0]
