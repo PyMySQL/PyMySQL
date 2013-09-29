@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function, absolute_import
 import re
 
 from ._compat import range_type
@@ -7,7 +8,6 @@ from .err import (
     Warning, Error, InterfaceError, DataError,
     DatabaseError, OperationalError, IntegrityError, InternalError,
     NotSupportedError, ProgrammingError)
-
 
 insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
 
@@ -21,15 +21,13 @@ class Cursor(object):
         Do not create an instance of a Cursor yourself. Call
         connections.Connection.cursor().
         '''
-        from weakref import proxy
-        self.connection = proxy(connection)
+        from weakref import ref
+        self.connection = ref(connection)
         self.description = None
         self.rownumber = 0
         self.rowcount = -1
         self.arraysize = 1
         self._executed = None
-        self.messages = []
-        self.errorhandler = connection.errorhandler
         self._has_next = None
         self._rows = ()
 
@@ -43,24 +41,25 @@ class Cursor(object):
         '''
         Closing a cursor just exhausts all remaining data.
         '''
-        if not self.connection:
-            return
-        try:
-            while self.nextset():
-                pass
-        except Exception:
-            pass
-
+        conn = self.connection
         self.connection = None
+
+        if conn is None or conn() is None:
+            return
+        while self.nextset():
+            pass
 
     def _get_db(self):
         if not self.connection:
-            self.errorhandler(self, ProgrammingError, "cursor closed")
-        return self.connection
+            raise ProgrammingError("cursor closed")
+        con = self.connection()
+        if con is None:
+            raise ProgrammingError("Connection closed")
+        return con
 
     def _check_executed(self):
         if not self._executed:
-            self.errorhandler(self, ProgrammingError, "execute() first")
+            raise ProgrammingError("execute() first")
 
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
@@ -70,10 +69,6 @@ class Cursor(object):
 
     def nextset(self):
         ''' Get the next query set '''
-        if self._executed:
-            self.fetchall()
-        del self.messages[:]
-
         if not self._has_next:
             return None
         connection = self._get_db()
@@ -87,7 +82,6 @@ class Cursor(object):
 
         while self.nextset():
             pass
-        del self.messages[:]
 
         # TODO: make sure that conn.escape is correct
 
@@ -100,23 +94,14 @@ class Cursor(object):
                 #If it's not a dictionary let's try escaping it anyways.
                 #Worst case it will throw a Value error
                 escaped_args = conn.escape(args)
-
             query = query % escaped_args
 
-        result = 0
-        try:
-            result = self._query(query)
-        except Exception:
-            from sys import exc_info
-            exc, value = exc_info()[:2]
-            self.errorhandler(self, exc, value)
-
+        result = self._query(query)
         self._executed = query
         return result
 
     def executemany(self, query, args):
         ''' Run several data against one query '''
-        del self.messages[:]
         if not args:
             return
 
@@ -202,11 +187,10 @@ class Cursor(object):
         elif mode == 'absolute':
             r = value
         else:
-            self.errorhandler(self, ProgrammingError,
-                              "unknown scroll mode %s" % mode)
+            raise ProgrammingError("unknown scroll mode %s" % mode)
 
         if not (0 <= r < len(self._rows)):
-            self.errorhandler(self, IndexError, "out of range")
+            raise IndexError("out of range")
         self.rownumber = r
 
     def _query(self, q):
@@ -378,28 +362,23 @@ class SSCursor(Cursor):
 
     def scroll(self, value, mode='relative'):
         self._check_executed()
-        if not mode == 'relative' and not mode == 'absolute':
-            self.errorhandler(
-                self, ProgrammingError,
-                "unknown scroll mode %s" % mode)
-            return
 
         if mode == 'relative':
             if value < 0:
-                self.errorhandler(
-                    self, NotSupportedError,
-                    "Backwards scrolling not supported by this cursor")
+                raise NotSupportedError(
+                        "Backwards scrolling not supported by this cursor")
 
             for _ in range_type(value):
                 self.read_next()
             self.rownumber += value
-        else:
+        elif mode == 'absolute':
             if value < self.rownumber:
-                self.errorhandler(
-                    self, NotSupportedError,
+                raise NotSupportedError(
                     "Backwards scrolling not supported by this cursor")
 
             end = value - self.rownumber
             for _ in range_type(end):
                 self.read_next()
             self.rownumber = value
+        else:
+            raise ProgrammingError("unknown scroll mode %s" % mode)

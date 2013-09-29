@@ -219,27 +219,6 @@ def unpack_int64(n):
             (n[4] << 32) + (n[5] << 40) + (n[6] << 48) + (n[7] << 56)
 
 
-def defaulterrorhandler(connection, cursor, errorclass, errorvalue):
-    err = errorclass, errorvalue
-
-    if cursor:
-        cursor.messages.append(err)
-    else:
-        connection.messages.append(err)
-    del cursor
-    del connection
-
-    if not issubclass(errorclass, Error):
-        raise Error(errorclass, errorvalue)
-    elif isinstance(errorvalue, errorclass):
-        # saving stacktrace when errorhandler is called in catch
-        if sys.exc_info()[1] is errorvalue:
-            raise
-        raise errorvalue
-    else:
-        raise errorclass(errorvalue)
-
-
 class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
@@ -505,7 +484,8 @@ class Connection(object):
     connect().
 
     """
-    errorhandler = defaulterrorhandler
+
+    socket = None
 
     def __init__(self, host="localhost", user=None, passwd="",
                  db=None, port=3306, unix_socket=None,
@@ -620,8 +600,6 @@ class Connection(object):
         self._affected_rows = 0
         self.host_info = "Not connected"
 
-        self.messages = []
-
         self.autocommit_mode = False
 
         self.encoders = encoders  # Need for MySQLdb compatibility.
@@ -643,37 +621,29 @@ class Connection(object):
             self.socket = None
             self._rfile = None
 
+    def __del__(self):
+        if self.socket:
+            self.close()
+
     def autocommit(self, value):
         self.autocommit_mode = value
         self._send_autocommit_mode()
 
     def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
-        try:
-            self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" %
-                                  self.escape(self.autocommit_mode))
-            self.read_packet()
-        except Exception:
-            exc, value = sys.exc_info()[:2]
-            self.errorhandler(None, exc, self.autocommit_mode)
+        self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" %
+                              self.escape(self.autocommit_mode))
+        self.read_packet()
 
     def commit(self):
         ''' Commit changes to stable storage '''
-        try:
-            self._execute_command(COM_QUERY, "COMMIT")
-            self.read_packet()
-        except Exception:
-            exc, value = sys.exc_info()[:2]
-            self.errorhandler(None, exc, value)
+        self._execute_command(COM_QUERY, "COMMIT")
+        self.read_packet()
 
     def rollback(self):
         ''' Roll back the current transaction '''
-        try:
-            self._execute_command(COM_QUERY, "ROLLBACK")
-            self.read_packet()
-        except Exception:
-            exc, value = sys.exc_info()[:2]
-            self.errorhandler(None, exc, value)
+        self._execute_command(COM_QUERY, "ROLLBACK")
+        self.read_packet()
 
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''
@@ -719,12 +689,7 @@ class Connection(object):
 
     def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
-        try:
-            self._execute_command(COM_PROCESS_KILL, arg)
-        except Exception:
-            exc, value = sys.exc_info()[:2]
-            self.errorhandler(None, exc, value)
-            return
+        self._execute_command(COM_PROCESS_KILL, arg)
         pkt = self.read_packet()
         return pkt.is_ok_packet()
 
@@ -745,25 +710,21 @@ class Connection(object):
                 self._connect()
                 return self.ping(False)
             else:
-                exc, value = sys.exc_info()[:2]
-                self.errorhandler(None, exc, value)
+                raise
 
     def set_charset(self, charset):
-        try:
-            if charset:
-                self._execute_command(COM_QUERY, "SET NAMES %s" %
-                                      self.escape(charset))
-                self.read_packet()
-                self.charset = charset
-                self.encoding = charset_by_name(charset).encoding
-        except Exception:
-            exc, value = sys.exc_info()[:2]
-            self.errorhandler(None, exc, value)
+        # Make sure charset is supported.
+        encoding = charset_by_name(charset).encoding
+
+        self._execute_command(COM_QUERY, "SET NAMES %s" % self.escape(charset))
+        self.read_packet()
+        self.charset = charset
+        self.encoding = encoding
 
     def _connect(self):
         sock = None
         try:
-            if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
+            if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 t = sock.gettimeout()
                 sock.settimeout(self.connect_timeout)
@@ -842,11 +803,9 @@ class Connection(object):
         else:
             return 0
 
-    def _send_command(self, command, sql):
-        #send_data = struct.pack('<i', len(sql) + 1) + command + sql
-        # could probably be more efficient, at least it's correct
+    def _execute_command(self, command, sql):
         if not self.socket:
-            self.errorhandler(None, InterfaceError, "(0, '')")
+            raise InterfaceError("(0, '')")
 
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
@@ -859,9 +818,6 @@ class Connection(object):
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self._write_bytes(prelude + sql)
         if DEBUG: dump_packet(prelude + sql)
-
-    def _execute_command(self, command, sql):
-        self._send_command(command, sql)
 
     def _request_authentication(self):
         self.client_flag |= CAPABILITIES

@@ -206,6 +206,7 @@ class TestCursor(base.PyMySQLTestCase):
         finally:
             c.execute("drop table mystuff")
 
+
 __all__ = ["TestConversion","TestCursor"]
 
 if __name__ == "__main__":
