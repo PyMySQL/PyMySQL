@@ -642,6 +642,8 @@ class Connection(object):
         send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
         try:
             self._write_bytes(send_data)
+        except IOError:
+            pass
         finally:
             self.socket.close()
             self.socket = None
