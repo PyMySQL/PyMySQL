@@ -9,6 +9,13 @@ class TestConnection(base.PyMySQLTestCase):
         arg['charset'] = 'utf8mb4'
         conn = pymysql.connect(**arg)
 
+    def test_largedata(self):
+        """Large query and response (>=16MB)"""
+        t = 'a' * (16*1024*1024)
+        cur = self.connections[0].cursor()
+        cur.execute("SELECT '" + t + "'")
+        assert cur.fetchone()[0] == t
+
 
 if __name__ == "__main__":
     try:
