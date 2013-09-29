@@ -169,10 +169,10 @@ class Cursor(object):
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
         self._check_executed()
-        end = self.rownumber + (size or self.arraysize)
-        result = self._rows[self.rownumber:end]
         if self._rows is None:
             return None
+        end = self.rownumber + (size or self.arraysize)
+        result = self._rows[self.rownumber:end]
         self.rownumber = min(end, len(self._rows))
         return result
 
