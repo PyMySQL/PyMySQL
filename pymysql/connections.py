@@ -44,13 +44,36 @@ from .err import (
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
 
-if sys.version_info[:2] == (2, 7):
+_py_version = sys.version_info[:2]
+
+
+# socket.makefile() in Python 2 is not usable because very inefficient and
+# bad behavior about timeout.
+if _py_version == (2, 7):
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
     def _makefile(sock, mode):
         return io.BufferedReader(SocketIO(sock, mode))
+elif _py_version == (2, 6):
+    # Python 2.6 doesn't have fast io module.
+    # So we make original one.
+    class SockFile(object):
+        def __init__(self, sock):
+            self._sock = sock
+        def read(self, n):
+            read = self._sock.recv(n)
+            if len(read) == n:
+                return read
+            while True:
+                data = self._sock.recv(n-len(read))
+                if not data:
+                    return read
+                read += data
+                if len(read) == n:
+                    return read
 else:
+    # socket.makefile in Python 3 is nice.
     def _makefile(sock, mode):
         return sock.makefile(mode)
 
