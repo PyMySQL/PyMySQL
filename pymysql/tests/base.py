@@ -21,7 +21,6 @@ class PyMySQLTestCase(unittest.TestCase):
 
     def setUp(self):
         self.connections = []
-
         for params in self.databases:
             self.connections.append(pymysql.connect(**params))
 
