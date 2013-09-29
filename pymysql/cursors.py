@@ -169,10 +169,10 @@ class Cursor(object):
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
         self._check_executed()
-        end = self.rownumber + (size or self.arraysize)
-        result = self._rows[self.rownumber:end]
         if self._rows is None:
             return None
+        end = self.rownumber + (size or self.arraysize)
+        result = self._rows[self.rownumber:end]
         self.rownumber = min(end, len(self._rows))
         return result
 
@@ -247,34 +247,24 @@ class DictCursor(Cursor):
 
     def fetchone(self):
         ''' Fetch the next row '''
-        self._check_executed()
-        if self._rows is None or self.rownumber >= len(self._rows):
+        result = super(DictCursor, self).fetchone()
+        if result is None:
             return None
-        result = self.dict_type(zip(self._fields, self._rows[self.rownumber]))
-        self.rownumber += 1
-        return result
+        return self.dict_type(zip(self._fields, result))
 
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
-        self._check_executed()
-        if self._rows is None:
+        rows = super(DictCursor, self).fetchmany(size)
+        if rows is None:
             return None
-        end = self.rownumber + (size or self.arraysize)
-        result = [self.dict_type(zip(self._fields, r)) for r in self._rows[self.rownumber:end]]
-        self.rownumber = min(end, len(self._rows))
-        return result
+        return [self.dict_type(zip(self._fields, r)) for r in rows]
 
     def fetchall(self):
         ''' Fetch all the rows '''
-        self._check_executed()
-        if self._rows is None:
+        rows = super(DictCursor, self).fetchall()
+        if rows is None:
             return None
-        if self.rownumber:
-            result = [self.dict_type(zip(self._fields, r)) for r in self._rows[self.rownumber:]]
-        else:
-            result = [self.dict_type(zip(self._fields, r)) for r in self._rows]
-        self.rownumber = len(self._rows)
-        return result
+        return [self.dict_type(zip(self._fields, r)) for r in rows]
 
     def __iter__(self):
         self._check_executed()
@@ -298,14 +288,22 @@ class SSCursor(Cursor):
     """
 
     def close(self):
-        conn = self._get_db()
-        conn._result._finish_unbuffered_query()
+        conn = self.connection
+        if conn is None:
+            return
+        conn = conn()
+        if conn is None:
+            self.connection = None
+            return
+
+        if self._result is not None and self._result is conn._result:
+            self._result._finish_unbuffered_query()
 
         try:
             while self.nextset():
                 pass
-        except Exception:
-            pass
+        finally:
+            self.connection = None
 
     def _query(self, q):
         conn = self._get_db()
@@ -315,9 +313,7 @@ class SSCursor(Cursor):
 
     def read_next(self):
         """ Read next row """
-        conn = self._get_db()
-        conn._result._read_rowdata_packet_unbuffered()
-        return conn._result.rows
+        return self._result._read_rowdata_packet_unbuffered()
 
     def fetchone(self):
         """ Fetch next row """
@@ -335,13 +331,7 @@ class SSCursor(Cursor):
         generator version of this method.
 
         """
-        rows = []
-        while True:
-            row = self.fetchone()
-            if row is None:
-                break
-            rows.append(row)
-        return rows
+        return list(self.fetchall_unbuffered())
 
     def fetchall_unbuffered(self):
         """
@@ -349,11 +339,10 @@ class SSCursor(Cursor):
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
+        return iter(self,fetchone, None)
 
-        row = self.fetchone()
-        while row is not None:
-            yield row
-            row = self.fetchone()
+    def __iter__(self):
+        return self.fetchall_unbuffered()
 
     def fetchmany(self, size=None):
         """ Fetch many """
@@ -393,3 +382,22 @@ class SSCursor(Cursor):
             self.rownumber = value
         else:
             raise ProgrammingError("unknown scroll mode %s" % mode)
+
+
+class SSDictCursor(SSCursor):
+    """ An unbuffered cursor, which returns results as a dictionary """
+    # You can override this to use OrderedDict or other dict-like types.
+    dict_type = dict
+
+    def execute(self, query, args=None):
+        result = super(SSDictCursor, self).execute(query, args)
+        if self.description:
+            self._fields = [field[0] for field in self.description]
+        return result
+
+    def read_next(self):
+        """ Read next row """
+        row = super(SSDictCursor, self).read_next()
+        if row is None:
+            return None
+        return self.dict_type(zip(self._fields, row))
