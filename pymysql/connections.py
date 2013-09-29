@@ -225,13 +225,12 @@ class MysqlPacket(object):
     for reading/parsing the packet results."""
 
     def __init__(self, connection):
-        self.connection = connection
-        self.__position = 0
-        self.__recv_packet()
+        self._position = 0
+        self._recv_packet(connection)
 
-    def __recv_packet(self):
+    def _recv_packet(self, connection):
         """Parse the packet header and read entire packet payload into buffer."""
-        packet_header = self.connection._read_bytes(4)
+        packet_header = connection._read_bytes(4)
         if len(packet_header) < 4:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
@@ -242,7 +241,7 @@ class MysqlPacket(object):
 
         bin_length = packet_length_bin + int2byte(0)  # pad little-endian number
         bytes_to_read = struct.unpack('<I', bin_length)[0]
-        recv_data = self.connection._read_bytes(bytes_to_read)
+        recv_data = connection._read_bytes(bytes_to_read)
         if len(recv_data) < bytes_to_read:
             raise OperationalError(2013, "Lost connection to MySQL server during query")
         if DEBUG: dump_packet(recv_data)
@@ -256,16 +255,16 @@ class MysqlPacket(object):
 
     def read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self.__data[self.__position:(self.__position+size)]
+        result = self.__data[self._position:(self._position+size)]
         if len(result) != size:
             error = ('Result length not requested length:\n'
                      'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                     % (size, len(result), self.__position, len(self.__data)))
+                     % (size, len(result), self._position, len(self.__data)))
             if DEBUG:
                 print(error)
                 self.dump()
             raise AssertionError(error)
-        self.__position += size
+        self._position += size
         return result
 
     def read_all(self):
@@ -273,23 +272,23 @@ class MysqlPacket(object):
 
         (Subsequent read() will return errors.)
         """
-        result = self.__data[self.__position:]
-        self.__position = None  # ensure no subsequent read()
+        result = self.__data[self._position:]
+        self._position = None  # ensure no subsequent read()
         return result
 
     def advance(self, length):
         """Advance the cursor in data buffer 'length' bytes."""
-        new_position = self.__position + length
+        new_position = self._position + length
         if new_position < 0 or new_position > len(self.__data):
             raise Exception('Invalid advance amount (%s) for cursor.  '
                             'Position=%s' % (length, new_position))
-        self.__position = new_position
+        self._position = new_position
 
     def rewind(self, position=0):
         """Set the position of the data buffer cursor to 'position'."""
         if position < 0 or position > len(self.__data):
             raise Exception("Invalid position to rewind cursor to: %s." % position)
-        self.__position = position
+        self._position = position
 
     def get_bytes(self, position, length=1):
         """Get 'length' bytes starting at 'position'.
@@ -365,11 +364,11 @@ class FieldDescriptorPacket(MysqlPacket):
     attributes on the class such as: db, table_name, name, length, type_code.
     """
 
-    def __init__(self, *args):
-        MysqlPacket.__init__(self, *args)
-        self.__parse_field_descriptor()
+    def __init__(self, connection):
+        MysqlPacket.__init__(self, connection)
+        self.__parse_field_descriptor(connection.encoding)
 
-    def __parse_field_descriptor(self):
+    def __parse_field_descriptor(self, encoding):
         """Parse the 'Field Descriptor' (Metadata) packet.
 
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
@@ -378,7 +377,7 @@ class FieldDescriptorPacket(MysqlPacket):
         self.db = self.read_length_coded_string()
         self.table_name = self.read_length_coded_string()
         self.org_table = self.read_length_coded_string()
-        self.name = self.read_length_coded_string().decode(self.connection.encoding)
+        self.name = self.read_length_coded_string().decode(encoding)
         self.org_name = self.read_length_coded_string()
         self.advance(1)  # non-null filler
         self.charsetnr = struct.unpack('<H', self.read(2))[0]
