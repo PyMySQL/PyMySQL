@@ -526,13 +526,13 @@ class Connection(object):
     socket = None
 
     def __init__(self, host="localhost", user=None, passwd="",
-                 db=None, port=3306, unix_socket=None,
+                 database=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False):
+                 autocommit=False, db=None):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -540,7 +540,7 @@ class Connection(object):
         host: Host where the database server is located
         user: Username to log in as
         passwd: Password to use.
-        db: Database to use, None to not use a particular one.
+        database: Database to use, None to not use a particular one.
         port: MySQL port to use, default is usually OK.
         unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
         charset: Charset you want to use.
@@ -557,10 +557,15 @@ class Connection(object):
         compress; Not supported
         named_pipe: Not supported
         no_delay: Disable Nagle's algorithm on the socket
+        autocommit: Autocommit mode. None means use server default. (default: False)
+        db: Alias for database. (for compatibility to MySQLdb)
         """
 
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
+
+        if db is not None and database is None:
+            database = db
 
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
@@ -602,7 +607,7 @@ class Connection(object):
             user = _config("user", user)
             passwd = _config("password", passwd)
             host = _config("host", host)
-            db = _config("db", db)
+            database = _config("database", database)
             unix_socket = _config("socket", unix_socket)
             port = int(_config("port", port))
             charset = _config("default-character-set", charset)
@@ -611,7 +616,7 @@ class Connection(object):
         self.port = port
         self.user = user or DEFAULT_USER
         self.password = passwd
-        self.db = db
+        self.db = database
         self.no_delay = no_delay
         self.unix_socket = unix_socket
         if charset:
