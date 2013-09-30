@@ -233,37 +233,46 @@ class Cursor(object):
     NotSupportedError = NotSupportedError
 
 
-class DictCursor(Cursor):
-    """A cursor which returns results as a dictionary"""
+class DictCursorMixin(object):
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
     def execute(self, query, args=None):
-        result = super(DictCursor, self).execute(query, args)
+        result = super(DictCursorMixin, self).execute(query, args)
         if self.description:
-            self._fields = [field[0] for field in self.description]
+            fields = []
+            for f in self._result.fields:
+                name = f.name
+                if name in fields:
+                    name = f.table_name + '.' + name
+                fields.append(name)
+            self._fields = fields
         return result
 
     def fetchone(self):
         ''' Fetch the next row '''
-        result = super(DictCursor, self).fetchone()
+        result = super(DictCursorMixin, self).fetchone()
         if result is None:
             return None
         return self.dict_type(zip(self._fields, result))
 
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
-        rows = super(DictCursor, self).fetchmany(size)
+        rows = super(DictCursorMixin, self).fetchmany(size)
         if rows is None:
             return None
         return [self.dict_type(zip(self._fields, r)) for r in rows]
 
     def fetchall(self):
         ''' Fetch all the rows '''
-        rows = super(DictCursor, self).fetchall()
+        rows = super(DictCursorMixin, self).fetchall()
         if rows is None:
             return None
         return [self.dict_type(zip(self._fields, r)) for r in rows]
+
+
+class DictCursor(DictCursorMixin, Cursor):
+    """A cursor which returns results as a dictionary"""
 
 
 class SSCursor(Cursor):
@@ -379,20 +388,5 @@ class SSCursor(Cursor):
             raise ProgrammingError("unknown scroll mode %s" % mode)
 
 
-class SSDictCursor(SSCursor):
+class SSDictCursor(DictCursorMixin, SSCursor):
     """ An unbuffered cursor, which returns results as a dictionary """
-    # You can override this to use OrderedDict or other dict-like types.
-    dict_type = dict
-
-    def execute(self, query, args=None):
-        result = super(SSDictCursor, self).execute(query, args)
-        if self.description:
-            self._fields = [field[0] for field in self.description]
-        return result
-
-    def read_next(self):
-        """ Read next row """
-        row = super(SSDictCursor, self).read_next()
-        if row is None:
-            return None
-        return self.dict_type(zip(self._fields, row))

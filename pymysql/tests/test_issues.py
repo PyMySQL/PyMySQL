@@ -275,6 +275,29 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.assertTrue(c.fetchone()[0])
         conn.close()
 
+    def test_Duplicate_field(self):
+        '''#79'''
+        conn = self.connections[0]
+        c = conn.cursor(pymysql.cursors.DictCursor)
+
+        c.execute("""CREATE TABLE a (id int, value int)""")
+        c.execute("""CREATE TABLE b (id int, value int)""")
+
+        a=(1,11)
+        b=(1,22)
+        try:
+            c.execute("insert into a values (%s, %s)", a)
+            c.execute("insert into b values (%s, %s)", b)
+
+            c.execute("SELECT * FROM a inner join b on a.id = b.id")
+            r = c.fetchall()[0]
+            self.assertEqual(r['id'], 1)
+            self.assertEqual(r['value'], 11)
+            self.assertEqual(r['b.value'], 22)
+        finally:
+            c.execute("drop table a")
+            c.execute("drop table b")
+
     def test_issue_95(self):
         conn = self.connections[0]
         cur = conn.cursor()
