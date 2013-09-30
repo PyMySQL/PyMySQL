@@ -669,10 +669,13 @@ class Connection(object):
 
     def autocommit(self, value):
         self.autocommit_mode = bool(value)
-        current = bool(self.server_status &
-                SERVER_STATUS.SERVER_STATUS_AUTOCOMMIT)
+        current = self.get_autocommit()
         if value != current:
             self._send_autocommit_mode()
+
+    def get_autocommit(self):
+        return bool(self.server_status &
+                SERVER_STATUS.SERVER_STATUS_AUTOCOMMIT)
 
     def _read_ok_packet(self):
         pkt = self._read_packet()
