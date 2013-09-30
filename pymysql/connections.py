@@ -978,7 +978,7 @@ class Connection(object):
         i += 4
 
         self.salt = data[i:i+8]
-        i += 9  # 8 + 1(filter)
+        i += 9  # 8 + 1(filler)
 
         self.server_capabilities = struct.unpack('<H', data[i:i+2])[0]
         i += 2
