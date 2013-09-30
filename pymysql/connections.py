@@ -995,7 +995,7 @@ class Connection(object):
             self.server_capabilities |= cap_h << 16
 
             i += 10
-            self.salt += data[i:i+salt_len]
+            self.salt += data[i:i+salt_len-9] # salt_len includes auth_plugin_data_part_1 and filler
 
             #TODO: AUTH PLUGIN NAME may appeare here.
 
