@@ -20,6 +20,15 @@ class TestConnection(base.PyMySQLTestCase):
         cur.execute("SELECT '" + t + "'")
         assert cur.fetchone()[0] == t
 
+    def test_escape_string(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
+        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
+
+
 
 if __name__ == "__main__":
     try:
