@@ -706,6 +706,11 @@ class Connection(object):
         self._execute_command(COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
 
+    def select_db(self, db):
+        '''Set current db'''
+        self._execute_command(COM_INIT_DB, db)
+        self._read_ok_packet()
+
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''
         if isinstance(obj, str_type):
