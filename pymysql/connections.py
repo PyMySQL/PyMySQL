@@ -531,7 +531,8 @@ class Connection(object):
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None, no_delay=False):
+                 compress=None, named_pipe=None, no_delay=False,
+                 autocommit=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -638,7 +639,8 @@ class Connection(object):
         self._affected_rows = 0
         self.host_info = "Not connected"
 
-        self.autocommit_mode = False
+        #: specified autocommit mode. None means use server default.
+        self.autocommit_mode = autocommit
 
         self.encoders = encoders  # Need for MySQLdb compatibility.
         self.decoders = conv
@@ -666,24 +668,35 @@ class Connection(object):
             self.close()
 
     def autocommit(self, value):
-        self.autocommit_mode = value
-        self._send_autocommit_mode()
+        self.autocommit_mode = bool(value)
+        current = bool(self.server_status &
+                SERVER_STATUS.SERVER_STATUS_AUTOCOMMIT)
+        if value != current:
+            self._send_autocommit_mode()
+
+    def _read_ok_packet(self):
+        pkt = self._read_packet()
+        if not pkt.is_ok_packet():
+            raise OperationalErrorl(2014, "Command Out of Sync")
+        ok = OKPacketWrapper(pkt)
+        self.server_status = ok.server_status
+        return True
 
     def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
         self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" %
                               self.escape(self.autocommit_mode))
-        self.read_packet()
+        self._read_ok_packet()
 
     def commit(self):
         ''' Commit changes to stable storage '''
         self._execute_command(COM_QUERY, "COMMIT")
-        self.read_packet()
+        self._read_ok_packet()
 
     def rollback(self):
         ''' Roll back the current transaction '''
         self._execute_command(COM_QUERY, "ROLLBACK")
-        self.read_packet()
+        self._read_ok_packet()
 
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''
@@ -738,8 +751,7 @@ class Connection(object):
     def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
         self._execute_command(COM_PROCESS_KILL, arg)
-        pkt = self.read_packet()
-        return pkt.is_ok_packet()
+        return self._read_ok_packet()
 
     def ping(self, reconnect=True):
         ''' Check if the server is alive '''
@@ -751,8 +763,7 @@ class Connection(object):
                 raise Error("Already closed")
         try:
             self._execute_command(COM_PING, "")
-            pkt = self.read_packet()
-            return pkt.is_ok_packet()
+            return self._read_ok_packet()
         except Exception:
             if reconnect:
                 self._connect()
@@ -765,7 +776,7 @@ class Connection(object):
         encoding = charset_by_name(charset).encoding
 
         self._execute_command(COM_QUERY, "SET NAMES %s" % self.escape(charset))
-        self.read_packet()
+        self._read_packet()
         self.charset = charset
         self.encoding = encoding
 
@@ -801,7 +812,8 @@ class Connection(object):
                 c.execute(self.init_command)
                 self.commit()
 
-            self._send_autocommit_mode()
+            if self.autocommit_mode is not None:
+                self.autocommit(self.autocommit_mode)
         except Exception as e:
             self._rfile = None
             if sock is not None:
@@ -813,7 +825,7 @@ class Connection(object):
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
 
-    def read_packet(self, packet_type=MysqlPacket):
+    def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results."""
 
@@ -1037,7 +1049,7 @@ class MySQLResult(object):
             self._finish_unbuffered_query()
 
     def read(self):
-        first_packet = self.connection.read_packet()
+        first_packet = self.connection._read_packet()
 
         # TODO: use classes for different packet types?
         if first_packet.is_ok_packet():
@@ -1047,7 +1059,7 @@ class MySQLResult(object):
 
     def init_unbuffered_query(self):
         self.unbuffered_active = True
-        first_packet = self.connection.read_packet()
+        first_packet = self.connection._read_packet()
 
         if first_packet.is_ok_packet():
             self._read_ok_packet(first_packet)
@@ -1088,7 +1100,7 @@ class MySQLResult(object):
             return
 
         # EOF
-        packet = self.connection.read_packet()
+        packet = self.connection._read_packet()
         if self._check_packet_is_eof(packet):
             self.unbuffered_active = False
             self.rows = None
@@ -1104,7 +1116,7 @@ class MySQLResult(object):
         # in fact, no way to stop MySQL from sending all the data after
         # executing a query, so we just spin, and wait for an EOF packet.
         while self.unbuffered_active:
-            packet = self.connection.read_packet()
+            packet = self.connection._read_packet()
             if self._check_packet_is_eof(packet):
                 self.unbuffered_active = False
 
@@ -1112,7 +1124,7 @@ class MySQLResult(object):
         """Read a rowdata packet for each data row in the result set."""
         rows = []
         while True:
-            packet = self.connection.read_packet()
+            packet = self.connection._read_packet()
             if self._check_packet_is_eof(packet):
                 break
             rows.append(self._read_row_from_packet(packet))
@@ -1149,10 +1161,10 @@ class MySQLResult(object):
         self.fields = []
         description = []
         for i in range_type(self.field_count):
-            field = self.connection.read_packet(FieldDescriptorPacket)
+            field = self.connection._read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = self.connection.read_packet()
+        eof_packet = self.connection._read_packet()
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
