@@ -2,7 +2,7 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
 from __future__ import print_function
-from ._compat import PY2, range_type, text_type
+from ._compat import PY2, range_type, text_type, str_type
 
 from functools import partial
 import os
@@ -38,7 +38,7 @@ from .constants import SERVER_STATUS
 from .constants.CLIENT import *
 from .constants.COMMAND import *
 from .util import byte2int, int2byte
-from .converters import escape_item, encoders, decoders
+from .converters import escape_item, encoders, decoders, escape_string
 from .err import (
     raise_mysql_exception, Warning, Error,
     InterfaceError, DataError, DatabaseError, OperationalError,
@@ -687,11 +687,19 @@ class Connection(object):
 
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''
+        if isinstance(obj, str_type):
+            return "'" + self.escape_string(obj) + "'"
         return escape_item(obj, self.charset)
 
     def literal(self, obj):
         ''' Alias for escape() '''
         return escape_item(obj, self.charset)
+
+    def escape_string(self, s):
+        if (self.server_status &
+                SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES):
+            return s.replace("'", "''")
+        return escape_string(s)
 
     def cursor(self, cursor=None):
         ''' Create a new cursor to execute queries with '''
@@ -831,6 +839,8 @@ class Connection(object):
             result = MySQLResult(self)
             result.read()
         self._result = result
+        if result.server_status is not None:
+            self.server_status = result.server_status
         return result.affected_rows
 
     def insert_id(self):
@@ -957,35 +967,37 @@ class Connection(object):
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
-        #packet_len = byte2int(data[i:i+1])
-        #i += 4
         self.protocol_version = byte2int(data[i:i+1])
-
         i += 1
+
         server_end = data.find(int2byte(0), i)
-        # TODO: is this the correct charset? should it be default_charset?
-        self.server_version = data[i:server_end].decode(self.encoding)
-
+        self.server_version = data[i:server_end].decode('latin1')
         i = server_end + 1
+
         self.server_thread_id = struct.unpack('<I', data[i:i+4])
-
         i += 4
+
         self.salt = data[i:i+8]
+        i += 9  # 8 + 1(filter)
 
-        i += 9
-        if len(data) >= i + 1:
-            i += 1
+        self.server_capabilities = struct.unpack('<H', data[i:i+2])[0]
+        i += 2
 
-        self.server_capabilities = struct.unpack('<h', data[i:i+2])[0]
+        if len(data) > i:
+            lang, stat, cap_h, salt_len = struct.unpack('<BHHB', data[i:i+6])
+            i += 6
+            self.server_language = lang
+            self.server_charset = charset_by_id(lang).name
 
-        i += 1
-        self.server_language = byte2int(data[i:i+1])
-        self.server_charset = charset_by_id(self.server_language).name
+            self.server_status = stat
+            if DEBUG: print("server_status: %x" % stat)
 
-        i += 16
-        if len(data) >= i+12-1:
-            rest_salt = data[i:i+12]
-            self.salt += rest_salt
+            self.server_capabilities |= cap_h << 16
+
+            i += 10
+            self.salt += data[i:i+salt_len]
+
+            #TODO: AUTH PLUGIN NAME may appeare here.
 
     def get_server_info(self):
         return self.server_version
@@ -1011,7 +1023,7 @@ class MySQLResult(object):
         self.connection = proxy(connection)
         self.affected_rows = None
         self.insert_id = None
-        self.server_status = 0
+        self.server_status = None
         self.warning_count = 0
         self.message = None
         self.field_count = 0
