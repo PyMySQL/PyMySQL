@@ -284,6 +284,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             SELECT 1;
         END""")
         try:
+            cur.execute("""CALL foo()""")
             cur.execute("""SELECT 1""")
             self.assertEqual(cur.fetchone()[0], 1)
         finally:
