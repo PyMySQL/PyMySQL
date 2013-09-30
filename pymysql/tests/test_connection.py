@@ -41,6 +41,19 @@ class TestConnection(base.PyMySQLTestCase):
         cur.execute("SELECT @@AUTOCOMMIT")
         self.assertEqual(cur.fetchone()[0], 0)
 
+    def test_select_db(self):
+        con = self.connections[0]
+        current_db = self.databases[0]['db']
+        other_db = self.databases[1]['db']
+
+        cur = con.cursor()
+        cur.execute('SELECT database()')
+        self.assertEqual(cur.fetchone()[0], current_db)
+
+        con.select_db(other_db)
+        cur.execute('SELECT database()')
+        self.assertEqual(cur.fetchone()[0], other_db)
+
 
 if __name__ == "__main__":
     try:
