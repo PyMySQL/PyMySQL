@@ -28,6 +28,18 @@ class TestConnection(base.PyMySQLTestCase):
         cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
+    def test_autocommit(self):
+        con = self.connections[0]
+        self.assertFalse(con.get_autocommit())
+
+        cur = con.cursor()
+        cur.execute("SET AUTOCOMMIT=1")
+        self.assertTrue(con.get_autocommit())
+
+        con.autocommit(False)
+        self.assertFalse(con.get_autocommit())
+        cur.execute("SELECT @@AUTOCOMMIT")
+        self.assertEqual(cur.fetchone()[0], 0)
 
 
 if __name__ == "__main__":
