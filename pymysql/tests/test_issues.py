@@ -275,6 +275,22 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.assertTrue(c.fetchone()[0])
         conn.close()
 
+    def test_issue_95(self):
+        conn = self.connections[0]
+        cur = conn.cursor()
+        cur.execute("DROP PROCEDURE IF EXISTS `foo`")
+        cur.execute("""CREATE PROCEDURE `foo` ()
+        BEGIN
+            SELECT 1;
+        END""")
+        try:
+            cur.execute("""SELECT 1""")
+            self.assertEqual(cur.fetchone()[0], 1)
+        finally:
+            cur.execute("DROP PROCEDURE IF EXISTS `foo`")
+
+
+
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
 if __name__ == "__main__":
