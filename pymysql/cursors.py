@@ -66,6 +66,9 @@ class Cursor(object):
         if not self._executed:
             raise ProgrammingError("execute() first")
 
+    def _conv_row(self, row):
+        return row
+
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
 
@@ -233,37 +236,32 @@ class Cursor(object):
     NotSupportedError = NotSupportedError
 
 
-class DictCursor(Cursor):
-    """A cursor which returns results as a dictionary"""
+class DictCursorMixin(object):
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
-    def execute(self, query, args=None):
-        result = super(DictCursor, self).execute(query, args)
+    def _do_get_result(self):
+        super(DictCursorMixin, self)._do_get_result()
+        fields = []
         if self.description:
-            self._fields = [field[0] for field in self.description]
-        return result
+            for f in self._result.fields:
+                name = f.name
+                if name in fields:
+                    name = f.table_name + '.' + name
+                fields.append(name)
+            self._fields = fields
 
-    def fetchone(self):
-        ''' Fetch the next row '''
-        result = super(DictCursor, self).fetchone()
-        if result is None:
-            return None
-        return self.dict_type(zip(self._fields, result))
+        if fields and self._rows:
+            self._rows = [self._conv_row(r) for r in self._rows]
 
-    def fetchmany(self, size=None):
-        ''' Fetch several rows '''
-        rows = super(DictCursor, self).fetchmany(size)
-        if rows is None:
+    def _conv_row(self, row):
+        if row is None:
             return None
-        return [self.dict_type(zip(self._fields, r)) for r in rows]
+        return self.dict_type(zip(self._fields, row))
 
-    def fetchall(self):
-        ''' Fetch all the rows '''
-        rows = super(DictCursor, self).fetchall()
-        if rows is None:
-            return None
-        return [self.dict_type(zip(self._fields, r)) for r in rows]
+
+class DictCursor(DictCursorMixin, Cursor):
+    """A cursor which returns results as a dictionary"""
 
 
 class SSCursor(Cursor):
@@ -281,6 +279,9 @@ class SSCursor(Cursor):
     there are is to iterate over every row returned. Also, it currently isn't
     possible to scroll backwards, as only the current row is held in memory.
     """
+
+    def _conv_row(self, row):
+        return row
 
     def close(self):
         conn = self.connection
@@ -308,7 +309,7 @@ class SSCursor(Cursor):
 
     def read_next(self):
         """ Read next row """
-        return self._result._read_rowdata_packet_unbuffered()
+        return self._conv_row(self._result._read_rowdata_packet_unbuffered())
 
     def fetchone(self):
         """ Fetch next row """
@@ -334,7 +335,7 @@ class SSCursor(Cursor):
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
-        return iter(self,fetchone, None)
+        return iter(self.fetchone, None)
 
     def __iter__(self):
         return self.fetchall_unbuffered()
@@ -379,20 +380,5 @@ class SSCursor(Cursor):
             raise ProgrammingError("unknown scroll mode %s" % mode)
 
 
-class SSDictCursor(SSCursor):
+class SSDictCursor(DictCursorMixin, SSCursor):
     """ An unbuffered cursor, which returns results as a dictionary """
-    # You can override this to use OrderedDict or other dict-like types.
-    dict_type = dict
-
-    def execute(self, query, args=None):
-        result = super(SSDictCursor, self).execute(query, args)
-        if self.description:
-            self._fields = [field[0] for field in self.description]
-        return result
-
-    def read_next(self):
-        """ Read next row """
-        row = super(SSDictCursor, self).read_next()
-        if row is None:
-            return None
-        return self.dict_type(zip(self._fields, row))

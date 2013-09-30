@@ -9,12 +9,15 @@ class TestDictCursor(base.PyMySQLTestCase):
     jim = {'name': 'jim', 'age': 56, 'DOB': datetime.datetime(1955, 5, 9, 13, 12, 45)}
     fred = {'name': 'fred', 'age': 100, 'DOB': datetime.datetime(1911, 9, 12, 1, 1, 1)}
 
+    cursor_type = pymysql.cursors.DictCursor
+
     def setUp(self):
         super(TestDictCursor, self).setUp()
         self.conn = conn = self.connections[0]
-        c = conn.cursor(pymysql.cursors.DictCursor)
+        c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
+        c.execute("drop table if exists dictcursor")
         c.execute("""CREATE TABLE dictcursor (name char(20), age int , DOB datetime)""")
         data = [("bob", 21, "1990-02-06 23:04:56"),
                 ("jim", 56, "1955-05-09 13:12:45"),
@@ -30,7 +33,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         bob, jim, fred = self.bob.copy(), self.jim.copy(), self.fred.copy()
         #all assert test compare to the structure as would come out from MySQLdb
         conn = self.conn
-        c = conn.cursor(pymysql.cursors.DictCursor)
+        c = conn.cursor(self.cursor_type)
 
         # try an update which should return no rows
         c.execute("update dictcursor set age=20 where name='bob'")
@@ -63,7 +66,7 @@ class TestDictCursor(base.PyMySQLTestCase):
     def test_custom_dict(self):
         class MyDict(dict): pass
 
-        class MyDictCursor(pymysql.cursors.DictCursor):
+        class MyDictCursor(self.cursor_type):
             dict_type = MyDict
 
         keys = ['name', 'age', 'DOB']
@@ -90,6 +93,10 @@ class TestDictCursor(base.PyMySQLTestCase):
         r = cur.fetchmany(2)
         self.assertEqual([bob, jim], r,
                          "list failed via MyDictCursor")
+
+
+class TestSSDictCursor(TestDictCursor):
+    cursor_type = pymysql.cursors.SSDictCursor
 
 
 if __name__ == "__main__":
