@@ -19,6 +19,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ undefined methods datetime_or_None, date_or_None """
         conn = self.connections[0]
         c = conn.cursor()
+        c.execute("drop table if exists issue3")
         c.execute("create table issue3 (d date, t time, dt datetime, ts timestamp)")
         try:
             c.execute("insert into issue3 (d, t, dt, ts) values (%s,%s,%s,%s)", (None, None, None, None))
@@ -37,6 +38,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ can't retrieve TIMESTAMP fields """
         conn = self.connections[0]
         c = conn.cursor()
+        c.execute("drop table if exists issue4")
         c.execute("create table issue4 (ts timestamp)")
         try:
             c.execute("insert into issue4 (ts) values (now())")
@@ -65,6 +67,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ Primary Key and Index error when selecting data """
         conn = self.connections[0]
         c = conn.cursor()
+        c.execute("drop table if exists test")
         c.execute("""CREATE TABLE `test` (`station` int(10) NOT NULL DEFAULT '0', `dh`
 datetime NOT NULL DEFAULT '0000-00-00 00:00:00', `echeance` int(1) NOT NULL
 DEFAULT '0', `me` double DEFAULT NULL, `mo` double DEFAULT NULL, PRIMARY
@@ -87,6 +90,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         """ can't handle large result fields """
         conn = self.connections[0]
         cur = conn.cursor()
+        cur.execute("drop table if exists issue13")
         try:
             cur.execute("create table issue13 (t text)")
             # ticket says 18k
@@ -103,6 +107,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         """ query should be expanded before perform character encoding """
         conn = self.connections[0]
         c = conn.cursor()
+        c.execute("drop table if exists issue15")
         c.execute("create table issue15 (t varchar(32))")
         try:
             c.execute("insert into issue15 (t) values (%s)", (u'\xe4\xf6\xfc',))
@@ -115,6 +120,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         """ Patch for string and tuple escaping """
         conn = self.connections[0]
         c = conn.cursor()
+        c.execute("drop table if exists issue16")
         c.execute("create table issue16 (name varchar(32) primary key, email varchar(32))")
         try:
             c.execute("insert into issue16 (name, email) values ('pete', 'floydophone')")
@@ -132,6 +138,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         c = conn.cursor()
         # grant access to a table to a user with a password
         try:
+            c.execute("drop table if exists issue17")
             c.execute("create table issue17 (x varchar(32) primary key)")
             c.execute("insert into issue17 (x) values ('hello, world!')")
             c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
@@ -158,6 +165,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = pymysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         try:
+            c.execute(b"drop table if exists hei\xc3\x9fe".decode("utf8"))
             c.execute(b"create table hei\xc3\x9fe (name varchar(32))".decode("utf8"))
             c.execute(b"insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')".decode("utf8"))
             c.execute(b"select name from hei\xc3\x9fe".decode("utf8"))
@@ -219,6 +227,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
 
         try:
+            c.execute("drop table if exists issue38")
             c.execute("create table issue38 (id integer, data mediumblob)")
             c.execute("insert into issue38 values (1, %s)", (datum,))
         finally:
@@ -227,6 +236,7 @@ class TestNewIssues(base.PyMySQLTestCase):
     def disabled_test_issue_54(self):
         conn = self.connections[0]
         c = conn.cursor()
+        c.execute("drop table if exists issue54")
         big_sql = "select * from issue54 where "
         big_sql += " and ".join("%d=%d" % (i,i) for i in range(0, 100000))
 
@@ -244,6 +254,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         c = conn.cursor()
         self.assertEqual(0, conn.insert_id())
         try:
+            c.execute("drop table if exists issue66")
             c.execute("create table issue66 (id integer primary key auto_increment, x integer)")
             c.execute("insert into issue66 (x) values (1)")
             c.execute("insert into issue66 (x) values (1)")
@@ -280,6 +291,8 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor(pymysql.cursors.DictCursor)
 
+        c.execute("drop table if exists a")
+        c.execute("drop table if exists b")
         c.execute("""CREATE TABLE a (id int, value int)""")
         c.execute("""CREATE TABLE b (id int, value int)""")
 

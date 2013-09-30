@@ -66,6 +66,9 @@ class Cursor(object):
         if not self._executed:
             raise ProgrammingError("execute() first")
 
+    def _conv_row(self, row):
+        return row
+
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
 
@@ -237,38 +240,24 @@ class DictCursorMixin(object):
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
-    def execute(self, query, args=None):
-        result = super(DictCursorMixin, self).execute(query, args)
+    def _do_get_result(self):
+        super(DictCursorMixin, self)._do_get_result()
+        fields = []
         if self.description:
-            fields = []
             for f in self._result.fields:
                 name = f.name
                 if name in fields:
                     name = f.table_name + '.' + name
                 fields.append(name)
             self._fields = fields
-        return result
 
-    def fetchone(self):
-        ''' Fetch the next row '''
-        result = super(DictCursorMixin, self).fetchone()
-        if result is None:
-            return None
-        return self.dict_type(zip(self._fields, result))
+        if fields and self._rows:
+            self._rows = [self._conv_row(r) for r in self._rows]
 
-    def fetchmany(self, size=None):
-        ''' Fetch several rows '''
-        rows = super(DictCursorMixin, self).fetchmany(size)
-        if rows is None:
+    def _conv_row(self, row):
+        if row is None:
             return None
-        return [self.dict_type(zip(self._fields, r)) for r in rows]
-
-    def fetchall(self):
-        ''' Fetch all the rows '''
-        rows = super(DictCursorMixin, self).fetchall()
-        if rows is None:
-            return None
-        return [self.dict_type(zip(self._fields, r)) for r in rows]
+        return self.dict_type(zip(self._fields, row))
 
 
 class DictCursor(DictCursorMixin, Cursor):
@@ -290,6 +279,9 @@ class SSCursor(Cursor):
     there are is to iterate over every row returned. Also, it currently isn't
     possible to scroll backwards, as only the current row is held in memory.
     """
+
+    def _conv_row(self, row):
+        return row
 
     def close(self):
         conn = self.connection
@@ -317,7 +309,7 @@ class SSCursor(Cursor):
 
     def read_next(self):
         """ Read next row """
-        return self._result._read_rowdata_packet_unbuffered()
+        return self._conv_row(self._result._read_rowdata_packet_unbuffered())
 
     def fetchone(self):
         """ Fetch next row """
@@ -343,7 +335,7 @@ class SSCursor(Cursor):
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
-        return iter(self,fetchone, None)
+        return iter(self.fetchone, None)
 
     def __iter__(self):
         return self.fetchall_unbuffered()
