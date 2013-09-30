@@ -414,10 +414,10 @@ class FieldDescriptorPacket(MysqlPacket):
         """
         self.catalog = self.read_length_coded_string()
         self.db = self.read_length_coded_string()
-        self.table_name = self.read_length_coded_string()
-        self.org_table = self.read_length_coded_string()
+        self.table_name = self.read_length_coded_string().decode(encoding)
+        self.org_table = self.read_length_coded_string().decode(encoding)
         self.name = self.read_length_coded_string().decode(encoding)
-        self.org_name = self.read_length_coded_string()
+        self.org_name = self.read_length_coded_string().decode(encoding)
         self.advance(1)  # non-null filler
         self.charsetnr = struct.unpack('<H', self.read(2))[0]
         self.length = struct.unpack('<I', self.read(4))[0]
