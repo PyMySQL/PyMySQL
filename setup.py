@@ -20,10 +20,21 @@ setup(
     url='https://github.com/PyMySQL/PyMySQL/',
     author='yutaka.matsubara',
     author_email='yutaka.matsubara@gmail.com',
-    maintainer='Pete Hunt',
-    maintainer_email='floydophone@gmail.com',
+    maintainer='Marcel Rodrigues',
+    maintainer_email='marcelgmr@gmail.com',
     description='Pure Python MySQL Driver',
     long_description=readme,
     license="MIT",
-    packages=find_packages()
+    packages=find_packages(),
+    classifiers=[
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Topic :: Database',
+    ]
 )
