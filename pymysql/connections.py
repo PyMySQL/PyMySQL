@@ -2,7 +2,7 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
 from __future__ import print_function
-from ._compat import PY2, range_type, text_type, str_type
+from ._compat import PY2, range_type, text_type, str_type, IRONPYTHON
 
 from functools import partial
 import os
@@ -49,7 +49,8 @@ _py_version = sys.version_info[:2]
 
 # socket.makefile() in Python 2 is not usable because very inefficient and
 # bad behavior about timeout.
-if _py_version == (2, 7):
+# XXX: ._socketio doesn't work under IronPython.
+if _py_version == (2, 7) and not IRONPYTHON:
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
