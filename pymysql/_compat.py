@@ -2,6 +2,8 @@ import sys
 
 PY2 = sys.version_info[0] == 2
 PYPY = hasattr(sys, 'pypy_translation_info')
+JYTHON = sys.platform.startswith('java')
+IRONPYTHON = sys.platform == 'cli'
 
 if PY2:
     range_type = xrange

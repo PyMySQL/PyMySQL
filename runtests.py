@@ -4,14 +4,16 @@ try:
 except ImportError:
     import unittest
 
-import sys
-if not hasattr(sys, 'pypy_version_info'):
+from pymysql._compat import PYPY, JYTHON, IRONPYTHON
+
+if not (PYPY or JYTHON or IRONPYTHON):
     import atexit
     import gc
     gc.set_debug(gc.DEBUG_UNCOLLECTABLE)
 
     @atexit.register
     def report_uncollectable():
+        if not gc.garbage: return
         print('uncollectable objects')
         for obj in gc.garbage:
             print(obj)
