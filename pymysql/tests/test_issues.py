@@ -329,6 +329,20 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.assertTrue(c.fetchone()[0])
         conn.close()
 
+    def test_issue_175(self):
+        """ The number of fields returned by server is read in wrong way """
+        conn = self.connections[0]
+        cur = conn.cursor()
+        for length in (200, 300):
+            columns = ', '.join('c{} integer'.format(i) for i in range(length))
+            sql = 'create table test_field_count ({})'.format(columns)
+            try:
+                cur.execute(sql)
+                cur.execute('select * from test_field_count')
+                assert len(cur.description) == length
+            finally:
+                cur.execute('drop table if exists test_field_count')
+
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
