@@ -319,7 +319,7 @@ class MysqlPacket(object):
         """
         return self.__data[position:(position+length)]
 
-    def read_length_coded_binary(self):
+    def read_length_encoded_integer(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
         Length coded numbers can be anywhere from 1 to 9 bytes depending
@@ -344,7 +344,7 @@ class MysqlPacket(object):
         (unsigned, positive) integer represented in 1-9 bytes followed by
         that many bytes of binary data.  (For example "cat" would be "3cat".)
         """
-        length = self.read_length_coded_binary()
+        length = self.read_length_encoded_integer()
         if length is None:
             return None
         return self.read(length)
@@ -455,8 +455,8 @@ class OKPacketWrapper(object):
         self.packet = from_packet
         self.packet.advance(1)
 
-        self.affected_rows = self.packet.read_length_coded_binary()
-        self.insert_id = self.packet.read_length_coded_binary()
+        self.affected_rows = self.packet.read_length_encoded_integer()
+        self.insert_id = self.packet.read_length_encoded_integer()
         self.server_status = struct.unpack('<H', self.packet.read(2))[0]
         self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
         self.message = self.packet.read_all()
@@ -1059,7 +1059,7 @@ class MySQLResult(object):
             self._read_ok_packet(first_packet)
             self.unbuffered_active = False
         else:
-            self.field_count = first_packet.read_length_coded_binary()
+            self.field_count = first_packet.read_length_encoded_integer()
             self._get_descriptions()
 
             # Apparently, MySQLdb picks this number because it's the maximum
@@ -1084,7 +1084,7 @@ class MySQLResult(object):
         return False
 
     def _read_result_packet(self, first_packet):
-        self.field_count = first_packet.read_length_coded_binary()
+        self.field_count = first_packet.read_length_encoded_integer()
         self._get_descriptions()
         self._read_rowdata_packet()
 
