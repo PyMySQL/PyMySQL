@@ -9,7 +9,7 @@ except ImportError:
 class PyMySQLTestCase(unittest.TestCase):
     # You can specify your test environment creating a file named
     #  "databases.json" or editing the `databases` variable below.
-    fname = "pymysql/tests/databases.json"
+    fname = os.path.join(os.path.dirname(__file__), "databases.json")
     if os.path.exists(fname):
         with open(fname) as f:
             databases = json.load(f)
