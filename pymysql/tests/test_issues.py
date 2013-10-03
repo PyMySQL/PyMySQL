@@ -250,6 +250,7 @@ class TestNewIssues(base.PyMySQLTestCase):
 
 class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_66(self):
+        """ 'Connection' object has no attribute 'insert_id' """
         conn = self.connections[0]
         c = conn.cursor()
         self.assertEqual(0, conn.insert_id())
@@ -262,32 +263,8 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         finally:
             c.execute("drop table issue66")
 
-    def test_issue_114(self):
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
-        conn.autocommit(False)
-        c = conn.cursor()
-        c.execute("""select @@autocommit;""")
-        self.assertFalse(c.fetchone()[0])
-        conn.close()
-        conn.ping()
-        c.execute("""select @@autocommit;""")
-        self.assertFalse(c.fetchone()[0])
-        conn.close()
-
-        # Ensure autocommit() is still working
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
-        c = conn.cursor()
-        c.execute("""select @@autocommit;""")
-        self.assertFalse(c.fetchone()[0])
-        conn.close()
-        conn.ping()
-        conn.autocommit(True)
-        c.execute("""select @@autocommit;""")
-        self.assertTrue(c.fetchone()[0])
-        conn.close()
-
-    def test_Duplicate_field(self):
-        '''#79'''
+    def test_issue_79(self):
+        """ Duplicate field overwrites the previous one in the result of DictCursor """
         conn = self.connections[0]
         c = conn.cursor(pymysql.cursors.DictCursor)
 
@@ -312,6 +289,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             c.execute("drop table b")
 
     def test_issue_95(self):
+        """ Leftover trailing OK packet for "CALL my_sp" queries """
         conn = self.connections[0]
         cur = conn.cursor()
         cur.execute("DROP PROCEDURE IF EXISTS `foo`")
@@ -326,6 +304,30 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         finally:
             cur.execute("DROP PROCEDURE IF EXISTS `foo`")
 
+    def test_issue_114(self):
+        """ autocommit is not set after reconnecting with ping() """
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn.autocommit(False)
+        c = conn.cursor()
+        c.execute("""select @@autocommit;""")
+        self.assertFalse(c.fetchone()[0])
+        conn.close()
+        conn.ping()
+        c.execute("""select @@autocommit;""")
+        self.assertFalse(c.fetchone()[0])
+        conn.close()
+
+        # Ensure autocommit() is still working
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        c = conn.cursor()
+        c.execute("""select @@autocommit;""")
+        self.assertFalse(c.fetchone()[0])
+        conn.close()
+        conn.ping()
+        conn.autocommit(True)
+        c.execute("""select @@autocommit;""")
+        self.assertTrue(c.fetchone()[0])
+        conn.close()
 
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
