@@ -221,34 +221,14 @@ def pack_int24(n):
 def unpack_uint16(n):
     return struct.unpack('<H', n[0:2])[0]
 
-
-# TODO: stop using bit-shifting in these functions...
-# TODO: rename to "uint" to make it clear they're unsigned...
 def unpack_int24(n):
-    try:
-        return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
-            (struct.unpack('B',n[2])[0] << 16)
-    except TypeError:
-        return n[0] + (n[1] << 8) + (n[2] << 16)
-
+    return struct.unpack('<I', n + b'\0')[0]
 
 def unpack_int32(n):
-    try:
-        return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0] << 8) +\
-            (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B', n[3])[0] << 24)
-    except TypeError:
-        return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
-
+    return struct.unpack('<I', n)[0]
 
 def unpack_int64(n):
-    try:
-        return struct.unpack('B',n[0])[0] + (struct.unpack('B', n[1])[0]<<8) +\
-            (struct.unpack('B',n[2])[0] << 16) + (struct.unpack('B',n[3])[0]<<24)+\
-            (struct.unpack('B',n[4])[0] << 32) + (struct.unpack('B',n[5])[0]<<40)+\
-            (struct.unpack('B',n[6])[0] << 48) + (struct.unpack('B',n[7])[0]<<56)
-    except TypeError:
-        return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24) +\
-            (n[4] << 32) + (n[5] << 40) + (n[6] << 48) + (n[7] << 56)
+    return struct.unpack('<Q', n)[0]
 
 
 class MysqlPacket(object):
@@ -355,7 +335,6 @@ class MysqlPacket(object):
         elif c == UNSIGNED_INT24_COLUMN:
             return unpack_int24(self.read(UNSIGNED_INT24_LENGTH))
         elif c == UNSIGNED_INT64_COLUMN:
-            # TODO: what was 'longlong'?  confirm it wasn't used?
             return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
 
     def read_length_coded_string(self):
@@ -376,7 +355,8 @@ class MysqlPacket(object):
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
-        return len(self.__data) < 10 and self.__data[0:1] == b'\xfe'
+        # If \xFE is LengthEncodedInteger header, 8bytes followed.
+        return len(self.__data) < 9 and self.__data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self.__data[0:1])
@@ -1079,7 +1059,7 @@ class MySQLResult(object):
             self._read_ok_packet(first_packet)
             self.unbuffered_active = False
         else:
-            self.field_count = byte2int(first_packet.read(1))
+            self.field_count = first_packet.read_length_coded_binary()
             self._get_descriptions()
 
             # Apparently, MySQLdb picks this number because it's the maximum
@@ -1104,7 +1084,7 @@ class MySQLResult(object):
         return False
 
     def _read_result_packet(self, first_packet):
-        self.field_count = byte2int(first_packet.read(1))
+        self.field_count = first_packet.read_length_coded_binary()
         self._get_descriptions()
         self._read_rowdata_packet()
 
