@@ -1,4 +1,4 @@
-from ._compat import PY2, text_type, long_type
+from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON
 
 import binascii
 import datetime
@@ -294,7 +294,7 @@ encoders = {
 def through(x):
     return x
 
-if not PY2:
+if not PY2 or JYTHON or IRONPYTHON:
     encoders[bytes] = escape_bytes
 
 decoders = {
