@@ -22,7 +22,7 @@ setup(
     author_email='yutaka.matsubara@gmail.com',
     maintainer='Marcel Rodrigues',
     maintainer_email='marcelgmr@gmail.com',
-    description='Pure Python MySQL Driver',
+    description='Pure-Python MySQL Driver',
     long_description=readme,
     license="MIT",
     packages=find_packages(),
