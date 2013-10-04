@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 '''
 
-VERSION = (0, 5, None)
+VERSION = (0, 6, None)
 
 from ._compat import text_type, JYTHON, IRONPYTHON
 from .constants import FIELD_TYPE
