@@ -1,5 +1,6 @@
 from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON
 
+import sys
 import binascii
 import datetime
 from decimal import Decimal
@@ -68,7 +69,7 @@ def escape_unicode(value):
     return escape_str(value)
 
 def escape_bytes(value):
-    return "x'%s'" % binascii.hexlify(value).decode()
+    return "x'%s'" % binascii.hexlify(value).decode(sys.getdefaultencoding())
 
 def escape_None(value):
     return 'NULL'
