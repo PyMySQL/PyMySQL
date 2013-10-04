@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 VERSION = (0, 5, None)
 
-from ._compat import text_type
+from ._compat import text_type, JYTHON, IRONPYTHON
 from .constants import FIELD_TYPE
 from .converters import escape_dict, escape_sequence, escape_string
 from .err import Warning, Error, InterfaceError, DataError, \
@@ -75,7 +75,7 @@ ROWID     = DBAPISet()
 
 def Binary(x):
     """Return x as a binary type."""
-    if isinstance(x, text_type):
+    if isinstance(x, text_type) and not (JYTHON or IRONPYTHON):
         return x.encode()
     return bytes(x)
 

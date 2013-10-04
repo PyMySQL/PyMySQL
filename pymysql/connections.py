@@ -2,7 +2,7 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
 from __future__ import print_function
-from ._compat import PY2, range_type, text_type, str_type, IRONPYTHON
+from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 
 from functools import partial
 import os
@@ -729,7 +729,7 @@ class Connection(object):
     def query(self, sql, unbuffered=False):
         #if DEBUG:
         #    print("DEBUG: sending query:", sql)
-        if isinstance(sql, text_type):
+        if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
             sql = sql.encode(self.encoding)
         self._execute_command(COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
