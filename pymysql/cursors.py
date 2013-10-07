@@ -304,6 +304,7 @@ class SSCursor(Cursor):
 
     def _query(self, q):
         conn = self._get_db()
+        self.lastexecuted = q 
         conn.query(q, unbuffered=True)
         self._do_get_result()
         return self.rowcount
