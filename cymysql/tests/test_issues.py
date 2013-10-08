@@ -22,6 +22,13 @@ if not hasattr(unittest, "skip"):
 
 PYTHON3 = sys.version_info[0] > 2
 
+def u(x):
+    if sys.version_info[0] < 3:
+        import codecs
+        return codecs.unicode_escape_decode(x)[0]
+    else:
+        return x
+
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
         """ undefined methods datetime_or_None, date_or_None """
@@ -91,10 +98,10 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
     def test_issue_10(self):
         """ Allocate a variable to return when the exception handler is permissive """
         conn = self.connections[0]
-        conn.errorhandler = lambda cursor, errorclass, errorvalue: None
         cur = conn.cursor()
-        cur.execute( "create table t( n int )" )
-        cur.execute( "create table t( n int )" )
+        cur.errorhandler = lambda errorclass, errorvalue: None
+        cur.execute( "create table issue10( n int )" )
+        cur.execute( "create table issue10( n int )" )
 
     def test_issue_13(self):
         """ can't handle large result fields """
@@ -126,10 +133,11 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("create table issue15 (t varchar(32))")
+
         try:
-            c.execute("insert into issue15 (t) values (%s)", (u'\xe4\xf6\xfc',))
+            c.execute("insert into issue15 (t) values (%s)", (u('\xe4\xf6\xfc'),))
             c.execute("select t from issue15")
-            self.assertEqual(u'\xe4\xf6\xfc', c.fetchone()[0])
+            self.assertEqual(u('\xe4\xf6\xfc'), c.fetchone()[0])
         finally:
             c.execute("drop table issue15")
 

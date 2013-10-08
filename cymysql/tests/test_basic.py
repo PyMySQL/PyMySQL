@@ -1,8 +1,17 @@
+import cymysql
 from cymysql.tests import base
 
 import time
 import datetime
 import struct
+import sys
+
+def u(x):
+    if sys.version_info[0] < 3:
+        import codecs
+        return codecs.unicode_escape_decode(x)[0]
+    else:
+        return x
 
 def int2byte(i):
     return struct.pack("!B", i)
@@ -15,7 +24,7 @@ class TestConversion(base.PyMySQLTestCase):
         c.execute("create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)")
         try:
             # insert values
-            v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", b"binary\x00data", datetime.date(1988,2,2), datetime.datetime.now(), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
+            v = (True, -3, 123456789012, 5.7, "hello'\" world", u('Espa\xc3\xb1ol'), b"binary\x00data", datetime.date(1988,2,2), datetime.datetime.now(), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
             c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
@@ -101,9 +110,9 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("select null,''")
-        self.assertEqual((None,u''), c.fetchone())
+        self.assertEqual((None,u('')), c.fetchone())
         c.execute("select '',null")
-        self.assertEqual((u'',None), c.fetchone())
+        self.assertEqual((u(''),None), c.fetchone())
     
     def test_datetime(self):
         """ test conversion of null, empty string """
@@ -208,6 +217,30 @@ class TestCursor(base.PyMySQLTestCase):
             self.assertEqual([(1,)], list(c.fetchall()))
         finally:
             c.execute("drop table mystuff")
+
+    def test_cyclic_reference_leak(self):
+        """
+        Ensure that a cylic reference between Connection and Cursor isn't leaking
+        objects.
+        """
+        import gc
+        gc.collect()
+
+        for i in range(0, 5):
+            conn = cymysql.connect(**self.databases[0])
+            c = conn.cursor()
+            c.execute('show tables in %s' % (self.databases[0]['db']))
+            c.close()
+            conn.close()
+        gc.collect()
+
+        conns = 0
+        for obj in gc.garbage:
+            if 'Connection' in repr(obj):
+                conns += 1
+
+        if conns > 0:
+            raise Exception('%d connections were leaked.' % (conns))
 
 __all__ = ["TestConversion","TestCursor"]
 
