@@ -1105,7 +1105,7 @@ class MySQLResult(object):
 
         row = self._read_row_from_packet(packet)
         self.affected_rows = 1
-        self.rows = [row]
+        self.rows = tuple((row,))
         return row
 
     def _finish_unbuffered_query(self):
@@ -1127,7 +1127,7 @@ class MySQLResult(object):
             rows.append(self._read_row_from_packet(packet))
 
         self.affected_rows = len(rows)
-        self.rows = rows
+        self.rows = tuple(rows)
 
     def _read_row_from_packet(self, packet):
         use_unicode = self.connection.use_unicode
