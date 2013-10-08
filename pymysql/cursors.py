@@ -21,8 +21,7 @@ class Cursor(object):
         Do not create an instance of a Cursor yourself. Call
         connections.Connection.cursor().
         '''
-        from weakref import ref
-        self.connection = ref(connection)
+        self.connection = connection
         self.description = None
         self.rownumber = 0
         self.rowcount = -1
@@ -44,10 +43,6 @@ class Cursor(object):
         conn = self.connection
         if conn is None:
             return
-        if conn() is None:
-            self.connection = None
-            return
-
         try:
             while self.nextset():
                 pass
@@ -56,11 +51,8 @@ class Cursor(object):
 
     def _get_db(self):
         if not self.connection:
-            raise ProgrammingError("cursor closed")
-        con = self.connection()
-        if con is None:
-            raise ProgrammingError("Connection closed")
-        return con
+            raise ProgrammingError("Cursor closed")
+        return self.connection
 
     def _check_executed(self):
         if not self._executed:
@@ -288,10 +280,6 @@ class SSCursor(Cursor):
         conn = self.connection
         if conn is None:
             return
-        conn = conn()
-        if conn is None:
-            self.connection = None
-            return
 
         if self._result is not None and self._result is conn._result:
             self._result._finish_unbuffered_query()
@@ -304,7 +292,7 @@ class SSCursor(Cursor):
 
     def _query(self, q):
         conn = self._get_db()
-        self.lastexecuted = q 
+        self.lastexecuted = q
         conn.query(q, unbuffered=True)
         self._do_get_result()
         return self.rowcount
