@@ -127,7 +127,6 @@ class Connection(object):
         else:
             raise errorclass(*errorvalue)
 
-
     def __init__(self, host="localhost", user=None, passwd="",
                  db=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
