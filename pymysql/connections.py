@@ -33,7 +33,7 @@ except ImportError:
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
-from .constants import FIELD_TYPE, FLAG
+from .constants import FIELD_TYPE
 from .constants import SERVER_STATUS
 from .constants.CLIENT import *
 from .constants.COMMAND import *
@@ -115,19 +115,19 @@ MAX_PACKET_LEN = 2**24-1
 def dump_packet(data):
 
     def is_ascii(data):
-        if 65 <= byte2int(data) <= 122: #data.isalnum():
+        if 65 <= byte2int(data) <= 122:  #data.isalnum():
             if isinstance(data, int):
                 return chr(data)
             return int2byte(data)
         return '.'
 
     try:
-        print("packet length {}".format(len(data)))
-        print("method call[1]: {}".format(sys._getframe(1).f_code.co_name))
-        print("method call[2]: {}".format(sys._getframe(2).f_code.co_name))
-        print("method call[3]: {}".format(sys._getframe(3).f_code.co_name))
-        print("method call[4]: {}".format(sys._getframe(4).f_code.co_name))
-        print("method call[5]: {}".format(sys._getframe(5).f_code.co_name))
+        print("packet length:", len(data))
+        print("method call[1]:", sys._getframe(1).f_code.co_name)
+        print("method call[2]:", sys._getframe(2).f_code.co_name)
+        print("method call[3]:", sys._getframe(3).f_code.co_name)
+        print("method call[4]:", sys._getframe(4).f_code.co_name)
+        print("method call[5]:", sys._getframe(5).f_code.co_name)
         print("-" * 88)
     except ValueError:
         pass
@@ -137,7 +137,7 @@ def dump_packet(data):
               '   ' * (16 - len(d)) + ' ' * 2 +
               ' '.join(map(lambda x:"{}".format(is_ascii(x)), d)))
     print("-" * 88)
-    print("")
+    print()
 
 
 def _scramble(password, message):
@@ -215,8 +215,7 @@ def _hash_password_323(password):
 
 
 def pack_int24(n):
-    return struct.pack('BBB', n&0xFF, (n>>8)&0xFF, (n>>16)&0xFF)
-
+    return struct.pack('<I', n)[:3]
 
 def unpack_uint16(n):
     return struct.unpack('<H', n[0:2])[0]
@@ -634,7 +633,6 @@ class Connection(object):
         self.init_command = init_command
         self._connect()
 
-
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
@@ -645,9 +643,10 @@ class Connection(object):
         except IOError:
             pass
         finally:
-            self.socket.close()
+            sock = self.socket
             self.socket = None
             self._rfile = None
+            sock.close()
 
     def __del__(self):
         if self.socket:
@@ -661,7 +660,7 @@ class Connection(object):
 
     def get_autocommit(self):
         return bool(self.server_status &
-                SERVER_STATUS.SERVER_STATUS_AUTOCOMMIT)
+                    SERVER_STATUS.SERVER_STATUS_AUTOCOMMIT)
 
     def _read_ok_packet(self):
         pkt = self._read_packet()
@@ -699,8 +698,8 @@ class Connection(object):
         return escape_item(obj, self.charset)
 
     def literal(self, obj):
-        ''' Alias for escape() '''
-        return escape_item(obj, self.charset)
+        '''Alias for escape()'''
+        return self.escape(obj)
 
     def escape_string(self, s):
         if (self.server_status &
