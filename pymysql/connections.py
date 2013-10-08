@@ -118,7 +118,7 @@ def dump_packet(data):
         if 65 <= byte2int(data) <= 122:  #data.isalnum():
             if isinstance(data, int):
                 return chr(data)
-            return int2byte(data)
+            return data
         return '.'
 
     try:
@@ -988,7 +988,7 @@ class Connection(object):
         self.server_capabilities = struct.unpack('<H', data[i:i+2])[0]
         i += 2
 
-        if len(data) > i:
+        if len(data) >= i + 6:
             lang, stat, cap_h, salt_len = struct.unpack('<BHHB', data[i:i+6])
             i += 6
             self.server_language = lang
@@ -998,11 +998,15 @@ class Connection(object):
             if DEBUG: print("server_status: %x" % stat)
 
             self.server_capabilities |= cap_h << 16
+            if DEBUG: print("salt_len:", salt_len)
+            salt_len = max(12, salt_len - 9)
 
-            i += 10
-            self.salt += data[i:i+salt_len-9] # salt_len includes auth_plugin_data_part_1 and filler
+        # reserved
+        i += 10
 
-            #TODO: AUTH PLUGIN NAME may appeare here.
+        if len(data) >= i + salt_len:
+            self.salt += data[i:i+salt_len] # salt_len includes auth_plugin_data_part_1 and filler
+        #TODO: AUTH PLUGIN NAME may appeare here.
 
     def get_server_info(self):
         return self.server_version
