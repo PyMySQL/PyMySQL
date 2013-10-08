@@ -13,7 +13,9 @@ if not (PYPY or JYTHON or IRONPYTHON):
 
     @atexit.register
     def report_uncollectable():
-        if not gc.garbage: return
+        if not gc.garbage:
+            print("No garbages!")
+            return
         print('uncollectable objects')
         for obj in gc.garbage:
             print(obj)
