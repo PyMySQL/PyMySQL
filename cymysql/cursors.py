@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import weakref
 import struct
 import re
 import sys
@@ -24,7 +25,6 @@ class Cursor(object):
         self.arraysize = 1
         self._executed = None
         self.messages = []
-        self.errorhandler = connection.errorhandler
         self._result = None
 
     def __del__(self):
@@ -32,6 +32,10 @@ class Cursor(object):
         When this gets GC'd close it.
         '''
         self.close()
+
+    def errorhandler(self, errorclass, errorvalue):
+        if self.connection:
+            self.connection.errorhandler(self, errorclass, errorvalue)
 
     @property
     def rowcount(self):
@@ -63,12 +67,12 @@ class Cursor(object):
 
     def _get_db(self):
         if not self.connection:
-            self.errorhandler(self, ProgrammingError, "cursor closed")
+            self.errorhandler(ProgrammingError, "cursor closed")
         return self.connection
 
     def _check_executed(self):
         if not self._executed:
-            self.errorhandler(self, ProgrammingError, "execute() first")
+            self.errorhandler(ProgrammingError, "execute() first")
 
     def _flush(self):
         if self._result:
@@ -98,8 +102,8 @@ class Cursor(object):
         from sys import exc_info
 
         conn = self._get_db()
-        if hasattr(conn, "_last_execute_cursor"):
-            conn._last_execute_cursor._flush()
+        if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
+            conn._last_execute_cursor()._flush()
 
         charset = conn.charset
         del self.messages[:]
@@ -127,10 +131,10 @@ class Cursor(object):
             exc, value, tb = exc_info()
             del tb
             self.messages.append((exc,value))
-            self.errorhandler(self, exc, value)
+            self.errorhandler(exc, value)
 
         self._executed = query
-        conn._last_execute_cursor = self
+        conn._last_execute_cursor = weakref.ref(self)
 
     def executemany(self, query, args):
         ''' Run several data against one query '''
