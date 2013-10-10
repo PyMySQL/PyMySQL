@@ -93,7 +93,7 @@ class MysqlPacket(object):
             raise OperationalError(2013, "Lost connection to MySQL server during query")
 
         bytes_to_read = unpack_uint24(packet_header[:3])
-        self.packet_number = ord(packet_header[3:])
+        self.packet_number = ord(packet_header[3])
         # TODO: check packet_num is correct (+1 from last packet)
   
         recv_data = self.__recv_from_socket(bytes_to_read)
@@ -200,17 +200,17 @@ class MysqlPacket(object):
         )
  
     def is_ok_packet(self):
-        return ord(self.get_bytes(0)) == 0
+        return self.get_bytes(0) == b'\x00'
 
     def is_eof_packet(self):
-        return ord(self.get_bytes(0)) == 254  # 'fe'
+        return self.get_bytes(0) == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self.get_bytes(0))
         return field_count >= 1 and field_count <= 250
   
     def check_error(self):
-        if ord(self.get_bytes(0)) == 255:
+        if self.get_bytes(0) == b'\xff':
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
