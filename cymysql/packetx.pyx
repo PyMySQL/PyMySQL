@@ -235,7 +235,7 @@ cdef class MysqlPacket(object):
             return errno, self.__data
         return 0, None
 
-    cdef object read_ok_packet(self):
+    def read_ok_packet(self):
         cdef int affected_rows, insert_id, server_status, warning_count
         cdef message
         self.advance(1)  # field_count (always '0')
