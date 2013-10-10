@@ -17,16 +17,10 @@ MBLENGTH = {
 
 cdef int FIELD_TYPE_VAR_STRING=253
 
-cdef int NULL_COLUMN = 251
 cdef int UNSIGNED_CHAR_COLUMN = 251
 cdef int UNSIGNED_SHORT_COLUMN = 252
 cdef int UNSIGNED_INT24_COLUMN = 253
 cdef int UNSIGNED_INT64_COLUMN = 254
-cdef int UNSIGNED_CHAR_LENGTH = 1
-cdef int UNSIGNED_SHORT_LENGTH = 2
-cdef int UNSIGNED_INT24_LENGTH = 3
-cdef int UNSIGNED_INT64_LENGTH = 8
-
 
 cdef int unpack_uint16(bytes n):
     if PYTHON3:
@@ -176,16 +170,16 @@ cdef class MysqlPacket(object):
         on the value of the first byte.
         """
         c = ord(self._read(1))
-        if c == NULL_COLUMN:
-            return -1
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
-            return unpack_uint16(self._read(UNSIGNED_SHORT_LENGTH))
+            return unpack_uint16(self._read(2))
         elif c == UNSIGNED_INT24_COLUMN:
-            return unpack_uint24(self._read(UNSIGNED_INT24_LENGTH))
+            return unpack_uint24(self._read(3))
         elif c == UNSIGNED_INT64_COLUMN:
             # TODO: what was 'longlong'?  confirm it wasn't used?
+            return -1
+        else:
             return -1
   
     cdef read_length_coded_string(self):

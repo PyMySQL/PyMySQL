@@ -17,16 +17,10 @@ MBLENGTH = {
 
 FIELD_TYPE_VAR_STRING=253
 
-NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
 UNSIGNED_INT24_COLUMN = 253
 UNSIGNED_INT64_COLUMN = 254
-UNSIGNED_CHAR_LENGTH = 1
-UNSIGNED_SHORT_LENGTH = 2
-UNSIGNED_INT24_LENGTH = 3
-UNSIGNED_INT64_LENGTH = 8
-
 
 def unpack_uint16(n):
     if PYTHON3:
@@ -163,16 +157,16 @@ class MysqlPacket(object):
         on the value of the first byte.
         """
         c = ord(self._read(1))
-        if c == NULL_COLUMN:
-            return -1
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
-            return unpack_uint16(self._read(UNSIGNED_SHORT_LENGTH))
+            return unpack_uint16(self._read(2))
         elif c == UNSIGNED_INT24_COLUMN:
-            return unpack_uint24(self._read(UNSIGNED_INT24_LENGTH))
+            return unpack_uint24(self._read(3))
         elif c == UNSIGNED_INT64_COLUMN:
             # TODO: what was 'longlong'?  confirm it wasn't used?
+            return -1
+        else:
             return -1
   
     def read_length_coded_string(self):
