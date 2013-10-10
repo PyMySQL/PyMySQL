@@ -1105,7 +1105,7 @@ class MySQLResult(object):
 
         row = self._read_row_from_packet(packet)
         self.affected_rows = 1
-        self.rows = tuple((row,))
+        self.rows = (row,)  # rows should tuple of row for MySQL-python compatibility.
         return row
 
     def _finish_unbuffered_query(self):
