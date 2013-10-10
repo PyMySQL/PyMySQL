@@ -205,10 +205,6 @@ class MysqlPacket(object):
     def is_eof_packet(self):
         return self.get_bytes(0) == b'\xfe'
 
-    def is_resultset_packet(self):
-        field_count = ord(self.get_bytes(0))
-        return field_count >= 1 and field_count <= 250
-  
     def check_error(self):
         if self.get_bytes(0) == b'\xff':
             self.rewind()
