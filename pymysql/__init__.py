@@ -93,7 +93,7 @@ Connect.__doc__ = _orig_conn.Connection.__init__.__doc__ + """\nSee connections.
 del _orig_conn
 
 def get_client_info():  # for MySQLdb compatibility
-    return '%s.%s.%s' % VERSION
+    return '.'.join(map(str, VERSION))
 
 connect = Connection = Connect
 
