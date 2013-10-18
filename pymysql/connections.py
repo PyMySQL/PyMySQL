@@ -917,6 +917,7 @@ class Connection(object):
                                           ssl_version=ssl.PROTOCOL_TLSv1,
                                           cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
+            self._rfile = _makefile(self.socket, 'rb')
 
         data = data_init + self.user + b'\0' + \
             _scramble(self.password.encode(self.encoding), self.salt)
