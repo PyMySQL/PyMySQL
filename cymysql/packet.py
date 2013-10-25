@@ -139,17 +139,6 @@ class MysqlPacket(object):
                     "Invalid position to rewind cursor to: %s." % position)
         self.__position = position
   
-    def get_bytes(self, position, length=1):
-        """Get 'length' bytes starting at 'position'.
-  
-        Position is start of payload (first four packet header bytes are not
-        included) starting at index '0'.
-  
-        No error checking is done.  If requesting outside end of buffer
-        an empty string (or string shorter than 'length') may be returned!
-        """
-        return self.__data[position:(position+length)]
-  
     def read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
@@ -194,13 +183,23 @@ class MysqlPacket(object):
         )
  
     def is_ok_packet(self):
-        return self.get_bytes(0) == b'\x00'
+        if PYTHON3:
+            return self.__data[0] == 0
+        else:
+            return ord(self.__data[0]) == 0
 
     def is_eof_packet(self):
-        return self.get_bytes(0) == b'\xfe'
+        if PYTHON3:
+            return self.__data[0] == 0xfe
+        else:
+            return ord(self.__data[0]) == 0xfe
 
     def check_error(self):
-        if self.get_bytes(0) == b'\xff':
+        if PYTHON3:
+            is_error = self.__data[0] == 0xff
+        else:
+            is_error = ord(self.__data[0]) == 0xff
+        if is_error:
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
