@@ -1,6 +1,7 @@
 import cymysql
 from cymysql.tests import base
 import unittest
+from time import sleep
 
 import sys
 
@@ -232,6 +233,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         except:
             pass
         # check the process list from the other connection
+        sleep(0.5)
         try:
             c = self.connections[1].cursor()
             c.execute("show processlist")
