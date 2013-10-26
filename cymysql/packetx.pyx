@@ -196,9 +196,6 @@ cdef class MysqlPacket(object):
                 self.connection.use_unicode)
         )
 
-    def read_decode_data(self, fields):
-        return tuple([self._read_decode_data(self.connection.charset, f, self.connection.use_unicode) for f in fields])
-
     def is_ok_packet(self):
         if PYTHON3:
             return self.__data[0] == 0
