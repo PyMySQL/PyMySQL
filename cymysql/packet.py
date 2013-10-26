@@ -54,7 +54,7 @@ class MysqlPacket(object):
         if PYTHON3:
             is_error = self.__data[0] == 0xff
         else:
-            is_error = ord(self.__data[0]) == 0xff
+            is_error = self.__data[0] == b'\xff'
         if is_error:
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
