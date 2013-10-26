@@ -312,9 +312,6 @@ cdef class MySQLResult(object):
         self.has_next = None
         self.has_result = False
         self.rest_rows = None
-
-    def read(self):
-        self.rest_rows = None
         self.first_packet = MysqlPacket(self.connection)
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
@@ -337,7 +334,7 @@ cdef class MySQLResult(object):
             is_eof, warning_count, server_status = packet.is_eof_and_status()
             if is_eof:
                 self.warning_count = warning_count
-                server_status = server_status
+                self.server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
@@ -366,7 +363,7 @@ cdef class MySQLResult(object):
             is_eof, warning_count, server_status = packet.is_eof_and_status()
             if is_eof:
                 self.warning_count = warning_count
-                server_status = server_status
+                self.server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []

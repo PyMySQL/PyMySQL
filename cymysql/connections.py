@@ -324,10 +324,10 @@ class Connection(object):
         if DEBUG:
             print("sending query: %s" % sql)
         self._execute_command(COM_QUERY, sql)
-        self._result = self._read_query_result()
+        self._result = MySQLResult(self)
 
     def next_result(self):
-        self._result = self._read_query_result()
+        self._result = MySQLResult(self)
 
     def affected_rows(self):
         if self._result:
@@ -401,11 +401,6 @@ class Connection(object):
       """Read an entire "mysql packet" in its entirety from the network
       and return a MysqlPacket type that represents the results."""
       return MysqlPacket(self)
-
-    def _read_query_result(self):
-        result = MySQLResult(self)
-        result.read()
-        return result
 
     def insert_id(self):
         if self._result:

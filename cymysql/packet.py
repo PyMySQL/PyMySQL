@@ -287,9 +287,6 @@ class MySQLResult(object):
         self.has_next = None
         self.has_result = False
         self.rest_rows = None
-
-    def read(self):
-        self.rest_rows = None
         self.first_packet = MysqlPacket(self.connection)
 
         if self.first_packet.is_ok_packet():
