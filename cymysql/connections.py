@@ -33,9 +33,9 @@ from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 try:
-    from cymysql.packetx import read_mysqlpacket, MySQLResult
+    from cymysql.packetx import MysqlPacket, MySQLResult
 except ImportError:
-    from cymysql.packet import read_mysqlpacket, MySQLResult
+    from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -400,7 +400,7 @@ class Connection(object):
     def read_packet(self):
       """Read an entire "mysql packet" in its entirety from the network
       and return a MysqlPacket type that represents the results."""
-      return read_mysqlpacket(self)
+      return MysqlPacket(self)
 
     def _read_query_result(self):
         result = MySQLResult(self)
@@ -474,7 +474,7 @@ class Connection(object):
         if DEBUG: dump_packet(data)
 
         self.socket.sendall(data)
-        auth_packet = read_mysqlpacket(self)
+        auth_packet = MysqlPacket(self)
 
         if DEBUG: dump_packet(auth_packet.get_all_data())
 
@@ -500,7 +500,7 @@ class Connection(object):
 
     def _get_server_information(self):
         i = 0
-        packet = read_mysqlpacket(self)
+        packet = MysqlPacket(self)
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)

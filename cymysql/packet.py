@@ -41,12 +41,6 @@ def unpack_uint32(n):
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
-def read_mysqlpacket(connection):
-      return MysqlPacket(connection)
-
-def read_fielddescriptorpacket(connection):
-      return FieldDescriptorPacket(connection)
-
 
 class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
@@ -294,7 +288,7 @@ class MySQLResult(object):
 
     def read(self):
         self.rest_rows = None
-        self.first_packet = read_mysqlpacket(self.connection)
+        self.first_packet = MysqlPacket(self.connection)
 
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
@@ -313,7 +307,7 @@ class MySQLResult(object):
             return
         rest_rows = []
         while True:
-            packet = read_mysqlpacket(self.connection)
+            packet = MysqlPacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
@@ -329,11 +323,11 @@ class MySQLResult(object):
         self.fields = []
         description = []
         for i in range(self.field_count):
-            field = read_fielddescriptorpacket(self.connection)
+            field = FieldDescriptorPacket(self.connection)
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = read_mysqlpacket(self.connection)
+        eof_packet = MysqlPacket(self.connection)
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
@@ -341,7 +335,7 @@ class MySQLResult(object):
         if not self.has_result:
             return None
         if self.rest_rows is None:
-            packet = read_mysqlpacket(self.connection)
+            packet = MysqlPacket(self.connection)
             if packet.is_eof_packet():
                 self.warning_count = unpack_uint16(packet.read(2))
                 server_status = unpack_uint16(packet.read(2))
