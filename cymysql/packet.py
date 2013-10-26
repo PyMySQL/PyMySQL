@@ -178,13 +178,23 @@ class MysqlPacket(object):
         if PYTHON3:
             return self.__data[0] == 0
         else:
-            return ord(self.__data[0]) == 0
+            return self.__data[0] == b'\x00'
 
     def is_eof_packet(self):
         if PYTHON3:
             return self.__data[0] == 0xfe
         else:
-            return ord(self.__data[0]) == 0xfe
+            return self.__data[0] == b'\xfe'
+
+    def is_eof_and_status(self):
+        if PYTHON3:
+            if self.__data[0] != 0xfe:
+                return False, 0, 0
+        else:
+            if self.__data[0] != b'\xfe':
+                return False, 0, 0
+
+        return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
     def read_ok_packet(self):
         self.advance(1)  # field_count (always '0')
@@ -301,9 +311,10 @@ class MySQLResult(object):
         rest_rows = []
         while True:
             packet = MysqlPacket(self.connection)
-            if packet.is_eof_packet():
-                self.warning_count = unpack_uint16(packet.read(2))
-                server_status = unpack_uint16(packet.read(2))
+            is_eof, warning_count, server_status = packet.is_eof_and_status()
+            if is_eof:
+                self.warning_count = warning_count
+                server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
@@ -329,9 +340,10 @@ class MySQLResult(object):
             return None
         if self.rest_rows is None:
             packet = MysqlPacket(self.connection)
-            if packet.is_eof_packet():
-                self.warning_count = unpack_uint16(packet.read(2))
-                server_status = unpack_uint16(packet.read(2))
+            is_eof, warning_count, server_status = packet.is_eof_and_status()
+            if is_eof:
+                self.warning_count = warning_count
+                server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
