@@ -152,6 +152,7 @@ cdef class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
+        cdef int c
         c = ord(self._read(1))
         if c < UNSIGNED_CHAR_COLUMN:
             return c
@@ -341,9 +342,10 @@ cdef class MySQLResult(object):
             rest_rows.append(packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
 
-    cdef object _get_descriptions(self):
+    cdef void _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         cdef int i
+        cdef object eof_packet
         self.fields = []
         description = []
         for i in range(self.field_count):
