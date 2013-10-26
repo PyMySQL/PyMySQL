@@ -342,8 +342,7 @@ cdef class MySQLResult(object):
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(
-                packet.read_decode_data(self.fields))
+            rest_rows.append(packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
 
     cdef object _get_descriptions(self):
