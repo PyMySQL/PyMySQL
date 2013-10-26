@@ -281,6 +281,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         return tuple(desc)
 
     def get_column_length(self):
+        cdef int mblen
         if self.type_code == FIELD_TYPE_VAR_STRING:
             mblen = MBLENGTH.get(self.charsetnr, 1)
             return self.length // mblen
@@ -327,6 +328,7 @@ cdef class MySQLResult(object):
 
     def read_rest_rowdata_packet(self):
         """Read rest rowdata packets for each data row in the result set."""
+        cdef int is_eof, warning_count, server_status
         if (not self.has_result) or (self.rest_rows is not None):
             return
         rest_rows = []
@@ -358,6 +360,7 @@ cdef class MySQLResult(object):
         self.description = tuple(description)
 
     def fetchone(self):
+        cdef int is_eof, warning_count, server_status
         if not self.has_result:
             return None
         if self.rest_rows is None:
