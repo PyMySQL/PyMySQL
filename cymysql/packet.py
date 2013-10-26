@@ -310,7 +310,7 @@ class MySQLResult(object):
             is_eof, warning_count, server_status = packet.is_eof_and_status()
             if is_eof:
                 self.warning_count = warning_count
-                server_status = server_status
+                self.server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
@@ -338,7 +338,7 @@ class MySQLResult(object):
             is_eof, warning_count, server_status = packet.is_eof_and_status()
             if is_eof:
                 self.warning_count = warning_count
-                server_status = server_status
+                self.server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
