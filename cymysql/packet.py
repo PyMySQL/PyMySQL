@@ -51,9 +51,15 @@ class MysqlPacket(object):
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
-        _errno, _data = self.check_error()
-        if _errno:
-            raise_mysql_exception(_data)
+        if PYTHON3:
+            is_error = self.__data[0] == 0xff
+        else:
+            is_error = ord(self.__data[0]) == 0xff
+        if is_error:
+            self.rewind()
+            self.advance(1)  # field_count == error (we already know that)
+            errno = unpack_uint16(self._read(2))
+            raise_mysql_exception(self.__data)
 
     def __recv_from_socket(self, size):
         r = b''
@@ -180,18 +186,6 @@ class MysqlPacket(object):
         else:
             return ord(self.__data[0]) == 0xfe
 
-    def check_error(self):
-        if PYTHON3:
-            is_error = self.__data[0] == 0xff
-        else:
-            is_error = ord(self.__data[0]) == 0xff
-        if is_error:
-            self.rewind()
-            self.advance(1)  # field_count == error (we already know that)
-            errno = unpack_uint16(self._read(2))
-            return errno, self.__data
-        return 0, None
-
     def read_ok_packet(self):
         self.advance(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
@@ -202,7 +196,6 @@ class MysqlPacket(object):
         return (None if affected_rows < 0 else affected_rows,
                 None if insert_id < 0 else insert_id,
                 server_status, warning_count, message)
-
 
 
 class FieldDescriptorPacket(MysqlPacket):
