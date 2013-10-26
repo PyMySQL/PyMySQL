@@ -920,7 +920,7 @@ class Connection(object):
             self._rfile = _makefile(self.socket, 'rb')
 
         data = data_init + self.user + b'\0' + \
-            _scramble(self.password.encode(self.encoding), self.salt)
+            _scramble(self.password.encode('latin1'), self.salt)
 
         if self.db:
             if isinstance(self.db, text_type):
@@ -943,9 +943,7 @@ class Connection(object):
 
         if auth_packet.is_eof_packet():
             # send legacy handshake
-            #raise NotImplementedError, "old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table."
-            # TODO: is this the correct charset?
-            data = _scramble_323(self.password.encode(self.encoding), self.salt.encode(self.encoding)) + b'\0'
+            data = _scramble_323(self.password.encode('latin1'), self.salt) + b'\0'
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
             self._write_bytes(data)
