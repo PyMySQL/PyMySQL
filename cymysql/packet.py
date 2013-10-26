@@ -42,21 +42,10 @@ def unpack_uint32(n):
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
 def read_mysqlpacket(connection):
-    return _read_mysqlpacket(connection)
-
-def _read_mysqlpacket(connection):
-      packet = MysqlPacket(connection)
-      _errno, _data = packet.check_error()
-      if _errno:
-        raise_mysql_exception(_data)
-      return packet
+      return MysqlPacket(connection)
 
 def read_fielddescriptorpacket(connection):
-      packet = FieldDescriptorPacket(connection)
-      _errno, _data = packet.check_error()
-      if _errno:
-        raise_mysql_exception(_data)
-      return packet
+      return FieldDescriptorPacket(connection)
 
 
 class MysqlPacket(object):
@@ -68,6 +57,9 @@ class MysqlPacket(object):
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
+        _errno, _data = self.check_error()
+        if _errno:
+            raise_mysql_exception(_data)
 
     def __recv_from_socket(self, size):
         r = b''
