@@ -9,6 +9,10 @@ try:
         Extension("cymysql.charsetx", ["cymysql/charsetx.pyx"]),
         Extension("cymysql.connectionsx", ["cymysql/connections.py"]),
         Extension("cymysql.convertersx", ["cymysql/converters.py"]),
+
+        Extension("cymysql.cursors", ["cymysql/cursors.py"]),
+        Extension("cymysql.err", ["cymysql/err.py"]),
+        Extension("cymysql.times", ["cymysql/times.py"]),
     ]
 except ImportError:
     cmdclass = {}
