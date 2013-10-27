@@ -96,7 +96,7 @@ def escape_struct_time(obj):
 def escape_decimal(obj):
     return str(obj)
 
-def convert_datetime(charset, field, obj, use_unicode):
+def convert_datetime(obj, charset=None, field=None, use_unicode=None):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
@@ -128,7 +128,7 @@ def convert_datetime(charset, field, obj, use_unicode):
     except ValueError:
         return convert_date(charset, field, obj, use_unicode)
 
-def convert_timedelta(charset, field, obj, use_unicode):
+def convert_timedelta(obj, charset=None, field=None, use_unicode=None):
     """Returns a TIME column as a timedelta object:
 
       >>> timedelta_or_None('25:06:17')
@@ -164,7 +164,7 @@ def convert_timedelta(charset, field, obj, use_unicode):
     except ValueError:
         return None
 
-def convert_time(charset, field, obj, use_unicode):
+def convert_time(obj, charset=None, field=None, use_unicode=None):
     """Returns a TIME column as a time object:
 
       >>> time_or_None('15:06:17')
@@ -197,7 +197,7 @@ def convert_time(charset, field, obj, use_unicode):
     except ValueError:
         return None
 
-def convert_date(charset, field, obj, use_unicode):
+def convert_date(obj, charset=None, field=None, use_unicode=None):
     """Returns a DATE column as a date object:
 
       >>> date_or_None('2007-02-26')
@@ -219,7 +219,7 @@ def convert_date(charset, field, obj, use_unicode):
     except ValueError:
         return None
 
-def convert_mysql_timestamp(charset, field, timestamp, use_unicode):
+def convert_mysql_timestamp(timestamp, charset=None, field=None, use_unicode=None):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
 
     MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
@@ -258,7 +258,7 @@ def convert_mysql_timestamp(charset, field, timestamp, use_unicode):
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(charset, field, b, use_unicode):
+def convert_bit(b, charset=None, field=None, use_unicode=None):
     #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
     #return struct.unpack(">Q", b)[0]
     #
@@ -266,10 +266,10 @@ def convert_bit(charset, field, b, use_unicode):
     # so we shouldn't either
     return b
 
-def convert_blob(charset, field, data, use_unicode):
+def convert_blob(data, charset=None, field=None, use_unicode=None):
     return convert_characters(charset, field, data, use_unicode)
 
-def convert_characters(charset, field, data, use_unicode):
+def convert_characters(data, charset=None, field=None, use_unicode=None):
     field_charset = charset_by_id(field.charsetnr).name
     if field.flags & FLAG.SET:
         return convert_set(data.decode(field_charset))
@@ -286,19 +286,19 @@ def convert_characters(charset, field, data, use_unicode):
         data = data.encode(charset)
     return data
 
-def convert_int(charset, field, data, use_unicode):
+def convert_int(data, charset=None, field=None, use_unicode=None):
     return int(data)
 
-def convert_long(charset, field, data, use_unicode):
+def convert_long(data, charset=None, field=None, use_unicode=None):
     if PYTHON3:
         return int(data)
     else:
         return long(data)
 
-def convert_float(charset, field, data, use_unicode):
+def convert_float(data, charset=None, field=None, use_unicode=None):
     return float(data)
 
-def convert_decimal(charset, field, data, use_unicode):
+def convert_decimal(data, charset=None, field=None, use_unicode=None):
     data = data.decode(charset)
     return Decimal(data)
 
@@ -354,11 +354,15 @@ decoders = {
         FIELD_TYPE.VARCHAR: convert_characters,
         }
 
-def get_decode_values(charset, fields, values, use_unicode):
+def get_decode_values(values, charset, fields, use_unicode):
     r = []
     for i, value in enumerate(values):
         if value is not None:
-            v = decoders[fields[i].type_code](charset, fields[i], value, use_unicode)
+            v = decoders[fields[i].type_code](
+                value,
+                charset=charset,
+                field=fields[i],
+                use_unicode=use_unicode)
             r.append(v)
         else:
             r.append(None)

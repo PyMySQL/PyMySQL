@@ -187,9 +187,9 @@ class MysqlPacket(object):
     def read_decode_data(self, fields):
         values = [self.read_length_coded_string() for f in fields]
         return tuple(
-            get_decode_values(self.connection.charset,
+            get_decode_values(values,
+                self.connection.charset,
                 fields,
-                values,
                 self.connection.use_unicode)
         )
  
