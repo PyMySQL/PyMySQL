@@ -62,7 +62,6 @@ cdef class MysqlPacket(object):
         else:
             is_error = self.__data[0] == b'\xff'
         if is_error:
-            self.rewind()
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
             raise_mysql_exception(self.__data)
@@ -138,13 +137,6 @@ cdef class MysqlPacket(object):
             raise Exception('Invalid advance amount (%s) for cursor.  '
                         'Position=%s' % (length, new_position))
         self.__position = new_position
-  
-    cdef void rewind(self, int position=0):
-        """Set the position of the data buffer cursor to 'position'."""
-        if position < 0 or position > self.__data_length:
-            raise Exception(
-                    "Invalid position to rewind cursor to: %s." % position)
-        self.__position = position
   
     cdef int read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
