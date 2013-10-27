@@ -4,7 +4,6 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
-from cymysql.converters import get_decode_values
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -40,6 +39,14 @@ def unpack_uint32(n):
     else:
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
+
+def get_decode_values(values, charset, fields, use_unicode, decoders):
+    r = [None] * len(values)
+    for i, value in enumerate(values):
+        if value is not None:
+            r[i] = decoders[fields[i].type_code](
+                                    value, charset, fields[i], use_unicode)
+    return r
 
 
 class MysqlPacket(object):
@@ -162,7 +169,8 @@ class MysqlPacket(object):
             get_decode_values(values,
                 self.connection.charset,
                 fields,
-                self.connection.use_unicode)
+                self.connection.use_unicode,
+                self.connection.conv)
         )
  
     def is_ok_packet(self):
