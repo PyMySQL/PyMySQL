@@ -120,13 +120,13 @@ def convert_datetime(obj, charset=None, field=None, use_unicode=None):
     elif 'T' in obj:
         sep = 'T'
     else:
-        return convert_date(charset, field, obj, use_unicode)
+        return convert_date(obj, charset, field, use_unicode)
 
     try:
         ymd, hms = obj.split(sep, 1)
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
-        return convert_date(charset, field, obj, use_unicode)
+        return convert_date(obj, charset, field, use_unicode)
 
 def convert_timedelta(obj, charset=None, field=None, use_unicode=None):
     """Returns a TIME column as a timedelta object:
@@ -245,7 +245,7 @@ def convert_mysql_timestamp(timestamp, charset=None, field=None, use_unicode=Non
         timestamp = timestamp.decode(charset)
 
     if timestamp[4] == '-':
-        return convert_datetime(charset, field, timestamp, use_unicode)
+        return convert_datetime(timestamp, charset, field, use_unicode)
     timestamp += "0"*(14-len(timestamp)) # padding
     year, month, day, hour, minute, second = \
         int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
@@ -267,7 +267,7 @@ def convert_bit(b, charset=None, field=None, use_unicode=None):
     return b
 
 def convert_blob(data, charset=None, field=None, use_unicode=None):
-    return convert_characters(charset, field, data, use_unicode)
+    return convert_characters(data, charset, field, use_unicode)
 
 def convert_characters(data, charset=None, field=None, use_unicode=None):
     field_charset = charset_by_id(field.charsetnr).name
