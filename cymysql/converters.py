@@ -96,7 +96,7 @@ def escape_struct_time(obj):
 def escape_decimal(obj):
     return str(obj)
 
-def convert_datetime(obj, charset=None, field=None, use_unicode=None):
+def convert_datetime(obj, charset='ascii', field=None, use_unicode=None):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
