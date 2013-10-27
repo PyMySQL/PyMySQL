@@ -4,6 +4,7 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
+from cymysql.converters import decoders as default_decoders
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -44,8 +45,10 @@ def get_decode_values(values, charset, fields, use_unicode, decoders):
     r = [None] * len(values)
     for i, value in enumerate(values):
         if value is not None:
-            r[i] = decoders[fields[i].type_code](
-                                    value, charset, fields[i], use_unicode)
+            if decoders[fields[i].type_code] != default_decoders[fields[i].type_code]:
+                r[i] = decoders[fields[i].type_code](value)
+            else:
+                r[i] = decoders[fields[i].type_code](value, charset, fields[i], use_unicode)
     return r
 
 
