@@ -25,14 +25,10 @@ THE SOFTWARE.
 
 import sys
 
-VERSION = (0, 6, 7)
+VERSION = (0, 6, 8)
 
-try:
-    from cymysql import convertersx as converters
-    from cymysql.convertersx import escape_dict, escape_sequence, escape_string
-except ImportError:
-    from cymysql import converters
-    from cymysql.converters import escape_dict, escape_sequence, escape_string
+from cymysql import converters
+from cymysql.converters import escape_dict, escape_sequence, escape_string
 from cymysql.err import Warning, Error, InterfaceError, DataError, \
      DatabaseError, OperationalError, IntegrityError, InternalError, \
      NotSupportedError, ProgrammingError, MySQLError
@@ -43,6 +39,7 @@ threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
 
+from cymysql.connections import Connection
 from cymysql.constants import FIELD_TYPE
 
 class DBAPISet(frozenset):
@@ -85,13 +82,9 @@ def Connect(*args, **kwargs):
     Connect to the database; see connections.Connection.__init__() for
     more information.
     """
-    try:
-        from cymysql.connectionsx import Connection
-    except ImportError:
-        from cymysql.connections import Connection
     return Connection(*args, **kwargs)
 
-connect = Connection = Connect
+connect = Connect
 
 NULL = "NULL"
 

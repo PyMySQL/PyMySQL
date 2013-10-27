@@ -25,17 +25,14 @@ except ImportError:
 from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
-try:
-    from cymysql.convertersx import escape_item
-except ImportError:
-    from cymysql.converters import escape_item
+from cymysql.converters import escape_item
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 try:
-    from cymysql.packetx import read_mysqlpacket, MySQLResult
+    from cymysql.packetx import MysqlPacket, MySQLResult
 except ImportError:
-    from cymysql.packet import read_mysqlpacket, MySQLResult
+    from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -324,10 +321,10 @@ class Connection(object):
         if DEBUG:
             print("sending query: %s" % sql)
         self._execute_command(COM_QUERY, sql)
-        self._result = self._read_query_result()
+        self._result = MySQLResult(self)
 
     def next_result(self):
-        self._result = self._read_query_result()
+        self._result = MySQLResult(self)
 
     def affected_rows(self):
         if self._result:
@@ -400,12 +397,7 @@ class Connection(object):
     def read_packet(self):
       """Read an entire "mysql packet" in its entirety from the network
       and return a MysqlPacket type that represents the results."""
-      return read_mysqlpacket(self)
-
-    def _read_query_result(self):
-        result = MySQLResult(self)
-        result.read()
-        return result
+      return MysqlPacket(self)
 
     def insert_id(self):
         if self._result:
@@ -474,7 +466,7 @@ class Connection(object):
         if DEBUG: dump_packet(data)
 
         self.socket.sendall(data)
-        auth_packet = read_mysqlpacket(self)
+        auth_packet = MysqlPacket(self)
 
         if DEBUG: dump_packet(auth_packet.get_all_data())
 
@@ -500,7 +492,7 @@ class Connection(object):
 
     def _get_server_information(self):
         i = 0
-        packet = read_mysqlpacket(self)
+        packet = MysqlPacket(self)
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)

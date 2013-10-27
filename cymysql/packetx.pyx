@@ -4,7 +4,7 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
-from cymysql.convertersx import get_decode_values
+from cymysql.converters import get_decode_values
 
 cdef int PYTHON3 = sys.version_info[0] > 2
 
@@ -41,22 +41,6 @@ cdef int unpack_uint32(bytes n):
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
-def read_mysqlpacket(connection):
-    return _read_mysqlpacket(connection)
-
-cdef object _read_mysqlpacket(connection):
-      packet = MysqlPacket(connection)
-      _errno, _data = packet.check_error()
-      if _errno:
-        raise_mysql_exception(_data)
-      return packet
-
-cdef read_fielddescriptorpacket(connection):
-      packet = FieldDescriptorPacket(connection)
-      _errno, _data = packet.check_error()
-      if _errno:
-        raise_mysql_exception(_data)
-      return packet
 
 cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
@@ -68,9 +52,19 @@ cdef class MysqlPacket(object):
     cdef int __position
 
     def __init__(self, connection):
+        cdef int is_error
+        cdef int errno
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
+        if PYTHON3:
+            is_error = self.__data[0] == 0xff
+        else:
+            is_error = self.__data[0] == b'\xff'
+        if is_error:
+            self.advance(1)  # field_count == error (we already know that)
+            errno = unpack_uint16(self._read(2))
+            raise_mysql_exception(self.__data)
 
 
     cdef bytes __recv_from_socket(self, int size):
@@ -80,8 +74,7 @@ cdef class MysqlPacket(object):
         r = b''
         while size:
             recv_data = self.connection.socket.recv(size)
-            recieved = len(recv_data)
-            if recieved == 0:
+            if not recv_data:
                 break
             size -= len(recv_data)
             r += recv_data
@@ -145,30 +138,13 @@ cdef class MysqlPacket(object):
                         'Position=%s' % (length, new_position))
         self.__position = new_position
   
-    cdef void rewind(self, int position=0):
-        """Set the position of the data buffer cursor to 'position'."""
-        if position < 0 or position > self.__data_length:
-            raise Exception(
-                    "Invalid position to rewind cursor to: %s." % position)
-        self.__position = position
-  
-    cdef bytes get_bytes(self, int position, int length=1):
-        """Get 'length' bytes starting at 'position'.
-  
-        Position is start of payload (first four packet header bytes are not
-        included) starting at index '0'.
-  
-        No error checking is done.  If requesting outside end of buffer
-        an empty string (or string shorter than 'length') may be returned!
-        """
-        return self.__data[position:(position+length)]
-  
     cdef int read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
+        cdef int c
         c = ord(self._read(1))
         if c < UNSIGNED_CHAR_COLUMN:
             return c
@@ -207,22 +183,27 @@ cdef class MysqlPacket(object):
                 self.connection.use_unicode)
         )
 
-    def read_decode_data(self, fields):
-        return tuple([self._read_decode_data(self.connection.charset, f, self.connection.use_unicode) for f in fields])
-
     def is_ok_packet(self):
-        return self.get_bytes(0) == b'\x00'
+        if PYTHON3:
+            return self.__data[0] == 0
+        else:
+            return self.__data[0] == b'\x00'
 
     def is_eof_packet(self):
-        return self.get_bytes(0) == b'\xfe'
+        if PYTHON3:
+            return self.__data[0] == 0xfe
+        else:
+            return self.__data[0] == b'\xfe'
 
-    def check_error(self):
-        if self.get_bytes(0) == b'\xff':
-            self.rewind()
-            self.advance(1)  # field_count == error (we already know that)
-            errno = unpack_uint16(self._read(2))
-            return errno, self.__data
-        return 0, None
+    def is_eof_and_status(self):
+        if PYTHON3:
+            if self.__data[0] != 0xfe:
+                return False, 0, 0
+        else:
+            if self.__data[0] != b'\xfe':
+                return False, 0, 0
+
+        return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
     def read_ok_packet(self):
         cdef int affected_rows, insert_id, server_status, warning_count
@@ -292,6 +273,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         return tuple(desc)
 
     def get_column_length(self):
+        cdef int mblen
         if self.type_code == FIELD_TYPE_VAR_STRING:
             mblen = MBLENGTH.get(self.charsetnr, 1)
             return self.length // mblen
@@ -324,10 +306,7 @@ cdef class MySQLResult(object):
         self.has_next = None
         self.has_result = False
         self.rest_rows = None
-
-    def read(self):
-        self.rest_rows = None
-        self.first_packet = _read_mysqlpacket(self.connection)
+        self.first_packet = MysqlPacket(self.connection)
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
                 self.server_status, self.warning_count,
@@ -341,43 +320,47 @@ cdef class MySQLResult(object):
 
     def read_rest_rowdata_packet(self):
         """Read rest rowdata packets for each data row in the result set."""
+        cdef int is_eof, warning_count, server_status
         if (not self.has_result) or (self.rest_rows is not None):
             return
         rest_rows = []
         while True:
-            packet = _read_mysqlpacket(self.connection)
-            if packet.is_eof_packet():
-                self.warning_count = unpack_uint16(packet.read(2))
-                server_status = unpack_uint16(packet.read(2))
+            packet = MysqlPacket(self.connection)
+            is_eof, warning_count, server_status = packet.is_eof_and_status()
+            if is_eof:
+                self.warning_count = warning_count
+                self.server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(
-                packet.read_decode_data(self.fields))
+            rest_rows.append(packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
 
-    cdef object _get_descriptions(self):
+    cdef void _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         cdef int i
+        cdef object eof_packet
         self.fields = []
         description = []
         for i in range(self.field_count):
-            field = read_fielddescriptorpacket(self.connection)
+            field = FieldDescriptorPacket(self.connection)
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = _read_mysqlpacket(self.connection)
+        eof_packet = MysqlPacket(self.connection)
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
     def fetchone(self):
+        cdef int is_eof, warning_count, server_status
         if not self.has_result:
             return None
         if self.rest_rows is None:
-            packet = _read_mysqlpacket(self.connection)
-            if packet.is_eof_packet():
-                self.warning_count = unpack_uint16(packet.read(2))
-                server_status = unpack_uint16(packet.read(2))
+            packet = MysqlPacket(self.connection)
+            is_eof, warning_count, server_status = packet.is_eof_and_status()
+            if is_eof:
+                self.warning_count = warning_count
+                self.server_status = server_status
                 self.has_next = (server_status
                              & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
