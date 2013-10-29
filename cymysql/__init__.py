@@ -43,6 +43,7 @@ threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
 
+from cymysql.connections import Connection
 from cymysql.constants import FIELD_TYPE
 
 class DBAPISet(frozenset):
@@ -85,13 +86,9 @@ def Connect(*args, **kwargs):
     Connect to the database; see connections.Connection.__init__() for
     more information.
     """
-    try:
-        from cymysql.connectionsx import Connection
-    except ImportError:
-        from cymysql.connections import Connection
     return Connection(*args, **kwargs)
 
-connect = Connection = Connect
+connect = Connect
 
 NULL = "NULL"
 
