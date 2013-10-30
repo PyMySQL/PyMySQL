@@ -7,8 +7,8 @@ try:
     cmdclass = {'build_ext': build_ext}
     ext_modules = [Extension("cymysql.packetx", ["cymysql/packetx.pyx"]),
         Extension("cymysql.charsetx", ["cymysql/charsetx.pyx"]),
-        Extension("cymysql.convertersx", ["cymysql/converters.py"]),
 
+        Extension("cymysql.converters", ["cymysql/converters.py"]),
         Extension("cymysql.connections", ["cymysql/connections.py"]),
         Extension("cymysql.cursors", ["cymysql/cursors.py"]),
         Extension("cymysql.err", ["cymysql/err.py"]),

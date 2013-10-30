@@ -4,7 +4,7 @@
 import sys
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
-from cymysql.convertersx import get_decode_values
+from cymysql.converters import get_decode_values
 
 cdef int PYTHON3 = sys.version_info[0] > 2
 
