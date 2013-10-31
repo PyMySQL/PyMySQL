@@ -260,14 +260,14 @@ def convert_characters(connection, field, data):
     field_charset = charset_by_id(field.charsetnr).name
     encoding = charset_to_encoding(field_charset)
     if field.flags & FLAG.SET:
-        return convert_set(data.decode(encoding))
+        return convert_set(data.decode(encoding, 'surrogateescape'))
     if field.flags & FLAG.BINARY:
         return data
 
     if connection.use_unicode:
-        data = data.decode(encoding)
+        data = data.decode(encoding, 'surrogateescape')
     elif connection.charset != field_charset:
-        data = data.decode(encoding)
+        data = data.decode(encoding, 'surrogateescape')
         data = data.encode(connection.encoding)
     return data
 

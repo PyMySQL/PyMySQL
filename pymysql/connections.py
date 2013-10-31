@@ -1140,7 +1140,7 @@ class MySQLResult(object):
                         charset = charset_by_id(field.charsetnr)
                         if use_unicode and not charset.is_binary:
                             # TEXTs with charset=binary means BINARY types.
-                            data = data.decode(charset.encoding)
+                            data = data.decode(charset.encoding, 'surrogateescape')
                     else:
                         data = data.decode()
 
