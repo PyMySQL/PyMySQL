@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import pymysql
 
-conn = pymysql.connect(host='127.0.0.1', port=3306, user='root', passwd='', database='mysql')
+conn = pymysql.connect(host='127.0.0.1', port=3306, user='root', passwd='', db='mysql')
 
 cur = conn.cursor()
 
