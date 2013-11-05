@@ -16,18 +16,6 @@ ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
 
-def escape_item(val, charset):
-    if type(val) in [tuple, list, set]:
-        return escape_sequence(val, charset)
-    if type(val) is dict:
-        return escape_dict(val, charset)
-    encoder = encoders[type(val)]
-    val = encoder(val)
-    if type(val) is str:
-        return val
-    val = val.encode(charset)
-    return val
-
 def escape_dict(val, charset):
     n = {}
     for k, v in val.items():
@@ -302,30 +290,6 @@ def convert_decimal(data, charset=None, field=None, use_unicode=None):
     data = data.decode(charset)
     return Decimal(data)
 
-encoders = {
-        bool: escape_bool,
-        int: escape_int,
-        float: escape_float,
-        Decimal: escape_decimal,
-        str: escape_string,
-        tuple: escape_sequence,
-        list:escape_sequence,
-        set:escape_sequence,
-        dict:escape_dict,
-        type(None):escape_None,
-        datetime.date: escape_date,
-        datetime.datetime : escape_datetime,
-        datetime.timedelta : escape_timedelta,
-        datetime.time : escape_time,
-        time.struct_time : escape_struct_time,
-        }
-
-if PYTHON3:
-    encoders[bytes] = escape_bytes
-else:
-    encoders[unicode] = escape_unicode
-    encoders[long] = escape_long
-
 decoders = {
         FIELD_TYPE.BIT: convert_bit,
         FIELD_TYPE.TINY: convert_int,
@@ -353,4 +317,41 @@ decoders = {
         FIELD_TYPE.VAR_STRING: convert_characters,
         FIELD_TYPE.VARCHAR: convert_characters,
         }
+
+encoders = {
+        bool: escape_bool,
+        int: escape_int,
+        float: escape_float,
+        Decimal: escape_decimal,
+        str: escape_string,
+        tuple: escape_sequence,
+        list:escape_sequence,
+        set:escape_sequence,
+        dict:escape_dict,
+        type(None):escape_None,
+        datetime.date: escape_date,
+        datetime.datetime : escape_datetime,
+        datetime.timedelta : escape_timedelta,
+        datetime.time : escape_time,
+        time.struct_time : escape_struct_time,
+        }
+
+if PYTHON3:
+    encoders[bytes] = escape_bytes
+else:
+    encoders[unicode] = escape_unicode
+    encoders[long] = escape_long
+
+
+def escape_item(val, charset, encoders=encoders):
+    if type(val) in [tuple, list, set]:
+        return escape_sequence(val, charset)
+    if type(val) is dict:
+        return escape_dict(val, charset)
+    encoder = encoders[type(val)]
+    val = encoder(val)
+    if type(val) is str:
+        return val
+    val = val.encode(charset)
+    return val
 

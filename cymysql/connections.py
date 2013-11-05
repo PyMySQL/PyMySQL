@@ -25,7 +25,7 @@ except ImportError:
 from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
-from cymysql.converters import decoders, escape_item
+from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
@@ -130,7 +130,8 @@ class Connection(object):
                  read_default_file=None, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None, conv=decoders):
+                 compress=None, named_pipe=None,
+                 conv=decoders, encoders=encoders):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -208,7 +209,8 @@ class Connection(object):
         self.password = passwd
         self.db = db
         self.unix_socket = unix_socket
-        self.conv=conv
+        self.conv = conv
+        self.encoders = encoders
         if charset:
             self.charset = charset
             self.use_unicode = True
@@ -289,11 +291,11 @@ class Connection(object):
 
     def escape(self, obj):
         ''' Escape whatever value you pass to it  '''
-        return escape_item(obj, self.charset)
+        return escape_item(obj, self.charset, self.encoders)
 
     def literal(self, obj):
         ''' Alias for escape() '''
-        return escape_item(obj, self.charset)
+        return escape_item(obj, self.charset, self.encoders)
 
     def cursor(self, cursor=None):
         ''' Create a new cursor to execute queries with '''
