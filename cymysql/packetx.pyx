@@ -6,6 +6,7 @@ from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
 from cymysql.converters import decoders as default_decoders
 
+from libc.stdint cimport uint16_t, uint32_t
 cdef int PYTHON3 = sys.version_info[0] > 2
 
 MBLENGTH = {
@@ -22,19 +23,19 @@ cdef int UNSIGNED_SHORT_COLUMN = 252
 cdef int UNSIGNED_INT24_COLUMN = 253
 cdef int UNSIGNED_INT64_COLUMN = 254
 
-cdef int unpack_uint16(bytes n):
+cdef uint16_t unpack_uint16(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8)
     else:
         return ord(n[0]) + (ord(n[1]) << 8)
 
-cdef int unpack_uint24(bytes n):
+cdef uint32_t unpack_uint24(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8) + (n[2] << 16)
     else:
         return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
 
-cdef int unpack_uint32(bytes n):
+cdef uint32_t unpack_uint32(bytes n):
     if PYTHON3:
         return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
     else:
