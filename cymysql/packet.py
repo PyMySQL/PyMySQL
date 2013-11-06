@@ -41,7 +41,7 @@ def unpack_uint32(n):
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
 
-def get_decode_values(values, charset, fields, use_unicode, decoders):
+def get_decode_values(values, charset, fields, use_unicode, decoders=default_decoders):
     r = [None] * len(values)
     for i, value in enumerate(values):
         if value is not None:
