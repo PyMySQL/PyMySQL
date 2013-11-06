@@ -75,7 +75,7 @@ class MysqlPacket(object):
         while size:
             recv_data = self.connection.socket.recv(size)
             if not recv_data:
-                continue
+                break
             size -= len(recv_data)
             r += recv_data
         return r
