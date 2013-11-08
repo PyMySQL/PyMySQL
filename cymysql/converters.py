@@ -75,10 +75,11 @@ def escape_time(obj):
     return escape_string(s)
 
 def escape_datetime(obj):
-    return escape_string(obj.strftime("%Y-%m-%d %H:%M:%S"))
+    return escape_string("%04d-%02d-%02d %02d:%02d:%02d" % (
+            obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second))
 
 def escape_date(obj):
-    return escape_string(obj.strftime("%Y-%m-%d"))
+    return escape_string("%04d-%02d-%02d" % (obj.year, obj.month, obj.day))
 
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
