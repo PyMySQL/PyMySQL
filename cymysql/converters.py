@@ -51,7 +51,7 @@ def escape_string(value):
 
 def escape_bytes(value):
     if len(value)==0:
-        return ''
+        return "''"
     return '0x' + ''.join([('0'+hex(c)[2:])[-2:] for c in value])
 
 def escape_unicode(value):
