@@ -2,6 +2,7 @@
 #   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
 
 import sys
+import struct
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
 from cymysql.converters import decoders as default_decoders
@@ -40,6 +41,9 @@ def unpack_uint32(n):
     else:
         return ord(n[0]) + (ord(n[1]) << 8) + \
             (ord(n[2]) << 16) + (ord(n[3]) << 24)
+
+def unpack_uint64(n):
+    return struct.unpack('<Q', n)[0]
 
 def get_decode_values(values, charset, fields, use_unicode, decoders=default_decoders):
     r = [None] * len(values)
@@ -146,8 +150,7 @@ class MysqlPacket(object):
         elif c == UNSIGNED_INT24_COLUMN:
             return unpack_uint24(self._read(3))
         elif c == UNSIGNED_INT64_COLUMN:
-            # TODO: what was 'longlong'?  confirm it wasn't used?
-            return -1
+            return unpack_uint64(self._read(8))
         else:
             return -1
   
