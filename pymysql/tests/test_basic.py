@@ -1,5 +1,6 @@
 from pymysql.tests import base
 from pymysql import util
+from pymysql.err import ProgrammingError
 
 import time
 import datetime
@@ -109,7 +110,7 @@ class TestConversion(base.PyMySQLTestCase):
         c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100')")
         self.assertEqual((datetime.timedelta(0, 45000),
                           datetime.timedelta(0, 83579),
-                          datetime.timedelta(0, 83579, 5100)),
+                          datetime.timedelta(0, 83579, 51000)),
                          c.fetchone())
 
     def test_datetime(self):
