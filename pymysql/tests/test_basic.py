@@ -127,7 +127,7 @@ class TestConversion(base.PyMySQLTestCase):
             # User is running a version of MySQL that doesn't support msecs within datetime
             pass
         finally:
-            c.execute("drop table test_datetime")
+            c.execute("drop table if exists test_datetime")
 
 
 class TestCursor(base.PyMySQLTestCase):
