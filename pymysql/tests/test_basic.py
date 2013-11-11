@@ -102,15 +102,31 @@ class TestConversion(base.PyMySQLTestCase):
         c.execute("select '',null")
         self.assertEqual((u'',None), c.fetchone())
 
-    def test_datetime(self):
+    def test_timedelta(self):
         """ test conversion of null, empty string """
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100')")
         self.assertEqual((datetime.timedelta(0, 45000),
                           datetime.timedelta(0, 83579),
-                          datetime.timedelta(0, 83579, 51000)),
+                          datetime.timedelta(0, 83579, 5100)),
                          c.fetchone())
+
+    def test_datetime(self):
+        """ test datetime conversion """
+        conn = self.connections[0]
+        c = conn.cursor()
+        dt = datetime.datetime(2013,11,12,9,9,9,123450)
+        try:
+            c.execute("create table test_datetime (id int, ts datetime(6))")
+            c.execute("insert into test_datetime values (1,'2013-11-12 09:09:09.12345')")
+            c.execute("select ts from test_datetime")
+            self.assertEqual((dt,),c.fetchone())
+        except ProgrammingError:
+            # User is running a version of MySQL that doesn't support msecs within datetime
+            pass
+        finally:
+            c.execute("drop table test_datetime")
 
 
 class TestCursor(base.PyMySQLTestCase):
