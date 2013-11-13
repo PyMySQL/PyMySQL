@@ -84,7 +84,7 @@ def escape_time(obj):
     s = "%02d:%02d:%02d" % (int(obj.hour), int(obj.minute),
                             int(obj.second))
     if obj.microsecond:
-        s += ".%f" % obj.microsecond
+        s += ".{0:06}".format(obj.microsecond)
 
     return escape_str(s)
 
@@ -190,10 +190,10 @@ def convert_time(obj):
         microseconds = 0
         if "." in obj:
             (obj, tail) = obj.split('.')
-            microseconds = int(tail)
+            microseconds = float('0.' + tail) * 1e6
         hours, minutes, seconds = obj.split(':')
         return datetime.time(hour=int(hours), minute=int(minutes),
-                             second=int(seconds), microsecond=microseconds)
+                             second=int(seconds), microsecond=int(microseconds))
     except ValueError:
         return None
 
