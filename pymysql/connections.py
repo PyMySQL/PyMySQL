@@ -665,7 +665,7 @@ class Connection(object):
     def _read_ok_packet(self):
         pkt = self._read_packet()
         if not pkt.is_ok_packet():
-            raise OperationalErrorl(2014, "Command Out of Sync")
+            raise OperationalError(2014, "Command Out of Sync")
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
         return True
