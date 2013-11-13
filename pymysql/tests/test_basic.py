@@ -104,7 +104,7 @@ class TestConversion(base.PyMySQLTestCase):
         self.assertEqual((u'',None), c.fetchone())
 
     def test_timedelta(self):
-        """ test conversion of null, empty string """
+        """ test timedelta conversion """
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100')")
