@@ -122,9 +122,10 @@ def convert_datetime(obj):
 
     try:
         ymd, hms = obj.split(sep, 1)
-        msecs = 0
+        msecs = '0'
         if '.' in hms:
             hms, msecs = hms.split('.')
+        msecs = float('0.' + msecs) * 1e6
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':')+[msecs] ])
     except ValueError:
         return convert_date(obj)
@@ -151,13 +152,13 @@ def convert_timedelta(obj):
         microseconds = 0
         if "." in obj:
             (obj, tail) = obj.split('.')
-            microseconds = int(tail)
+            microseconds = float('0.' + tail) * 1e6
         hours, minutes, seconds = obj.split(':')
         tdelta = datetime.timedelta(
             hours = int(hours),
             minutes = int(minutes),
             seconds = int(seconds),
-            microseconds = microseconds
+            microseconds = int(microseconds)
             )
         return tdelta
     except ValueError:
