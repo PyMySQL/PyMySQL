@@ -6,9 +6,12 @@ Copyright (c) 2001-2013 Python Software Foundation; All Rights Reserved.
 
 from socket import *
 import io
+import errno
 
 __all__ = ['SocketIO']
 
+EINTR = errno.EINTR
+_blocking_errnos = { errno.EAGAIN, errno.EWOULDBLOCK }
 
 class SocketIO(io.RawIOBase):
 
