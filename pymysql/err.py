@@ -1,7 +1,6 @@
 import struct
 
 from .constants import ER
-import sys
 
 class MySQLError(Exception):
     """Exception related to operation with MySQL."""
