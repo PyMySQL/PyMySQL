@@ -66,7 +66,9 @@ class TestConnection(base.PyMySQLTestCase):
         time.sleep(2)
         with self.assertRaises(pymysql.OperationalError) as cm:
             cur.execute("SELECT 1+1")
-        self.assertEquals(cm.exception.args[0], 2006)
+        # error occures while reading, not writing because of socket buffer.
+        #self.assertEquals(cm.exception.args[0], 2006)
+        self.assertIn(cm.exception.args[0], (2006, 2013))
 
 
 if __name__ == "__main__":
