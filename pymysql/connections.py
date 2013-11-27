@@ -631,23 +631,21 @@ class Connection(object):
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
-            return
+            raise Error("Already closed")
         send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
         try:
             self._write_bytes(send_data)
         except Exception:
             pass
         finally:
-            self._close_socket()
-
-    def _close_socket(self):
-        sock = self.socket
-        self.socket = None
-        self._rfile = None
-        sock.close()
+            sock = self.socket
+            self.socket = None
+            self._rfile = None
+            sock.close()
 
     def __del__(self):
-        self.close()
+        if self.socket:
+            self.close()
 
     def autocommit(self, value):
         self.autocommit_mode = bool(value)
@@ -827,11 +825,9 @@ class Connection(object):
         try:
             data = self._rfile.read(num_bytes)
         except IOError as e:
-            self._close_socket()
             raise OperationalError(2013,
                     "Lost connection to MySQL server during query (%r)" % (e,))
         if len(data) < num_bytes:
-            self._close_socket()
             raise OperationalError(2013,
                     "Lost connection to MySQL server during query")
         return data
@@ -840,7 +836,6 @@ class Connection(object):
         try:
             self.socket.sendall(data)
         except IOError as e:
-            self._close_socket()
             raise OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
 
     def _read_query_result(self, unbuffered=False):
