@@ -244,9 +244,6 @@ class MysqlPacket(object):
         buff = b''
         while True:
             packet_header = connection._read_bytes(4)
-            if len(packet_header) < 4:
-                raise OperationalError(2013, "Lost connection to MySQL server during query")
-
             if DEBUG: dump_packet(packet_header)
             packet_length_bin = packet_header[:3]
 
@@ -256,8 +253,6 @@ class MysqlPacket(object):
             bin_length = packet_length_bin + b'\0'  # pad little-endian number
             bytes_to_read = struct.unpack('<I', bin_length)[0]
             recv_data = connection._read_bytes(bytes_to_read)
-            if len(recv_data) < bytes_to_read:
-                raise OperationalError(2013, "Lost connection to MySQL server during query")
             if DEBUG: dump_packet(recv_data)
             buff += recv_data
             if bytes_to_read < MAX_PACKET_LEN:
@@ -640,7 +635,7 @@ class Connection(object):
         send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
         try:
             self._write_bytes(send_data)
-        except IOError:
+        except Exception:
             pass
         finally:
             sock = self.socket
@@ -827,10 +822,21 @@ class Connection(object):
         return packet
 
     def _read_bytes(self, num_bytes):
-        return self._rfile.read(num_bytes)
+        try:
+            data = self._rfile.read(num_bytes)
+        except IOError as e:
+            raise OperationalError(2013,
+                    "Lost connection to MySQL server during query (%r)" % (e,))
+        if len(data) < num_bytes:
+            raise OperationalError(2013,
+                    "Lost connection to MySQL server during query")
+        return data
 
     def _write_bytes(self, data):
-        self.socket.sendall(data)
+        try:
+            self.socket.sendall(data)
+        except IOError as e:
+            raise OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
