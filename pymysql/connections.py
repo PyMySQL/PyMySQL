@@ -1033,8 +1033,7 @@ class Connection(object):
 class MySQLResult(object):
 
     def __init__(self, connection):
-        from weakref import proxy
-        self.connection = proxy(connection)
+        self.connection = connection
         self.affected_rows = None
         self.insert_id = None
         self.server_status = None
@@ -1121,6 +1120,7 @@ class MySQLResult(object):
             packet = self.connection._read_packet()
             if self._check_packet_is_eof(packet):
                 self.unbuffered_active = False
+                self.connection = None  # release reference to kill cyclic reference.
 
     def _read_rowdata_packet(self):
         """Read a rowdata packet for each data row in the result set."""
@@ -1128,6 +1128,7 @@ class MySQLResult(object):
         while True:
             packet = self.connection._read_packet()
             if self._check_packet_is_eof(packet):
+                self.connection = None  # release reference to kill cyclic reference.
                 break
             rows.append(self._read_row_from_packet(packet))
 
