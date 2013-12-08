@@ -845,6 +845,7 @@ class Connection(object):
                 result.init_unbuffered_query()
             except:
                 result.unbuffered_active = False
+                result.connection = None
                 raise
         else:
             result = MySQLResult(self)
@@ -1065,6 +1066,7 @@ class MySQLResult(object):
         if first_packet.is_ok_packet():
             self._read_ok_packet(first_packet)
             self.unbuffered_active = False
+            self.connection = None
         else:
             self.field_count = first_packet.read_length_encoded_integer()
             self._get_descriptions()
@@ -1104,6 +1106,7 @@ class MySQLResult(object):
         packet = self.connection._read_packet()
         if self._check_packet_is_eof(packet):
             self.unbuffered_active = False
+            self.connection = None
             self.rows = None
             return
 
