@@ -1051,13 +1051,16 @@ class MySQLResult(object):
             self._finish_unbuffered_query()
 
     def read(self):
-        first_packet = self.connection._read_packet()
+        try:
+            first_packet = self.connection._read_packet()
 
-        # TODO: use classes for different packet types?
-        if first_packet.is_ok_packet():
-            self._read_ok_packet(first_packet)
-        else:
-            self._read_result_packet(first_packet)
+            # TODO: use classes for different packet types?
+            if first_packet.is_ok_packet():
+                self._read_ok_packet(first_packet)
+            else:
+                self._read_result_packet(first_packet)
+        finally:
+            self.connection = False
 
     def init_unbuffered_query(self):
         self.unbuffered_active = True
