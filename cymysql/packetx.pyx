@@ -24,36 +24,31 @@ cdef int UNSIGNED_SHORT_COLUMN = 252
 cdef int UNSIGNED_INT24_COLUMN = 253
 cdef int UNSIGNED_INT64_COLUMN = 254
 
-cdef uint16_t unpack_uint16(bytes n):
-    if PYTHON3:
-        return n[0] + (n[1] << 8)
-    else:
-        return ord(n[0]) + (ord(n[1]) << 8)
+cdef uint16_t unpack_uint16(bytes s):
+    cdef unsigned char* n = s
+    return n[0] + (n[1] << 8)
 
-cdef uint32_t unpack_uint24(bytes n):
-    if PYTHON3:
-        return n[0] + (n[1] << 8) + (n[2] << 16)
-    else:
-        return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
+cdef uint32_t unpack_uint24(bytes s):
+    cdef unsigned char* n = s
+    return n[0] + (n[1] << 8) + (n[2] << 16)
 
-cdef uint32_t unpack_uint32(bytes n):
-    if PYTHON3:
-        return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
-    else:
-        return ord(n[0]) + (ord(n[1]) << 8) + \
-            (ord(n[2]) << 16) + (ord(n[3]) << 24)
+cdef uint32_t unpack_uint32(bytes s):
+    cdef unsigned char* n = s
+    return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
 
 cdef long long unpack_uint64(bytes n):
     return struct.unpack('<Q', n)[0]
 
 def get_decode_values(values, charset, fields, use_unicode, decoders=default_decoders):
+    cdef Py_ssize_t i
     r = [None] * len(values)
     for i, value in enumerate(values):
         if value is not None:
-            if decoders[fields[i].type_code] != default_decoders[fields[i].type_code]:
-                r[i] = decoders[fields[i].type_code](value)
+            type_code = fields[i].type_code
+            if decoders[type_code] != default_decoders[type_code]:
+                r[i] = decoders[type_code](value)
             else:
-                r[i] = decoders[fields[i].type_code](value, charset, fields[i], use_unicode)
+                r[i] = decoders[type_code](value, charset, fields[i], use_unicode)
     return r
 
 
@@ -72,10 +67,7 @@ cdef class MysqlPacket(object):
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
-        if PYTHON3:
-            is_error = self.__data[0] == 0xff
-        else:
-            is_error = self.__data[0] == b'\xff'
+        is_error = (<unsigned char>(self.__data[0])) == 0xff
         if is_error:
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
@@ -159,8 +151,7 @@ cdef class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        cdef int c
-        c = ord(self._read(1))
+        cdef unsigned char c = self._read(1)[0]
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
@@ -189,7 +180,7 @@ cdef class MysqlPacket(object):
         return self._read(length)
 
     def read_decode_data(self, fields):
-        values = [self.read_length_coded_string() for f in fields]
+        values = [self._read_length_coded_string() for f in fields]
         return tuple(
             get_decode_values(values,
                 self.connection.charset,
@@ -199,25 +190,14 @@ cdef class MysqlPacket(object):
         )
 
     def is_ok_packet(self):
-        if PYTHON3:
-            return self.__data[0] == 0
-        else:
-            return self.__data[0] == b'\x00'
+        return (<unsigned char>(self.__data[0])) == 0
 
     def is_eof_packet(self):
-        if PYTHON3:
-            return self.__data[0] == 0xfe
-        else:
-            return self.__data[0] == b'\xfe'
+        return (<unsigned char>(self.__data[0])) == 0xfe
 
     def is_eof_and_status(self):
-        if PYTHON3:
-            if self.__data[0] != 0xfe:
-                return False, 0, 0
-        else:
-            if self.__data[0] != b'\xfe':
-                return False, 0, 0
-
+        if (<unsigned char>(self.__data[0])) != 0xfe:
+           return False, 0, 0
         return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
     def read_ok_packet(self):
@@ -271,21 +251,17 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 
     def description(self):
         """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
-        desc = []
-        desc.append(self.name)
-        desc.append(self.type_code)
-        desc.append(None) # TODO: display_length; should this be self.length?
-        desc.append(self.get_column_length()) # 'internal_size'
-        desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
-        desc.append(self.scale)
-  
-        # 'null_ok' -- can this be True/False rather than 1/0?
-        #              if so just do:  desc.append(bool(self.flags % 2 == 0))
-        if self.flags % 2 == 0:
-            desc.append(1)
-        else:
-            desc.append(0)
-        return tuple(desc)
+        desc = (
+            self.name,
+            self.type_code,
+            None,  # TODO: display_length; should this be self.length?
+            self.get_column_length(),  # 'internal_size'
+            self.get_column_length(),  # 'precision'  # TODO: why!?!?
+            self.scale,
+            # 'null_ok' -- can this be True/False rather than 1/0?
+            <int>(self.flags % 2 == 0),
+        )
+        return desc
 
     def get_column_length(self):
         cdef int mblen
