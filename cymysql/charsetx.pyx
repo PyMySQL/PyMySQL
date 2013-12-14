@@ -1,31 +1,33 @@
-from cpython cimport bool
-
 cdef class Charset(object):
     cdef public int id
     cdef public str name, collation
-    cdef public bool is_default
+    cdef public bint is_default
     def __init__(self, id, name, collation, is_default):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'
 
 cdef class Charsets(object):
-    cdef object _by_id
+    cdef dict _by_id
+    cdef object by_id
 
     def __init__(self):
         self._by_id = {}
+        self.by_id = self._by_id.__getitem__
 
-    def add(self, c):
+    def add(self, Charset c):
         self._by_id[c.id] = c
 
-    def by_id(self, int id):
-        return self._by_id[id]
-
     def by_name(self, name):
-        for c in self._by_id.values():
+        cdef Charset c
+        for c in self._by_id.itervalues():
             if c.name == name and c.is_default:
                 return c
 
-_charsets = Charsets()
+cdef Charsets _charsets = Charsets()
+
+charset_by_name = _charsets.by_name
+charset_by_id = _charsets.by_id
+
 """
 Generated with:
 
@@ -165,10 +167,3 @@ _charsets.add(Charset(207, 'utf8', 'utf8_roman_ci', ''))
 _charsets.add(Charset(208, 'utf8', 'utf8_persian_ci', ''))
 _charsets.add(Charset(209, 'utf8', 'utf8_esperanto_ci', ''))
 _charsets.add(Charset(210, 'utf8', 'utf8_hungarian_ci', ''))
-
-def charset_by_name(name):
-    return _charsets.by_name(name)
-
-def charset_by_id(int id):
-    return _charsets.by_id(id)
-
