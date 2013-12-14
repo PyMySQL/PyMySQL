@@ -3,9 +3,9 @@ from distutils.core import setup, Command
 from distutils.extension import Extension
 
 try:
-    from Cython.Distutils import build_ext
-    cmdclass = {'build_ext': build_ext}
-    ext_modules = [Extension("cymysql.packetx", ["cymysql/packetx.pyx"]),
+    from Cython.Build import cythonize
+    ext_modules = cythonize([
+        Extension("cymysql.packetx", ["cymysql/packetx.pyx"]),
         Extension("cymysql.charsetx", ["cymysql/charsetx.pyx"]),
 
         Extension("cymysql.converters", ["cymysql/converters.py"]),
@@ -13,9 +13,8 @@ try:
         Extension("cymysql.cursors", ["cymysql/cursors.py"]),
         Extension("cymysql.err", ["cymysql/err.py"]),
         Extension("cymysql.times", ["cymysql/times.py"]),
-    ]
+    ])
 except ImportError:
-    cmdclass = {}
     ext_modules = None
 
 
@@ -36,7 +35,7 @@ class TestCommand(Command):
         import unittest
         unittest.main(tests, argv=sys.argv[:1])
 
-cmdclass['test'] = TestCommand
+cmdclass = {'test': TestCommand}
 
 version_tuple = __import__('cymysql').VERSION
 
