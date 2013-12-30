@@ -590,7 +590,7 @@ class Connection(object):
         self.host = host
         self.port = port
         self.user = user or DEFAULT_USER
-        self.password = passwd
+        self.password = passwd or ""
         self.db = database
         self.no_delay = no_delay
         self.unix_socket = unix_socket
