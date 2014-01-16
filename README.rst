@@ -16,13 +16,22 @@ IronPython and Jython.
 Requirements
 -------------
 
-* Python 2.6, 2.7 or 3.3
+* Python -- one of the following:
 
- * http://www.python.org/
+  - CPython_ >= 2.6 or >= 3.3
+  - PyPy_ >= 2.0
+  - IronPython_ 2.7
+* MySQL Server -- one of the following:
 
-* MySQL 4.1 or higher
+  - MySQL_ >= 4.1
+  - MariaDB_ >= 5.1
 
- * protocol41 support, experimental 4.0 support
+.. _CPython: http://www.python.org/
+.. _PyPy: http://pypy.org/
+.. _IronPython: http://ironpython.net/
+.. _MySQL: http://www.mysql.com/
+.. _MariaDB: https://mariadb.org/
+
 
 Installation
 ------------
