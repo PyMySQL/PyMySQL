@@ -8,7 +8,7 @@ import pymysql
 _mysql = pymysql
 from pymysql.constants import FIELD_TYPE
 from pymysql.tests import base
-from pymysql._compat import PY2
+from pymysql._compat import PY2, long_type
 
 if not PY2:
     basestring = str
@@ -62,8 +62,8 @@ class CoreAPI(unittest.TestCase):
 
     def test_thread_id(self):
         tid = self.conn.thread_id()
-        self.assertTrue(isinstance(tid, int),
-                        "thread_id didn't return an int.")
+        self.assertTrue(isinstance(tid, (int, long_type)),
+                        "thread_id didn't return an integral value.")
 
         self.assertRaises(TypeError, self.conn.thread_id, ('evil',),
                           "thread_id shouldn't accept arguments.")
