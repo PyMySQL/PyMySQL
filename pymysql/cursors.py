@@ -12,12 +12,11 @@ from .err import (
 insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
 
 
-def _escape(conn, value, has_binary=False):
+def _escape(conn, value):
     result = conn.escape(value)
-    if has_binary:
-        # Make sure we don't mix bytes and unicode
-        if isinstance(result, text_type):
-            result = result.encode(conn.encoding)
+    # Make sure we don't mix bytes and unicode
+    if isinstance(result, text_type):
+        result = result.encode(conn.encoding)
     return result
 
 
@@ -99,16 +98,17 @@ class Cursor(object):
 
         if args is not None:
 
-            is_binary = conn.use_unicode and not charset_by_name(conn.charset).is_binary
-
             if isinstance(args, (tuple, list)):
-                escaped_args = tuple(_escape(conn, arg, is_binary) for arg in args)
+                escaped_args = tuple(_escape(conn, arg) for arg in args)
             elif isinstance(args, dict):
-                escaped_args = dict((key, _escape(conn, val, is_binary)) for (key, val) in args.items())
+                escaped_args = dict((key, _escape(conn, val)) for (key, val) in args.items())
             else:
                 #If it's not a dictionary let's try escaping it anyways.
                 #Worst case it will throw a Value error
-                escaped_args = _escape(conn, args, is_binary)
+                escaped_args = _escape(conn, args)
+
+            if isinstance(query, text_type):
+                query = query.encode(conn.encoding)
 
             query = query % escaped_args
 
