@@ -2,6 +2,7 @@ from pymysql.tests import base
 from pymysql import util
 from pymysql.err import ProgrammingError
 
+import uuid
 import time
 import datetime
 
@@ -80,7 +81,6 @@ class TestConversion(base.PyMySQLTestCase):
         finally:
             c.execute("drop table test_dict")
 
-
     def test_big_blob(self):
         """ test tons of data """
         conn = self.connections[0]
@@ -93,6 +93,19 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
         finally:
             c.execute("drop table test_big_blob")
+
+    def test_binary(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("create table test_binary (userid binary(16), other varchar(32))")
+        try:
+            data = uuid.uuid4().bytes
+            other = u'Some unicode string'
+            c.execute("insert into test_binary (userid, other) values (%s, %s)", (data, other))
+            c.execute("select userid from test_binary")
+            self.assertEqual(c.fetchone()[0], data)
+        finally:
+            c.execute("drop table test_binary")
 
     def test_untyped(self):
         """ test conversion of null, empty string """
