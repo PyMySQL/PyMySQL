@@ -2,14 +2,23 @@
 from __future__ import print_function, absolute_import
 import re
 
-from ._compat import range_type
-
+from ._compat import range_type, text_type
+from .charset import charset_by_name, charset_to_encoding
 from .err import (
     Warning, Error, InterfaceError, DataError,
     DatabaseError, OperationalError, IntegrityError, InternalError,
     NotSupportedError, ProgrammingError)
 
 insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
+
+
+def _escape(conn, value, has_binary=False):
+    result = conn.escape(value)
+    if has_binary:
+        # Make sure we don't mix bytes and unicode
+        if isinstance(result, text_type):
+            result = result.encode(conn.encoding)
+    return result
 
 
 class Cursor(object):
@@ -89,14 +98,18 @@ class Cursor(object):
         # TODO: make sure that conn.escape is correct
 
         if args is not None:
+
+            is_binary = conn.use_unicode and not charset_by_name(conn.charset).is_binary
+
             if isinstance(args, (tuple, list)):
-                escaped_args = tuple(conn.escape(arg) for arg in args)
+                escaped_args = tuple(_escape(conn, arg, is_binary) for arg in args)
             elif isinstance(args, dict):
-                escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
+                escaped_args = dict((key, _escape(conn, val, is_binary)) for (key, val) in args.items())
             else:
                 #If it's not a dictionary let's try escaping it anyways.
                 #Worst case it will throw a Value error
-                escaped_args = conn.escape(args)
+                escaped_args = _escape(conn, args, is_binary)
+
             query = query % escaped_args
 
         result = self._query(query)
