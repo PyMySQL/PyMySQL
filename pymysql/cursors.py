@@ -79,6 +79,18 @@ class Cursor(object):
         self._do_get_result()
         return True
 
+    def _get_escaped_args(self, conn, args):
+        if isinstance(args, (tuple, list)):
+            escaped_args = tuple(conn.escape(arg) for arg in args)
+        elif isinstance(args, dict):
+            escaped_args = dict((key, conn.escape(val))
+                                for (key, val) in args.items())
+        else:
+            #If it's not a dictionary let's try escaping it anyways.
+            #Worst case it will throw a Value error
+            escaped_args = conn.escape(args)
+        return escaped_args
+
     def execute(self, query, args=None):
         ''' Execute a query '''
         conn = self._get_db()
@@ -89,26 +101,32 @@ class Cursor(object):
         # TODO: make sure that conn.escape is correct
 
         if args is not None:
-            if isinstance(args, (tuple, list)):
-                escaped_args = tuple(conn.escape(arg) for arg in args)
-            elif isinstance(args, dict):
-                escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
-            else:
-                #If it's not a dictionary let's try escaping it anyways.
-                #Worst case it will throw a Value error
-                escaped_args = conn.escape(args)
-            query = query % escaped_args
+            query = query % self._get_escaped_args(conn, args)
 
         result = self._query(query)
         self._executed = query
         return result
 
-    def executemany(self, query, args):
+    def executemany(self, query, seq_of_args):
         ''' Run several data against one query '''
-        if not args:
+        if not seq_of_args:
             return
 
-        self.rowcount = sum(self.execute(query, arg) for arg in args)
+        re_insert = re.compile(r'insert\s+into', re.I | re.M | re.S)
+        if re.match(re_insert, query):
+            re_insert_values = re.compile(r'\svalues\s*(\(.+?\))', re.I | re.M | re.S)
+            matches = re.search(re_insert_values, query)
+            if not matches:
+                raise ValueError("Invalid SQL syntax")
+            conn = self._get_db()
+            values = [matches.group(1) % self._get_escaped_args(conn, args)
+                      for args in seq_of_args]
+            query = query.replace(matches.group(1), ','.join(values), 1)
+            result = self._query(query)
+            self._executed = query
+            return result
+
+        self.rowcount = sum(self.execute(query, arg) for arg in seq_of_args)
         return self.rowcount
 
     def callproc(self, procname, args=()):
