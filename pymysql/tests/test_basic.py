@@ -253,8 +253,7 @@ PRIMARY KEY (id)
         cursor = conn.cursor()
         cursor.execute("SELECT id, name, age, height from bulkinsert")
         result = cursor.fetchall()
-        self.assertEqual(len(data), len(result))
-        self.assertItemsEqual(data, result)
+        self.assertEqual(sorted(data), sorted(result))
 
     def test_bulk_insert(self):
         conn = self.connections[0]
