@@ -88,14 +88,6 @@ class test_MySQLdb(capabilities.DatabaseTest):
         except self.connection.ProgrammingError as msg:
             self.assertEqual(msg.args[0], ER.NO_SUCH_TABLE)
 
-    def test_insert_values(self):
-        from pymysql.cursors import insert_values
-        query = """INSERT FOO (a, b, c) VALUES (a, b, c)"""
-        matched = insert_values.search(query)
-        self.assertTrue(matched)
-        values = matched.group(1)
-        self.assertTrue(values == "(a, b, c)")
-
     def test_ping(self):
         self.connection.ping()
 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
-import re
 
 from ._compat import range_type
 
@@ -8,9 +7,6 @@ from .err import (
     Warning, Error, InterfaceError, DataError,
     DatabaseError, OperationalError, IntegrityError, InternalError,
     NotSupportedError, ProgrammingError)
-
-insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
-
 
 class Cursor(object):
     '''
