@@ -282,7 +282,6 @@ values (%s,
         self._verify_records(data)
 
     def test_bulk_insert_single_record(self):
-        # This test should not be executed as bulk insert.
         conn = self.connections[0]
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123)]
@@ -290,32 +289,6 @@ values (%s,
                            "values (%s,%s,%s,%s)", data)
         cursor.execute('commit')
         self._verify_records(data)
-
-    def test_bulk_insert_duplicate_key(self):
-        # This test should not be executed as bulk insert.
-        conn = self.connections[0]
-        cursor = conn.cursor()
-        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
-        cursor.executemany("insert into bulkinsert (id, name, age, height) "
-                           "values (%s, %s,  %s, %s) ON DUPLICATE KEY UPDATE "
-                           "height=VALUES(age)", data)
-        cursor.execute('commit')
-        self._verify_records(data)
-
-    def test_bulk_insert_duplicate_key_actually_have_duplicates(self):
-        # This test should not be executed as bulk insert.
-        conn = self.connections[0]
-        cursor = conn.cursor()
-        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
-        cursor.executemany("insert into bulkinsert (id, name, age, height) "
-                           "values (%s, %s,  %s, %s)", data)
-        cursor.executemany("insert into bulkinsert (id, name, age, height) "
-                           "values (%s, %s,  %s, %s) ON DUPLICATE KEY UPDATE "
-                           "height=VALUES(age)", data)
-        cursor.execute('commit')
-        expected_update = [(0, "bob", 21, 21), (1, "jim", 56, 56),
-                           (2, "fred", 100, 100)]
-        self._verify_records(expected_update)
 
 
 if __name__ == "__main__":
