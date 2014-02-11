@@ -155,6 +155,7 @@ class Cursor(object):
         return self.rowcount
 
     def _do_execute_many(self, prefix, values, args, max_stmt_length, encoding):
+        conn = self._get_db()
         escape = self._escape_args
         if isinstance(prefix, text_type):
             prefix = prefix.encode(encoding)
