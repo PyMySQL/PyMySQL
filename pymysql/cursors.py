@@ -1,17 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
+import re
 
-from ._compat import range_type, PY2
+from ._compat import range_type, text_type, PY2
 
 from .err import (
     Warning, Error, InterfaceError, DataError,
     DatabaseError, OperationalError, IntegrityError, InternalError,
     NotSupportedError, ProgrammingError)
 
+
+RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(.+\))\Z""", re.IGNORECASE)
+
+
 class Cursor(object):
     '''
     This is the object you use to interact with the database.
     '''
+
+    #: Max stetement size which :meth:`executemany` generates.
+    #:
+    #: Max size of allowed statement is max_allowed_packet - packet_header_size.
+    #: Default value of max_allowed_packet is 1048576.
+    max_stmt_length = 1024000
+
     def __init__(self, connection):
         '''
         Do not create an instance of a Cursor yourself. Call
@@ -75,6 +87,16 @@ class Cursor(object):
         self._do_get_result()
         return True
 
+    def _escape_args(self, args, conn):
+        if isinstance(args, (tuple, list)):
+            return tuple(conn.escape(arg) for arg in args)
+        elif isinstance(args, dict):
+            return dict((key, conn.escape(val)) for (key, val) in args.items())
+        else:
+            #If it's not a dictionary let's try escaping it anyways.
+            #Worst case it will throw a Value error
+            return conn.escape(args)
+
     def execute(self, query, args=None):
         '''Execute a query'''
         conn = self._get_db()
@@ -101,27 +123,58 @@ class Cursor(object):
                     args = ensure_bytes(args)
 
         if args is not None:
-            if isinstance(args, (tuple, list)):
-                escaped_args = tuple(conn.escape(arg) for arg in args)
-            elif isinstance(args, dict):
-                escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
-            else:
-                #If it's not a dictionary let's try escaping it anyways.
-                #Worst case it will throw a Value error
-                escaped_args = conn.escape(args)
-            query = query % escaped_args
+            query = query % self._escape_args(args, conn)
 
         result = self._query(query)
         self._executed = query
         return result
 
     def executemany(self, query, args):
-        ''' Run several data against one query '''
+        """Run several data against one query
+
+        PyMySQL can execute bulkinsert for query like 'INSERT ... VALUES (%s)'.
+        In other form of queries, just run :meth:`execute` many times.
+
+        """
         if not args:
             return
 
+        m = RE_INSERT_VALUES.match(query)
+        if m:
+            q_values = m.group(1)
+            assert q_values[0] == '(' and q_values[-1] == ')'
+            q_prefix = query[:-len(q_values)]
+            return self._do_execute_many(q_prefix, q_values, args,
+                                         self.max_stmt_length,
+                                         self.get_db().encoding)
+
         self.rowcount = sum(self.execute(query, arg) for arg in args)
         return self.rowcount
+
+    def _do_execute_many(prefix, values, args, max_stmt_length, encoding):
+        escape = self._escape_args
+        if isinstance(prefix, text_type):
+            prefix = prefix.encode(encoding)
+        sql = bytearray(prefix)
+        args = iter(args)
+        v = values % escape(next(args), conn)
+        if isinstance(v, text_type):
+            v = v.encode(encoding)
+        sql += v
+        rows = 0
+        for arg in args:
+            v = values % escape(arg, conn)
+            if isinstance(v, text_type):
+                v = v.encode(encoding)
+            if len(sql) + len(v) + 1 > max_stmt_length:
+                rows += self.execute(sql)
+                sql = bytearray(prefix)
+            else:
+                sql += b','
+            sql += v
+        rows += self.execute(sql)
+        self.rowcount = rows
+        return rows
 
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
