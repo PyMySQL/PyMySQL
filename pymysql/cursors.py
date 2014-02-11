@@ -146,7 +146,7 @@ class Cursor(object):
             q_prefix = query[:-len(q_values)]
             return self._do_execute_many(q_prefix, q_values, args,
                                          self.max_stmt_length,
-                                         self.get_db().encoding)
+                                         self._get_db().encoding)
 
         self.rowcount = sum(self.execute(query, arg) for arg in args)
         return self.rowcount
