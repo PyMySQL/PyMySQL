@@ -291,16 +291,6 @@ values (%s,
         cursor.execute('commit')
         self._verify_records(data)
 
-    def test_bulk_insert_comments_ignored(self):
-        # This test should not be executed as bulk insert.
-        conn = self.connections[0]
-        cursor = conn.cursor()
-        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
-        cursor.executemany("insert into bulkinsert (id, name, age, height) "
-                           "values (%s, %s,  %s,  %s) /* %s, %s) */", data)
-        cursor.execute('commit')
-        self._verify_records(data)
-
     def test_bulk_insert_duplicate_key(self):
         # This test should not be executed as bulk insert.
         conn = self.connections[0]
