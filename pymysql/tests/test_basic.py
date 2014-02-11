@@ -282,6 +282,7 @@ values (%s,
         self._verify_records(data)
 
     def test_bulk_insert_single_record(self):
+        # This test should not be executed as bulk insert.
         conn = self.connections[0]
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123)]
@@ -291,6 +292,7 @@ values (%s,
         self._verify_records(data)
 
     def test_bulk_insert_comments_ignored(self):
+        # This test should not be executed as bulk insert.
         conn = self.connections[0]
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
@@ -300,6 +302,7 @@ values (%s,
         self._verify_records(data)
 
     def test_bulk_insert_duplicate_key(self):
+        # This test should not be executed as bulk insert.
         conn = self.connections[0]
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
@@ -310,6 +313,7 @@ values (%s,
         self._verify_records(data)
 
     def test_bulk_insert_duplicate_key_actually_have_duplicates(self):
+        # This test should not be executed as bulk insert.
         conn = self.connections[0]
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]

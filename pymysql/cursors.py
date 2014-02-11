@@ -10,7 +10,10 @@ from .err import (
     NotSupportedError, ProgrammingError)
 
 
-RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(.+\))\Z""", re.IGNORECASE)
+#: Regular expression for :meth:`Cursor.executemany`.
+#: executemany only suports simple bulk insert.
+#: You can use it for load large dataset.
+RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(.+\)\s*)\Z""", re.IGNORECASE)
 
 
 class Cursor(object):
@@ -141,7 +144,7 @@ class Cursor(object):
 
         m = RE_INSERT_VALUES.match(query)
         if m:
-            q_values = m.group(1)
+            q_values = m.group(1).rstrip()
             assert q_values[0] == '(' and q_values[-1] == ')'
             q_prefix = query[:-len(q_values)]
             return self._do_execute_many(q_prefix, q_values, args,
