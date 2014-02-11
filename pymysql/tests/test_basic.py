@@ -1,9 +1,14 @@
+import pymysql.cursors
+
 from pymysql.tests import base
 from pymysql import util
 from pymysql.err import ProgrammingError
 
 import time
 import datetime
+
+__all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
+
 
 class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
@@ -224,7 +229,100 @@ class TestCursor(base.PyMySQLTestCase):
             c.execute("drop table mystuff")
 
 
-__all__ = ["TestConversion","TestCursor"]
+class TestBulkInserts(base.PyMySQLTestCase):
+
+    cursor_type = pymysql.cursors.DictCursor
+
+    def setUp(self):
+        super(TestBulkInserts, self).setUp()
+        self.conn = conn = self.connections[0]
+        c = conn.cursor(self.cursor_type)
+
+        # create a table ane some data to query
+        c.execute("drop table if exists bulkinsert")
+        c.execute(
+"""CREATE TABLE bulkinsert
+(
+id int(11),
+name char(20),
+age int,
+height int,
+PRIMARY KEY (id)
+)
+""")
+
+    def _verify_records(self, data):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, age, height from bulkinsert")
+        result = cursor.fetchall()
+        self.assertEqual(sorted(data), sorted(result))
+
+    def test_bulk_insert(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
+        cursor.executemany("insert into bulkinsert (id, name, age, height) "
+                           "values (%s,%s,%s,%s)", data)
+        cursor.execute('commit')
+        self._verify_records(data)
+
+    def test_bulk_insert_multiline_statement(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
+        cursor.executemany("""insert
+into bulkinsert (id, name,
+age, height)
+values (%s,
+%s,%s,
+%s)
+""", data)
+        cursor.execute('commit')
+        self._verify_records(data)
+
+    def test_bulk_insert_single_record(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        data = [(0, "bob", 21, 123)]
+        cursor.executemany("insert into bulkinsert (id, name, age, height) "
+                           "values (%s,%s,%s,%s)", data)
+        cursor.execute('commit')
+        self._verify_records(data)
+
+    def test_bulk_insert_comments_ignored(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
+        cursor.executemany("insert into bulkinsert (id, name, age, height) "
+                           "values (%s, %s,  %s,  %s) /* %s, %s) */", data)
+        cursor.execute('commit')
+        self._verify_records(data)
+
+    def test_bulk_insert_duplicate_key(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
+        cursor.executemany("insert into bulkinsert (id, name, age, height) "
+                           "values (%s, %s,  %s, %s) ON DUPLICATE KEY UPDATE "
+                           "height=VALUES(age)", data)
+        cursor.execute('commit')
+        self._verify_records(data)
+
+    def test_bulk_insert_duplicate_key_actually_have_duplicates(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
+        cursor.executemany("insert into bulkinsert (id, name, age, height) "
+                           "values (%s, %s,  %s, %s)", data)
+        cursor.executemany("insert into bulkinsert (id, name, age, height) "
+                           "values (%s, %s,  %s, %s) ON DUPLICATE KEY UPDATE "
+                           "height=VALUES(age)", data)
+        cursor.execute('commit')
+        expected_update = [(0, "bob", 21, 21), (1, "jim", 56, 56),
+                           (2, "fred", 100, 100)]
+        self._verify_records(expected_update)
+
 
 if __name__ == "__main__":
     import unittest
