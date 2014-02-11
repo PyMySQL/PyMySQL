@@ -154,7 +154,7 @@ class Cursor(object):
         self.rowcount = sum(self.execute(query, arg) for arg in args)
         return self.rowcount
 
-    def _do_execute_many(prefix, values, args, max_stmt_length, encoding):
+    def _do_execute_many(self, prefix, values, args, max_stmt_length, encoding):
         escape = self._escape_args
         if isinstance(prefix, text_type):
             prefix = prefix.encode(encoding)
