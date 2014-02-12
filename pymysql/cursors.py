@@ -146,7 +146,7 @@ class Cursor(object):
         if m:
             q_values = m.group(1).rstrip()
             assert q_values[0] == '(' and q_values[-1] == ')'
-            q_prefix = query[:-len(q_values)]
+            q_prefix = query[:m.start(1)]
             return self._do_execute_many(q_prefix, q_values, args,
                                          self.max_stmt_length,
                                          self._get_db().encoding)
