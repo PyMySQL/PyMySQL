@@ -5,6 +5,7 @@ from pymysql.err import ProgrammingError
 import time
 import datetime
 
+
 class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
         """ test every data type """
@@ -93,6 +94,20 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
         finally:
             c.execute("drop table test_big_blob")
+
+    def test_binary(self):
+        """Test mixing unicode and binary data."""
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("create table test_binary (bin binary(16), txt varchar(32))")
+        try:
+            data = bytes(bytearray(range(16)))
+            other = u"Unicode String."
+            c.execute("insert into test_binary (bin, txt) values (%s, %s)", (data, other))
+            c.execute("select bin from test_binary")
+            self.assertEqual(c.fetchone()[0], data)
+        finally:
+            c.execute("drop table test_binary")
 
     def test_untyped(self):
         """ test conversion of null, empty string """
