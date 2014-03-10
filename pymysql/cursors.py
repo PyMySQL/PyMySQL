@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
 
-from ._compat import range_type
+from ._compat import range_type, PY2
 
 from .err import (
     Warning, Error, InterfaceError, DataError,
@@ -76,13 +76,29 @@ class Cursor(object):
         return True
 
     def execute(self, query, args=None):
-        ''' Execute a query '''
+        '''Execute a query'''
         conn = self._get_db()
 
         while self.nextset():
             pass
 
-        # TODO: make sure that conn.escape is correct
+        if PY2:  # Use bytes on Python 2 always
+            encoding = conn.encoding
+
+            def ensure_bytes(x):
+                if isinstance(x, unicode):
+                    x = x.encode(encoding)
+                return x
+
+            query = ensure_bytes(query)
+
+            if args is not None:
+                if isinstance(args, (tuple, list)):
+                    args = tuple(map(ensure_bytes, args))
+                elif isinstance(args, dict):
+                    args = dict((ensure_bytes(key), ensure_bytes(val)) for (key, val) in args.items())
+                else:
+                    args = ensure_bytes(args)
 
         if args is not None:
             if isinstance(args, (tuple, list)):
