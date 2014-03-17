@@ -2,10 +2,8 @@ language: python
 python: "2.7"
 
 before_install:
-    - sudo add-apt-repository -y ppa:pypy/ppa
     - sudo apt-get update -qq -y
-    - sudo apt-get -y install pypy
-    - sudo rm -rf /usr/local/pypy
+    - sudo apt-get install python3.4
 
 install:
     - pip install -M tox
