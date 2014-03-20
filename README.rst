@@ -6,9 +6,9 @@ PyMySQL
 ..
 
 
-.. image:: https://secure.travis-ci.org/PyMySQL/PyMySQL.png
-   :target: https://secure.travis-ci.org/PyMySQL/PyMySQL
-  
+.. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
+   :target: https://travis-ci.org/PyMySQL/PyMySQL
+
 This package contains a pure-Python MySQL client library. The goal of PyMySQL
 is to be a drop-in replacement for MySQLdb and work on CPython, PyPy,
 IronPython and Jython.
