@@ -234,6 +234,7 @@ class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
     for reading/parsing the packet results."""
+    __slots__ = ('_position', '_data', '_packet_number')
 
     def __init__(self, connection):
         self._position = 0
@@ -248,7 +249,7 @@ class MysqlPacket(object):
             packet_length_bin = packet_header[:3]
 
             #TODO: check sequence id
-            self.__packet_number = byte2int(packet_header[3])
+            self._packet_number = byte2int(packet_header[3])
 
             bin_length = packet_length_bin + b'\0'  # pad little-endian number
             bytes_to_read = struct.unpack('<I', bin_length)[0]
@@ -257,21 +258,21 @@ class MysqlPacket(object):
             buff += recv_data
             if bytes_to_read < MAX_PACKET_LEN:
                 break
-        self.__data = buff
+        self._data = buff
 
     def packet_number(self):
-        return self.__packet_number
+        return self._packet_number
 
     def get_all_data(self):
-        return self.__data
+        return self._data
 
     def read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self.__data[self._position:(self._position+size)]
+        result = self._data[self._position:(self._position+size)]
         if len(result) != size:
             error = ('Result length not requested length:\n'
                      'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                     % (size, len(result), self._position, len(self.__data)))
+                     % (size, len(result), self._position, len(self._data)))
             if DEBUG:
                 print(error)
                 self.dump()
@@ -284,21 +285,21 @@ class MysqlPacket(object):
 
         (Subsequent read() will return errors.)
         """
-        result = self.__data[self._position:]
+        result = self._data[self._position:]
         self._position = None  # ensure no subsequent read()
         return result
 
     def advance(self, length):
         """Advance the cursor in data buffer 'length' bytes."""
         new_position = self._position + length
-        if new_position < 0 or new_position > len(self.__data):
+        if new_position < 0 or new_position > len(self._data):
             raise Exception('Invalid advance amount (%s) for cursor.  '
                             'Position=%s' % (length, new_position))
         self._position = new_position
 
     def rewind(self, position=0):
         """Set the position of the data buffer cursor to 'position'."""
-        if position < 0 or position > len(self.__data):
+        if position < 0 or position > len(self._data):
             raise Exception("Invalid position to rewind cursor to: %s." % position)
         self._position = position
 
@@ -311,7 +312,7 @@ class MysqlPacket(object):
         No error checking is done.  If requesting outside end of buffer
         an empty string (or string shorter than 'length') may be returned!
         """
-        return self.__data[position:(position+length)]
+        return self._data[position:(position+length)]
 
     def read_length_encoded_integer(self):
         """Read a 'Length Coded Binary' number from the data buffer.
@@ -344,31 +345,31 @@ class MysqlPacket(object):
         return self.read(length)
 
     def is_ok_packet(self):
-        return self.__data[0:1] == b'\0'
+        return self._data[0:1] == b'\0'
 
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return len(self.__data) < 9 and self.__data[0:1] == b'\xfe'
+        return len(self._data) < 9 and self._data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
-        field_count = ord(self.__data[0:1])
+        field_count = ord(self._data[0:1])
         return 1 <= field_count <= 250
 
     def is_error_packet(self):
-        return self.__data[0:1] == b'\xff'
+        return self._data[0:1] == b'\xff'
 
     def check_error(self):
         if self.is_error_packet():
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
             errno = unpack_uint16(self.read(2))
-            if DEBUG: print("errno = {}".format(errno))
-            raise_mysql_exception(self.__data)
+            if DEBUG: print("errno =", errno)
+            raise_mysql_exception(self._data)
 
     def dump(self):
-        dump_packet(self.__data)
+        dump_packet(self._data)
 
 
 class FieldDescriptorPacket(MysqlPacket):
