@@ -12,8 +12,8 @@ from .err import (
 
 #: Regular expression for :meth:`Cursor.executemany`.
 #: executemany only suports simple bulk insert.
-#: You can use it for load large dataset.
-RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(.+\)\s*)\Z""", re.IGNORECASE)
+#: You can use it to load large dataset.
+RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(\s*%s\s*(,\s*%s\s*)*\)\s*)\Z""", re.IGNORECASE)
 
 
 class Cursor(object):
