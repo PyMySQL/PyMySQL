@@ -1,6 +1,8 @@
 *.pyc
+*.pyo
 __pycache__
-py3k
-dist
-PyMySQL.egg-info
-pymysql/tests/databases.json
+/dist
+/PyMySQL.egg-info
+/.tox
+/build
+/pymysql/tests/databases.json
