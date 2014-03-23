@@ -261,9 +261,14 @@ PRIMARY KEY (id)
     def test_bulk_insert(self):
         conn = self.connections[0]
         cursor = conn.cursor()
+
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
         cursor.executemany("insert into bulkinsert (id, name, age, height) "
                            "values (%s,%s,%s,%s)", data)
+        self.assertEqual(
+            cursor._last_executed, bytearray(
+            b"insert into bulkinsert (id, name, age, height) values "
+            b"(0,'bob',21,123),(1,'jim',56,45),(2,'fred',100,180)"))
         cursor.execute('commit')
         self._verify_records(data)
 
@@ -275,9 +280,19 @@ PRIMARY KEY (id)
 into bulkinsert (id, name,
 age, height)
 values (%s,
-%s,%s,
-%s)
-""", data)
+%s , %s,
+%s )
+ """, data)
+        self.assertEqual(cursor._last_executed, bytearray(b"""insert
+into bulkinsert (id, name,
+age, height)
+values (0,
+'bob' , 21,
+123 ),(1,
+'jim' , 56,
+45 ),(2,
+'fred' , 100,
+180 )"""))
         cursor.execute('commit')
         self._verify_records(data)
 

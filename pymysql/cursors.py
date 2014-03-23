@@ -13,7 +13,8 @@ from .err import (
 #: Regular expression for :meth:`Cursor.executemany`.
 #: executemany only suports simple bulk insert.
 #: You can use it to load large dataset.
-RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(\s*%s\s*(,\s*%s\s*)*\)\s*)\Z""", re.IGNORECASE)
+RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(\s*%s\s*(,\s*%s\s*)*\))\s*\Z""",
+                              re.IGNORECASE | re.DOTALL)
 
 
 class Cursor(object):
@@ -137,7 +138,6 @@ class Cursor(object):
 
         PyMySQL can execute bulkinsert for query like 'INSERT ... VALUES (%s)'.
         In other form of queries, just run :meth:`execute` many times.
-
         """
         if not args:
             return
