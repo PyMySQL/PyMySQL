@@ -4,6 +4,7 @@
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 
+import errno
 from functools import partial
 import os
 import hashlib
@@ -781,7 +782,15 @@ class Connection(object):
                 self.host_info = "Localhost via UNIX socket"
                 if DEBUG: print('connected using unix_socket')
             else:
-                sock = socket.create_connection((self.host, self.port), self.connect_timeout)
+                while True:
+                    try:
+                        sock = socket.create_connection(
+                                (self.host, self.port), self.connect_timeout)
+                        break
+                    except (OSError, IOError) as e:
+                        if e.errno == errno.EINTR:
+                            continue
+                        raise
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -816,18 +825,22 @@ class Connection(object):
 
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
-        and return a MysqlPacket type that represents the results."""
-
+        and return a MysqlPacket type that represents the results.
+        """
         packet = packet_type(self)
         packet.check_error()
         return packet
 
     def _read_bytes(self, num_bytes):
-        try:
-            data = self._rfile.read(num_bytes)
-        except IOError as e:
-            raise OperationalError(2013,
-                    "Lost connection to MySQL server during query (%r)" % (e,))
+        while True:
+            try:
+                data = self._rfile.read(num_bytes)
+                break
+            except (IOError, OSError) as e:
+                if e.errno == errno.EINTR:
+                    continue
+                raise OperationalError(
+                        2013, "Lost connection to MySQL server during query (%r)" % (e,))
         if len(data) < num_bytes:
             raise OperationalError(2013,
                     "Lost connection to MySQL server during query")
