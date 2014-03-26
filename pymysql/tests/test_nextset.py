@@ -32,6 +32,15 @@ class TestNextset(base.PyMySQLTestCase):
         cur.execute("SELECT 42")
         self.assertEqual([(42,)], list(cur))
 
+    def test_ok_and_next(self):
+        cur = self.con.cursor()
+        cur.execute("SELECT 1; commit; SELECT 2;")
+        self.assertEqual([(1,)], list(cur))
+        self.assertTrue(cur.nextset())
+        self.assertTrue(cur.nextset())
+        self.assertEqual([(2,)], list(cur))
+        self.assertFalse(bool(cur.nextset()))
+
     @unittest.expectedFailure
     def test_multi_cursor(self):
         cur1 = self.con.cursor()

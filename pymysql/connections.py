@@ -456,12 +456,10 @@ class OKPacketWrapper(object):
         self.server_status = struct.unpack('<H', self.packet.read(2))[0]
         self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
         self.message = self.packet.read_all()
+        self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
     def __getattr__(self, key):
-        if hasattr(self.packet, key):
-            return getattr(self.packet, key)
-        raise AttributeError(
-            "{0} instance has no attribute '{1}'".format(self.__class__, key))
+        return getattr(self.packet, key)
 
 
 class EOFPacketWrapper(object):
@@ -485,10 +483,7 @@ class EOFPacketWrapper(object):
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
     def __getattr__(self, key):
-        if hasattr(self.packet, key):
-            return getattr(self.packet, key)
-        raise AttributeError(
-            "{0} instance has no attribute '{1}'".format(self.__class__, key))
+        return getattr(self.packet, key)
 
 
 class Connection(object):
@@ -1100,6 +1095,7 @@ class MySQLResult(object):
         self.server_status = ok_packet.server_status
         self.warning_count = ok_packet.warning_count
         self.message = ok_packet.message
+        self.has_next = ok_packet.has_next
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
