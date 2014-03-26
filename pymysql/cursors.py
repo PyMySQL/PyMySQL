@@ -80,7 +80,7 @@ class Cursor(object):
         """Does nothing, required by DB API."""
 
     def nextset(self):
-        ''' Get the next query set '''
+        """Get the next query set"""
         conn = self._get_db()
         current_result = self._result
         if current_result is None or current_result is not conn._result:
