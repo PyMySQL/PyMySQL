@@ -1,7 +1,10 @@
 Changes
 --------
 
-next  -Fix old password doesn't work on Python 3.
+0.6.2 -Fixed old password on Python 3.
+      -Added support for bulk insert in Cursor.executemany().
+      -Added support for microseconds in datetimes and dates before 1900.
+      -Several other bug fixes.
 
 0.6.1 -Added cursor._last_executed for MySQLdb compatibility
       -Cursor.fetchall() and .fetchmany now return list, not tuple
