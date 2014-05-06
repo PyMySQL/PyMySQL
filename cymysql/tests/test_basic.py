@@ -119,7 +119,15 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100')")
-        self.assertEqual((datetime.timedelta(0, 45000),
+        if conn.server_version[:3] > '5.5':
+            # support Fractional Seconds in Time
+            # http://dev.mysql.com/doc/refman/5.6/en/fractional-seconds.html
+            self.assertEqual((datetime.timedelta(0, 45000),
+                          datetime.timedelta(0, 83579),
+                          datetime.timedelta(0, 83579, 5100)),
+                         c.fetchone())
+        else:
+            self.assertEqual((datetime.timedelta(0, 45000),
                           datetime.timedelta(0, 83579),
                           datetime.timedelta(0, 83579, 51000)),
                          c.fetchone())
