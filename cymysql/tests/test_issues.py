@@ -230,7 +230,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         except cymysql.InternalError:   # MySQL 5.6
             exc,value,tb = sys.exc_info()
             self.assertEqual(value[0], 1317)
-            self.assertEqual(value[1], u'Query execution was interrupted')
+            self.assertEqual(value[1], 'Query execution was interrupted')
         # make sure this connection has broken
         try:
             c.execute("show tables")
