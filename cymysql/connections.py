@@ -339,12 +339,12 @@ class Connection(object):
         arg = struct.pack('<I', thread_id)
         try:
             self._execute_command(COM_PROCESS_KILL, arg)
+            pkt = self.read_packet()
+            return pkt.is_ok_packet()
         except:
             exc,value,tb = sys.exc_info()
             self.errorhandler(None, exc, value)
-            return
-        pkt = self.read_packet()
-        return pkt.is_ok_packet()
+        return False
 
     def ping(self, reconnect=True):
         ''' Check if the server is alive '''
