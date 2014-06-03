@@ -293,6 +293,7 @@ class MySQLResult(object):
         self.has_next = None
         self.has_result = False
         self.rest_rows = None
+        self.rest_row_index = 0
         self.first_packet = MysqlPacket(self.connection)
 
         if self.first_packet.is_ok_packet():
@@ -322,6 +323,7 @@ class MySQLResult(object):
                 break
             rest_rows.append(packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
+        self.rest_row_index = 0
 
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
@@ -350,6 +352,7 @@ class MySQLResult(object):
                 self.rest_rows = []
                 return None
             return packet.read_decode_data(self.fields)
-        elif len(self.rest_rows):
-            return self.rest_rows.pop(0)
+        elif len(self.rest_rows) != self.rest_row_index:
+            self.rest_row_index += 1
+            return self.rest_rows[self.rest_row_index-1]
         return None
