@@ -283,6 +283,7 @@ cdef class MySQLResult(object):
     cdef public object message, description
     cdef public object server_status, warning_count, field_count
     cdef object connection, first_packet, fields
+    cdef int rest_row_index
 
     def __init__(self, connection):
         from weakref import proxy
