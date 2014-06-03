@@ -69,7 +69,7 @@ cdef class MysqlPacket(object):
         self.__recv_packet()
         is_error = (<unsigned char>(self.__data[0])) == 0xff
         if is_error:
-            self.advance(1)  # field_count == error (we already know that)
+            self.__position += 1  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
             raise_mysql_exception(self.__data)
 
@@ -124,7 +124,7 @@ cdef class MysqlPacket(object):
             raise AssertionError(error)
         result = self.__data[self.__position:(self.__position+size)]
 
-        self.advance(size)
+        self.__position += size
         return result
   
     def read_all(self):
