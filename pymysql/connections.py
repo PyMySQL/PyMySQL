@@ -640,9 +640,18 @@ class Connection(object):
             self._rfile = None
             sock.close()
 
+    @property
+    def open(self):
+        return self.socket is not None
+
     def __del__(self):
         if self.socket:
-            self.close()
+            try:
+                self.socket.close()
+            except:
+                pass
+        self.socket = None
+        self._rfile = None
 
     def autocommit(self, value):
         self.autocommit_mode = bool(value)
