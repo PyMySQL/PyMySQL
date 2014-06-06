@@ -1,10 +1,6 @@
 language: python
 python: "2.7"
 
-before_install:
-    - sudo apt-get update -qq -y
-    - sudo apt-get install python3.4
-
 install:
     - pip install -M tox
 
