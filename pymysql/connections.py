@@ -677,6 +677,11 @@ class Connection(object):
                               self.escape(self.autocommit_mode))
         self._read_ok_packet()
 
+    def begin(self):
+        """Begin transaction."""
+        self._execute_command(COM_QUERY, "BEGIN")
+        self._read_ok_packet()
+
     def commit(self):
         ''' Commit changes to stable storage '''
         self._execute_command(COM_QUERY, "COMMIT")
