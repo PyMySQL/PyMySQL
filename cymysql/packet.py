@@ -128,14 +128,6 @@ class MysqlPacket(object):
         self.__position = -1  # ensure no subsequent read() or peek()
         return result
   
-    def advance(self, length):
-        """Advance the cursor in data buffer 'length' bytes."""
-        new_position = self.__position + length
-        if new_position < 0 or new_position > self.__data_length:
-            raise Exception('Invalid advance amount (%s) for cursor.  '
-                        'Position=%s' % (length, new_position))
-        self.__position = new_position
-  
     def read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
@@ -202,7 +194,7 @@ class MysqlPacket(object):
         return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
     def read_ok_packet(self):
-        self.advance(1)  # field_count (always '0')
+        self.read(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
@@ -235,13 +227,13 @@ class FieldDescriptorPacket(MysqlPacket):
         self.org_table = self._read_length_coded_string()
         self.name = self._read_length_coded_string().decode(self.connection.charset)
         self.org_name = self._read_length_coded_string()
-        self.advance(1)  # non-null filler
+        self.read(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.length = unpack_uint32(self._read(4))
         self.type_code = ord(self._read(1))
         self.flags = unpack_uint16(self._read(2))
         self.scale = ord(self._read(1))  # "decimals"
-        self.advance(2)  # filler (always 0x00)
+        self.read(2)  # filler (always 0x00)
     
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
