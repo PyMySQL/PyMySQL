@@ -23,8 +23,6 @@ def escape_item(val, charset):
         return escape_dict(val, charset)
     encoder = encoders[type(val)]
     val = encoder(val)
-    if type(val) in [str, int, text_type]:
-        return val
     return val
 
 def escape_dict(val, charset):
