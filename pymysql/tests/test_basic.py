@@ -112,10 +112,14 @@ class TestConversion(base.PyMySQLTestCase):
         """ test timedelta conversion """
         conn = self.connections[0]
         c = conn.cursor()
-        c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100')")
+        c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100'), time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')")
         self.assertEqual((datetime.timedelta(0, 45000),
                           datetime.timedelta(0, 83579),
-                          datetime.timedelta(0, 83579, 51000)),
+                          datetime.timedelta(0, 83579, 51000),
+                          -datetime.timedelta(0, 45000),
+                          -datetime.timedelta(0, 83579),
+                          -datetime.timedelta(0, 83579, 51000),
+                          -datetime.timedelta(0, 1800)),
                          c.fetchone())
 
     def test_datetime(self):
