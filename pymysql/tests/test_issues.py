@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import pymysql
 from pymysql.tests import base
 try:
@@ -12,6 +14,7 @@ except AttributeError:
     pass
 
 import datetime
+
 
 
 class TestOldIssues(base.PyMySQLTestCase):
@@ -110,9 +113,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         c.execute("drop table if exists issue15")
         c.execute("create table issue15 (t varchar(32))")
         try:
-            c.execute("insert into issue15 (t) values (%s)", (u'\xe4\xf6\xfc',))
+            c.execute("insert into issue15 (t) values (%s)", ('\xe4\xf6\xfc',))
             c.execute("select t from issue15")
-            self.assertEqual(u'\xe4\xf6\xfc', c.fetchone()[0])
+            self.assertEqual('\xe4\xf6\xfc', c.fetchone()[0])
         finally:
             c.execute("drop table issue15")
 
