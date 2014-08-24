@@ -1,7 +1,7 @@
 '''
-PyMySQL: A pure-Python MySQL client library.
+Tornado-MySQL: A pure-Python MySQL client library for Tornado.
 
-Copyright (c) 2010, 2013 PyMySQL contributors
+Copyright (c) 2010, 2013-2014 PyMySQL contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -88,7 +88,7 @@ def connect(*args, **kwargs):
     yield conn.connect()
     raise gen.Return(conn)
 
-from pymysql import connections as _orig_conn
+from . import connections as _orig_conn
 if _orig_conn.Connection.__init__.__doc__ is not None:
     connect.__doc__ = _orig_conn.Connection.__init__.__doc__ + ("""
 See connections.Connection.__init__() for information about defaults.

@@ -1,14 +1,11 @@
 import sys
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
-import pymysql
-_mysql = pymysql
-from pymysql.constants import FIELD_TYPE
-from pymysql.tests import base
-from pymysql._compat import PY2, long_type
+import tornado_mysql
+_mysql = tornado_mysql
+from tornado_mysql.constants import FIELD_TYPE
+from tornado_mysql.tests import base
+from tornado_mysql._compat import PY2, long_type
 
 if not PY2:
     basestring = str
@@ -16,16 +13,16 @@ if not PY2:
 
 class TestDBAPISet(unittest.TestCase):
     def test_set_equality(self):
-        self.assertTrue(pymysql.STRING == pymysql.STRING)
+        self.assertTrue(tornado_mysql.STRING == tornado_mysql.STRING)
 
     def test_set_inequality(self):
-        self.assertTrue(pymysql.STRING != pymysql.NUMBER)
+        self.assertTrue(tornado_mysql.STRING != tornado_mysql.NUMBER)
 
     def test_set_equality_membership(self):
-        self.assertTrue(FIELD_TYPE.VAR_STRING == pymysql.STRING)
+        self.assertTrue(FIELD_TYPE.VAR_STRING == tornado_mysql.STRING)
 
     def test_set_inequality_membership(self):
-        self.assertTrue(FIELD_TYPE.DATE != pymysql.STRING)
+        self.assertTrue(FIELD_TYPE.DATE != tornado_mysql.STRING)
 
 
 class CoreModule(unittest.TestCase):
@@ -75,7 +72,7 @@ class CoreAPI(unittest.TestCase):
 
     #def test_debug(self):
         ## FIXME Only actually tests if you lack SUPER
-        #self.assertRaises(pymysql.OperationalError,
+        #self.assertRaises(tornado_mysql.OperationalError,
                           #self.conn.dump_debug_info)
 
     def test_charset_name(self):

@@ -1,6 +1,7 @@
-import pymysql
 import time
-from pymysql.tests import base
+
+import tornado_mysql
+from tornado_mysql.tests import base
 
 
 class TestConnection(base.PyMySQLTestCase):
@@ -8,7 +9,7 @@ class TestConnection(base.PyMySQLTestCase):
         """This test requires MySQL >= 5.5"""
         arg = self.databases[0].copy()
         arg['charset'] = 'utf8mb4'
-        conn = pymysql.connect(**arg)
+        conn = tornado_mysql.connect(**arg)
 
     def test_largedata(self):
         """Large query and response (>=16MB)"""
@@ -64,7 +65,7 @@ class TestConnection(base.PyMySQLTestCase):
         cur = con.cursor()
         cur.execute("SET wait_timeout=1")
         time.sleep(2)
-        with self.assertRaises(pymysql.OperationalError) as cm:
+        with self.assertRaises(tornado_mysql.OperationalError) as cm:
             cur.execute("SELECT 1+1")
         # error occures while reading, not writing because of socket buffer.
         #self.assertEquals(cm.exception.args[0], 2006)
@@ -72,8 +73,5 @@ class TestConnection(base.PyMySQLTestCase):
 
 
 if __name__ == "__main__":
-    try:
-        import unittest2 as unittest
-    except ImportError:
-        import unittest
+    import unittest
     unittest.main()

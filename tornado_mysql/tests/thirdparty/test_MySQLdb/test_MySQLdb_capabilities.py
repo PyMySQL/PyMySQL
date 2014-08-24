@@ -1,18 +1,16 @@
 #!/usr/bin/env python
-from . import capabilities
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-import pymysql
-from pymysql.tests import base
+import unittest
 import warnings
+
+from . import capabilities
+import tornado_mysql
+from tornado_mysql.tests import base
 
 warnings.filterwarnings('error')
 
 class test_MySQLdb(capabilities.DatabaseTest):
 
-    db_module = pymysql
+    db_module = tornado_mysql
     connect_args = ()
     connect_kwargs = base.PyMySQLTestCase.databases[0].copy()
     connect_kwargs.update(dict(read_default_file='~/.my.cnf',
@@ -82,7 +80,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
             generator)
 
     def test_bug_2671682(self):
-        from pymysql.constants import ER
+        from tornado_mysql.constants import ER
         try:
             self.cursor.execute("describe some_non_existent_table");
         except self.connection.ProgrammingError as msg:

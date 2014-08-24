@@ -1,10 +1,7 @@
-from pymysql.tests import base
-from pymysql import util
+import unittest
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+from tornado_mysql.tests import base
+from tornado_mysql import util
 
 
 class TestNextset(base.PyMySQLTestCase):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-version_tuple = __import__('pymysql').VERSION
+version_tuple = __import__('tornado_mysql').VERSION
 
 if version_tuple[3] is not None:
     version = "%d.%d.%d_%s" % version_tuple
@@ -17,25 +17,23 @@ except IOError:
 setup(
     name="PyMySQL",
     version=version,
-    url='https://github.com/PyMySQL/PyMySQL/',
-    download_url = 'https://github.com/PyMySQL/PyMySQL/tarball/pymysql-%s' % version,
+    url='https://github.com/PyMySQL/Tornado-MySQL',
     author='yutaka.matsubara',
     author_email='yutaka.matsubara@gmail.com',
-    maintainer='Marcel Rodrigues',
-    maintainer_email='marcelgmr@gmail.com',
-    description='Pure-Python MySQL Driver',
+    maintainer='INADA Naoki',
+    maintainer_email='songofacandy@gmail.com',
+    description='Pure-Python MySQL Driver for Tornado',
+    install_requires=['tornado>=4.0'],
     long_description=readme,
     license="MIT",
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: IronPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

@@ -1,9 +1,5 @@
-import pymysql
-from pymysql.tests import base
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import datetime
+import unittest
 
 try:
     import imp
@@ -11,7 +7,8 @@ try:
 except AttributeError:
     pass
 
-import datetime
+import tornado_mysql
+from tornado_mysql.tests import base
 
 
 class TestOldIssues(base.PyMySQLTestCase):
@@ -58,7 +55,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         # ToDo: this test requires access to db 'mysql'.
         kwargs = self.databases[0].copy()
         kwargs['db'] = "mysql"
-        conn = pymysql.connect(**kwargs)
+        conn = tornado_mysql.connect(**kwargs)
         c = conn.cursor()
         c.execute("select * from user")
         conn.close()
@@ -82,7 +79,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
     def test_issue_9(self):
         """ sets DeprecationWarning in Python 2.6 """
         try:
-            reload(pymysql)
+            reload(tornado_mysql)
         except DeprecationWarning:
             self.fail()
 
@@ -144,7 +141,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
             conn.commit()
 
-            conn2 = pymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
+            conn2 = tornado_mysql.connect(host=host, user="issue17user", passwd="1234", db=db)
             c2 = conn2.cursor()
             c2.execute("select x from issue17")
             self.assertEqual("hello, world!", c2.fetchone()[0])
@@ -154,15 +151,15 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_34(self):
         try:
-            pymysql.connect(host="localhost", port=1237, user="root")
+            tornado_mysql.connect(host="localhost", port=1237, user="root")
             self.fail()
-        except pymysql.OperationalError as e:
+        except tornado_mysql.OperationalError as e:
             self.assertEqual(2003, e.args[0])
         except Exception:
             self.fail()
 
     def test_issue_33(self):
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = tornado_mysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         try:
             c.execute(b"drop table if exists hei\xc3\x9fe".decode("utf8"))
@@ -181,7 +178,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         try:
             c.execute("select sleep(10)")
             self.fail()
-        except pymysql.OperationalError as e:
+        except tornado_mysql.OperationalError as e:
             self.assertEqual(2013, e.args[0])
 
     def test_issue_36(self):
@@ -266,7 +263,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_79(self):
         """ Duplicate field overwrites the previous one in the result of DictCursor """
         conn = self.connections[0]
-        c = conn.cursor(pymysql.cursors.DictCursor)
+        c = conn.cursor(tornado_mysql.cursors.DictCursor)
 
         c.execute("drop table if exists a")
         c.execute("drop table if exists b")
@@ -306,7 +303,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
     def test_issue_114(self):
         """ autocommit is not set after reconnecting with ping() """
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = tornado_mysql.connect(charset="utf8", **self.databases[0])
         conn.autocommit(False)
         c = conn.cursor()
         c.execute("""select @@autocommit;""")
@@ -318,7 +315,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn.close()
 
         # Ensure autocommit() is still working
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = tornado_mysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])

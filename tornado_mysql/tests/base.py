@@ -1,6 +1,6 @@
 import os
 import json
-import pymysql
+import tornado_mysql
 import unittest
 
 from tornado import gen
@@ -23,7 +23,7 @@ class PyMySQLTestCase(AsyncTestCase):
     @gen.coroutine
     def _connect_all(self):
         for params in self.databases:
-            conn = yield pymysql.connect(**params)
+            conn = yield tornado_mysql.connect(**params)
             self.connections.append(conn)
 
     def setUp(self):

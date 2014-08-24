@@ -1,13 +1,8 @@
 import sys
 
-try:
-    from pymysql.tests import base
-    import pymysql.cursors
-except Exception:
-    # For local testing from top-level directory, without installing
-    sys.path.append('../pymysql')
-    from pymysql.tests import base
-    import pymysql.cursors
+from tornado_mysql.tests import base
+import tornado_mysql.cursors
+
 
 class TestSSCursor(base.PyMySQLTestCase):
     def test_SSCursor(self):
@@ -27,7 +22,7 @@ class TestSSCursor(base.PyMySQLTestCase):
             ('America', '', 'America/Detroit'),]
 
         try:
-            cursor = conn.cursor(pymysql.cursors.SSCursor)
+            cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
 
             # Create table
             cursor.execute(('CREATE TABLE tz_data ('

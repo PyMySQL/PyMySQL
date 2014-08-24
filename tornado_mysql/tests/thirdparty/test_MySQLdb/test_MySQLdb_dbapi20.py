@@ -1,16 +1,14 @@
 #!/usr/bin/env python
-from . import dbapi20
-import pymysql
-from pymysql.tests import base
+import unittest
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+from . import dbapi20
+import tornado_mysql
+from tornado_mysql.tests import base
+
 
 
 class test_MySQLdb(dbapi20.DatabaseAPI20Test):
-    driver = pymysql
+    driver = tornado_mysql
     connect_args = ()
     connect_kw_args = base.PyMySQLTestCase.databases[0].copy()
     connect_kw_args.update(dict(read_default_file='~/.my.cnf',
