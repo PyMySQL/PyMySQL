@@ -1,12 +1,13 @@
 import os
 import json
 import pymysql
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
-class PyMySQLTestCase(unittest.TestCase):
+from tornado import gen
+from tornado.testing import AsyncTestCase, gen_test
+
+
+class PyMySQLTestCase(AsyncTestCase):
     # You can specify your test environment creating a file named
     #  "databases.json" or editing the `databases` variable below.
     fname = os.path.join(os.path.dirname(__file__), "databases.json")
@@ -19,10 +20,16 @@ class PyMySQLTestCase(unittest.TestCase):
              "passwd":"","db":"test_pymysql", "use_unicode": True},
             {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
 
-    def setUp(self):
-        self.connections = []
+    @gen.coroutine
+    def _connect_all(self):
         for params in self.databases:
-            self.connections.append(pymysql.connect(**params))
+            conn = yield pymysql.connect(**params)
+            self.connections.append(conn)
+
+    def setUp(self):
+        super(PyMySQLTestCase, self).setUp()
+        self.connections = []
+        self.io_loop.run_sync(self._connect_all)
 
     def tearDown(self):
         for connection in self.connections:

@@ -35,6 +35,7 @@ from .times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
 import sys
+from tornado import gen
 
 
 threadsafety = 1
@@ -79,17 +80,17 @@ def Binary(x):
         return x.encode()
     return bytes(x)
 
-def Connect(*args, **kwargs):
-    """
-    Connect to the database; see connections.Connection.__init__() for
-    more information.
-    """
+@gen.coroutine
+def connect(*args, **kwargs):
+    """See connections.Connection.__init__() for information about defaults."""
     from .connections import Connection
-    return Connection(*args, **kwargs)
+    conn = Connection(*args, **kwargs)
+    yield conn.connect()
+    raise gen.Return(conn)
 
 from pymysql import connections as _orig_conn
 if _orig_conn.Connection.__init__.__doc__ is not None:
-    Connect.__doc__ = _orig_conn.Connection.__init__.__doc__ + ("""
+    connect.__doc__ = _orig_conn.Connection.__init__.__doc__ + ("""
 See connections.Connection.__init__() for information about defaults.
 """)
 del _orig_conn
@@ -97,7 +98,6 @@ del _orig_conn
 def get_client_info():  # for MySQLdb compatibility
     return '.'.join(map(str, VERSION))
 
-connect = Connection = Connect
 
 # we include a doctored version_info here for MySQLdb compatibility
 version_info = (1,2,2,"final",0)
@@ -106,28 +106,16 @@ NULL = "NULL"
 
 __version__ = get_client_info()
 
-def thread_safe():
-    return True # match MySQLdb.thread_safe()
-
-def install_as_MySQLdb():
-    """
-    After this function is called, any application that imports MySQLdb or
-    _mysql will unwittingly actually use
-    """
-    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
-
 __all__ = [
-    'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',
+    'BINARY', 'Binary', 'connect', 'Connection', 'DATE', 'Date',
     'Time', 'Timestamp', 'DateFromTicks', 'TimeFromTicks', 'TimestampFromTicks',
     'DataError', 'DatabaseError', 'Error', 'FIELD_TYPE', 'IntegrityError',
     'InterfaceError', 'InternalError', 'MySQLError', 'NULL', 'NUMBER',
     'NotSupportedError', 'DBAPISet', 'OperationalError', 'ProgrammingError',
-    'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel', 'connect',
+    'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel',
     'connections', 'constants', 'converters', 'cursors',
     'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
     'paramstyle', 'threadsafety', 'version_info',
-
-    "install_as_MySQLdb",
 
     "NULL","__version__",
     ]

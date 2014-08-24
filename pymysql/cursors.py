@@ -2,6 +2,8 @@
 from __future__ import print_function, absolute_import
 import re
 
+from tornado import gen
+
 from ._compat import range_type, text_type, PY2
 
 from .err import (
@@ -18,9 +20,7 @@ RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(\s*%s\s*(,\s*%s\s*)*\)
 
 
 class Cursor(object):
-    '''
-    This is the object you use to interact with the database.
-    '''
+    """Cursor is used to interact with the database."""
 
     #: Max stetement size which :meth:`executemany` generates.
     #:
@@ -48,6 +48,7 @@ class Cursor(object):
         '''
         self.close()
 
+    @gen.coroutine
     def close(self):
         '''
         Closing a cursor just exhausts all remaining data.
@@ -56,7 +57,7 @@ class Cursor(object):
         if conn is None:
             return
         try:
-            while self.nextset():
+            while (yield self.nextset()):
                 pass
         finally:
             self.connection = None
@@ -79,17 +80,18 @@ class Cursor(object):
     def setoutputsizes(self, *args):
         """Does nothing, required by DB API."""
 
+    @gen.coroutine
     def nextset(self):
         """Get the next query set"""
         conn = self._get_db()
         current_result = self._result
         if current_result is None or current_result is not conn._result:
-            return None
+            raise gen.Return()
         if not current_result.has_next:
-            return None
+            raise gen.Return()
         conn.next_result()
         self._do_get_result()
-        return True
+        raise gen.Return(True)
 
     def _escape_args(self, args, conn):
         if isinstance(args, (tuple, list)):
@@ -101,11 +103,12 @@ class Cursor(object):
             #Worst case it will throw a Value error
             return conn.escape(args)
 
+    @gen.coroutine
     def execute(self, query, args=None):
         '''Execute a query'''
         conn = self._get_db()
 
-        while self.nextset():
+        while (yield self.nextset()):
             pass
 
         if PY2:  # Use bytes on Python 2 always
@@ -129,10 +132,10 @@ class Cursor(object):
         if args is not None:
             query = query % self._escape_args(args, conn)
 
-        result = self._query(query)
+        yield self._query(query)
         self._executed = query
-        return result
 
+    @gen.coroutine
     def executemany(self, query, args):
         """Run several data against one query
 
@@ -147,13 +150,17 @@ class Cursor(object):
             q_values = m.group(1).rstrip()
             assert q_values[0] == '(' and q_values[-1] == ')'
             q_prefix = query[:m.start(1)]
-            return self._do_execute_many(q_prefix, q_values, args,
-                                         self.max_stmt_length,
-                                         self._get_db().encoding)
+            yield self._do_execute_many(q_prefix, q_values, args,
+                                        self.max_stmt_length,
+                                        self._get_db().encoding)
+        else:
+            rows = 0
+            for arg in args:
+                yield self.execute(query, arg)
+                rows += self.rowcount
+            self.rowcount = rows
 
-        self.rowcount = sum(self.execute(query, arg) for arg in args)
-        return self.rowcount
-
+    @gen.coroutine
     def _do_execute_many(self, prefix, values, args, max_stmt_length, encoding):
         conn = self._get_db()
         escape = self._escape_args
@@ -171,15 +178,19 @@ class Cursor(object):
             if isinstance(v, text_type):
                 v = v.encode(encoding)
             if len(sql) + len(v) + 1 > max_stmt_length:
-                rows += self.execute(sql)
+                print(sql)
+                yield self.execute(sql)
+                rows += self.rowcount
                 sql = bytearray(prefix)
             else:
                 sql += b','
             sql += v
-        rows += self.execute(sql)
+        print(sql)
+        yield self.execute(sql)
+        rows += self.rowcount
         self.rowcount = rows
-        return rows
 
+    @gen.coroutine
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
 
@@ -211,15 +222,15 @@ class Cursor(object):
         conn = self._get_db()
         for index, arg in enumerate(args):
             q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
-            self._query(q)
-            self.nextset()
+            yield self._query(q)
+            yield self.nextset()
 
         q = "CALL %s(%s)" % (procname,
                              ','.join(['@_%s_%d' % (procname, i)
                                        for i in range_type(len(args))]))
-        self._query(q)
+        yield self._query(q)
         self._executed = q
-        return args
+        yield gen.Return(args)
 
     def fetchone(self):
         ''' Fetch the next row '''
@@ -265,12 +276,12 @@ class Cursor(object):
             raise IndexError("out of range")
         self.rownumber = r
 
+    @gen.coroutine
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
-        conn.query(q)
+        yield conn.query(q)
         self._do_get_result()
-        return self.rowcount
 
     def _do_get_result(self):
         conn = self._get_db()
@@ -302,8 +313,9 @@ class DictCursorMixin(object):
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
+    @gen.coroutine
     def _do_get_result(self):
-        super(DictCursorMixin, self)._do_get_result()
+        yield super(DictCursorMixin, self)._do_get_result()
         fields = []
         if self.description:
             for f in self._result.fields:
@@ -345,35 +357,41 @@ class SSCursor(Cursor):
     def _conv_row(self, row):
         return row
 
+    @gen.coroutine
     def close(self):
         conn = self.connection
         if conn is None:
             return
 
         if self._result is not None and self._result is conn._result:
-            self._result._finish_unbuffered_query()
+            yield self._result._finish_unbuffered_query()
 
         try:
-            while self.nextset():
+            while (yield self.nextset()):
                 pass
         finally:
             self.connection = None
 
+    @gen.coroutine
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
-        conn.query(q, unbuffered=True)
-        self._do_get_result()
+        yield conn.query(q, unbuffered=True)
+        yield self._do_get_result()
         return self.rowcount
 
+    @gen.coroutine
     def read_next(self):
         """ Read next row """
-        return self._conv_row(self._result._read_rowdata_packet_unbuffered())
+        row = yield self._result._read_rowdata_packet_unbuffered()
+        row = self._conv_row(row)
+        raise gen.Return(row)
 
+    @gen.coroutine
     def fetchone(self):
         """ Fetch next row """
         self._check_executed()
-        row = self.read_next()
+        row = yield self.read_next()
         if row is None:
             return None
         self.rownumber += 1
