@@ -1,26 +1,26 @@
-=======
-PyMySQL
-=======
+==============
+Tornado-MySQL
+==============
 
 .. contents::
-..
 
 
-.. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
-   :target: https://travis-ci.org/PyMySQL/PyMySQL
+.. image:: https://travis-ci.org/PyMySQL/Tornado-MySQL.svg?branch=tornado
+   :target: https://travis-ci.org/PyMySQL/Tornado-MySQL
 
-This package contains a pure-Python MySQL client library. The goal of PyMySQL
-is to be a drop-in replacement for MySQLdb and work on CPython, PyPy,
-IronPython and Jython.
+This package contains a fork of PyMySQL supporting Tornado.
+
+**THIS PROJECT is WORK IN PROGRESS.** You can't use it for now.
+Stay tuned.
 
 Requirements
 -------------
 
 * Python -- one of the following:
 
-  - CPython_ >= 2.6 or >= 3.3
-  - PyPy_ >= 2.0
-  - IronPython_ 2.7
+  - CPython_ >= 2.7 or >= 3.3
+  - PyPy_ >= 2.3.1
+
 * MySQL Server -- one of the following:
 
   - MySQL_ >= 4.1
@@ -28,8 +28,6 @@ Requirements
 
 .. _CPython: http://www.python.org/
 .. _PyPy: http://pypy.org/
-.. _IronPython: http://ironpython.net/
-.. _MySQL: http://www.mysql.com/
 .. _MariaDB: https://mariadb.org/
 
 
@@ -38,7 +36,7 @@ Installation
 
 The last stable release is available on PyPI and can be installed with ``pip``::
 
-    $ pip install PyMySQL
+    $ pip install Tornado-MySQL
 
 Alternatively (e.g. if ``pip`` is not available), a tarball can be downloaded
 from GitHub and installed with Setuptools::
