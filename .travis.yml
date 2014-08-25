@@ -7,6 +7,6 @@ install:
 before_script:
     - "mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - "mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
-    - cp .travis.databases.json pymysql/tests/databases.json
+    - cp .travis.databases.json tornado_mysql/tests/databases.json
 
 script: tox
