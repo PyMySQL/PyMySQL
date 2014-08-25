@@ -7,10 +7,7 @@
 """
 import sys
 from time import time
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 PY2 = sys.version_info[0] == 2
 

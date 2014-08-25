@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
-from pymysql._compat import PYPY, JYTHON, IRONPYTHON
+from tornado_mysql import PYPY, JYTHON, IRONPYTHON
 
 if not (PYPY or JYTHON or IRONPYTHON):
     import atexit
