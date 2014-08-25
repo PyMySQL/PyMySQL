@@ -213,10 +213,10 @@ class TestNewIssues(base.PyMySQLTestCase):
             if info == "show processlist":
                 kill_id = id
                 break
-        # now nuke the connection
-        yield conn.kill(kill_id)
-        # make sure this connection has broken
         try:
+            # now nuke the connection
+            yield conn.kill(kill_id)
+            # make sure this connection has broken
             yield c.execute("show tables")
             self.fail()
         except Exception:
