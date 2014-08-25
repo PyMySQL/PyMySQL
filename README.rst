@@ -9,8 +9,12 @@ Tornado-MySQL
 
 This package contains a fork of PyMySQL supporting Tornado.
 
-**THIS PROJECT is WORK IN PROGRESS.** You can't use it for now.
-Stay tuned.
+Example
+-------
+
+.. include:: example.py
+    :code: python
+
 
 Requirements
 -------------
@@ -27,6 +31,7 @@ Requirements
 
 .. _CPython: http://www.python.org/
 .. _PyPy: http://pypy.org/
+.. _MySQL: http://www.mysql.com/
 .. _MariaDB: https://mariadb.org/
 
 

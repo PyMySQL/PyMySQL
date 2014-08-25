@@ -10,11 +10,9 @@ def main():
     cur = conn.cursor()
     yield cur.execute("SELECT Host,User FROM user")
     print(cur.description)
-    print()
     for row in cur:
        print(row)
     cur.close()
     conn.close()
-
 
 ioloop.IOLoop.current().run_sync(main)
