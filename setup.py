@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-version_tuple = __import__('tornado_mysql').VERSION
-
-if version_tuple[3] is not None:
-    version = "%d.%d.%d_%s" % version_tuple
-else:
-    version = "%d.%d.%d" % version_tuple[:3]
+version = "0.1dev1"
 
 try:
     with open('README.rst') as f:
@@ -15,13 +10,11 @@ except IOError:
     readme = ''
 
 setup(
-    name="PyMySQL",
+    name="Tornado-MySQL",
     version=version,
     url='https://github.com/PyMySQL/Tornado-MySQL',
-    author='yutaka.matsubara',
-    author_email='yutaka.matsubara@gmail.com',
-    maintainer='INADA Naoki',
-    maintainer_email='songofacandy@gmail.com',
+    author='INADA Naoki',
+    author_email='songofacandy@gmail.com',
     description='Pure-Python MySQL Driver for Tornado',
     install_requires=['tornado>=4.0'],
     long_description=readme,
@@ -39,5 +32,5 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Topic :: Database',
-    ]
+    ],
 )

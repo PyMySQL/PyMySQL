@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import unittest
 
-from tornado_mysql import PYPY, JYTHON, IRONPYTHON
+from tornado_mysql._compat import PYPY, JYTHON, IRONPYTHON
+import tornado_mysql.tests
 
 if not (PYPY or JYTHON or IRONPYTHON):
     import atexit
@@ -22,5 +23,4 @@ if not (PYPY or JYTHON or IRONPYTHON):
                 print("referrer:", ref)
             print('---')
 
-import pymysql.tests
-unittest.main(pymysql.tests)
+unittest.main(tornado_mysql.tests)

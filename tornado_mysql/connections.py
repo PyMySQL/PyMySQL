@@ -576,7 +576,7 @@ class Connection(object):
     @gen.coroutine
     def close_async(self):
         send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
-        yield stream.write(send_data)
+        yield self._stream.write(send_data)
         self.close()
 
     @property
@@ -632,6 +632,7 @@ class Connection(object):
         yield self._execute_command(COM_QUERY, "ROLLBACK")
         yield self._read_ok_packet()
 
+    @gen.coroutine
     def select_db(self, db):
         '''Set current db'''
         yield self._execute_command(COM_INIT_DB, db)
@@ -673,7 +674,7 @@ class Connection(object):
     @gen.coroutine
     def next_result(self):
         yield self._read_query_result()
-        return self._affected_rows
+        raise gen.Return(self._affected_rows)
 
     def affected_rows(self):
         return self._affected_rows
@@ -687,7 +688,7 @@ class Connection(object):
     @gen.coroutine
     def ping(self, reconnect=True):
         """Check if the server is alive"""
-        if self.socket is None:
+        if self._stream is None:
             if reconnect:
                 yield self.connect()
                 reconnect = False
@@ -762,25 +763,28 @@ class Connection(object):
         and return a MysqlPacket type that represents the results.
         """
         buff = b''
-        while True:
-            packet_header = yield self._stream.read_bytes(4)
-            if DEBUG: dump_packet(packet_header)
-            packet_length_bin = packet_header[:3]
+        try:
+            while True:
+                packet_header = yield self._stream.read_bytes(4)
+                if DEBUG: dump_packet(packet_header)
+                packet_length_bin = packet_header[:3]
 
-            #TODO: check sequence id
-            #  packet_number
-            byte2int(packet_header[3])
+                #TODO: check sequence id
+                #  packet_number
+                byte2int(packet_header[3])
 
-            bin_length = packet_length_bin + b'\0'  # pad little-endian number
-            bytes_to_read = struct.unpack('<I', bin_length)[0]
-            recv_data = yield self._stream.read_bytes(bytes_to_read)
-            if DEBUG: dump_packet(recv_data)
-            buff += recv_data
-            if bytes_to_read < MAX_PACKET_LEN:
-                break
+                bin_length = packet_length_bin + b'\0'  # pad little-endian number
+                bytes_to_read = struct.unpack('<I', bin_length)[0]
+                recv_data = yield self._stream.read_bytes(bytes_to_read)
+                if DEBUG: dump_packet(recv_data)
+                buff += recv_data
+                if bytes_to_read < MAX_PACKET_LEN:
+                    break
+        except iostream.StreamClosedError as e:
+            raise OperationalError(2006, "MySQL server has gone away (%s)" % (e,))
         packet = packet_type(buff, self.encoding)
         packet.check_error()
-        return packet
+        raise gen.Return(packet)
 
     def _write_bytes(self, data):
         return self._stream.write(data)
@@ -1001,7 +1005,7 @@ class MySQLResult(object):
             if first_packet.is_ok_packet():
                 self._read_ok_packet(first_packet)
             else:
-                self._read_result_packet(first_packet)
+                yield self._read_result_packet(first_packet)
         finally:
             self.connection = None
 

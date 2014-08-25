@@ -7,26 +7,26 @@ from tornado_mysql.tests import base
 
 
 class TestConnection(base.PyMySQLTestCase):
-    @gen.test
+    @gen_test
     def test_utf8mb4(self):
         """This test requires MySQL >= 5.5"""
         arg = self.databases[0].copy()
         arg['charset'] = 'utf8mb4'
         conn = yield tornado_mysql.connect(**arg)
 
-    @gen.test
+    @gen_test
     def test_largedata(self):
         """Large query and response (>=16MB)"""
         cur = self.connections[0].cursor()
-        cur.execute("SELECT @@max_allowed_packet")
+        yield cur.execute("SELECT @@max_allowed_packet")
         if cur.fetchone()[0] < 16*1024*1024 + 10:
             print("Set max_allowed_packet to bigger than 17MB")
-            return
-        t = 'a' * (16*1024*1024)
-        yield cur.execute("SELECT '" + t + "'")
-        assert cur.fetchone()[0] == t
+        else:
+            t = 'a' * (16*1024*1024)
+            yield cur.execute("SELECT '" + t + "'")
+            assert cur.fetchone()[0] == t
 
-    @gen.test
+    @gen_test
     def test_escape_string(self):
         con = self.connections[0]
         cur = con.cursor()
@@ -35,7 +35,7 @@ class TestConnection(base.PyMySQLTestCase):
         yield cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
-    @gen.test
+    @gen_test
     def test_autocommit(self):
         con = self.connections[0]
         self.assertFalse(con.get_autocommit())
@@ -49,7 +49,7 @@ class TestConnection(base.PyMySQLTestCase):
         yield cur.execute("SELECT @@AUTOCOMMIT")
         self.assertEqual(cur.fetchone()[0], 0)
 
-    @gen.test
+    @gen_test
     def test_select_db(self):
         con = self.connections[0]
         current_db = self.databases[0]['db']
@@ -59,11 +59,11 @@ class TestConnection(base.PyMySQLTestCase):
         yield cur.execute('SELECT database()')
         self.assertEqual(cur.fetchone()[0], current_db)
 
-        con.select_db(other_db)
+        yield con.select_db(other_db)
         yield cur.execute('SELECT database()')
         self.assertEqual(cur.fetchone()[0], other_db)
 
-    @gen.test
+    @gen_test
     def test_connection_gone_away(self):
         """
         http://dev.mysql.com/doc/refman/5.0/en/gone-away.html

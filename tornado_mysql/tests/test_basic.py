@@ -270,7 +270,6 @@ height int,
 PRIMARY KEY (id)
 )
 """)
-            print("created bulkinsert")
         self.io_loop.run_sync(prepare)
 
     @gen.coroutine

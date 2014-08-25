@@ -134,6 +134,7 @@ class Cursor(object):
 
         yield self._query(query)
         self._executed = query
+        raise gen.Return(self.rowcount)
 
     @gen.coroutine
     def executemany(self, query, args):
@@ -159,6 +160,7 @@ class Cursor(object):
                 yield self.execute(query, arg)
                 rows += self.rowcount
             self.rowcount = rows
+        raise gen.Return(self.rowcount)
 
     @gen.coroutine
     def _do_execute_many(self, prefix, values, args, max_stmt_length, encoding):
@@ -179,14 +181,13 @@ class Cursor(object):
                 v = v.encode(encoding)
             if len(sql) + len(v) + 1 > max_stmt_length:
                 print(sql)
-                yield self.execute(sql)
+                yield self.execute(bytes(sql))
                 rows += self.rowcount
                 sql = bytearray(prefix)
             else:
                 sql += b','
             sql += v
-        print(sql)
-        yield self.execute(sql)
+        yield self.execute(bytes(sql))
         rows += self.rowcount
         self.rowcount = rows
 
@@ -313,9 +314,8 @@ class DictCursorMixin(object):
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
-    @gen.coroutine
     def _do_get_result(self):
-        yield super(DictCursorMixin, self)._do_get_result()
+        super(DictCursorMixin, self)._do_get_result()
         fields = []
         if self.description:
             for f in self._result.fields:
@@ -378,7 +378,7 @@ class SSCursor(Cursor):
         self._last_executed = q
         yield conn.query(q, unbuffered=True)
         yield self._do_get_result()
-        return self.rowcount
+        raise gen.Return(self.rowcount)
 
     @gen.coroutine
     def read_next(self):
@@ -393,45 +393,39 @@ class SSCursor(Cursor):
         self._check_executed()
         row = yield self.read_next()
         if row is None:
-            return None
+            raise gen.Return()
         self.rownumber += 1
-        return row
+        raise gen.Return(row)
 
+    @gen.coroutine
     def fetchall(self):
         """
         Fetch all, as per MySQLdb. Pretty useless for large queries, as
-        it is buffered. See fetchall_unbuffered(), if you want an unbuffered
-        generator version of this method.
-
+        it is buffered.
         """
-        return list(self.fetchall_unbuffered())
+        rows = []
+        while True:
+            row = yield self.fetchone()
+            if row is None:
+                break
+            rows.append(row)
+        raise gen.Return(rows)
 
-    def fetchall_unbuffered(self):
-        """
-        Fetch all, implemented as a generator, which isn't to standard,
-        however, it doesn't make sense to return everything in a list, as that
-        would use ridiculous memory for large result sets.
-        """
-        return iter(self.fetchone, None)
-
-    def __iter__(self):
-        return self.fetchall_unbuffered()
-
+    @gen.coroutine
     def fetchmany(self, size=None):
-        """ Fetch many """
-
+        """Fetch many"""
         self._check_executed()
         if size is None:
             size = self.arraysize
 
         rows = []
         for i in range_type(size):
-            row = self.read_next()
+            row = yield self.read_next()
             if row is None:
                 break
             rows.append(row)
             self.rownumber += 1
-        return rows
+        raise gen.Return(rows)
 
     def scroll(self, value, mode='relative'):
         self._check_executed()
