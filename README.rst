@@ -2,11 +2,10 @@
 Tornado-MySQL
 ==============
 
-.. contents::
-
-
 .. image:: https://travis-ci.org/PyMySQL/Tornado-MySQL.svg?branch=tornado
    :target: https://travis-ci.org/PyMySQL/Tornado-MySQL
+
+.. contents::
 
 This package contains a fork of PyMySQL supporting Tornado.
 
