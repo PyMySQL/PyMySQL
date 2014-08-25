@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-version = "0.1dev1"
-
 try:
     with open('README.rst') as f:
         readme = f.read()
@@ -11,11 +9,11 @@ except IOError:
 
 setup(
     name="Tornado-MySQL",
-    version=version,
+    version="0.1",
     url='https://github.com/PyMySQL/Tornado-MySQL',
     author='INADA Naoki',
     author_email='songofacandy@gmail.com',
-    description='Pure-Python MySQL Driver for Tornado',
+    description='Pure Python MySQL Driver for Tornado',
     install_requires=['tornado>=4.0'],
     long_description=readme,
     license="MIT",
