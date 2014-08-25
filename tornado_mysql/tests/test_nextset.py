@@ -1,3 +1,5 @@
+from tornado.testing import gen_test
+from tornado import gen
 import unittest
 
 from tornado_mysql.tests import base
@@ -10,50 +12,59 @@ class TestNextset(base.PyMySQLTestCase):
         super(TestNextset, self).setUp()
         self.con = self.connections[0]
 
+    @gen_test
     def test_nextset(self):
         cur = self.con.cursor()
-        cur.execute("SELECT 1; SELECT 2;")
+        yield cur.execute("SELECT 1; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
 
-        r = cur.nextset()
+        r = yield cur.nextset()
         self.assertTrue(r)
 
         self.assertEqual([(2,)], list(cur))
-        self.assertIsNone(cur.nextset())
+        res = yield cur.nextset()
+        self.assertIsNone(res)
 
+    @gen_test
     def test_skip_nextset(self):
         cur = self.con.cursor()
-        cur.execute("SELECT 1; SELECT 2;")
+        yield cur.execute("SELECT 1; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
 
-        cur.execute("SELECT 42")
+        yield cur.execute("SELECT 42")
         self.assertEqual([(42,)], list(cur))
 
+    @gen_test
     def test_ok_and_next(self):
         cur = self.con.cursor()
-        cur.execute("SELECT 1; commit; SELECT 2;")
+        yield cur.execute("SELECT 1; commit; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
-        self.assertTrue(cur.nextset())
-        self.assertTrue(cur.nextset())
+        res = yield cur.nextset()
+        self.assertTrue(res)
+        res = yield cur.nextset()
+        self.assertTrue(res)
         self.assertEqual([(2,)], list(cur))
-        self.assertFalse(bool(cur.nextset()))
+        res = yield cur.nextset()
+        self.assertIsNone(res)
 
     @unittest.expectedFailure
+    @gen_test
     def test_multi_cursor(self):
         cur1 = self.con.cursor()
         cur2 = self.con.cursor()
 
-        cur1.execute("SELECT 1; SELECT 2;")
-        cur2.execute("SELECT 42")
+        yield cur1.execute("SELECT 1; SELECT 2;")
+        yield cur2.execute("SELECT 42")
 
         self.assertEqual([(1,)], list(cur1))
         self.assertEqual([(42,)], list(cur2))
 
-        r = cur1.nextset()
-        self.assertTrue(r)
+        res = yield cur1.nextset()
+        self.assertTrue(res)
 
         self.assertEqual([(2,)], list(cur1))
-        self.assertIsNone(cur1.nextset())
+        res = yield cur.nextset()
+        self.assertIsNone(res)
 
     #TODO: How about SSCursor and nextset?
     # It's very hard to implement correctly...
