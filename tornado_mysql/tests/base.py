@@ -23,7 +23,7 @@ class PyMySQLTestCase(AsyncTestCase):
     @gen.coroutine
     def _connect_all(self):
         for params in self.databases:
-            conn = yield tornado_mysql.connect(**params)
+            conn = yield tornado_mysql.connect(io_loop=self.io_loop, **params)
             self.connections.append(conn)
 
     def setUp(self):
@@ -34,3 +34,4 @@ class PyMySQLTestCase(AsyncTestCase):
     def tearDown(self):
         for connection in self.connections:
             connection.close()
+        super(PyMySQLTestCase, self).tearDown()
