@@ -377,7 +377,7 @@ class SSCursor(Cursor):
         conn = self._get_db()
         self._last_executed = q
         yield conn.query(q, unbuffered=True)
-        yield self._do_get_result()
+        self._do_get_result()
         raise gen.Return(self.rowcount)
 
     @gen.coroutine
