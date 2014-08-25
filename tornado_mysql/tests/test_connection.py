@@ -1,16 +1,20 @@
 import time
+from tornado.testing import gen_test
+from tornado import gen
 
 import tornado_mysql
 from tornado_mysql.tests import base
 
 
 class TestConnection(base.PyMySQLTestCase):
+    @gen.test
     def test_utf8mb4(self):
         """This test requires MySQL >= 5.5"""
         arg = self.databases[0].copy()
         arg['charset'] = 'utf8mb4'
-        conn = tornado_mysql.connect(**arg)
+        conn = yield tornado_mysql.connect(**arg)
 
+    @gen.test
     def test_largedata(self):
         """Large query and response (>=16MB)"""
         cur = self.connections[0].cursor()
@@ -19,43 +23,47 @@ class TestConnection(base.PyMySQLTestCase):
             print("Set max_allowed_packet to bigger than 17MB")
             return
         t = 'a' * (16*1024*1024)
-        cur.execute("SELECT '" + t + "'")
+        yield cur.execute("SELECT '" + t + "'")
         assert cur.fetchone()[0] == t
 
+    @gen.test
     def test_escape_string(self):
         con = self.connections[0]
         cur = con.cursor()
 
         self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
-        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        yield cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
+    @gen.test
     def test_autocommit(self):
         con = self.connections[0]
         self.assertFalse(con.get_autocommit())
 
         cur = con.cursor()
-        cur.execute("SET AUTOCOMMIT=1")
+        yield cur.execute("SET AUTOCOMMIT=1")
         self.assertTrue(con.get_autocommit())
 
         con.autocommit(False)
         self.assertFalse(con.get_autocommit())
-        cur.execute("SELECT @@AUTOCOMMIT")
+        yield cur.execute("SELECT @@AUTOCOMMIT")
         self.assertEqual(cur.fetchone()[0], 0)
 
+    @gen.test
     def test_select_db(self):
         con = self.connections[0]
         current_db = self.databases[0]['db']
         other_db = self.databases[1]['db']
 
         cur = con.cursor()
-        cur.execute('SELECT database()')
+        yield cur.execute('SELECT database()')
         self.assertEqual(cur.fetchone()[0], current_db)
 
         con.select_db(other_db)
-        cur.execute('SELECT database()')
+        yield cur.execute('SELECT database()')
         self.assertEqual(cur.fetchone()[0], other_db)
 
+    @gen.test
     def test_connection_gone_away(self):
         """
         http://dev.mysql.com/doc/refman/5.0/en/gone-away.html
@@ -63,10 +71,10 @@ class TestConnection(base.PyMySQLTestCase):
         """
         con = self.connections[0]
         cur = con.cursor()
-        cur.execute("SET wait_timeout=1")
+        yield cur.execute("SET wait_timeout=1")
         time.sleep(2)
         with self.assertRaises(tornado_mysql.OperationalError) as cm:
-            cur.execute("SELECT 1+1")
+            yield cur.execute("SELECT 1+1")
         # error occures while reading, not writing because of socket buffer.
         #self.assertEquals(cm.exception.args[0], 2006)
         self.assertIn(cm.exception.args[0], (2006, 2013))
