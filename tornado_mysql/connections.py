@@ -722,7 +722,7 @@ class Connection(object):
             if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 addr = self.unix_socket
-                self.host_info = "Localhost via UNIX socket"
+                self.host_info = "Localhost via UNIX socket: " + self.unix_socket
             else:
                 sock = socket.socket()
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
