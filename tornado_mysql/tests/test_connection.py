@@ -44,7 +44,7 @@ class TestConnection(base.PyMySQLTestCase):
         yield cur.execute("SET AUTOCOMMIT=1")
         self.assertTrue(con.get_autocommit())
 
-        con.autocommit(False)
+        yield con.autocommit(False)
         self.assertFalse(con.get_autocommit())
         yield cur.execute("SELECT @@AUTOCOMMIT")
         self.assertEqual(cur.fetchone()[0], 0)
