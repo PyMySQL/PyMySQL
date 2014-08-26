@@ -89,7 +89,7 @@ class Cursor(object):
             raise gen.Return()
         if not current_result.has_next:
             raise gen.Return()
-        conn.next_result()
+        yield conn.next_result()
         self._do_get_result()
         raise gen.Return(True)
 

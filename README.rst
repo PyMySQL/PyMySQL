@@ -12,9 +12,17 @@ This package contains a fork of PyMySQL supporting Tornado.
 Example
 -------
 
+Simple
+~~~~~~~
+
 .. include:: example.py
     :code: python
 
+pool
+~~~~~
+
+.. include:: example_pool.py
+    :code: python
 
 Requirements
 -------------

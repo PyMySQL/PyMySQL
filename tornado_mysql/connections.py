@@ -738,6 +738,8 @@ class Connection(object):
             yield self._get_server_information()
             yield self._request_authentication()
 
+            self.connected_time = self.io_loop.time()
+
             if self.sql_mode is not None:
                 yield self.query("SET sql_mode=%s" % (self.sql_mode,))
 
