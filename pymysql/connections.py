@@ -113,6 +113,34 @@ DEFAULT_CHARSET = 'latin1'
 MAX_PACKET_LEN = 2**24-1
 
 
+def create_tcp_connection(host, port, connect_timeout=None):
+    # Almost ported from python socket.py sources
+    # The difference is that we set timeout only for connect,
+    # while socket.create_connection sets timeout for all socket operations
+    err = None
+    for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        sock = None
+        try:
+            sock = socket.socket(af, socktype, proto)
+            if connect_timeout is not None:
+                t = sock.gettimeout()
+                sock.settimeout(connect_timeout)
+                sock.connect(sa)
+                sock.settimeout(t)
+            else:
+                sock.connect(sa)
+            return sock
+        except socket.error as e:
+            err = e
+            if sock is not None:
+                sock.close()
+    if err is not None:
+        raise err
+    else:
+        raise socket.error("getaddrinfo returns an empty list")
+
+
 def dump_packet(data):
 
     def is_ascii(data):
@@ -767,8 +795,7 @@ class Connection(object):
             else:
                 while True:
                     try:
-                        sock = socket.create_connection(
-                                (self.host, self.port), self.connect_timeout)
+                        sock = create_tcp_connection(self.host, self.port, self.connect_timeout)
                         break
                     except (OSError, IOError) as e:
                         if e.errno == errno.EINTR:
