@@ -758,10 +758,8 @@ class Connection(object):
         try:
             if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                t = sock.gettimeout()
                 sock.settimeout(self.connect_timeout)
                 sock.connect(self.unix_socket)
-                sock.settimeout(t)
                 self.host_info = "Localhost via UNIX socket"
                 if DEBUG: print('connected using unix_socket')
             else:
@@ -776,6 +774,7 @@ class Connection(object):
                         raise
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
+            sock.settimeout(365*24*3600)  # Default timeout of libmysqlclient.
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
