@@ -774,7 +774,7 @@ class Connection(object):
                         raise
                 self.host_info = "socket %s:%d" % (self.host, self.port)
                 if DEBUG: print('connected using socket')
-            sock.settimeout(365*24*3600)  # Default timeout of libmysqlclient.
+            sock.settimeout(None)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
