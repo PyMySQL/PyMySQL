@@ -66,13 +66,13 @@ class Cursor(object):
         self.connection = None
 
     def _get_db(self):
-        if not self.connection or not self.connection._is_connect():
-            self.errorhandler(ProgrammingError, "cursor closed")
+        if not self.connection:
+            self.errorhandler(ProgrammingError, (-1, "cursor closed"))
         return self.connection
 
     def _check_executed(self):
         if not self._executed:
-            self.errorhandler(ProgrammingError, "execute() first")
+            self.errorhandler(ProgrammingError, (-1, "execute() first"))
 
     def _flush(self):
         if self._result:
@@ -105,6 +105,8 @@ class Cursor(object):
         if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
             conn._last_execute_cursor()._flush()
 
+        if conn and conn._is_connect():
+            self.errorhandler(ProgrammingError, (-1, "cursor closed"))
         charset = conn.charset
         del self.messages[:]
 
