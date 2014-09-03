@@ -66,7 +66,7 @@ class Cursor(object):
         self.connection = None
 
     def _get_db(self):
-        if not self.connection:
+        if not self.connection or not self.connection._is_connect():
             self.errorhandler(ProgrammingError, "cursor closed")
         return self.connection
 
