@@ -319,6 +319,9 @@ class Connection(object):
             self.socket.close()
             self.socket = None
 
+    def _is_connect(self):
+        return bool(self.sock)
+
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql):
         if DEBUG:
