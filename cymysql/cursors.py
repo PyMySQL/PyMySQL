@@ -105,8 +105,6 @@ class Cursor(object):
         if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
             conn._last_execute_cursor()._flush()
 
-        if not conn._is_connect():
-            self.errorhandler(ProgrammingError, (-1, "cursor closed"))
         charset = conn.charset
         del self.messages[:]
 
