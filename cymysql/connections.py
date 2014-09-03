@@ -166,6 +166,7 @@ class Connection(object):
         if ssl and (ssl.has_key('capath') or ssl.has_key('cipher')):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
+        self.sock = None
         self.ssl = False
         if ssl:
             self.ssl = True
