@@ -250,6 +250,15 @@ class TestCursor(base.PyMySQLTestCase):
         if conns > 0:
             raise Exception('%d connections were leaked.' % (conns))
 
+    def test_close_cursor(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.close()
+        try:
+            c.execute("select 1")
+        except cymysql.ProgrammingError:
+            pass
+
 __all__ = ["TestConversion","TestCursor"]
 
 if __name__ == "__main__":

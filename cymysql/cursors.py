@@ -36,6 +36,8 @@ class Cursor(object):
     def errorhandler(self, errorclass, errorvalue):
         if self.connection:
             self.connection.errorhandler(self, errorclass, errorvalue)
+        else:
+            raise errorclass(errorvalue)
 
     @property
     def rowcount(self):
