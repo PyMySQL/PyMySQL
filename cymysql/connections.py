@@ -181,7 +181,12 @@ class Connection(object):
             if sys.platform.startswith("win"):
                 read_default_file = "c:\\my.ini"
             else:
-                read_default_file = "/etc/my.cnf"
+                for f in [
+                    '~/.my.cnf', '/etc/my.cnf', '/etc/mysql/my.cnf'
+                ]:
+                    if not os.path.isfile(os.path.expanduser(f)):
+                        continue
+                    read_default_file = f
 
         if read_default_file:
             if not read_default_group:
