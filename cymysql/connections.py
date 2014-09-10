@@ -6,10 +6,11 @@ sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
 
 import socket
 import ssl
-
 import struct
 import sys
 import os
+import stat
+
 try:
     from ConfigParser import RawConfigParser
 except ImportError:
@@ -208,6 +209,24 @@ class Connection(object):
             unix_socket = _config("socket",unix_socket)
             port = _config("port", port)
             charset = _config("default-character-set", charset)
+
+        if host == 'localhost' and port == 3306\
+           and not sys.platform.startswith('win')\
+           and (
+               unix_socket is None or not os.path.isfile(unix_socket)
+           ):
+                for f in [
+                    '/tmp/mysql.sock',
+                    '/var/lib/mysql/mysql.sock',
+                    '/var/run/mysql/mysql.sock',
+                    '/var/run/mysql.sock',
+                    '/var/mysql/mysql.sock'
+                ]:
+                    if os.path.isfile(f) and\
+                       stat.S_ISSOCK(os.stat(f).st_mode):
+                        unix_socket = f
+                    else:
+                        continue
 
         self.host = host
         self.port = port
