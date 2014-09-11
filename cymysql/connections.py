@@ -182,12 +182,10 @@ class Connection(object):
             if sys.platform.startswith("win"):
                 read_default_file = "c:\\my.ini"
             else:
-                for f in [
-                    '~/.my.cnf', '/etc/my.cnf', '/etc/mysql/my.cnf'
-                ]:
-                    if not os.path.isfile(os.path.expanduser(f)):
-                        continue
-                    read_default_file = f
+                for f in ('~/.my.cnf', '/etc/my.cnf', '/etc/mysql/my.cnf'):
+                    if os.path.isfile(os.path.expanduser(f)):
+                        read_default_file = f
+                        break
 
         if read_default_file:
             if not read_default_group:
@@ -210,24 +208,17 @@ class Connection(object):
             port = _config("port", port)
             charset = _config("default-character-set", charset)
 
-        if host == 'localhost' and port == 3306\
-           and not sys.platform.startswith('win')\
-           and (
-               unix_socket is None or not os.path.isfile(unix_socket)
-           ):
-                for f in [
-                    '/tmp/mysql.sock',
+        if (host == 'localhost' and port == 3306
+            and not sys.platform.startswith('win')
+            and (unix_socket is None or not os.path.isfile(unix_socket))):
+            for f in ('/tmp/mysql.sock',
                     '/var/lib/mysql/mysql.sock',
                     '/var/run/mysql/mysql.sock',
                     '/var/run/mysql.sock',
-                    '/var/mysql/mysql.sock'
-                ]:
-                    if os.path.isfile(f) and\
-                       stat.S_ISSOCK(os.stat(f).st_mode):
-                        unix_socket = f
-                    else:
-                        continue
-
+                    '/var/mysql/mysql.sock'):
+                if os.path.isfile(f) and stat.S_ISSOCK(os.stat(f).st_mode):
+                    unix_socket = f
+                    break
         self.host = host
         self.port = port
         self.user = user or DEFAULT_USER
