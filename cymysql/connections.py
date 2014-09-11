@@ -210,13 +210,12 @@ class Connection(object):
 
         if (host == 'localhost' and port == 3306
             and not sys.platform.startswith('win')
-            and (unix_socket is None or not os.path.isfile(unix_socket))):
-            for f in ('/tmp/mysql.sock',
-                    '/var/lib/mysql/mysql.sock',
+            and (unix_socket is None or not os.path.exists(unix_socket))):
+            for f in ('/var/lib/mysql/mysql.sock',
                     '/var/run/mysql/mysql.sock',
                     '/var/run/mysql.sock',
                     '/var/mysql/mysql.sock'):
-                if os.path.isfile(f) and stat.S_ISSOCK(os.stat(f).st_mode):
+                if os.path.exists(f) and stat.S_ISSOCK(os.stat(f).st_mode):
                     unix_socket = f
                     break
         self.host = host
