@@ -19,7 +19,7 @@ cdef class Charsets(object):
 
     def by_name(self, name):
         cdef Charset c
-        for c in self._by_id.itervalues():
+        for c in self._by_id.values():
             if c.name == name and c.is_default:
                 return c
 
