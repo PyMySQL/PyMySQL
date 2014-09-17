@@ -24,7 +24,6 @@ cdef class Charsets(object):
                 return c
 
 cdef Charsets _charsets = Charsets()
-
 charset_by_name = _charsets.by_name
 charset_by_id = _charsets.by_id
 

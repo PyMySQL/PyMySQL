@@ -19,12 +19,8 @@ class Charsets(object):
         return self._by_id[id]
 
 _charsets = Charsets()
-
-def charset_by_name(name):
-    return _charsets.by_name(name)
-
-def charset_by_id(id):
-    return _charsets.by_id(id)
+charset_by_name = _charsets.by_name
+charset_by_id = _charsets.by_id
 
 """
 Generated with:
