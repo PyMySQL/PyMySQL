@@ -65,7 +65,7 @@ class MysqlPacket(object):
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
-        is_error = self.__data[0] == (0xff if PYTHON3 b'\xff')
+        is_error = self.__data[0] == (0xff if PYTHON3 else b'\xff')
         if is_error:
             self.__position += 1  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
