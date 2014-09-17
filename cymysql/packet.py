@@ -172,7 +172,7 @@ class MysqlPacket(object):
         return self.__data[0] == (0 if PYTHON3 else b'\x00')
 
     def is_eof_packet(self):
-        return self.__data[0] == (0 if PYTHON3 else b'\xfe')
+        return self.__data[0] == (0xfe if PYTHON3 else b'\xfe')
 
     def is_eof_and_status(self):
         if self.__data[0] != (0xfe if PYTHON3 else b'\xfe'):
