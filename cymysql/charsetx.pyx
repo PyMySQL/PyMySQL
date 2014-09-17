@@ -12,7 +12,6 @@ cdef class Charsets(object):
 
     def __init__(self):
         self._by_id = {}
-        self.by_id = self._by_id.__getitem__
 
     def add(self, Charset c):
         self._by_id[c.id] = c
@@ -22,6 +21,9 @@ cdef class Charsets(object):
         for c in self._by_id.values():
             if c.name == name and c.is_default:
                 return c
+
+    def by_id(self, id):
+        return self._by_id[id]
 
 cdef Charsets _charsets = Charsets()
 charset_by_name = _charsets.by_name
