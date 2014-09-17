@@ -65,10 +65,7 @@ class MysqlPacket(object):
         self.connection = connection
         self.__position = 0
         self.__recv_packet()
-        if PYTHON3:
-            is_error = self.__data[0] == 0xff
-        else:
-            is_error = self.__data[0] == b'\xff'
+        is_error = self.__data[0] == (0xff if PYTHON3 b'\xff')
         if is_error:
             self.__position += 1  # field_count == error (we already know that)
             errno = unpack_uint16(self._read(2))
@@ -83,7 +80,7 @@ class MysqlPacket(object):
             size -= len(recv_data)
             r += recv_data
         return r
-  
+
     def __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
         packet_header = self.__recv_from_socket(4)
@@ -102,7 +99,7 @@ class MysqlPacket(object):
         self.__data_length = bytes_to_read
   
     def get_all_data(self): return self.__data
-  
+
     def read(self, size):
         return self._read(size)
 
@@ -172,25 +169,14 @@ class MysqlPacket(object):
         )
  
     def is_ok_packet(self):
-        if PYTHON3:
-            return self.__data[0] == 0
-        else:
-            return self.__data[0] == b'\x00'
+        return self.__data[0] == (0 if PYTHON3 else b'\x00')
 
     def is_eof_packet(self):
-        if PYTHON3:
-            return self.__data[0] == 0xfe
-        else:
-            return self.__data[0] == b'\xfe'
+        return self.__data[0] == (0 if PYTHON3 else b'\xfe')
 
     def is_eof_and_status(self):
-        if PYTHON3:
-            if self.__data[0] != 0xfe:
-                return False, 0, 0
-        else:
-            if self.__data[0] != b'\xfe':
-                return False, 0, 0
-
+        if self.__data[0] != (0xfe if PYTHON3 else b'\xfe'):
+            return False, 0, 0
         return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
     def read_ok_packet(self):

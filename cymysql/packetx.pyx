@@ -73,7 +73,6 @@ cdef class MysqlPacket(object):
             errno = unpack_uint16(self._read(2))
             raise_mysql_exception(self.__data)
 
-
     cdef bytes __recv_from_socket(self, int size):
         cdef bytes r
         cdef int recieved
@@ -111,7 +110,7 @@ cdef class MysqlPacket(object):
 
     def read(self, size):
         return self._read(size)
-  
+
     cdef bytes _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         cdef bytes result
@@ -291,6 +290,7 @@ cdef class MySQLResult(object):
         self.rest_rows = None
         self.rest_row_index = 0
         self.first_packet = MysqlPacket(self.connection)
+
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
                 self.server_status, self.warning_count,
