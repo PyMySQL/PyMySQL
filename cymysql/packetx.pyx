@@ -241,17 +241,15 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 
     def description(self):
         """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
-        desc = (
+        return (
             self.name,
             self.type_code,
-            None,  # TODO: display_length; should this be self.length?
-            self.get_column_length(),  # 'internal_size'
-            self.get_column_length(),  # 'precision'  # TODO: why!?!?
+            None,
+            self.get_column_length(),
+            self.get_column_length(),
             self.scale,
-            # 'null_ok' -- can this be True/False rather than 1/0?
             <int>(self.flags % 2 == 0),
         )
-        return desc
 
     def get_column_length(self):
         cdef int mblen

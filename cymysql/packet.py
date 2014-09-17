@@ -226,21 +226,15 @@ class FieldDescriptorPacket(MysqlPacket):
 
     def description(self):
         """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
-        desc = []
-        desc.append(self.name)
-        desc.append(self.type_code)
-        desc.append(None) # TODO: display_length; should this be self.length?
-        desc.append(self.get_column_length()) # 'internal_size'
-        desc.append(self.get_column_length()) # 'precision'  # TODO: why!?!?
-        desc.append(self.scale)
-  
-        # 'null_ok' -- can this be True/False rather than 1/0?
-        #              if so just do:  desc.append(bool(self.flags % 2 == 0))
-        if self.flags % 2 == 0:
-            desc.append(1)
-        else:
-            desc.append(0)
-        return tuple(desc)
+        return (
+            self.name,
+            self.type_code,
+            None,
+            self.get_column_length(),
+            self.get_column_length(),
+            self.scale,
+            1 if self.flags % 2 == 0 else 0,
+        )
 
     def get_column_length(self):
         if self.type_code == FIELD_TYPE_VAR_STRING:
