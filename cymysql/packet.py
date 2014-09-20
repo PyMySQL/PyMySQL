@@ -49,10 +49,11 @@ def get_decode_values(values, charset, fields, use_unicode, decoders=default_dec
     r = [None] * len(values)
     for i, value in enumerate(values):
         if value is not None:
-            if decoders[fields[i].type_code] != default_decoders[fields[i].type_code]:
-                r[i] = decoders[fields[i].type_code](value)
+            type_code = fields[i].type_code
+            if decoders[type_code] != default_decoders[type_code]:
+                r[i] = decoders[type_code](value)
             else:
-                r[i] = decoders[fields[i].type_code](value, charset, fields[i], use_unicode)
+                r[i] = decoders[type_code](value, charset, fields[i], use_unicode)
     return r
 
 
