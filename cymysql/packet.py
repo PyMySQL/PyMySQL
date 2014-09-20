@@ -143,9 +143,6 @@ class MysqlPacket(object):
         else:
             return -1
   
-    def read_length_coded_string(self):
-        return self._read_length_coded_string()
-
     def _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
 
@@ -159,7 +156,7 @@ class MysqlPacket(object):
         return self._read(length)
 
     def read_decode_data(self, fields):
-        values = [self.read_length_coded_string() for f in fields]
+        values = [self._read_length_coded_string() for f in fields]
         return tuple(
             get_decode_values(values,
                 self.connection.charset,

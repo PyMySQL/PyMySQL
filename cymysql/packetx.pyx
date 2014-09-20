@@ -153,9 +153,6 @@ cdef class MysqlPacket(object):
         else:
             return -1
   
-    cdef read_length_coded_string(self):
-        return self._read_length_coded_string()
-
     cdef bytes _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
 
