@@ -30,10 +30,7 @@ from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import raise_mysql_exception, Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-try:
-    from cymysql.packetx import MysqlPacket, MySQLResult
-except ImportError:
-    from cymysql.packet import MysqlPacket, MySQLResult
+from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
 
