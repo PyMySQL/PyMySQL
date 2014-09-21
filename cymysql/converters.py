@@ -5,10 +5,7 @@ import sys
 from decimal import Decimal
 
 from cymysql.constants import FIELD_TYPE, FLAG
-try:
-    from cymysql.charsetx import charset_by_id
-except ImportError:
-    from cymysql.charset import charset_by_id
+from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 

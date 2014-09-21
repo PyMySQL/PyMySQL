@@ -19,10 +19,7 @@ except ImportError:
 import getpass
 DEFAULT_USER = getpass.getuser()
 
-try:
-    from cymysql.charsetx import charset_by_name, charset_by_id
-except ImportError:
-    from cymysql.charset import charset_by_name, charset_by_id
+from cymysql.charset import charset_by_name, charset_by_id
 from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *

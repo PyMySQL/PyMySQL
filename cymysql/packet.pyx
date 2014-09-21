@@ -39,7 +39,7 @@ cdef uint32_t unpack_uint32(bytes s):
 cdef long long unpack_uint64(bytes n):
     return struct.unpack('<Q', n)[0]
 
-cpdef get_decode_values(values, charset, fields, use_unicode, decoders=default_decoders):
+cdef get_decode_values(values, charset, fields, use_unicode, decoders=default_decoders):
     cdef Py_ssize_t i
     cdef int type_code
     r = [None] * len(values)
