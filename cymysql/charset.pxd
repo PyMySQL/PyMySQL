@@ -7,11 +7,12 @@ cdef class Charset(object):
 
 cdef class Charsets(object):
     cdef dict _by_id
-    cdef object by_id
-    def add(self, Charset c)
+    cdef add(self, Charset c)
 
-    @cython.locals(c=Charset)    
-    def by_name(self, name)
+    @cython.locals(c=Charset)
+    cpdef by_name(self, name)
+
+    cpdef object by_id(self, id)
 
 cdef Charsets _charsets
 
