@@ -113,38 +113,22 @@ DEFAULT_CHARSET = 'latin1'
 MAX_PACKET_LEN = 2**24-1
 
 
-class POLL_BASE(object): pass
-class POLL_OK(POLL_BASE): pass
-class POLL_READ(POLL_BASE): pass
-class POLL_WRITE(POLL_BASE): pass
+class _PollType(object):
+    __slots__ = ()
 
+POLL_OK = _PollType()
+POLL_READ = _PollType()
+POLL_WRITE = _PollType()
 
-def errno_from_exception(e):
-    """Provides the errno from an Exception object.
-
-    There are cases that the errno attribute was not set so we pull
-    the errno out of the args but if someone instatiates an Exception
-    without any args you will get a tuple error. So this function
-    abstracts all that behavior to give you a safe way to get the
-    errno.
-    """
-
-    if hasattr(e, 'errno'):
-        return e.errno
-    elif e.args:
-        return e.args[0]
-    else:
-        return None
 
 # These errnos indicate that a non-blocking operation must be retried
 # at a later time.  On most platforms they're the same value, but on
 # some they differ.
-_ERRNO_WOULDBLOCK = (errno.EWOULDBLOCK, errno.EAGAIN)
+_ERRNO_WOULDBLOCK = (errno.EWOULDBLOCK, errno.EAGAIN, errno.EINPROGRESS)
 
 # More non-portable errnos:
-_ERRNO_INPROGRESS = (errno.EINPROGRESS,)
 if hasattr(errno, "WSAEINPROGRESS"):
-    _ERRNO_INPROGRESS += (errno.WSAEINPROGRESS,)
+    _ERRNO_WOULDBLOCK += (errno.WSAEINPROGRESS,)
 
 
 class Return(Exception):
@@ -277,60 +261,15 @@ def unpack_int64(n):
 
 
 class MysqlPacket(object):
-    """Representation of a MySQL response packet.  Reads in the packet
-    from the network socket, removes packet header and provides an interface
-    for reading/parsing the packet results."""
-    __slots__ = ('_position', '_data', '_packet_number', '_connection')
+    """Representation of a MySQL response packet.
 
-    def __init__(self, connection, async=False):
+    Provides an interface for reading/parsing the packet results.
+    """
+    __slots__ = ('_position', '_data')
+
+    def __init__(self, data, encoding):
+        self._data = data
         self._position = 0
-        if not async:
-            self._recv_packet(connection)
-        else:
-            self._connection = connection
-
-    def _recv_packet(self, connection):
-        """Parse the packet header and read entire packet payload into buffer."""
-        buff = b''
-        while True:
-            packet_header = connection._read_bytes(4)
-            if DEBUG: dump_packet(packet_header)
-            packet_length_bin = packet_header[:3]
-
-            #TODO: check sequence id
-            self._packet_number = byte2int(packet_header[3])
-
-            bin_length = packet_length_bin + b'\0'  # pad little-endian number
-            bytes_to_read = struct.unpack('<I', bin_length)[0]
-            recv_data = connection._read_bytes(bytes_to_read)
-            if DEBUG: dump_packet(recv_data)
-            buff += recv_data
-            if bytes_to_read < MAX_PACKET_LEN:
-                break
-        self._data = buff
-
-    def _recv_packet_async(self):
-        """Parse the packet header and read entire packet payload into buffer."""
-        buff = b''
-        while True:
-            packet_header = yield self._connection._read_bytes_async(4)
-            if DEBUG: dump_packet(packet_header)
-            packet_length_bin = packet_header[:3]
-
-            #TODO: check sequence id
-            self._packet_number = byte2int(packet_header[3])
-
-            bin_length = packet_length_bin + b'\0'  # pad little-endian number
-            bytes_to_read = struct.unpack('<I', bin_length)[0]
-            recv_data = yield self._connection._read_bytes_async(bytes_to_read)
-            if DEBUG: dump_packet(recv_data)
-            buff += recv_data
-            if bytes_to_read < MAX_PACKET_LEN:
-                break
-        self._data = buff
-
-    def packet_number(self):
-        return self._packet_number
 
     def get_all_data(self):
         return self._data
@@ -451,10 +390,9 @@ class FieldDescriptorPacket(MysqlPacket):
     attributes on the class such as: db, table_name, name, length, type_code.
     """
 
-    def __init__(self, connection, async=False):
-        MysqlPacket.__init__(self, connection)
-        if not async:
-            self.__parse_field_descriptor(connection.encoding)
+    def __init__(self, data, encoding):
+        MysqlPacket.__init__(self, data)
+        self.__parse_field_descriptor(encoding)
 
     def __parse_field_descriptor(self, encoding):
         """Parse the 'Field Descriptor' (Metadata) packet.
@@ -726,11 +664,11 @@ class Connection(object):
         self.init_command = init_command
 
         self.async = async
-        self.async_queue = deque()
+        self.async_stack = []
         if not async:
             self._connect()
         else:
-            self.async_queue.append(self._connect_async())
+            self.async_stack.append(self._connect_async())
 
     def close(self):
         ''' Send the quit message and close the socket '''
@@ -904,8 +842,7 @@ class Connection(object):
                 try:
                     sock.connect(self.unix_socket)
                 except socket.error as err:
-                    err_no = errno_from_exception(err)
-                    if not (err_no in _ERRNO_INPROGRESS or err_no in _ERRNO_WOULDBLOCK):
+                    if err.errno not in _ERRNO_WOULDBLOCK:
                         raise
 
                 self.host_info = "Localhost via UNIX socket"
@@ -922,8 +859,7 @@ class Connection(object):
                             try:
                                 sock.connect(sa)
                             except socket.error as err:
-                                err_no = errno_from_exception(err)
-                                if err_no in _ERRNO_INPROGRESS or err_no in _ERRNO_WOULDBLOCK:
+                                if err.errno in _ERRNO_WOULDBLOCK:
                                     break
                         if sock is None:
                             raise Exception("None of the resolved address endpoints are available")
@@ -947,7 +883,6 @@ class Connection(object):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            #self._rfile = _makefile(sock, 'rb')
             yield self._get_server_information_async()
             yield self._request_authentication_async()
 
@@ -980,7 +915,6 @@ class Connection(object):
         sock = None
         try:
             if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
-                # FIXME: Explore if can be async
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 sock.settimeout(self.connect_timeout)
                 sock.connect(self.unix_socket)
@@ -1002,8 +936,6 @@ class Connection(object):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             if self.no_delay:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            if self.async:
-                sock.setblocking(0)
             self.socket = sock
             self._rfile = _makefile(sock, 'rb')
             self._get_server_information()
@@ -1031,24 +963,27 @@ class Connection(object):
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
     def poll(self, value=None):
+        if not self.async_stack:
+            return POLL_OK  # All generators are done - opration finished
+
         try:
-            if value:
-                value = self.async_queue[0].send(value)
+            if value is not None:
+                value = self.async_stack[-1].send(value)
             else:
                 # Because we can't send non-None values to not started generators
-                value = next(self.async_queue[0])
+                value = next(self.async_stack[-1])
         except (Return, StopIteration) as err:
             value = getattr(err, "value", None)
-            self.async_queue.popleft()
+            self.async_stack.pop()
 
-        if not len(self.async_queue):
+        if not self.async_stack:
             return POLL_OK  # All generators are done - opration finished
 
         if value in (POLL_READ, POLL_WRITE):
             return value  # Need to wait for socket
 
         if isinstance(value, types.GeneratorType):
-            self.async_queue.appendleft(value)
+            self.async_stack.append(value)
             return self.poll()  # Continue "pulling" next generator
 
         # Pass return value to previous (caller) generator
@@ -1074,6 +1009,28 @@ class Connection(object):
             bin_length = packet_length_bin + b'\0'  # pad little-endian number
             bytes_to_read = struct.unpack('<I', bin_length)[0]
             recv_data = self._read_bytes(bytes_to_read)
+            if DEBUG: dump_packet(recv_data)
+            buff += recv_data
+            if bytes_to_read < MAX_PACKET_LEN:
+                break
+        packet = packet_type(buff, self.encoding)
+        packet.check_error()
+        return packet
+
+    def _read_packet_async(self, packet_type=MysqlPacket):
+        """Parse the packet header and read entire packet payload into buffer."""
+        buff = b''
+        while True:
+            packet_header = yield self._read_bytes_async(4)
+            if DEBUG: dump_packet(packet_header)
+            packet_length_bin = packet_header[:3]
+
+            # TODO: check sequence id
+            # packet_number = byte2int(packet_header[3])
+
+            bin_length = packet_length_bin + b'\0'  # pad little-endian number
+            bytes_to_read = struct.unpack('<I', bin_length)[0]
+            recv_data = yield self._read_bytes_async(bytes_to_read)
             if DEBUG: dump_packet(recv_data)
             buff += recv_data
             if bytes_to_read < MAX_PACKET_LEN:
@@ -1124,16 +1081,16 @@ class Connection(object):
     def _write_bytes_async(self, data):
         left = len(data)
         while left:
-            yield POLL_WRITE
-            while True:
-                try:
-                    sent = self.socket.send(data[-left:])
-                    break
-                except (IOError, OSError) as e:
-                    if e.errno == errno.EINTR:
-                        continue
+            try:
+                sent = self.socket.send(data[-left:])
+                left -= sent
+            except (IOError, OSError) as e:
+                if e.errno == errno.EINTR:
+                    continue
+                if e.errno not in _ERRNO_WOULDBLOCK:
                     raise OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
-            left -= sent
+            if left:
+                yield POLL_WRITE
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
@@ -1222,7 +1179,6 @@ class Connection(object):
                                           ssl_version=ssl.PROTOCOL_TLSv1,
                                           cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
-            self._rfile = _makefile(self.socket, 'rb')
 
         data = data_init + self.user + b'\0' + \
             _scramble(self.password.encode('latin1'), self.salt)
@@ -1239,8 +1195,7 @@ class Connection(object):
 
         yield self._write_bytes(data)
 
-        auth_packet = MysqlPacket(self, async=True)
-        yield auth_packet._recv_packet_async()
+        auth_packet = yield self._recv_packet_async()
         auth_packet.check_error()
         if DEBUG: auth_packet.dump()
 
@@ -1253,11 +1208,9 @@ class Connection(object):
             data = pack_int24(len(data)) + int2byte(next_packet) + data
 
             yield self._write_bytes(data)
-            auth_packet = MysqlPacket(self, async=True)
-            yield auth_packet._recv_packet_async()
+            auth_packet = yield self._recv_packet_async()
             auth_packet.check_error()
             if DEBUG: auth_packet.dump()
-        pass 
 
     def _request_authentication(self):
         self.client_flag |= CLIENT.CAPABILITIES
@@ -1331,8 +1284,7 @@ class Connection(object):
         return self.protocol_version
 
     def _get_server_information_async(self):
-        packet = MysqlPacket(self, async=True)
-        yield packet._recv_packet_async()
+        packet = yield self._read_packet_async()
         self._parse_server_information(packet)
 
     def _get_server_information(self):
