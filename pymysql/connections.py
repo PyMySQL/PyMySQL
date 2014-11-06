@@ -714,8 +714,8 @@ class Connection(object):
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
 
-    def next_result(self):
-        self._affected_rows = self._read_query_result()
+    def next_result(self, unbuffered=False):
+        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
 
     def affected_rows(self):
