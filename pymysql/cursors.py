@@ -79,7 +79,7 @@ class Cursor(object):
     def setoutputsizes(self, *args):
         """Does nothing, required by DB API."""
 
-    def nextset(self):
+    def _nextset(self, unbuffered=False):
         """Get the next query set"""
         conn = self._get_db()
         current_result = self._result
@@ -87,9 +87,12 @@ class Cursor(object):
             return None
         if not current_result.has_next:
             return None
-        conn.next_result()
+        conn.next_result(unbuffered=unbuffered)
         self._do_get_result()
         return True
+
+    def nextset(self):
+        return self._nextset(False)
 
     def _escape_args(self, args, conn):
         if isinstance(args, (tuple, list)):
@@ -365,6 +368,9 @@ class SSCursor(Cursor):
         conn.query(q, unbuffered=True)
         self._do_get_result()
         return self.rowcount
+
+    def nextset(self):
+        return self._nextset(unbuffered=True)
 
     def read_next(self):
         """ Read next row """
