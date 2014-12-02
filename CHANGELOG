@@ -1,6 +1,12 @@
 Changes
 --------
 
+0.6.3 -Fixed multiple result sets with SSCursor.
+      -Fixed connection timeout.
+      -Fixed literal set syntax to work on Py2.6.
+      -Allow for mysql negative values with 0 hour timedelta.
+      -Added Connection.begin().
+
 0.6.2 -Fixed old password on Python 3.
       -Added support for bulk insert in Cursor.executemany().
       -Added support for microseconds in datetimes and dates before 1900.
