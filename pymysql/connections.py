@@ -1082,8 +1082,7 @@ class Connection(object):
         left = len(data)
         while left:
             try:
-                sent = self.socket.send(data[-left:])
-                left -= sent
+                left -= self.socket.send(data[-left:])
             except (IOError, OSError) as e:
                 if e.errno == errno.EINTR:
                     continue
