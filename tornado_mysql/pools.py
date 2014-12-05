@@ -80,7 +80,7 @@ class Pool(object):
         self._opened_conns -= 1
 
     @coroutine
-    def execute(self, query, params):
+    def execute(self, query, params=None):
         """Execute query in pool.
 
         Returns future yielding closed cursor.
