@@ -1,43 +1,44 @@
 # Python implementation of the MySQL client-server protocol
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
+# Error codes:
+# http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
 
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
+DEBUG = False
 
 import errno
 from functools import partial
-import os
 import hashlib
+import io
+import os
 import socket
+import struct
+import sys
 
 try:
     import ssl
     SSL_ENABLED = True
 except ImportError:
+    ssl = None
     SSL_ENABLED = False
 
-import struct
-import sys
 if PY2:
     import ConfigParser as configparser
 else:
     import configparser
 
-import io
-
 try:
     import getpass
     DEFAULT_USER = getpass.getuser()
+    del getpass
 except ImportError:
     DEFAULT_USER = None
 
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
-from .constants import FIELD_TYPE
-from .constants import SERVER_STATUS
-from .constants.CLIENT import *
-from .constants.COMMAND import *
+from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
 from .util import byte2int, int2byte
 from .converters import escape_item, encoders, decoders, escape_string
 from .err import (
@@ -96,8 +97,6 @@ TEXT_TYPES = set([
 
 sha_new = partial(hashlib.new, 'sha1')
 
-DEBUG = False
-
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
@@ -114,9 +113,8 @@ MAX_PACKET_LEN = 2**24-1
 
 
 def dump_packet(data):
-
     def is_ascii(data):
-        if 65 <= byte2int(data) <= 122:  #data.isalnum():
+        if 65 <= byte2int(data) <= 122:
             if isinstance(data, int):
                 return chr(data)
             return data
@@ -134,9 +132,9 @@ def dump_packet(data):
         pass
     dump_data = [data[i:i+16] for i in range_type(0, min(len(data), 256), 16)]
     for d in dump_data:
-        print(' '.join(map(lambda x:"{:02X}".format(byte2int(x)), d)) +
+        print(' '.join(map(lambda x: "{:02X}".format(byte2int(x)), d)) +
               '   ' * (16 - len(d)) + ' ' * 2 +
-              ' '.join(map(lambda x:"{}".format(is_ascii(x)), d)))
+              ' '.join(map(lambda x: "{}".format(is_ascii(x)), d)))
     print("-" * 88)
     print()
 
@@ -487,14 +485,21 @@ class Connection(object):
         unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
         charset: Charset you want to use.
         sql_mode: Default SQL_MODE to use.
-        read_default_file: Specifies  my.cnf file to read these parameters from under the [client] section.
-        conv: Decoders dictionary to use instead of the default one. This is used to provide custom marshalling of types. See converters.
-        use_unicode: Whether or not to default to unicode strings. This option defaults to true for Py3k.
+        read_default_file:
+            Specifies  my.cnf file to read these parameters from under the [client] section.
+        conv:
+            Decoders dictionary to use instead of the default one.
+            This is used to provide custom marshalling of types. See converters.
+        use_unicode:
+            Whether or not to default to unicode strings.
+            This option defaults to true for Py3k.
         client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
         cursorclass: Custom cursor class to use.
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.
-        ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
+        ssl:
+            A dict of arguments similar to mysql_ssl_set()'s parameters.
+            For now the capath and cipher arguments are not supported.
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
@@ -524,7 +529,7 @@ class Connection(object):
             if not SSL_ENABLED:
                 raise NotImplementedError("ssl module not found")
             self.ssl = True
-            client_flag |= SSL
+            client_flag |= CLIENT.SSL
             for k in ('key', 'cert', 'ca'):
                 v = None
                 if k in ssl:
@@ -577,10 +582,9 @@ class Connection(object):
 
         self.encoding = charset_by_name(self.charset).encoding
 
-        client_flag |= CAPABILITIES
-        client_flag |= MULTI_STATEMENTS
+        client_flag |= CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
         if self.db:
-            client_flag |= CONNECT_WITH_DB
+            client_flag |= CLIENT.CONNECT_WITH_DB
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -603,7 +607,7 @@ class Connection(object):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
             raise Error("Already closed")
-        send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
+        send_data = struct.pack('<i', 1) + int2byte(COMMAND.COM_QUIT)
         try:
             self._write_bytes(send_data)
         except Exception:
@@ -647,28 +651,28 @@ class Connection(object):
 
     def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
-        self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" %
+        self._execute_command(COMMAND.COM_QUERY, "SET AUTOCOMMIT = %s" %
                               self.escape(self.autocommit_mode))
         self._read_ok_packet()
 
     def begin(self):
         """Begin transaction."""
-        self._execute_command(COM_QUERY, "BEGIN")
+        self._execute_command(COMMAND.COM_QUERY, "BEGIN")
         self._read_ok_packet()
 
     def commit(self):
         ''' Commit changes to stable storage '''
-        self._execute_command(COM_QUERY, "COMMIT")
+        self._execute_command(COMMAND.COM_QUERY, "COMMIT")
         self._read_ok_packet()
 
     def rollback(self):
         ''' Roll back the current transaction '''
-        self._execute_command(COM_QUERY, "ROLLBACK")
+        self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
 
     def select_db(self, db):
         '''Set current db'''
-        self._execute_command(COM_INIT_DB, db)
+        self._execute_command(COMMAND.COM_INIT_DB, db)
         self._read_ok_packet()
 
     def escape(self, obj):
@@ -710,7 +714,7 @@ class Connection(object):
         #    print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
             sql = sql.encode(self.encoding)
-        self._execute_command(COM_QUERY, sql)
+        self._execute_command(COMMAND.COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
 
@@ -723,7 +727,7 @@ class Connection(object):
 
     def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
-        self._execute_command(COM_PROCESS_KILL, arg)
+        self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
         return self._read_ok_packet()
 
     def ping(self, reconnect=True):
@@ -735,7 +739,7 @@ class Connection(object):
             else:
                 raise Error("Already closed")
         try:
-            self._execute_command(COM_PING, "")
+            self._execute_command(COMMAND.COM_PING, "")
             return self._read_ok_packet()
         except Exception:
             if reconnect:
@@ -748,7 +752,7 @@ class Connection(object):
         # Make sure charset is supported.
         encoding = charset_by_name(charset).encoding
 
-        self._execute_command(COM_QUERY, "SET NAMES %s" % self.escape(charset))
+        self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" % self.escape(charset))
         self._read_packet()
         self.charset = charset
         self.encoding = encoding
@@ -766,7 +770,7 @@ class Connection(object):
                 while True:
                     try:
                         sock = socket.create_connection(
-                                (self.host, self.port), self.connect_timeout)
+                            (self.host, self.port), self.connect_timeout)
                         break
                     except (OSError, IOError) as e:
                         if e.errno == errno.EINTR:
@@ -804,7 +808,6 @@ class Connection(object):
             raise OperationalError(
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
-
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results.
@@ -839,10 +842,11 @@ class Connection(object):
                 if e.errno == errno.EINTR:
                     continue
                 raise OperationalError(
-                        2013, "Lost connection to MySQL server during query (%r)" % (e,))
+                    2013,
+                    "Lost connection to MySQL server during query (%s)" % (e,))
         if len(data) < num_bytes:
-            raise OperationalError(2013,
-                    "Lost connection to MySQL server during query")
+            raise OperationalError(
+                2013, "Lost connection to MySQL server during query")
         return data
 
     def _write_bytes(self, data):
@@ -909,9 +913,9 @@ class Connection(object):
             seq_id += 1
 
     def _request_authentication(self):
-        self.client_flag |= CAPABILITIES
+        self.client_flag |= CLIENT.CAPABILITIES
         if self.server_version.startswith('5'):
-            self.client_flag |= MULTI_RESULTS
+            self.client_flag |= CLIENT.MULTI_RESULTS
 
         if self.user is None:
             raise ValueError("Did not specify a username")
@@ -920,8 +924,8 @@ class Connection(object):
         if isinstance(self.user, text_type):
             self.user = self.user.encode(self.encoding)
 
-        data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
-                     int2byte(charset_id) + int2byte(0)*23
+        data_init = (struct.pack('<i', self.client_flag) + struct.pack("<I", 1) +
+                     int2byte(charset_id) + int2byte(0)*23)
 
         next_packet = 1
 
@@ -1018,8 +1022,9 @@ class Connection(object):
         i += 10
 
         if len(data) >= i + salt_len:
-            self.salt += data[i:i+salt_len] # salt_len includes auth_plugin_data_part_1 and filler
-        #TODO: AUTH PLUGIN NAME may appeare here.
+            # salt_len includes auth_plugin_data_part_1 and filler
+            self.salt += data[i:i+salt_len]
+        # TODO: AUTH PLUGIN NAME may appeare here.
 
     def get_server_info(self):
         return self.server_version
@@ -1185,3 +1190,5 @@ class MySQLResult(object):
         eof_packet = self.connection._read_packet()
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
+
+# g:khuno_ignore='E226,E301,E701'
