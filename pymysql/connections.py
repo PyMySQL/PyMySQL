@@ -897,7 +897,7 @@ class Connection(object):
         if self._result is not None and self._result.unbuffered_active:
             self._result._finish_unbuffered_query()
 
-        local_file_name = re.search('load local infile (?P<file_name>\w+\.\w+)', flags=re.IGNORECASE)
+        local_file_name = re.search('load local infile (?P<file_name>\w+\.\w+)', sql, flags=re.IGNORECASE)
         if local_file_name:
             self.local_file = local_file_name.groupdict().get('file_name')
         else:
