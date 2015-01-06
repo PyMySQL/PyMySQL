@@ -897,7 +897,7 @@ class Connection(object):
         if self._result is not None and self._result.unbuffered_active:
             self._result._finish_unbuffered_query()
 
-        local_file_name = re.search('load local infile (?P<file_name>\w+\.\w+)', sql, flags=re.IGNORECASE)
+        local_file_name = re.search('load data local infile \'(?P<file_name>[^\']+)\'', sql, flags=re.IGNORECASE)
         if local_file_name:
             self.local_file = local_file_name.groupdict().get('file_name')
         else:
@@ -1089,7 +1089,7 @@ class MySQLResult(object):
                 requested_file = first_packet.get_local_file_name()
                 # ensure the filename returned by the server matches the
                 # file we asked to load in the initial query
-                if self.connection.local_file is requested_file:
+                if self.connection.local_file == requested_file:
                     local_packet = LoadLocalFile(requested_file, self.connection)
                     local_packet.send_data()
                 else:
