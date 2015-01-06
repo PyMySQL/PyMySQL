@@ -14,6 +14,7 @@ import os
 import socket
 import struct
 import sys
+import re
 
 try:
     import ssl
@@ -528,6 +529,7 @@ class Connection(object):
 
         if load_local:
             client_flag |= CLIENT.LOCAL_FILES
+            self.local_file = None
 
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
@@ -895,6 +897,12 @@ class Connection(object):
         if self._result is not None and self._result.unbuffered_active:
             self._result._finish_unbuffered_query()
 
+        local_file_name = re.search('load local infile (?P<file_name>\w+\.\w+)', flags=re.IGNORECASE)
+        if local_file_name:
+            self.local_file = local_file_name.groupdict().get('file_name')
+        else:
+            self.local_file = None
+
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
 
@@ -1078,8 +1086,14 @@ class MySQLResult(object):
             if first_packet.is_ok_packet():
                 self._read_ok_packet(first_packet)
             if first_packet.is_local_file_packet():
-                local_packet = LoadLocalFile(first_packet.get_local_file_name(), self.connection)
-                local_packet.send_data()
+                requested_file = first_packet.get_local_file_name()
+                # ensure the filename returned by the server matches the
+                # file we asked to load in the initial query
+                if self.connection.local_file is requested_file:
+                    local_packet = LoadLocalFile(requested_file, self.connection)
+                    local_packet.send_data()
+                else:
+                    raise OperationalError(2014, "Command Out of Sync")
             else:
                 self._read_result_packet(first_packet)
         finally:
