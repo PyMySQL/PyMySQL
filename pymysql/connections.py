@@ -1,8 +1,7 @@
 # Python implementation of the MySQL client-server protocol
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 # Error codes:
-# http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
-
+# http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html''from __future__ import print_function
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 DEBUG = False
@@ -334,6 +333,12 @@ class MysqlPacket(object):
         field_count = ord(self._data[0:1])
         return 1 <= field_count <= 250
 
+    def is_local_file_packet(self):
+        return self._data[0:1] == b'\xfb'
+
+    def get_local_file_name(self):
+        return self._data[1:]
+
     def is_error_packet(self):
         return self._data[0:1] == b'\xff'
 
@@ -472,7 +477,7 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False, db=None, passwd=None):
+                 autocommit=False, db=None, passwd=None, load_local=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -520,6 +525,9 @@ class Connection(object):
 
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
+
+        if load_local:
+            client_flag |= CLIENT.LOCAL_FILES
 
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
@@ -1069,6 +1077,9 @@ class MySQLResult(object):
             # TODO: use classes for different packet types?
             if first_packet.is_ok_packet():
                 self._read_ok_packet(first_packet)
+            if first_packet.is_local_file_packet():
+                local_packet = LoadLocalFile(first_packet.get_local_file_name(), self.connection)
+                local_packet.send_data()
             else:
                 self._read_result_packet(first_packet)
         finally:
@@ -1190,5 +1201,53 @@ class MySQLResult(object):
         eof_packet = self.connection._read_packet()
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
+
+
+class LoadLocalFile(object):
+    def __init__(self, filename, connection):
+        self.filename = filename
+        self.connection = connection
+
+    def send_data(self):
+        """Send data packets from the local file"""
+        if not self.connection.socket:
+            raise InterfaceError("(0, '')")
+
+        with open(self.filename, 'r') as open_file:
+            chunk_size = MAX_PACKET_LEN
+            prelude = ""
+            packet = ""
+            packet_size = 0
+            # sequence id is 2 as we already sent a query packet
+            seq_id = 2
+
+            for line in open_file:
+                line_length = len(line)
+                format_str = '!{0}s'.format(line_length)
+                line = line.encode(self.connection.encoding)
+                if packet_size + len(line) < chunk_size:
+                    packet += struct.pack(format_str, line)
+                    packet_size += line_length
+                else:
+                    # send the existing packet when we have reached the chunk size
+                    prelude = struct.pack('<i', packet_size)[:3] + int2byte(seq_id)
+                    packet = prelude + packet
+                    self.connection._write_bytes(packet)
+
+                    seq_id += 1
+                    packet = struct.pack(format_str, line)
+                    packet_size = line_length
+
+            # send the last data packet
+            prelude = struct.pack('<i', packet_size)[:3] + int2byte(seq_id)
+            packet = prelude + packet
+            self.connection._write_bytes(packet)
+
+            # send the empty packet to signify we are done sending data
+            seq_id += 1
+            packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
+            self.connection._write_bytes(packet)
+
+            self.connection._read_ok_packet()
 
 # g:khuno_ignore='E226,E301,E701'
