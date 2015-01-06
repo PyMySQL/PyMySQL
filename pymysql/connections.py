@@ -1,7 +1,7 @@
 # Python implementation of the MySQL client-server protocol
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 # Error codes:
-# http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html''
+# http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 DEBUG = False
