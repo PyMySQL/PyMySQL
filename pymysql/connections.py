@@ -15,6 +15,7 @@ import socket
 import struct
 import sys
 import re
+import traceback
 
 try:
     import ssl
@@ -1245,11 +1246,22 @@ class LoadLocalFile(object):
         self.filename = filename
         self.connection = connection
 
+    def _print_warnings(self):
+        self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
+        self.connection._read_query_result()
+        warnings = self.connection._result.rows
+        if warnings:
+            warning_source = list(traceback.extract_stack())[0]
+            print("{}:{}: {}".format(warning_source[0], warning_source[1], warning_source[3]))
+            for warning in warnings:
+                print("  Warning: {}".format(warning[2]))
+
     def send_data(self):
-        """Send data packets from the local file"""
+        """Send data packets from the local file to the server"""
         if not self.connection.socket:
             raise InterfaceError("(0, '')")
 
+        seq_id = 2
         try:
             with open(self.filename, 'r') as open_file:
                 chunk_size = MAX_PACKET_LEN
@@ -1257,7 +1269,6 @@ class LoadLocalFile(object):
                 packet = ""
                 packet_size = 0
                 # sequence id is 2 as we already sent a query packet
-                seq_id = 2
 
                 for line in open_file:
                     line_length = len(line)
@@ -1280,15 +1291,18 @@ class LoadLocalFile(object):
                 prelude = struct.pack('<i', packet_size)[:3] + int2byte(seq_id)
                 packet = prelude + packet
                 self.connection._write_bytes(packet)
-
-                # send the empty packet to signify we are done sending data
                 seq_id += 1
-                packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
-                self.connection._write_bytes(packet)
 
-                self.connection._read_ok_packet()
         except IOError:
             raise OperationalError(1017, "Can't find file '{}'".format(self.filename))
+        finally:
+            # send the empty packet to signify we are done sending data
+            packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
+            self.connection._write_bytes(packet)
 
+            result = MySQLResult(self.connection)
+            result.read()
+            if result.warning_count > 0:
+                self._print_warnings()
 
 # g:khuno_ignore='E226,E301,E701'
