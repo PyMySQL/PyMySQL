@@ -1246,12 +1246,12 @@ class LoadLocalFile(object):
 
     def _print_warnings(self):
         self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
-        self.connection._read_query_result()
-        warnings = self.connection._result.rows
-        if warnings:
+        warnings = MySQLResult(self.connection)
+        warnings.read()
+        if warnings.rows:
             warning_source = list(traceback.extract_stack())[0]
             print("{}:{}: {}".format(warning_source[0], warning_source[1], warning_source[3]))
-            for warning in warnings:
+            for warning in warnings.rows:
                 print("  Warning: {}".format(warning[2]))
 
     def send_data(self):
