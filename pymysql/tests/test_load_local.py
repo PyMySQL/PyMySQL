@@ -63,7 +63,11 @@ class TestLoadLocal(base.PyMySQLTestCase):
             )
             output = out.getvalue().strip().split('\n')
             self.assertEquals(2, len(output))
-            self.assertEqual("  Warning: Incorrect integer value: '' for column 'a' at row 8", output[1])
+            self.assertEqual(
+                ("  Warning: Incorrect integer value: '' for column 'a' at " +
+                 "row 8 in file '{}'").format(filename),
+                output[1]
+            )
 
         finally:
             sys.stdout = saved_stdout
