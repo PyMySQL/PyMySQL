@@ -458,7 +458,6 @@ class EOFPacketWrapper(object):
         return getattr(self.packet, key)
 
 
-
 class LoadLocalPacketWrapper(object):
     """
     Load Local Packet Wrapper. It uses an existing packet object, and wraps
@@ -478,7 +477,6 @@ class LoadLocalPacketWrapper(object):
 
     def __getattr__(self, key):
         return getattr(self.packet, key)
-
 
 
 class Connection(object):
@@ -1261,6 +1259,7 @@ class LoadLocalFile(object):
         if not self.connection.socket:
             raise InterfaceError("(0, '')")
 
+        # sequence id is 2 as we already sent a query packet
         seq_id = 2
         try:
             with open(self.filename, 'r') as open_file:
@@ -1268,7 +1267,6 @@ class LoadLocalFile(object):
                 prelude = ""
                 packet = ""
                 packet_size = 0
-                # sequence id is 2 as we already sent a query packet
 
                 for line in open_file:
                     line_length = len(line)

@@ -4,6 +4,7 @@ from pymysql.tests.test_nextset import *
 from pymysql.tests.test_DictCursor import *
 from pymysql.tests.test_connection import TestConnection
 from pymysql.tests.test_SSCursor import *
+from pymysql.tests.test_load_local import *
 
 from pymysql.tests.thirdparty import *
 
