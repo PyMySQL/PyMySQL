@@ -1249,10 +1249,10 @@ class LoadLocalFile(object):
         warnings = MySQLResult(self.connection)
         warnings.read()
         if warnings.rows:
-            warning_source = list(traceback.extract_stack())[0]
+            warning_source = traceback.extract_stack()[0]
             print("{}:{}: {}".format(warning_source[0], warning_source[1], warning_source[3]))
             for warning in warnings.rows:
-                print("  Warning: {}".format(warning[2]))
+                print("  Warning: {} in file '{}'".format(warning[2], self.filename))
 
     def send_data(self):
         """Send data packets from the local file to the server"""
