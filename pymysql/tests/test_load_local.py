@@ -1,5 +1,5 @@
-from pymysql.tests import base
 from pymysql.err import OperationalError
+from pymysql.tests import base
 
 import os
 
@@ -13,12 +13,12 @@ class TestLoadLocal(base.PyMySQLTestCase):
         c = conn.cursor()
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
         try:
-            with self.assertRaisesRegexp(
-                    OperationalError, "Can't find file 'no_data.txt'"):
-                c.execute(
-                    "LOAD DATA LOCAL INFILE 'no_data.txt' INTO TABLE " +
-                    "test_load_local fields terminated by ','"
-                )
+            self.assertRaises(
+                OperationalError,
+                c.execute,
+                ("LOAD DATA LOCAL INFILE 'no_data.txt' INTO TABLE "
+                 "test_load_local fields terminated by ','")
+            )
         finally:
             c.execute("DROP TABLE test_load_local")
             c.close()
@@ -33,18 +33,23 @@ class TestLoadLocal(base.PyMySQLTestCase):
                                 'load_local_data.txt')
         try:
             c.execute(
-                ("LOAD DATA LOCAL INFILE '{}' INTO TABLE " +
+                ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
                  "test_load_local FIELDS TERMINATED BY ','").format(filename)
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
-            self.assertEquals(22749, c.fetchone()[0])
+            self.assertEqual(22749, c.fetchone()[0])
         finally:
             c.execute("DROP TABLE test_load_local")
 
     def test_load_warnings(self):
         """Test load local infile produces the appropriate warnings"""
         import sys
-        from StringIO import StringIO
+
+        _py_version = sys.version_info[:2]
+        if _py_version == (2,6) or _py_version == (2,7):
+            from StringIO import StringIO
+        else:
+            from io import StringIO
 
         saved_stdout = sys.stdout
         out = StringIO()
@@ -58,14 +63,14 @@ class TestLoadLocal(base.PyMySQLTestCase):
 
         try:
             c.execute(
-                ("LOAD DATA LOCAL INFILE '{}' INTO TABLE " +
+                ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
                  "test_load_local FIELDS TERMINATED BY ','").format(filename)
             )
             output = out.getvalue().strip().split('\n')
-            self.assertEquals(2, len(output))
+            self.assertEqual(2, len(output))
             self.assertEqual(
                 ("  Warning: Incorrect integer value: '' for column 'a' at " +
-                 "row 8 in file '{}'").format(filename),
+                 "row 8 in file '{0}'").format(filename),
                 output[1]
             )
 

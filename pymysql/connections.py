@@ -11,10 +11,10 @@ from functools import partial
 import hashlib
 import io
 import os
+import re
 import socket
 import struct
 import sys
-import re
 import traceback
 
 try:
@@ -916,14 +916,14 @@ class Connection(object):
         if self._result is not None and self._result.unbuffered_active:
             self._result._finish_unbuffered_query()
 
-        local_file_name = re.search('load data local infile \'(?P<file_name>[^\']+)\'', sql, flags=re.IGNORECASE)
+        if isinstance(sql, text_type):
+            sql = sql.encode(self.encoding)
+
+        local_file_name = re.search(b'load data local infile \'(?P<file_name>[^\']+)\'', sql, flags=re.IGNORECASE)
         if local_file_name:
             self.local_file = local_file_name.groupdict().get('file_name')
         else:
             self.local_file = None
-
-        if isinstance(sql, text_type):
-            sql = sql.encode(self.encoding)
 
         chunk_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
 
@@ -1250,9 +1250,9 @@ class LoadLocalFile(object):
         warnings.read()
         if warnings.rows:
             warning_source = traceback.extract_stack()[0]
-            print("{}:{}: {}".format(warning_source[0], warning_source[1], warning_source[3]))
+            print("{0}:{1}: {2}".format(str(warning_source[0]), str(warning_source[1]), str(warning_source[3])))
             for warning in warnings.rows:
-                print("  Warning: {} in file '{}'".format(warning[2], self.filename))
+                print("  Warning: {0} in file '{1}'".format(warning[2], self.filename.decode('utf-8')))
 
     def send_data(self):
         """Send data packets from the local file to the server"""
@@ -1264,13 +1264,14 @@ class LoadLocalFile(object):
         try:
             with open(self.filename, 'r') as open_file:
                 chunk_size = MAX_PACKET_LEN
-                prelude = ""
-                packet = ""
+                prelude = b""
+                packet = b""
                 packet_size = 0
 
                 for line in open_file:
                     line_length = len(line)
                     format_str = '!{0}s'.format(line_length)
+                    format_str = format_str.encode(self.connection.encoding)
                     line = line.encode(self.connection.encoding)
                     if packet_size + len(line) < chunk_size:
                         packet += struct.pack(format_str, line)
@@ -1292,7 +1293,7 @@ class LoadLocalFile(object):
                 seq_id += 1
 
         except IOError:
-            raise OperationalError(1017, "Can't find file '{}'".format(self.filename))
+            raise OperationalError(1017, "Can't find file '{0}'".format(self.filename))
         finally:
             # send the empty packet to signify we are done sending data
             packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
