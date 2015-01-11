@@ -17,5 +17,6 @@ print()
 for row in cur:
    print(row)
 
+cur.commit()
 cur.close()
 conn.close()
