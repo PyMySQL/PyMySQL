@@ -549,7 +549,6 @@ class Connection(object):
 
         if local_infile:
             client_flag |= CLIENT.LOCAL_FILES
-            self.local_file = None
 
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
@@ -920,12 +919,6 @@ class Connection(object):
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
 
-        local_file_name = re.search(b'load data local infile \'(?P<file_name>[^\']+)\'', sql, flags=re.IGNORECASE)
-        if local_file_name:
-            self.local_file = local_file_name.groupdict().get('file_name')
-        else:
-            self.local_file = None
-
         chunk_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
 
         prelude = struct.pack('<i', chunk_size) + int2byte(command)
@@ -1140,13 +1133,8 @@ class MySQLResult(object):
 
     def _read_load_local_packet(self, first_packet):
         load_packet = LoadLocalPacketWrapper(first_packet)
-        # ensure the filename returned by the server matches the
-        # file we asked to load in the initial query
-        if self.connection.local_file == load_packet.filename:
-            local_packet = LoadLocalFile(load_packet.filename, self.connection)
-            local_packet.send_data()
-        else:
-            raise OperationalError(2014, "Command Out of Sync")
+        local_packet = LoadLocalFile(load_packet.filename, self.connection)
+        local_packet.send_data()
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
