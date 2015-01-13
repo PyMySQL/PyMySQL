@@ -497,7 +497,7 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False, db=None, passwd=None, load_local=False):
+                 autocommit=False, db=None, passwd=None, local_infile=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -530,6 +530,7 @@ class Connection(object):
         named_pipe: Not supported
         no_delay: Disable Nagle's algorithm on the socket
         autocommit: Autocommit mode. None means use server default. (default: False)
+        local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
 
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
@@ -546,7 +547,7 @@ class Connection(object):
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        if load_local:
+        if local_infile:
             client_flag |= CLIENT.LOCAL_FILES
             self.local_file = None
 
