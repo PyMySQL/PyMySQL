@@ -1086,6 +1086,7 @@ class MySQLResult(object):
         self.rows = None
         self.has_next = None
         self.unbuffered_active = False
+        self.filename = None
 
     def __del__(self):
         if self.unbuffered_active:
@@ -1134,7 +1135,17 @@ class MySQLResult(object):
     def _read_load_local_packet(self, first_packet):
         load_packet = LoadLocalPacketWrapper(first_packet)
         local_packet = LoadLocalFile(load_packet.filename, self.connection)
+        self.filename = load_packet.filename
         local_packet.send_data()
+
+        ok_packet = self.connection._read_packet()
+        if not ok_packet.is_ok_packet():
+            raise OperationalError(2014, "Commands Out of Sync")
+        self._read_ok_packet(ok_packet)
+
+        if self.warning_count > 0:
+            self._print_warnings()
+        self.filename = None
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
@@ -1143,6 +1154,15 @@ class MySQLResult(object):
             self.has_next = eof_packet.has_next
             return True
         return False
+
+    def _print_warnings(self):
+        self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
+        self.read()
+        if self.rows:
+            warning_source = traceback.extract_stack()[0]
+            print("{0}:{1}: {2}".format(str(warning_source[0]), str(warning_source[1]), str(warning_source[3])))
+            for warning in self.rows:
+                print("  Warning: {0} in file '{1}'".format(warning[2], self.filename.decode('utf-8')))
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()
@@ -1233,16 +1253,6 @@ class LoadLocalFile(object):
         self.filename = filename
         self.connection = connection
 
-    def _print_warnings(self):
-        self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
-        warnings = MySQLResult(self.connection)
-        warnings.read()
-        if warnings.rows:
-            warning_source = traceback.extract_stack()[0]
-            print("{0}:{1}: {2}".format(str(warning_source[0]), str(warning_source[1]), str(warning_source[3])))
-            for warning in warnings.rows:
-                print("  Warning: {0} in file '{1}'".format(warning[2], self.filename.decode('utf-8')))
-
     def send_data(self):
         """Send data packets from the local file to the server"""
         if not self.connection.socket:
@@ -1272,10 +1282,5 @@ class LoadLocalFile(object):
             # send the empty packet to signify we are done sending data
             packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
             self.connection._write_bytes(packet)
-
-            result = MySQLResult(self.connection)
-            result.read()
-            if result.warning_count > 0:
-                self._print_warnings()
 
 # g:khuno_ignore='E226,E301,E701'
