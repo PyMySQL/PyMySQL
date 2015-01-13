@@ -15,7 +15,6 @@ import re
 import socket
 import struct
 import sys
-import traceback
 
 try:
     import ssl
@@ -1160,7 +1159,6 @@ class MySQLResult(object):
         self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
         self.read()
         if self.rows:
-            warning_source = traceback.extract_stack()[0]
             message = "\n"
             for db_warning in self.rows:
                 message += "{0} in file '{1}'\n".format(db_warning[2], self.filename.decode('utf-8'))
