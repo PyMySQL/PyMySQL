@@ -1251,36 +1251,21 @@ class LoadLocalFile(object):
         # sequence id is 2 as we already sent a query packet
         seq_id = 2
         try:
-            with open(self.filename, 'r') as open_file:
+            with open(self.filename, 'rb') as open_file:
                 chunk_size = MAX_PACKET_LEN
                 prelude = b""
                 packet = b""
                 packet_size = 0
 
-                for line in open_file:
-                    line_length = len(line)
-                    format_str = '!{0}s'.format(line_length)
-                    format_str = format_str.encode(self.connection.encoding)
-                    line = line.encode(self.connection.encoding)
-                    if packet_size + len(line) < chunk_size:
-                        packet += struct.pack(format_str, line)
-                        packet_size += line_length
-                    else:
-                        # send the existing packet when we have reached the chunk size
-                        prelude = struct.pack('<i', packet_size)[:3] + int2byte(seq_id)
-                        packet = prelude + packet
-                        self.connection._write_bytes(packet)
-
-                        seq_id += 1
-                        packet = struct.pack(format_str, line)
-                        packet_size = line_length
-
-                # send the last data packet
-                prelude = struct.pack('<i', packet_size)[:3] + int2byte(seq_id)
-                packet = prelude + packet
-                self.connection._write_bytes(packet)
-                seq_id += 1
-
+                while True:
+                    chunk = open_file.read(chunk_size)
+                    if not chunk:
+                        break
+                    packet = struct.pack('<i', len(chunk))[:3] + int2byte(seq_id)
+                    format_str = '!{0}s'.format(len(chunk))
+                    packet += struct.pack(format_str, chunk)
+                    self.connection._write_bytes(packet)
+                    seq_id += 1
         except IOError:
             raise OperationalError(1017, "Can't find file '{0}'".format(self.filename))
         finally:
