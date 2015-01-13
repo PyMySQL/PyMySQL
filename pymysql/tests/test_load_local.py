@@ -43,39 +43,23 @@ class TestLoadLocal(base.PyMySQLTestCase):
 
     def test_load_warnings(self):
         """Test load local infile produces the appropriate warnings"""
-        import sys
-
-        _py_version = sys.version_info[:2]
-        if _py_version == (2,6) or _py_version == (2,7):
-            from StringIO import StringIO
-        else:
-            from io import StringIO
-
-        saved_stdout = sys.stdout
-        out = StringIO()
-        sys.stdout = out
+        import warnings
         conn = self.connections[2]
         c = conn.cursor()
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
         filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'data',
                                 'load_local_warn_data.txt')
-
         try:
-            c.execute(
-                ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
-                 "test_load_local FIELDS TERMINATED BY ','").format(filename)
-            )
-            output = out.getvalue().strip().split('\n')
-            self.assertEqual(2, len(output))
-            self.assertEqual(
-                ("  Warning: Incorrect integer value: '' for column 'a' at " +
-                 "row 8 in file '{0}'").format(filename),
-                output[1]
-            )
-
+            with warnings.catch_warnings(record=True) as w:
+                c.execute(
+                    ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
+                     "test_load_local FIELDS TERMINATED BY ','").format(filename)
+                )
+                self.assertEqual(True, "Incorrect integer value" in str(w[-1].message))
+        except Warning as w:
+            self.assertLess(0, str(w).find("Incorrect integer value"))
         finally:
-            sys.stdout = saved_stdout
             c.execute("DROP TABLE test_load_local")
 
 

@@ -1156,13 +1156,15 @@ class MySQLResult(object):
         return False
 
     def _print_warnings(self):
+        from warnings import warn
         self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
         self.read()
         if self.rows:
             warning_source = traceback.extract_stack()[0]
-            print("{0}:{1}: {2}".format(str(warning_source[0]), str(warning_source[1]), str(warning_source[3])))
-            for warning in self.rows:
-                print("  Warning: {0} in file '{1}'".format(warning[2], self.filename.decode('utf-8')))
+            message = "\n"
+            for db_warning in self.rows:
+                message += "{0} in file '{1}'\n".format(db_warning[2], self.filename.decode('utf-8'))
+            warn(message, Warning, 3)
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()
