@@ -2,6 +2,7 @@ from pymysql.tests import base
 import pymysql.cursors
 
 import datetime
+import warnings
 
 
 class TestDictCursor(base.PyMySQLTestCase):
@@ -17,7 +18,9 @@ class TestDictCursor(base.PyMySQLTestCase):
         c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
-        c.execute("drop table if exists dictcursor")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            c.execute("drop table if exists dictcursor")
         c.execute("""CREATE TABLE dictcursor (name char(20), age int , DOB datetime)""")
         data = [("bob", 21, "1990-02-06 23:04:56"),
                 ("jim", 56, "1955-05-09 13:12:45"),

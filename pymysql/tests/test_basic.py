@@ -6,6 +6,7 @@ from pymysql.err import ProgrammingError
 
 import time
 import datetime
+import warnings
 
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
 
@@ -136,7 +137,9 @@ class TestConversion(base.PyMySQLTestCase):
             # User is running a version of MySQL that doesn't support msecs within datetime
             pass
         finally:
-            c.execute("drop table if exists test_datetime")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                c.execute("drop table if exists test_datetime")
 
 
 class TestCursor(base.PyMySQLTestCase):
@@ -243,7 +246,9 @@ class TestBulkInserts(base.PyMySQLTestCase):
         c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
-        c.execute("drop table if exists bulkinsert")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            c.execute("drop table if exists bulkinsert")
         c.execute(
 """CREATE TABLE bulkinsert
 (
@@ -308,6 +313,16 @@ values (0,
                            "values (%s,%s,%s,%s)", data)
         cursor.execute('commit')
         self._verify_records(data)
+
+    def test_warnings(self):
+        con = self.connections[0]
+        cur = con.cursor()
+        with warnings.catch_warnings(record=True) as ws:
+            warnings.simplefilter("always")
+            cur.execute("drop table if exists no_exists_table")
+        self.assertEqual(len(ws), 1)
+        self.assertEqual(ws[0].category, pymysql.Warning)
+        self.assertTrue(u"no_exists_table" in str(ws[0].message))
 
 
 if __name__ == "__main__":

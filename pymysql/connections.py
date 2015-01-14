@@ -11,7 +11,6 @@ from functools import partial
 import hashlib
 import io
 import os
-import re
 import socket
 import struct
 import sys
@@ -675,7 +674,7 @@ class Connection(object):
             raise OperationalError(2014, "Command Out of Sync")
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
-        return True
+        return ok
 
     def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
@@ -697,6 +696,13 @@ class Connection(object):
         ''' Roll back the current transaction '''
         self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
+
+    def show_warnings(self):
+        """SHOW WARNINGS"""
+        self._execute_command(COMMAND.COM_QUERY, "SHOW WARNINGS")
+        result = MySQLResult(self)
+        result.read()
+        return result.rows
 
     def select_db(self, db):
         '''Set current db'''
@@ -1069,8 +1075,6 @@ class Connection(object):
     NotSupportedError = NotSupportedError
 
 
-# TODO: move OK and EOF packet parsing/logic into a proper subclass
-#       of MysqlPacket like has been done with FieldDescriptorPacket.
 class MySQLResult(object):
 
     def __init__(self, connection):
@@ -1085,7 +1089,6 @@ class MySQLResult(object):
         self.rows = None
         self.has_next = None
         self.unbuffered_active = False
-        self.filename = None
 
     def __del__(self):
         if self.unbuffered_active:
@@ -1095,7 +1098,6 @@ class MySQLResult(object):
         try:
             first_packet = self.connection._read_packet()
 
-            # TODO: use classes for different packet types?
             if first_packet.is_ok_packet():
                 self._read_ok_packet(first_packet)
             elif first_packet.is_load_local_packet():
@@ -1133,18 +1135,13 @@ class MySQLResult(object):
 
     def _read_load_local_packet(self, first_packet):
         load_packet = LoadLocalPacketWrapper(first_packet)
-        local_packet = LoadLocalFile(load_packet.filename, self.connection)
-        self.filename = load_packet.filename
-        local_packet.send_data()
+        sender = LoadLocalFile(load_packet.filename, self.connection)
+        sender.send_data()
 
         ok_packet = self.connection._read_packet()
         if not ok_packet.is_ok_packet():
             raise OperationalError(2014, "Commands Out of Sync")
         self._read_ok_packet(ok_packet)
-
-        if self.warning_count > 0:
-            self._print_warnings()
-        self.filename = None
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
@@ -1153,16 +1150,6 @@ class MySQLResult(object):
             self.has_next = eof_packet.has_next
             return True
         return False
-
-    def _print_warnings(self):
-        from warnings import warn
-        self.connection._execute_command(COMMAND.COM_QUERY, 'SHOW WARNINGS')
-        self.read()
-        if self.rows:
-            message = "\n"
-            for db_warning in self.rows:
-                message += "{0} in file '{1}'\n".format(db_warning[2], self.filename.decode('utf-8'))
-            warn(message, Warning, 3)
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()

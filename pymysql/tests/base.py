@@ -16,7 +16,7 @@ class PyMySQLTestCase(unittest.TestCase):
     else:
         databases = [
             {"host":"localhost","user":"root",
-             "passwd":"","db":"test_pymysql", "use_unicode": True},
+             "passwd":"","db":"test_pymysql", "use_unicode": True, 'local_infile': True},
             {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
 
     def setUp(self):
