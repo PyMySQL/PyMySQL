@@ -1,4 +1,5 @@
 [
     {"host": "localhost", "user": "root", "passwd": "", "db": "test_pymysql",  "use_unicode": true},
-    {"host": "localhost", "user": "root", "passwd": "", "db": "test_pymysql2" }
+    {"host": "localhost", "user": "root", "passwd": "", "db": "test_pymysql2" },
+    {"host": "localhost", "user": "root", "passwd": "", "db": "test_pymysql",  "local_infile": true}
 ]
