@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
 import re
+import warnings
 
 from ._compat import range_type, text_type, PY2
 
-from .err import (
-    Warning, Error, InterfaceError, DataError,
-    DatabaseError, OperationalError, IntegrityError, InternalError,
-    NotSupportedError, ProgrammingError)
+from . import err
 
 
 #: Regular expression for :meth:`Cursor.executemany`.
@@ -63,12 +61,12 @@ class Cursor(object):
 
     def _get_db(self):
         if not self.connection:
-            raise ProgrammingError("Cursor closed")
+            raise err.ProgrammingError("Cursor closed")
         return self.connection
 
     def _check_executed(self):
         if not self._executed:
-            raise ProgrammingError("execute() first")
+            raise err.ProgrammingError("execute() first")
 
     def _conv_row(self, row):
         return row
@@ -262,7 +260,7 @@ class Cursor(object):
         elif mode == 'absolute':
             r = value
         else:
-            raise ProgrammingError("unknown scroll mode %s" % mode)
+            raise err.ProgrammingError("unknown scroll mode %s" % mode)
 
         if not (0 <= r < len(self._rows)):
             raise IndexError("out of range")
@@ -286,19 +284,27 @@ class Cursor(object):
         self.lastrowid = result.insert_id
         self._rows = result.rows
 
+        if result.warning_count > 0:
+            self._show_warnings(conn)
+
+    def _show_warnings(self, conn):
+        ws = conn.show_warnings()
+        for w in ws:
+            warnings.warn(w[-1], err.Warning, 4)
+
     def __iter__(self):
         return iter(self.fetchone, None)
 
-    Warning = Warning
-    Error = Error
-    InterfaceError = InterfaceError
-    DatabaseError = DatabaseError
-    DataError = DataError
-    OperationalError = OperationalError
-    IntegrityError = IntegrityError
-    InternalError = InternalError
-    ProgrammingError = ProgrammingError
-    NotSupportedError = NotSupportedError
+    Warning = err.Warning
+    Error = err.Error
+    InterfaceError = err.InterfaceError
+    DatabaseError = err.DatabaseError
+    DataError = err.DataError
+    OperationalError = err.OperationalError
+    IntegrityError = err.IntegrityError
+    InternalError = err.InternalError
+    ProgrammingError = err.ProgrammingError
+    NotSupportedError = err.NotSupportedError
 
 
 class DictCursorMixin(object):
@@ -426,7 +432,7 @@ class SSCursor(Cursor):
 
         if mode == 'relative':
             if value < 0:
-                raise NotSupportedError(
+                raise err.NotSupportedError(
                         "Backwards scrolling not supported by this cursor")
 
             for _ in range_type(value):
@@ -434,7 +440,7 @@ class SSCursor(Cursor):
             self.rownumber += value
         elif mode == 'absolute':
             if value < self.rownumber:
-                raise NotSupportedError(
+                raise err.NotSupportedError(
                     "Backwards scrolling not supported by this cursor")
 
             end = value - self.rownumber
@@ -442,7 +448,7 @@ class SSCursor(Cursor):
                 self.read_next()
             self.rownumber = value
         else:
-            raise ProgrammingError("unknown scroll mode %s" % mode)
+            raise err.ProgrammingError("unknown scroll mode %s" % mode)
 
 
 class SSDictCursor(DictCursorMixin, SSCursor):
