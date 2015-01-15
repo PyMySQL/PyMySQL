@@ -136,10 +136,10 @@ class TestSSCursor(base.PyMySQLTestCase):
         conn = self.connections[0]
         yield self._prepare()
         cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
-        yield cursor.execute('SELECT * FROM tbl;')
+        yield cursor.execute('SELECT * FROM tz_data;')
         yield cursor.scroll(1)
         ret = yield cursor.fetchone()
-        self.assertEqual((2, 'b'), ret)
+        self.assertEqual(('America', '', 'America/Los_Angeles'), ret)
         yield self._cleanup()
 
     @gen_test
@@ -147,10 +147,10 @@ class TestSSCursor(base.PyMySQLTestCase):
         conn = self.connections[0]
         yield self._prepare()
         cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
-        yield cursor.execute('SELECT * FROM tbl;')
+        yield cursor.execute('SELECT * FROM tz_data;')
         yield cursor.scroll(2, mode='absolute')
         ret = yield cursor.fetchone()
-        self.assertEqual((3, 'c'), ret)
+        self.assertEqual(('America', '', 'America/Lima'), ret)
         yield self._cleanup()
 
     @gen_test
@@ -159,7 +159,7 @@ class TestSSCursor(base.PyMySQLTestCase):
         conn = self.connections[0]
         cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
 
-        yield cursor.execute('SELECT * FROM tbl;')
+        yield cursor.execute('SELECT * FROM tz_data;')
 
         with self.assertRaises(NotSupportedError):
             yield cursor.scroll(-2, mode='relative')
