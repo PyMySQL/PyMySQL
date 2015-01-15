@@ -63,7 +63,7 @@ class TestNextset(base.PyMySQLTestCase):
         self.assertTrue(res)
 
         self.assertEqual([(2,)], list(cur1))
-        res = yield cur.nextset()
+        res = yield cur1.nextset()
         self.assertIsNone(res)
 
     #TODO: How about SSCursor and nextset?

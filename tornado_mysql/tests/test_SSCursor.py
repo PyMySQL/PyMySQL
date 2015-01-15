@@ -1,94 +1,180 @@
-import sys
+from tornado_mysql import ProgrammingError
+from tornado import gen
+from tornado.testing import gen_test
+from tornado_mysql import NotSupportedError
 
-from tornado_mysql.tests import base
 import tornado_mysql.cursors
+from tornado_mysql.tests import base
 
 
 class TestSSCursor(base.PyMySQLTestCase):
+
+    data = [
+        ('America', '', 'America/Jamaica'),
+        ('America', '', 'America/Los_Angeles'),
+        ('America', '', 'America/Lima'),
+        ('America', '', 'America/New_York'),
+        ('America', '', 'America/Menominee'),
+        ('America', '', 'America/Havana'),
+        ('America', '', 'America/El_Salvador'),
+        ('America', '', 'America/Costa_Rica'),
+        ('America', '', 'America/Denver'),
+        ('America', '', 'America/Detroit'),]
+
+    @gen_test
     def test_SSCursor(self):
         affected_rows = 18446744073709551615
 
         conn = self.connections[0]
-        data = [
-            ('America', '', 'America/Jamaica'),
-            ('America', '', 'America/Los_Angeles'),
-            ('America', '', 'America/Lima'),
-            ('America', '', 'America/New_York'),
-            ('America', '', 'America/Menominee'),
-            ('America', '', 'America/Havana'),
-            ('America', '', 'America/El_Salvador'),
-            ('America', '', 'America/Costa_Rica'),
-            ('America', '', 'America/Denver'),
-            ('America', '', 'America/Detroit'),]
 
         try:
             cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
 
             # Create table
-            cursor.execute(('CREATE TABLE tz_data ('
-                'region VARCHAR(64),'
-                'zone VARCHAR(64),'
-                'name VARCHAR(64))'))
+            yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+            yield cursor.execute(('CREATE TABLE tz_data ('
+                                  'region VARCHAR(64),'
+                                  'zone VARCHAR(64),'
+                                  'name VARCHAR(64))'))
 
             # Test INSERT
-            for i in data:
-                cursor.execute('INSERT INTO tz_data VALUES (%s, %s, %s)', i)
+            for i in self.data:
+                yield cursor.execute('INSERT INTO tz_data VALUES (%s, %s, %s)', i)
                 self.assertEqual(conn.affected_rows(), 1, 'affected_rows does not match')
-            conn.commit()
-
+            yield conn.commit()
             # Test fetchone()
             iter = 0
-            cursor.execute('SELECT * FROM tz_data')
+            yield cursor.execute('SELECT * FROM tz_data;')
             while True:
-                row = cursor.fetchone()
+                row = yield cursor.fetchone()
+
                 if row is None:
                     break
                 iter += 1
 
                 # Test cursor.rowcount
                 self.assertEqual(cursor.rowcount, affected_rows,
-                    'cursor.rowcount != %s' % (str(affected_rows)))
+                                 'cursor.rowcount != %s' % (str(affected_rows)))
 
                 # Test cursor.rownumber
                 self.assertEqual(cursor.rownumber, iter,
-                    'cursor.rowcount != %s' % (str(iter)))
+                                 'cursor.rowcount != %s' % (str(iter)))
 
                 # Test row came out the same as it went in
-                self.assertEqual((row in data), True,
-                    'Row not found in source data')
+                self.assertEqual((row in self.data), True,
+                                 'Row not found in source self.data')
 
             # Test fetchall
-            cursor.execute('SELECT * FROM tz_data')
-            self.assertEqual(len(cursor.fetchall()), len(data),
-                'fetchall failed. Number of rows does not match')
+            yield cursor.execute('SELECT * FROM tz_data')
+            r = yield cursor.fetchall()
+            self.assertEqual(len(r), len(self.data),
+                             'fetchall failed. Number of rows does not match')
 
             # Test fetchmany
-            cursor.execute('SELECT * FROM tz_data')
-            self.assertEqual(len(cursor.fetchmany(2)), 2,
-                'fetchmany failed. Number of rows does not match')
+            yield cursor.execute('SELECT * FROM tz_data')
+            r = yield cursor.fetchmany(2)
+            self.assertEqual(len(r), 2,
+                             'fetchmany failed. Number of rows does not match')
 
             # So MySQLdb won't throw "Commands out of sync"
             while True:
-                res = cursor.fetchone()
+                res = yield cursor.fetchone()
                 if res is None:
                     break
 
             # Test update, affected_rows()
-            cursor.execute('UPDATE tz_data SET zone = %s', ['Foo'])
-            conn.commit()
-            self.assertEqual(cursor.rowcount, len(data),
-                'Update failed. affected_rows != %s' % (str(len(data))))
+            yield cursor.execute('UPDATE tz_data SET zone = %s', ['Foo'])
+            yield conn.commit()
+            self.assertEqual(cursor.rowcount, len(self.data),
+                             'Update failed. affected_rows != %s' % (str(len(self.data))))
 
             # Test executemany
-            cursor.executemany('INSERT INTO tz_data VALUES (%s, %s, %s)', data)
-            self.assertEqual(cursor.rowcount, len(data),
-                'executemany failed. cursor.rowcount != %s' % (str(len(data))))
+            yield cursor.executemany('INSERT INTO tz_data VALUES (%s, %s, %s)', self.data)
+            self.assertEqual(cursor.rowcount, len(self.data),
+                             'executemany failed. cursor.rowcount != %s' % (str(len(self.data))))
 
         finally:
-            cursor.execute('DROP TABLE tz_data')
-            cursor.close()
+            yield cursor.execute('DROP TABLE tz_data')
+            yield cursor.close()
+
+    @gen.coroutine
+    def _prepare(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+        yield cursor.execute('CREATE TABLE tz_data ('
+                             'region VARCHAR(64),'
+                             'zone VARCHAR(64),'
+                             'name VARCHAR(64))')
+
+        yield cursor.executemany(
+            'INSERT INTO tz_data VALUES (%s, %s, %s)', self.data)
+        yield conn.commit()
+        yield cursor.close()
+
+    @gen.coroutine
+    def _cleanup(self):
+        conn = self.connections[0]
+        cursor = conn.cursor()
+        yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+
+    @gen_test
+    def test_sscursor_executemany(self):
+        conn = self.connections[0]
+        yield self._prepare()
+        cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
+        # Test executemany
+        yield cursor.executemany(
+            'INSERT INTO tz_data VALUES (%s, %s, %s)', self.data)
+        msg = 'executemany failed. cursor.rowcount != %s'
+        self.assertEqual(cursor.rowcount, len(self.data),
+                         msg % (str(len(self.data))))
+        yield self._cleanup()
+
+    @gen_test
+    def test_sscursor_scroll_relative(self):
+        conn = self.connections[0]
+        yield self._prepare()
+        cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
+        yield cursor.execute('SELECT * FROM tbl;')
+        yield cursor.scroll(1)
+        ret = yield cursor.fetchone()
+        self.assertEqual((2, 'b'), ret)
+        yield self._cleanup()
+
+    @gen_test
+    def test_sscursor_scroll_absolute(self):
+        conn = self.connections[0]
+        yield self._prepare()
+        cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
+        yield cursor.execute('SELECT * FROM tbl;')
+        yield cursor.scroll(2, mode='absolute')
+        ret = yield cursor.fetchone()
+        self.assertEqual((3, 'c'), ret)
+        yield self._cleanup()
+
+    @gen_test
+    def test_sscursor_scroll_errors(self):
+        yield self._prepare()
+        conn = self.connections[0]
+        cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
+
+        yield cursor.execute('SELECT * FROM tbl;')
+
+        with self.assertRaises(NotSupportedError):
+            yield cursor.scroll(-2, mode='relative')
+
+        yield cursor.scroll(2, mode='absolute')
+
+        with self.assertRaises(NotSupportedError):
+            yield cursor.scroll(1, mode='absolute')
+        with self.assertRaises(ProgrammingError):
+            yield cursor.scroll(3, mode='not_valid_mode')
+        yield self._cleanup()
+
 
 __all__ = ["TestSSCursor"]
+
 
 if __name__ == "__main__":
     import unittest
