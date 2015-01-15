@@ -393,7 +393,7 @@ class SSCursor(Cursor):
         self._check_executed()
         row = yield self.read_next()
         if row is None:
-            raise gen.Return()
+            raise gen.Return(None)
         self.rownumber += 1
         raise gen.Return(row)
 
@@ -427,6 +427,7 @@ class SSCursor(Cursor):
             self.rownumber += 1
         raise gen.Return(rows)
 
+    @gen.coroutine
     def scroll(self, value, mode='relative'):
         self._check_executed()
 
@@ -436,7 +437,7 @@ class SSCursor(Cursor):
                         "Backwards scrolling not supported by this cursor")
 
             for _ in range_type(value):
-                self.read_next()
+                yield self.read_next()
             self.rownumber += value
         elif mode == 'absolute':
             if value < self.rownumber:
@@ -445,7 +446,7 @@ class SSCursor(Cursor):
 
             end = value - self.rownumber
             for _ in range_type(end):
-                self.read_next()
+                yield self.read_next()
             self.rownumber = value
         else:
             raise ProgrammingError("unknown scroll mode %s" % mode)
