@@ -18,6 +18,6 @@ print()
 for row in cur:
    print(row)
 
-cur.commit()
-conn.close()
+conn.commit()
+curr.close()
 conn.close()
