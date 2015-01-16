@@ -1022,7 +1022,7 @@ class MySQLResult(object):
             self.connection = None
         else:
             self.field_count = first_packet.read_length_encoded_integer()
-            self._get_descriptions()
+            yield self._get_descriptions()
 
             # Apparently, MySQLdb picks this number because it's the maximum
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
