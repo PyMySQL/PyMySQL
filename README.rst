@@ -11,14 +11,16 @@ This package contains a pure-Python MySQL client library. The goal of PyMySQL
 is to be a drop-in replacement for MySQLdb and work on CPython, PyPy,
 IronPython and Jython.
 
+
 Requirements
 -------------
 
 * Python -- one of the following:
 
   - CPython_ >= 2.6 or >= 3.3
-  - PyPy_ >= 2.0
+  - PyPy_ >= 2.3
   - IronPython_ 2.7
+
 * MySQL Server -- one of the following:
 
   - MySQL_ >= 4.1
