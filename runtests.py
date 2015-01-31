@@ -26,4 +26,4 @@ if not (PYPY or JYTHON or IRONPYTHON):
             print('---')
 
 import pymysql.tests
-unittest.main(pymysql.tests)
+unittest.main(pymysql.tests, verbosity=2)
