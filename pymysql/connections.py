@@ -44,6 +44,7 @@ from .err import (
     raise_mysql_exception, Warning, Error,
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
+from . import err
 
 _py_version = sys.version_info[:2]
 
@@ -832,15 +833,18 @@ class Connection(object):
 
             if self.autocommit_mode is not None:
                 self.autocommit(self.autocommit_mode)
-        except Exception as e:
+        except BaseException as e:
             self._rfile = None
             if sock is not None:
                 try:
                     sock.close()
                 except socket.error:
                     pass
+            if isinstance(e, err.MySQLError):
+                raise
             raise OperationalError(
-                2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
+                2003,
+                "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
