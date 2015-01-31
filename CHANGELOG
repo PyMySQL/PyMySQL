@@ -2,6 +2,8 @@ Changes
 --------
 
 0.6.4 -Support "LOAD LOCAL INFILE".  Thanks @wraziens
+      -Show MySQL warnings after execute query.
+      -Fix MySQLError may be wrapped with OperationalError while connectiong. (#274)
 
 0.6.3 -Fixed multiple result sets with SSCursor.
       -Fixed connection timeout.
