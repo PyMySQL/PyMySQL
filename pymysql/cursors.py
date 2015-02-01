@@ -40,12 +40,6 @@ class Cursor(object):
         self._result = None
         self._rows = None
 
-    def __del__(self):
-        '''
-        When this gets GC'd close it.
-        '''
-        self.close()
-
     def close(self):
         '''
         Closing a cursor just exhausts all remaining data.
