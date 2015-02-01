@@ -19,16 +19,13 @@ class TestConversion(base.PyMySQLTestCase):
         c.execute("create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)")
         try:
             # insert values
-            v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", "binary\x00data".encode(conn.charset), datetime.date(1988,2,2), datetime.datetime.now(), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
+
+            v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", "binary\x00data".encode(conn.charset), datetime.date(1988,2,2), datetime.datetime(2014, 5, 15, 7, 45, 57), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
             c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
             self.assertEqual(util.int2byte(1), r[0])
-            self.assertEqual(v[1:8], r[1:8])
-            # mysql throws away microseconds so we need to check datetimes
-            # specially. additionally times are turned into timedeltas.
-            self.assertEqual(datetime.datetime(*v[8].timetuple()[:6]), r[8])
-            self.assertEqual(v[9], r[9]) # just timedeltas
+            self.assertEqual(v[1:10], r[1:10])
             self.assertEqual(datetime.timedelta(0, 60 * (v[10].hour * 60 + v[10].minute)), r[10])
             self.assertEqual(datetime.datetime(*v[-1][:6]), r[-1])
 
@@ -123,23 +120,24 @@ class TestConversion(base.PyMySQLTestCase):
                           -datetime.timedelta(0, 1800)),
                          c.fetchone())
 
-    def test_datetime(self):
-        """ test datetime conversion """
+    def test_datetime_microseconds(self):
+        """ test datetime conversion w microseconds"""
+
         conn = self.connections[0]
+        if not self.mysql_server_is(conn, (5, 6, 4)):
+            raise SkipTest("target backend does not support microseconds")
         c = conn.cursor()
-        dt = datetime.datetime(2013,11,12,9,9,9,123450)
+        dt = datetime.datetime(2013, 11, 12, 9, 9, 9, 123450)
+        c.execute("create table test_datetime (id int, ts datetime(6))")
         try:
-            c.execute("create table test_datetime (id int, ts datetime(6))")
-            c.execute("insert into test_datetime values (1,'2013-11-12 09:09:09.12345')")
+            c.execute(
+                "insert into test_datetime values (%s, %s)",
+                (1, dt)
+            )
             c.execute("select ts from test_datetime")
-            self.assertEqual((dt,),c.fetchone())
-        except ProgrammingError:
-            # User is running a version of MySQL that doesn't support msecs within datetime
-            pass
+            self.assertEqual((dt,), c.fetchone())
         finally:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                c.execute("drop table if exists test_datetime")
+            c.execute("drop table test_datetime")
 
 
 class TestCursor(base.PyMySQLTestCase):
