@@ -235,7 +235,7 @@ class Cursor(object):
         ''' Fetch several rows '''
         self._check_executed()
         if self._rows is None:
-            return None
+            return ()
         end = self.rownumber + (size or self.arraysize)
         result = self._rows[self.rownumber:end]
         self.rownumber = min(end, len(self._rows))
@@ -245,7 +245,7 @@ class Cursor(object):
         ''' Fetch all the rows '''
         self._check_executed()
         if self._rows is None:
-            return None
+            return ()
         if self.rownumber:
             result = self._rows[self.rownumber:]
         else:
@@ -396,7 +396,6 @@ class SSCursor(Cursor):
         Fetch all, as per MySQLdb. Pretty useless for large queries, as
         it is buffered. See fetchall_unbuffered(), if you want an unbuffered
         generator version of this method.
-
         """
         return list(self.fetchall_unbuffered())
 
@@ -413,7 +412,6 @@ class SSCursor(Cursor):
 
     def fetchmany(self, size=None):
         """ Fetch many """
-
         self._check_executed()
         if size is None:
             size = self.arraysize
