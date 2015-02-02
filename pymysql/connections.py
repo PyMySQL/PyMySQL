@@ -103,10 +103,6 @@ UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
 UNSIGNED_INT24_COLUMN = 253
 UNSIGNED_INT64_COLUMN = 254
-UNSIGNED_CHAR_LENGTH = 1
-UNSIGNED_SHORT_LENGTH = 2
-UNSIGNED_INT24_LENGTH = 3
-UNSIGNED_INT64_LENGTH = 8
 
 DEFAULT_CHARSET = 'latin1'
 
@@ -217,18 +213,6 @@ def _hash_password_323(password):
 def pack_int24(n):
     return struct.pack('<I', n)[:3]
 
-def unpack_uint16(n):
-    return struct.unpack('<H', n[0:2])[0]
-
-def unpack_int24(n):
-    return struct.unpack('<I', n + b'\0')[0]
-
-def unpack_int32(n):
-    return struct.unpack('<I', n)[0]
-
-def unpack_int64(n):
-    return struct.unpack('<Q', n)[0]
-
 
 class MysqlPacket(object):
     """Representation of a MySQL response packet.
@@ -311,7 +295,7 @@ class MysqlPacket(object):
     def read_uint24(self):
         low, high = struct.unpack_from('<HB', self._data, self._position)
         self._position += 3
-        return low + high << 16
+        return low + (high << 16)
 
     def read_uint32(self):
         result = struct.unpack_from('<I', self._data, self._position)[0]
@@ -885,7 +869,7 @@ class Connection(object):
             packet_header = self._read_bytes(4)
             if DEBUG: dump_packet(packet_header)
             btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
-            bytes_to_read = btrl + btrh * 65536
+            bytes_to_read = btrl + (btrh << 16)
             #TODO: check sequence id
             recv_data = self._read_bytes(bytes_to_read)
             if DEBUG: dump_packet(recv_data)
@@ -1253,9 +1237,9 @@ class MySQLResult(object):
                 if field_type in TEXT_TYPES:
                     charset = charset_by_id(field.charsetnr)
                     if charset.is_binary:
+                        # TEXTs with charset=binary means BINARY types.
                         encoding = None
                     else:
-                        # TEXTs with charset=binary means BINARY types.
                         encoding = charset.encoding
                 else:
                     encoding = 'ascii'
