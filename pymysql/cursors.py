@@ -147,7 +147,7 @@ class Cursor(object):
         if m:
             q_prefix = m.group(1)
             q_values = m.group(2).rstrip()
-            q_postfix = m.group(3) or ''
+            q_postfix = bytearray(m.group(3) or '')
             assert q_values[0] == '(' and q_values[-1] == ')'
             return self._do_execute_many(q_prefix, q_values, q_postfix, args,
                                          self.max_stmt_length,
