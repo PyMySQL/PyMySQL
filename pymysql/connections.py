@@ -291,23 +291,54 @@ class MysqlPacket(object):
         """
         return self._data[position:(position+length)]
 
+    if PY2:
+        def read_uint8(self):
+            result = ord(self._data[self._position])
+            self._position += 1
+            return result
+    else:
+        def read_uint8(self):
+            result = self._data[self._position]
+            self._position += 1
+            return result
+
+    def read_uint16(self):
+        result = struct.unpack_from('<H', self._data, self._position)[0]
+        self._position += 2
+        return result
+
+    def read_uint24(self):
+        low, high = struct.unpack_from('<HB', self._data, self._position)
+        self._position += 3
+        return low + high << 16
+
+    def read_uint32(self):
+        result = struct.unpack_from('<I', self._data, self._position)[0]
+        self._position += 4
+        return result
+
+    def read_uint64(self):
+        result = struct.unpack_from('<Q', self._data, self._position)[0]
+        self._position += 8
+        return result
+
     def read_length_encoded_integer(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = ord(self.read(1))
+        c = self.read_uint8()
         if c == NULL_COLUMN:
             return None
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
-            return unpack_uint16(self.read(UNSIGNED_SHORT_LENGTH))
+            return self.read_uint16()
         elif c == UNSIGNED_INT24_COLUMN:
-            return unpack_int24(self.read(UNSIGNED_INT24_LENGTH))
+            return self.read_uint24()
         elif c == UNSIGNED_INT64_COLUMN:
-            return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
+            return self.read_uint64()
 
     def read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
@@ -344,7 +375,7 @@ class MysqlPacket(object):
         if self.is_error_packet():
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
-            errno = unpack_uint16(self.read(2))
+            errno = self.read_uint16()
             if DEBUG: print("errno =", errno)
             raise_mysql_exception(self._data)
 
@@ -375,11 +406,11 @@ class FieldDescriptorPacket(MysqlPacket):
         self.name = self.read_length_coded_string().decode(encoding)
         self.org_name = self.read_length_coded_string().decode(encoding)
         self.advance(1)  # non-null filler
-        self.charsetnr = struct.unpack('<H', self.read(2))[0]
-        self.length = struct.unpack('<I', self.read(4))[0]
-        self.type_code = byte2int(self.read(1))
-        self.flags = struct.unpack('<H', self.read(2))[0]
-        self.scale = byte2int(self.read(1))  # "decimals"
+        self.charsetnr = self.read_uint16()
+        self.length = self.read_uint32()
+        self.type_code = self.read_uint8()
+        self.flags = self.read_uint16()
+        self.scale = self.read_uint8()  # "decimals"
         self.advance(2)  # filler (always 0x00)
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
