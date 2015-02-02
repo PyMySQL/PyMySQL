@@ -254,13 +254,19 @@ def convert_mysql_timestamp(timestamp):
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(b):
-    #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
-    #return struct.unpack(">Q", b)[0]
-    #
-    # the snippet above is right, but MySQLdb doesn't process bits,
-    # so we shouldn't either
-    return b
+
+def through(x):
+    return x
+
+
+#def convert_bit(b):
+#    b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
+#    return struct.unpack(">Q", b)[0]
+#    
+#     the snippet above is right, but MySQLdb doesn't process bits,
+#     so we shouldn't either
+convert_bit = through
+
 
 def convert_characters(connection, field, data):
     field_charset = charset_by_id(field.charsetnr).name
@@ -296,10 +302,6 @@ encoders = {
     time.struct_time: escape_struct_time,
     Decimal: str,
 }
-
-
-def through(x):
-    return x
 
 if not PY2 or JYTHON or IRONPYTHON:
     encoders[bytes] = escape_bytes

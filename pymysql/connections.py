@@ -39,7 +39,8 @@ from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
 from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
 from .util import byte2int, int2byte
-from .converters import escape_item, encoders, decoders, escape_string
+from .converters import (
+    escape_item, encoders, decoders, escape_string, through)
 from .err import (
     raise_mysql_exception, Warning, Error,
     InterfaceError, DataError, DatabaseError, OperationalError,
@@ -1225,23 +1226,12 @@ class MySQLResult(object):
         self.rows = tuple(rows)
 
     def _read_row_from_packet(self, packet):
-        use_unicode = self.connection.use_unicode
         row = []
-        for field in self.fields:
+        for encoding, converter in self.converters:
             data = packet.read_length_coded_string()
             if data is not None:
-                field_type = field.type_code
-                if use_unicode:
-                    if field_type in TEXT_TYPES:
-                        charset = charset_by_id(field.charsetnr)
-                        if use_unicode and not charset.is_binary:
-                            # TEXTs with charset=binary means BINARY types.
-                            data = data.decode(charset.encoding)
-                    else:
-                        data = data.decode()
-
-                converter = self.connection.decoders.get(field_type)
-                if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+                if encoding is not None:
+                    data = data.decode(encoding)
                 if DEBUG: print("DEBUG: DATA = ", data)
                 if converter is not None:
                     data = converter(data)
@@ -1251,11 +1241,31 @@ class MySQLResult(object):
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         self.fields = []
+        self.converters = []
+        use_unicode = self.connection.use_unicode
         description = []
         for i in range_type(self.field_count):
             field = self.connection._read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())
+            field_type = field.type_code
+            if use_unicode:
+                if field_type in TEXT_TYPES:
+                    charset = charset_by_id(field.charsetnr)
+                    if charset.is_binary:
+                        encoding = None
+                    else:
+                        # TEXTs with charset=binary means BINARY types.
+                        encoding = charset.encoding
+                else:
+                    encoding = 'ascii'
+            else:
+                encoding = None
+            converter = self.connection.decoders.get(field_type)
+            if converter is through:
+                converter = None
+            if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+            self.converters.append((encoding, converter))
 
         eof_packet = self.connection._read_packet()
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
