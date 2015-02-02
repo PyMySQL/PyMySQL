@@ -352,6 +352,12 @@ class MysqlPacket(object):
             return None
         return self.read(length)
 
+    def read_struct(self, fmt):
+        s = struct.Struct(fmt)
+        result = s.unpack_from(self._data, self._position)
+        self._position += s.size
+        return result
+
     def is_ok_packet(self):
         return self._data[0:1] == b'\0'
 
@@ -405,13 +411,8 @@ class FieldDescriptorPacket(MysqlPacket):
         self.org_table = self.read_length_coded_string().decode(encoding)
         self.name = self.read_length_coded_string().decode(encoding)
         self.org_name = self.read_length_coded_string().decode(encoding)
-        self.advance(1)  # non-null filler
-        self.charsetnr = self.read_uint16()
-        self.length = self.read_uint32()
-        self.type_code = self.read_uint8()
-        self.flags = self.read_uint16()
-        self.scale = self.read_uint8()  # "decimals"
-        self.advance(2)  # filler (always 0x00)
+        self.charsetnr, self.length, self.type_code, self.flags, self.scale = (
+            self.read_struct('<xHIBHBxx'))
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
 
@@ -455,8 +456,7 @@ class OKPacketWrapper(object):
 
         self.affected_rows = self.packet.read_length_encoded_integer()
         self.insert_id = self.packet.read_length_encoded_integer()
-        self.server_status = struct.unpack('<H', self.packet.read(2))[0]
-        self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
+        self.server_status, self.warning_count = self.read_struct('<HH')
         self.message = self.packet.read_all()
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -478,9 +478,7 @@ class EOFPacketWrapper(object):
                     self.__class__))
 
         self.packet = from_packet
-        from_packet.advance(1)
-        self.warning_count = struct.unpack('<h', from_packet.read(2))[0]
-        self.server_status = struct.unpack('<h', self.packet.read(2))[0]
+        self.warning_count, self.server_status = self.packet.read_struct('<xhh')
         if DEBUG: print("server_status=", self.server_status)
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -666,7 +664,7 @@ class Connection(object):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
             raise Error("Already closed")
-        send_data = struct.pack('<i', 1) + int2byte(COMMAND.COM_QUIT)
+        send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
         try:
             self._write_bytes(send_data)
         except Exception:
@@ -885,14 +883,9 @@ class Connection(object):
         while True:
             packet_header = self._read_bytes(4)
             if DEBUG: dump_packet(packet_header)
-            packet_length_bin = packet_header[:3]
-
+            btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
+            bytes_to_read = btrl + btrh * 65536
             #TODO: check sequence id
-            #  packet_number
-            byte2int(packet_header[3])
-
-            bin_length = packet_length_bin + b'\0'  # pad little-endian number
-            bytes_to_read = struct.unpack('<I', bin_length)[0]
             recv_data = self._read_bytes(bytes_to_read)
             if DEBUG: dump_packet(recv_data)
             buff += recv_data
@@ -961,7 +954,7 @@ class Connection(object):
 
         chunk_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
 
-        prelude = struct.pack('<i', chunk_size) + int2byte(command)
+        prelude = struct.pack('<iB', chunk_size, command)
         self._write_bytes(prelude + sql[:chunk_size-1])
         if DEBUG: dump_packet(prelude + sql)
 
@@ -993,8 +986,7 @@ class Connection(object):
         if isinstance(self.user, text_type):
             self.user = self.user.encode(self.encoding)
 
-        data_init = (struct.pack('<i', self.client_flag) + struct.pack("<I", 1) +
-                     int2byte(charset_id) + int2byte(0)*23)
+        data_init = struct.pack('<iIB23s', self.client_flag, 1, charset_id, b'')
 
         next_packet = 1
 
