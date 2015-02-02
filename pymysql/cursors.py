@@ -11,7 +11,7 @@ from . import err
 #: Regular expression for :meth:`Cursor.executemany`.
 #: executemany only suports simple bulk insert.
 #: You can use it to load large dataset.
-RE_INSERT_VALUES = re.compile(r"""INSERT\s.+\sVALUES\s+(\(\s*%s\s*(,\s*%s\s*)*\))\s*\Z""",
+RE_INSERT_VALUES = re.compile(r"""(INSERT\s.+\sVALUES\s+)(\(\s*%s\s*(?:,\s*%s\s*)*\))(\s*(?:ON DUPLICATE.*)?)\Z""",
                               re.IGNORECASE | re.DOTALL)
 
 
@@ -145,21 +145,24 @@ class Cursor(object):
 
         m = RE_INSERT_VALUES.match(query)
         if m:
-            q_values = m.group(1).rstrip()
+            q_prefix = m.group(1)
+            q_values = m.group(2).rstrip()
+            q_postfix = m.group(3) or ''
             assert q_values[0] == '(' and q_values[-1] == ')'
-            q_prefix = query[:m.start(1)]
-            return self._do_execute_many(q_prefix, q_values, args,
+            return self._do_execute_many(q_prefix, q_values, q_postfix, args,
                                          self.max_stmt_length,
                                          self._get_db().encoding)
 
         self.rowcount = sum(self.execute(query, arg) for arg in args)
         return self.rowcount
 
-    def _do_execute_many(self, prefix, values, args, max_stmt_length, encoding):
+    def _do_execute_many(self, prefix, values, postfix, args, max_stmt_length, encoding):
         conn = self._get_db()
         escape = self._escape_args
         if isinstance(prefix, text_type):
             prefix = prefix.encode(encoding)
+        if isinstance(postfix, text_type):
+            postfix = postfix.encode(encoding)
         sql = bytearray(prefix)
         args = iter(args)
         v = values % escape(next(args), conn)
@@ -171,13 +174,13 @@ class Cursor(object):
             v = values % escape(arg, conn)
             if isinstance(v, text_type):
                 v = v.encode(encoding)
-            if len(sql) + len(v) + 1 > max_stmt_length:
-                rows += self.execute(sql)
+            if len(sql) + len(v) + len(postfix) + 1 > max_stmt_length:
+                rows += self.execute(sql + postfix)
                 sql = bytearray(prefix)
             else:
                 sql += b','
             sql += v
-        rows += self.execute(sql)
+        rows += self.execute(sql + postfix)
         self.rowcount = rows
         return rows
 
