@@ -23,7 +23,9 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ undefined methods datetime_or_None, date_or_None """
         conn = self.connections[0]
         c = conn.cursor()
-        yield c.execute("drop table if exists issue3")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists issue3")
         yield c.execute("create table issue3 (d date, t time, dt datetime, ts timestamp)")
         try:
             yield c.execute("insert into issue3 (d, t, dt, ts) values (%s,%s,%s,%s)", (None, None, None, None))
@@ -43,7 +45,9 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ can't retrieve TIMESTAMP fields """
         conn = self.connections[0]
         c = conn.cursor()
-        yield c.execute("drop table if exists issue4")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists issue4")
         yield c.execute("create table issue4 (ts timestamp)")
         try:
             yield c.execute("insert into issue4 (ts) values (now())")
@@ -75,7 +79,9 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ Primary Key and Index error when selecting data """
         conn = self.connections[0]
         c = conn.cursor()
-        yield c.execute("drop table if exists test")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists test")
         yield c.execute("""CREATE TABLE `test` (`station` int(10) NOT NULL DEFAULT '0', `dh`
 datetime NOT NULL DEFAULT '0000-00-00 00:00:00', `echeance` int(1) NOT NULL
 DEFAULT '0', `me` double DEFAULT NULL, `mo` double DEFAULT NULL, PRIMARY
@@ -102,9 +108,11 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         """ can't handle large result fields """
         conn = self.connections[0]
         cur = conn.cursor()
-        yield cur.execute("drop table if exists issue13")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield cur.execute("drop table if exists issue13")
+        yield cur.execute("create table issue13 (t text)")
         try:
-            yield cur.execute("create table issue13 (t text)")
             # ticket says 18k
             size = 18*1024
             yield cur.execute("insert into issue13 (t) values (%s)", ("x" * size,))
@@ -120,7 +128,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         """ query should be expanded before perform character encoding """
         conn = self.connections[0]
         c = conn.cursor()
-        yield c.execute("drop table if exists issue15")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists issue15")
         yield c.execute("create table issue15 (t varchar(32))")
         try:
             yield c.execute("insert into issue15 (t) values (%s)", (u'\xe4\xf6\xfc',))
@@ -134,7 +144,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         """ Patch for string and tuple escaping """
         conn = self.connections[0]
         c = conn.cursor()
-        yield c.execute("drop table if exists issue16")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists issue16")
         yield c.execute("create table issue16 (name varchar(32) primary key, email varchar(32))")
         try:
             yield c.execute("insert into issue16 (name, email) values ('pete', 'floydophone')")
@@ -151,9 +163,11 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         db = self.databases[0]["db"]
         c = conn.cursor()
         # grant access to a table to a user with a password
-        try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             yield c.execute("drop table if exists issue17")
-            yield c.execute("create table issue17 (x varchar(32) primary key)")
+        yield c.execute("create table issue17 (x varchar(32) primary key)")
+        try:
             yield c.execute("insert into issue17 (x) values ('hello, world!')")
             yield c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
             yield conn.commit()
@@ -180,8 +194,10 @@ class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_33(self):
         conn = yield tornado_mysql.connect(charset="utf8", **self.databases[0])
         c = conn.cursor()
-        try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             yield c.execute(b"drop table if exists hei\xc3\x9fe".decode("utf8"))
+        try:
             yield c.execute(b"create table hei\xc3\x9fe (name varchar(32))".decode("utf8"))
             yield c.execute(b"insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')".decode("utf8"))
             yield c.execute(b"select name from hei\xc3\x9fe".decode("utf8"))
@@ -246,8 +262,10 @@ class TestNewIssues(base.PyMySQLTestCase):
         c = conn.cursor()
         datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
 
-        try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             yield c.execute("drop table if exists issue38")
+        try:
             yield c.execute("create table issue38 (id integer, data mediumblob)")
             yield c.execute("insert into issue38 values (1, %s)", (datum,))
         finally:
@@ -257,7 +275,9 @@ class TestNewIssues(base.PyMySQLTestCase):
     def disabled_test_issue_54(self):
         conn = self.connections[0]
         c = conn.cursor()
-        yield c.execute("drop table if exists issue54")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists issue54")
         big_sql = "select * from issue54 where "
         big_sql += " and ".join("%d=%d" % (i,i) for i in range(0, 100000))
 
@@ -320,7 +340,9 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         """ Leftover trailing OK packet for "CALL my_sp" queries """
         conn = self.connections[0]
         cur = conn.cursor()
-        yield cur.execute("DROP PROCEDURE IF EXISTS `foo`")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield cur.execute("DROP PROCEDURE IF EXISTS `foo`")
         yield cur.execute("""CREATE PROCEDURE `foo` ()
         BEGIN
             SELECT 1;
@@ -371,7 +393,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                 yield cur.execute('select * from test_field_count')
                 assert len(cur.description) == length
             finally:
-                yield cur.execute('drop table if exists test_field_count')
+                yield cur.execute('drop table test_field_count')
 
 
 if __name__ == "__main__":

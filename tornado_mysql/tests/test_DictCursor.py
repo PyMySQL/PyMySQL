@@ -38,7 +38,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         @gen.coroutine
         def shutdown():
             c = self.conn.cursor()
-            c.execute("drop table dictcursor")
+            yield c.execute("drop table dictcursor")
         super(TestDictCursor, self).tearDown()
 
     @gen.coroutine

@@ -31,7 +31,9 @@ class TestSSCursor(base.PyMySQLTestCase):
             cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
 
             # Create table
-            yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
             yield cursor.execute(('CREATE TABLE tz_data ('
                                   'region VARCHAR(64),'
                                   'zone VARCHAR(64),'
@@ -112,7 +114,9 @@ class TestSSCursor(base.PyMySQLTestCase):
     def _prepare(self):
         conn = self.connections[0]
         cursor = conn.cursor()
-        yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
         yield cursor.execute('CREATE TABLE tz_data ('
                              'region VARCHAR(64),'
                              'zone VARCHAR(64),'
