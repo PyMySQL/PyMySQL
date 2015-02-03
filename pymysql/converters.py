@@ -87,9 +87,11 @@ def escape_time(obj):
     return escape_str(s)
 
 def escape_datetime(obj):
+    obj = obj.replace(tzinfo=None)
     return escape_str(obj.isoformat(' '))
 
 def escape_date(obj):
+    obj = obj.replace(tzinfo=None)
     return escape_str(obj.isoformat())
 
 def escape_struct_time(obj):
