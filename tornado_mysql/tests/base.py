@@ -52,8 +52,6 @@ class PyMySQLTestCase(AsyncTestCase):
         super(PyMySQLTestCase, self).setUp()
         self.connections = []
         self.io_loop.run_sync(self._connect_all)
-        for params in self.databases:
-            self.connections.append(pymysql.connect(**params))
         self.addCleanup(self._teardown_connections)
 
     def _teardown_connections(self):

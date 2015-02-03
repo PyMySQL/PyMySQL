@@ -81,13 +81,14 @@ class Cursor(object):
         if not current_result.has_next:
             raise gen.Return()
         yield conn.next_result(unbuffered=unbuffered)
-        self._do_get_result()
+        yield self._do_get_result()
         raise gen.Return(True)
 
     @gen.coroutine
     def nextset(self):
         """Get the next query set"""
-        raise gen.Return(yield self._nextset(False))
+        res = yield self._nextset(False)
+        raise gen.Return(res)
 
     def _escape_args(self, args, conn):
         if isinstance(args, (tuple, list)):
@@ -280,8 +281,9 @@ class Cursor(object):
         conn = self._get_db()
         self._last_executed = q
         yield conn.query(q)
-        self._do_get_result()
+        yield self._do_get_result()
 
+    @gen.coroutine
     def _do_get_result(self):
         conn = self._get_db()
 
@@ -294,10 +296,11 @@ class Cursor(object):
         self._rows = result.rows
 
         if result.warning_count > 0:
-            self._show_warnings(conn)
+            yield self._show_warnings(conn)
 
+    @gen.coroutine
     def _show_warnings(self, conn):
-        ws = conn.show_warnings()
+        ws = yield conn.show_warnings()
         for w in ws:
             warnings.warn(w[-1], err.Warning, 4)
 
@@ -320,8 +323,9 @@ class DictCursorMixin(object):
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
+    @gen.coroutine
     def _do_get_result(self):
-        super(DictCursorMixin, self)._do_get_result()
+        yield super(DictCursorMixin, self)._do_get_result()
         fields = []
         if self.description:
             for f in self._result.fields:
@@ -383,14 +387,15 @@ class SSCursor(Cursor):
         conn = self._get_db()
         self._last_executed = q
         yield conn.query(q, unbuffered=True)
-        self._do_get_result()
+        yield self._do_get_result()
         raise gen.Return(self.rowcount)
 
     @gen.coroutine
     def nextset(self):
-        raise gen.Return(yield self._nextset(True))
+        res = yield self._nextset(True)
+        raise gen.Return(res)
 
->>>>>>> pymysql/master:pymysql/cursors.py
+    @gen.coroutine
     def read_next(self):
         """ Read next row """
         row = yield self._result._read_rowdata_packet_unbuffered()
