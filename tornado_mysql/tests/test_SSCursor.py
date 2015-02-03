@@ -1,3 +1,4 @@
+import warnings
 from tornado_mysql import ProgrammingError
 from tornado import gen
 from tornado.testing import gen_test
@@ -26,19 +27,18 @@ class TestSSCursor(base.PyMySQLTestCase):
         affected_rows = 18446744073709551615
 
         conn = self.connections[0]
+        cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
+
+        # Create table
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+        yield cursor.execute('CREATE TABLE tz_data ('
+                             'region VARCHAR(64),'
+                             'zone VARCHAR(64),'
+                             'name VARCHAR(64))')
 
         try:
-            cursor = conn.cursor(tornado_mysql.cursors.SSCursor)
-
-            # Create table
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
-            yield cursor.execute(('CREATE TABLE tz_data ('
-                                  'region VARCHAR(64),'
-                                  'zone VARCHAR(64),'
-                                  'name VARCHAR(64))'))
-
             # Test INSERT
             for i in self.data:
                 yield cursor.execute('INSERT INTO tz_data VALUES (%s, %s, %s)', i)
@@ -97,13 +97,16 @@ class TestSSCursor(base.PyMySQLTestCase):
 
             # Test multiple datasets
             yield cursor.execute('SELECT 1; SELECT 2; SELECT 3')
-            self.assertListEqual(list(cursor), [(1, )])
+            res = yield cursor.fetchall()
+            self.assertListEqual(res, [(1, )])
             res = yield cursor.nextset()
             self.assertTrue(res)
-            self.assertListEqual(list(cursor), [(2, )])
+            res = yield cursor.fetchall()
+            self.assertListEqual(res, [(2, )])
             res = yield cursor.nextset()
             self.assertTrue(res)
-            self.assertListEqual(list(cursor), [(3, )])
+            res = yield cursor.fetchall()
+            self.assertListEqual(res, [(3, )])
             res = yield cursor.nextset()
             self.assertFalse(res)
         finally:
@@ -142,7 +145,7 @@ class TestSSCursor(base.PyMySQLTestCase):
         # Test executemany
         yield cursor.executemany(
             'INSERT INTO tz_data VALUES (%s, %s, %s)', self.data)
-        yield cursor._close()
+        yield cursor.close()
         msg = 'executemany failed. cursor.rowcount != %s'
         self.assertEqual(cursor.rowcount, len(self.data),
                          msg % (str(len(self.data))))
@@ -157,6 +160,7 @@ class TestSSCursor(base.PyMySQLTestCase):
         yield cursor.scroll(1)
         ret = yield cursor.fetchone()
         self.assertEqual(('America', '', 'America/Los_Angeles'), ret)
+        yield cursor.close()
         yield self._cleanup()
 
     @gen_test
@@ -168,6 +172,7 @@ class TestSSCursor(base.PyMySQLTestCase):
         yield cursor.scroll(2, mode='absolute')
         ret = yield cursor.fetchone()
         self.assertEqual(('America', '', 'America/Lima'), ret)
+        yield cursor.close()
         yield self._cleanup()
 
     @gen_test
@@ -187,6 +192,7 @@ class TestSSCursor(base.PyMySQLTestCase):
             yield cursor.scroll(1, mode='absolute')
         with self.assertRaises(ProgrammingError):
             yield cursor.scroll(3, mode='not_valid_mode')
+        yield cursor.close()
         yield self._cleanup()
 
 

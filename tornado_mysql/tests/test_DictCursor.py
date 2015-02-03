@@ -118,12 +118,12 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield self._ensure_cursor_expired(cur)
 
 
-class TestSSDictCursor(TestDictCursor):
-    cursor_type = tornado_mysql.cursors.SSDictCursor
-
-    @gen.coroutine
-    def _ensure_cursor_expired(self, cursor):
-        yield cursor.fetchall()
+#class TestSSDictCursor(TestDictCursor):
+#    cursor_type = tornado_mysql.cursors.SSDictCursor
+#
+#    @gen.coroutine
+#    def _ensure_cursor_expired(self, cursor):
+#        yield cursor.fetchall()
 
 if __name__ == "__main__":
     import unittest
