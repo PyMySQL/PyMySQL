@@ -2,6 +2,7 @@ import struct
 
 from .constants import ER
 
+
 class MySQLError(Exception):
     """Exception related to operation with MySQL."""
 
@@ -9,6 +10,7 @@ class MySQLError(Exception):
 class Warning(Warning, MySQLError):
     """Exception raised for important warnings like data truncations
     while inserting, etc."""
+
 
 class Error(MySQLError):
     """Exception that is the base class of all other error exceptions
@@ -102,14 +104,16 @@ def _get_error_info(data):
         # version 4.0
         return (errno, None, data[3:].decode("utf8", 'replace'))
 
+
 def _check_mysql_exception(errinfo):
     errno, sqlstate, errorvalue = errinfo
     errorclass = error_map.get(errno, None)
     if errorclass:
-        raise errorclass(errno,errorvalue)
+        raise errorclass(errno, errorvalue)
 
     # couldn't find the right error number
     raise InternalError(errno, errorvalue)
+
 
 def raise_mysql_exception(data):
     errinfo = _get_error_info(data)

@@ -23,4 +23,4 @@ if not (PYPY or JYTHON or IRONPYTHON):
                 print("referrer:", ref)
             print('---')
 
-unittest.main(tornado_mysql.tests)
+unittest.main(tornado_mysql.tests, verbosity=2)

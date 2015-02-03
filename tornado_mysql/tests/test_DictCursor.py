@@ -4,6 +4,7 @@ from tornado import gen
 
 from tornado_mysql.tests import base
 import tornado_mysql.cursors
+import warnings
 
 
 class TestDictCursor(base.PyMySQLTestCase):
@@ -23,7 +24,9 @@ class TestDictCursor(base.PyMySQLTestCase):
             c = conn.cursor(self.cursor_type)
 
             # create a table ane some data to query
-            yield c.execute("drop table if exists dictcursor")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                yield c.execute("drop table if exists dictcursor")
             yield c.execute("""CREATE TABLE dictcursor (name char(20), age int , DOB datetime)""")
             data = [("bob", 21, "1990-02-06 23:04:56"),
                     ("jim", 56, "1955-05-09 13:12:45"),
@@ -37,6 +40,9 @@ class TestDictCursor(base.PyMySQLTestCase):
             c = self.conn.cursor()
             c.execute("drop table dictcursor")
         super(TestDictCursor, self).tearDown()
+
+    def _ensure_cursor_expired(self, cursor):
+        pass
 
     @gen_test
     def test_DictCursor(self):
@@ -52,6 +58,8 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield c.execute("SELECT * from dictcursor where name='bob'")
         r = c.fetchone()
         self.assertEqual(bob, r, "fetchone via DictCursor failed")
+        self._ensure_cursor_expired(c)
+
         # same again, but via fetchall => tuple)
         yield c.execute("SELECT * from dictcursor where name='bob'")
         r = c.fetchall()
@@ -72,6 +80,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield c.execute("SELECT * from dictcursor")
         r = c.fetchmany(2)
         self.assertEqual([bob, jim], r, "fetchmany failed via DictCursor")
+        self._ensure_cursor_expired(c)
 
     @gen_test
     def test_custom_dict(self):
@@ -89,6 +98,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield cur.execute("SELECT * FROM dictcursor WHERE name='bob'")
         r = cur.fetchone()
         self.assertEqual(bob, r, "fetchone() returns MyDictCursor")
+        self._ensure_cursor_expired(cur)
 
         yield cur.execute("SELECT * FROM dictcursor")
         r = cur.fetchall()
@@ -104,11 +114,14 @@ class TestDictCursor(base.PyMySQLTestCase):
         r = cur.fetchmany(2)
         self.assertEqual([bob, jim], r,
                          "list failed via MyDictCursor")
+        self._ensure_cursor_expired(cur)
 
 
 #class TestSSDictCursor(TestDictCursor):
 #    cursor_type = tornado_mysql.cursors.SSDictCursor
 
+    def _ensure_cursor_expired(self, cursor):
+        list(cursor.fetchall_unbuffered())
 
 if __name__ == "__main__":
     import unittest

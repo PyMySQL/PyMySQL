@@ -1,33 +1,37 @@
 # Python implementation of the MySQL client-server protocol
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
-
+# Error codes:
+# http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
+DEBUG = False
 
 import errno
 from functools import partial
-import os
 import hashlib
+import io
+import os
 import socket
+import struct
+import sys
+import warnings
 
 try:
     import ssl
     SSL_ENABLED = True
 except ImportError:
+    ssl = None
     SSL_ENABLED = False
 
-import struct
-import sys
 if PY2:
     import ConfigParser as configparser
 else:
     import configparser
 
-import io
-
 try:
     import getpass
     DEFAULT_USER = getpass.getuser()
+    del getpass
 except ImportError:
     DEFAULT_USER = None
 
@@ -35,16 +39,15 @@ from tornado import gen, ioloop, iostream
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
-from .constants import FIELD_TYPE
-from .constants import SERVER_STATUS
-from .constants.CLIENT import *
-from .constants.COMMAND import *
+from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
 from .util import byte2int, int2byte
-from .converters import escape_item, encoders, decoders, escape_string
+from .converters import (
+    escape_item, encoders, decoders, escape_string, through)
 from .err import (
     raise_mysql_exception, Warning, Error,
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
+from . import err
 
 _py_version = sys.version_info[:2]
 
@@ -61,17 +64,11 @@ TEXT_TYPES = set([
 
 sha_new = partial(hashlib.new, 'sha1')
 
-DEBUG = False
-
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
 UNSIGNED_SHORT_COLUMN = 252
 UNSIGNED_INT24_COLUMN = 253
 UNSIGNED_INT64_COLUMN = 254
-UNSIGNED_CHAR_LENGTH = 1
-UNSIGNED_SHORT_LENGTH = 2
-UNSIGNED_INT24_LENGTH = 3
-UNSIGNED_INT64_LENGTH = 8
 
 DEFAULT_CHARSET = 'latin1'
 
@@ -79,11 +76,10 @@ MAX_PACKET_LEN = 2**24-1
 
 
 def dump_packet(data):
-
     def is_ascii(data):
-        if isinstance(data, int):
-            data = chr(data)
-        if 0x20 < ord(data) < 0xff:
+        if 65 <= byte2int(data) <= 122:
+            if isinstance(data, int):
+                return chr(data)
             return data
         return '.'
 
@@ -99,9 +95,9 @@ def dump_packet(data):
         pass
     dump_data = [data[i:i+16] for i in range_type(0, min(len(data), 256), 16)]
     for d in dump_data:
-        print(' '.join(map(lambda x:"{:02X}".format(byte2int(x)), d)) +
+        print(' '.join(map(lambda x: "{:02X}".format(byte2int(x)), d)) +
               '   ' * (16 - len(d)) + ' ' * 2 +
-              ' '.join(map(lambda x:"{}".format(is_ascii(x)), d)))
+              ' '.join(map(lambda x: "{}".format(is_ascii(x)), d)))
     print("-" * 88)
     print()
 
@@ -183,18 +179,6 @@ def _hash_password_323(password):
 def pack_int24(n):
     return struct.pack('<I', n)[:3]
 
-def unpack_uint16(n):
-    return struct.unpack('<H', n[0:2])[0]
-
-def unpack_int24(n):
-    return struct.unpack('<I', n + b'\0')[0]
-
-def unpack_int32(n):
-    return struct.unpack('<I', n)[0]
-
-def unpack_int64(n):
-    return struct.unpack('<Q', n)[0]
-
 
 class MysqlPacket(object):
     """Representation of a MySQL response packet.
@@ -258,23 +242,54 @@ class MysqlPacket(object):
         """
         return self._data[position:(position+length)]
 
+    if PY2:
+        def read_uint8(self):
+            result = ord(self._data[self._position])
+            self._position += 1
+            return result
+    else:
+        def read_uint8(self):
+            result = self._data[self._position]
+            self._position += 1
+            return result
+
+    def read_uint16(self):
+        result = struct.unpack_from('<H', self._data, self._position)[0]
+        self._position += 2
+        return result
+
+    def read_uint24(self):
+        low, high = struct.unpack_from('<HB', self._data, self._position)
+        self._position += 3
+        return low + (high << 16)
+
+    def read_uint32(self):
+        result = struct.unpack_from('<I', self._data, self._position)[0]
+        self._position += 4
+        return result
+
+    def read_uint64(self):
+        result = struct.unpack_from('<Q', self._data, self._position)[0]
+        self._position += 8
+        return result
+
     def read_length_encoded_integer(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = ord(self.read(1))
+        c = self.read_uint8()
         if c == NULL_COLUMN:
             return None
         if c < UNSIGNED_CHAR_COLUMN:
             return c
         elif c == UNSIGNED_SHORT_COLUMN:
-            return unpack_uint16(self.read(UNSIGNED_SHORT_LENGTH))
+            return self.read_uint16()
         elif c == UNSIGNED_INT24_COLUMN:
-            return unpack_int24(self.read(UNSIGNED_INT24_LENGTH))
+            return self.read_uint24()
         elif c == UNSIGNED_INT64_COLUMN:
-            return unpack_int64(self.read(UNSIGNED_INT64_LENGTH))
+            return self.read_uint64()
 
     def read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
@@ -287,6 +302,12 @@ class MysqlPacket(object):
         if length is None:
             return None
         return self.read(length)
+
+    def read_struct(self, fmt):
+        s = struct.Struct(fmt)
+        result = s.unpack_from(self._data, self._position)
+        self._position += s.size
+        return result
 
     def is_ok_packet(self):
         return self._data[0:1] == b'\0'
@@ -301,6 +322,9 @@ class MysqlPacket(object):
         field_count = ord(self._data[0:1])
         return 1 <= field_count <= 250
 
+    def is_load_local_packet(self):
+        return self._data[0:1] == b'\xfb'
+
     def is_error_packet(self):
         return self._data[0:1] == b'\xff'
 
@@ -308,7 +332,7 @@ class MysqlPacket(object):
         if self.is_error_packet():
             self.rewind()
             self.advance(1)  # field_count == error (we already know that)
-            errno = unpack_uint16(self.read(2))
+            errno = self.read_uint16()
             if DEBUG: print("errno =", errno)
             raise_mysql_exception(self._data)
 
@@ -338,13 +362,8 @@ class FieldDescriptorPacket(MysqlPacket):
         self.org_table = self.read_length_coded_string().decode(encoding)
         self.name = self.read_length_coded_string().decode(encoding)
         self.org_name = self.read_length_coded_string().decode(encoding)
-        self.advance(1)  # non-null filler
-        self.charsetnr = struct.unpack('<H', self.read(2))[0]
-        self.length = struct.unpack('<I', self.read(4))[0]
-        self.type_code = byte2int(self.read(1))
-        self.flags = struct.unpack('<H', self.read(2))[0]
-        self.scale = byte2int(self.read(1))  # "decimals"
-        self.advance(2)  # filler (always 0x00)
+        self.charsetnr, self.length, self.type_code, self.flags, self.scale = (
+            self.read_struct('<xHIBHBxx'))
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
 
@@ -388,8 +407,7 @@ class OKPacketWrapper(object):
 
         self.affected_rows = self.packet.read_length_encoded_integer()
         self.insert_id = self.packet.read_length_encoded_integer()
-        self.server_status = struct.unpack('<H', self.packet.read(2))[0]
-        self.warning_count = struct.unpack('<H', self.packet.read(2))[0]
+        self.server_status, self.warning_count = self.read_struct('<HH')
         self.message = self.packet.read_all()
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -411,11 +429,30 @@ class EOFPacketWrapper(object):
                     self.__class__))
 
         self.packet = from_packet
-        from_packet.advance(1)
-        self.warning_count = struct.unpack('<h', from_packet.read(2))[0]
-        self.server_status = struct.unpack('<h', self.packet.read(2))[0]
+        self.warning_count, self.server_status = self.packet.read_struct('<xhh')
         if DEBUG: print("server_status=", self.server_status)
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
+
+    def __getattr__(self, key):
+        return getattr(self.packet, key)
+
+
+class LoadLocalPacketWrapper(object):
+    """
+    Load Local Packet Wrapper. It uses an existing packet object, and wraps
+    around it, exposing useful variables while still providing access
+    to the original packet objects variables and methods.
+    """
+
+    def __init__(self, from_packet):
+        if not from_packet.is_load_local_packet():
+            raise ValueError(
+                "Cannot create '{0}' object from invalid packet type".format(
+                    self.__class__))
+
+        self.packet = from_packet
+        self.filename = self.packet.get_all_data()[1:]
+        if DEBUG: print("filename=", self.filename)
 
     def __getattr__(self, key):
         return getattr(self.packet, key)
@@ -439,7 +476,8 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False, db=None, passwd=None, io_loop=None):
+                 autocommit=False, db=None, passwd=None, local_infile=False,
+                 io_loop=None):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -452,20 +490,28 @@ class Connection(object):
         unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
         charset: Charset you want to use.
         sql_mode: Default SQL_MODE to use.
-        read_default_file: Specifies  my.cnf file to read these parameters from under the [client] section.
-        conv: Decoders dictionary to use instead of the default one. This is used to provide custom marshalling of types. See converters.
-        use_unicode: Whether or not to default to unicode strings. This option defaults to true for Py3k.
+        read_default_file:
+            Specifies  my.cnf file to read these parameters from under the [client] section.
+        conv:
+            Decoders dictionary to use instead of the default one.
+            This is used to provide custom marshalling of types. See converters.
+        use_unicode:
+            Whether or not to default to unicode strings.
+            This option defaults to true for Py3k.
         client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
         cursorclass: Custom cursor class to use.
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.
-        ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
+        ssl:
+            A dict of arguments similar to mysql_ssl_set()'s parameters.
+            For now the capath and cipher arguments are not supported.
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
         no_delay: Disable Nagle's algorithm on the socket
         autocommit: Autocommit mode. None means use server default. (default: False)
         io_loop: Tornado IOLoop
+        local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
 
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
@@ -483,6 +529,9 @@ class Connection(object):
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
+        if local_infile:
+            client_flag |= CLIENT.LOCAL_FILES
+
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
@@ -491,7 +540,7 @@ class Connection(object):
             if not SSL_ENABLED:
                 raise NotImplementedError("ssl module not found")
             self.ssl = True
-            client_flag |= SSL
+            client_flag |= CLIENT.SSL
             for k in ('key', 'cert', 'ca'):
                 v = None
                 if k in ssl:
@@ -544,10 +593,9 @@ class Connection(object):
 
         self.encoding = charset_by_name(self.charset).encoding
 
-        client_flag |= CAPABILITIES
-        client_flag |= MULTI_STATEMENTS
+        client_flag |= CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
         if self.db:
-            client_flag |= CONNECT_WITH_DB
+            client_flag |= CLIENT.CONNECT_WITH_DB
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -566,7 +614,7 @@ class Connection(object):
         self.init_command = init_command
 
     def close(self):
-        """Send the quit message and close the socket"""
+        """Close the socket without sending quit message."""
         stream = self._stream
         if stream is None:
             return
@@ -575,6 +623,7 @@ class Connection(object):
 
     @gen.coroutine
     def close_async(self):
+        """Send the quit message and close the socket"""
         send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
         yield self._stream.write(send_data)
         self.close()
@@ -604,38 +653,46 @@ class Connection(object):
             raise OperationalError(2014, "Command Out of Sync")
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
-        raise gen.Return(True)
+        raise gen.Return(ok)
 
     @gen.coroutine
     def _send_autocommit_mode(self):
         ''' Set whether or not to commit after every execute() '''
         yield self._execute_command(
-            COM_QUERY,
+            COMMAND.COM_QUERY,
             "SET AUTOCOMMIT = %s" % self.escape(self.autocommit_mode))
         yield self._read_ok_packet()
 
     @gen.coroutine
     def begin(self):
         """Begin transaction."""
-        yield self._execute_command(COM_QUERY, "BEGIN")
+        yield self._execute_command(COMMAND.COM_QUERY, "BEGIN")
         yield self._read_ok_packet()
 
     @gen.coroutine
     def commit(self):
         ''' Commit changes to stable storage '''
-        yield self._execute_command(COM_QUERY, "COMMIT")
+        yield self._execute_command(COMMAND.COM_QUERY, "COMMIT")
         yield self._read_ok_packet()
 
     @gen.coroutine
     def rollback(self):
         ''' Roll back the current transaction '''
-        yield self._execute_command(COM_QUERY, "ROLLBACK")
+        yield self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         yield self._read_ok_packet()
+
+    @gen.coroutine
+    def show_warnings(self):
+        """SHOW WARNINGS"""
+        yield self._execute_command(COMMAND.COM_QUERY, "SHOW WARNINGS")
+        result = MySQLResult(self)
+        yield result.read()
+        raise gen.Return(result.rows)
 
     @gen.coroutine
     def select_db(self, db):
         '''Set current db'''
-        yield self._execute_command(COM_INIT_DB, db)
+        yield self._execute_command(COMMAND.COM_INIT_DB, db)
         yield self._read_ok_packet()
 
     def escape(self, obj):
@@ -667,13 +724,13 @@ class Connection(object):
             print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
             sql = sql.encode(self.encoding)
-        yield self._execute_command(COM_QUERY, sql)
+        yield self._execute_command(COMMAND.COM_QUERY, sql)
         yield self._read_query_result(unbuffered=unbuffered)
         raise gen.Return(self._affected_rows)
 
     @gen.coroutine
-    def next_result(self):
-        yield self._read_query_result()
+    def next_result(self, unbuffered=False):
+        yield self._read_query_result(unbuffered=unbuffered)
         raise gen.Return(self._affected_rows)
 
     def affected_rows(self):
@@ -682,7 +739,7 @@ class Connection(object):
     @gen.coroutine
     def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
-        yield self._execute_command(COM_PROCESS_KILL, arg)
+        yield self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
         yield self._read_ok_packet()
 
     @gen.coroutine
@@ -695,7 +752,7 @@ class Connection(object):
             else:
                 raise Error("Already closed")
         try:
-            yield self._execute_command(COM_PING, "")
+            yield self._execute_command(COMMAND.COM_PING, "")
             yield self._read_ok_packet()
         except Exception:
             if reconnect:
@@ -708,7 +765,7 @@ class Connection(object):
     def set_charset(self, charset):
         # Make sure charset is supported.
         encoding = charset_by_name(charset).encoding
-        yield self._execute_command(COM_QUERY, "SET NAMES %s" % self.escape(charset))
+        yield self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" % self.escape(charset))
         yield self._read_packet()
         self.charset = charset
         self.encoding = encoding
@@ -729,6 +786,7 @@ class Connection(object):
                 addr = (self.host, self.port)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
             stream = iostream.IOStream(sock)
+            # TODO: handle connect_timeout
             yield stream.connect(addr)
             self._stream = stream
 
@@ -749,13 +807,15 @@ class Connection(object):
 
             if self.autocommit_mode is not None:
                 yield self.autocommit(self.autocommit_mode)
-        except Exception as e:
+        except BaseException as e:
             if sock is not None:
                 try:
                     sock.close()
                 except socket.error:
                     pass
             self._stream = None
+            if isinstance(e, err.MySQLError):
+                raise
             raise OperationalError(
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
@@ -769,14 +829,10 @@ class Connection(object):
             while True:
                 packet_header = yield self._stream.read_bytes(4)
                 if DEBUG: dump_packet(packet_header)
-                packet_length_bin = packet_header[:3]
 
+                btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
+                bytes_to_read = btrl + (btrh << 16)
                 #TODO: check sequence id
-                #  packet_number
-                byte2int(packet_header[3])
-
-                bin_length = packet_length_bin + b'\0'  # pad little-endian number
-                bytes_to_read = struct.unpack('<I', bin_length)[0]
                 recv_data = yield self._stream.read_bytes(bytes_to_read)
                 if DEBUG: dump_packet(recv_data)
                 buff += recv_data
@@ -823,6 +879,7 @@ class Connection(object):
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
         if self._result is not None and self._result.unbuffered_active:
+            warnings.warn("Previous unbuffered result was left incomplete")
             yield self._result._finish_unbuffered_query()
 
         if isinstance(sql, text_type):
@@ -830,7 +887,7 @@ class Connection(object):
 
         chunk_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
 
-        prelude = struct.pack('<i', chunk_size) + int2byte(command)
+        prelude = struct.pack('<iB', chunk_size, command)
         self._write_bytes(prelude + sql[:chunk_size-1])
         if DEBUG: dump_packet(prelude + sql)
 
@@ -852,9 +909,9 @@ class Connection(object):
 
     @gen.coroutine
     def _request_authentication(self):
-        self.client_flag |= CAPABILITIES
+        self.client_flag |= CLIENT.CAPABILITIES
         if self.server_version.startswith('5'):
-            self.client_flag |= MULTI_RESULTS
+            self.client_flag |= CLIENT.MULTI_RESULTS
 
         if self.user is None:
             raise ValueError("Did not specify a username")
@@ -863,8 +920,7 @@ class Connection(object):
         if isinstance(self.user, text_type):
             self.user = self.user.encode(self.encoding)
 
-        data_init = (struct.pack('<i', self.client_flag) + struct.pack("<I", 1) +
-                     int2byte(charset_id) + int2byte(0)*23)
+        data_init = struct.pack('<iIB23s', self.client_flag, 1, charset_id, b'')
 
         next_packet = 1
 
@@ -963,8 +1019,9 @@ class Connection(object):
         i += 10
 
         if len(data) >= i + salt_len:
-            self.salt += data[i:i+salt_len] # salt_len includes auth_plugin_data_part_1 and filler
-        #TODO: AUTH PLUGIN NAME may appeare here.
+            # salt_len includes auth_plugin_data_part_1 and filler
+            self.salt += data[i:i+salt_len]
+        # TODO: AUTH PLUGIN NAME may appeare here.
 
     def get_server_info(self):
         return self.server_version
@@ -981,8 +1038,6 @@ class Connection(object):
     NotSupportedError = NotSupportedError
 
 
-# TODO: move OK and EOF packet parsing/logic into a proper subclass
-#       of MysqlPacket like has been done with FieldDescriptorPacket.
 class MySQLResult(object):
 
     def __init__(self, connection):
@@ -1003,9 +1058,10 @@ class MySQLResult(object):
         try:
             first_packet = yield self.connection._read_packet()
 
-            # TODO: use classes for different packet types?
             if first_packet.is_ok_packet():
                 self._read_ok_packet(first_packet)
+            elif first_packet.is_load_local_packet():
+                self._read_load_local_packet(first_packet)
             else:
                 yield self._read_result_packet(first_packet)
         finally:
@@ -1037,6 +1093,16 @@ class MySQLResult(object):
         self.warning_count = ok_packet.warning_count
         self.message = ok_packet.message
         self.has_next = ok_packet.has_next
+
+    def _read_load_local_packet(self, first_packet):
+        load_packet = LoadLocalPacketWrapper(first_packet)
+        sender = LoadLocalFile(load_packet.filename, self.connection)
+        sender.send_data()
+
+        ok_packet = self.connection._read_packet()
+        if not ok_packet.is_ok_packet():
+            raise OperationalError(2014, "Commands Out of Sync")
+        self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
@@ -1096,23 +1162,12 @@ class MySQLResult(object):
         self.rows = tuple(rows)
 
     def _read_row_from_packet(self, packet):
-        use_unicode = self.connection.use_unicode
         row = []
-        for field in self.fields:
+        for encoding, converter in self.converters:
             data = packet.read_length_coded_string()
             if data is not None:
-                field_type = field.type_code
-                if use_unicode:
-                    if field_type in TEXT_TYPES:
-                        charset = charset_by_id(field.charsetnr)
-                        if use_unicode and not charset.is_binary:
-                            # TEXTs with charset=binary means BINARY types.
-                            data = data.decode(charset.encoding)
-                    else:
-                        data = data.decode()
-
-                converter = self.connection.decoders.get(field_type)
-                if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+                if encoding is not None:
+                    data = data.decode(encoding)
                 if DEBUG: print("DEBUG: DATA = ", data)
                 if converter is not None:
                     data = converter(data)
@@ -1123,12 +1178,70 @@ class MySQLResult(object):
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         self.fields = []
+        self.converters = []
+        use_unicode = self.connection.use_unicode
         description = []
         for i in range_type(self.field_count):
             field = yield self.connection._read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())
+            field_type = field.type_code
+            if use_unicode:
+                if field_type in TEXT_TYPES:
+                    charset = charset_by_id(field.charsetnr)
+                    if charset.is_binary:
+                        # TEXTs with charset=binary means BINARY types.
+                        encoding = None
+                    else:
+                        encoding = charset.encoding
+                else:
+                    encoding = 'ascii'
+            else:
+                encoding = None
+            converter = self.connection.decoders.get(field_type)
+            if converter is through:
+                converter = None
+            if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+            self.converters.append((encoding, converter))
 
         eof_packet = yield self.connection._read_packet()
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
+
+
+class LoadLocalFile(object):
+    def __init__(self, filename, connection):
+        self.filename = filename
+        self.connection = connection
+
+    def send_data(self):
+        """Send data packets from the local file to the server"""
+        if not self.connection.socket:
+            raise InterfaceError("(0, '')")
+
+        # sequence id is 2 as we already sent a query packet
+        seq_id = 2
+        try:
+            with open(self.filename, 'rb') as open_file:
+                chunk_size = MAX_PACKET_LEN
+                prelude = b""
+                packet = b""
+                packet_size = 0
+
+                while True:
+                    chunk = open_file.read(chunk_size)
+                    if not chunk:
+                        break
+                    packet = struct.pack('<i', len(chunk))[:3] + int2byte(seq_id)
+                    format_str = '!{0}s'.format(len(chunk))
+                    packet += struct.pack(format_str, chunk)
+                    self.connection._write_bytes(packet)
+                    seq_id += 1
+        except IOError:
+            raise OperationalError(1017, "Can't find file '{0}'".format(self.filename))
+        finally:
+            # send the empty packet to signify we are done sending data
+            packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
+            self.connection._write_bytes(packet)
+
+# g:khuno_ignore='E226,E301,E701'

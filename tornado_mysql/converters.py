@@ -254,13 +254,19 @@ def convert_mysql_timestamp(timestamp):
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(b):
-    #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
-    #return struct.unpack(">Q", b)[0]
-    #
-    # the snippet above is right, but MySQLdb doesn't process bits,
-    # so we shouldn't either
-    return b
+
+def through(x):
+    return x
+
+
+#def convert_bit(b):
+#    b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
+#    return struct.unpack(">Q", b)[0]
+#    
+#     the snippet above is right, but MySQLdb doesn't process bits,
+#     so we shouldn't either
+convert_bit = through
+
 
 def convert_characters(connection, field, data):
     field_charset = charset_by_id(field.charsetnr).name
@@ -278,59 +284,53 @@ def convert_characters(connection, field, data):
     return data
 
 encoders = {
-        bool: escape_bool,
-        int: escape_int,
-        long_type: escape_int,
-        float: escape_float,
-        str: escape_str,
-        text_type: escape_unicode,
-        tuple: escape_sequence,
-        list: escape_sequence,
-        set: escape_sequence,
-        dict: escape_dict,
-        type(None): escape_None,
-        datetime.date: escape_date,
-        datetime.datetime: escape_datetime,
-        datetime.timedelta: escape_timedelta,
-        datetime.time: escape_time,
-        time.struct_time: escape_struct_time,
-        Decimal: str,
-        }
-
-
-def through(x):
-    return x
+    bool: escape_bool,
+    int: escape_int,
+    long_type: escape_int,
+    float: escape_float,
+    str: escape_str,
+    text_type: escape_unicode,
+    tuple: escape_sequence,
+    list: escape_sequence,
+    set: escape_sequence,
+    dict: escape_dict,
+    type(None): escape_None,
+    datetime.date: escape_date,
+    datetime.datetime: escape_datetime,
+    datetime.timedelta: escape_timedelta,
+    datetime.time: escape_time,
+    time.struct_time: escape_struct_time,
+    Decimal: str,
+}
 
 if not PY2 or JYTHON or IRONPYTHON:
     encoders[bytes] = escape_bytes
 
 decoders = {
-        FIELD_TYPE.BIT: convert_bit,
-        FIELD_TYPE.TINY: int,
-        FIELD_TYPE.SHORT: int,
-        FIELD_TYPE.LONG: int,
-        FIELD_TYPE.FLOAT: float,
-        FIELD_TYPE.DOUBLE: float,
-        FIELD_TYPE.DECIMAL: float,
-        FIELD_TYPE.NEWDECIMAL: float,
-        FIELD_TYPE.LONGLONG: int,
-        FIELD_TYPE.INT24: int,
-        FIELD_TYPE.YEAR: int,
-        FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
-        FIELD_TYPE.DATETIME: convert_datetime,
-        FIELD_TYPE.TIME: convert_timedelta,
-        FIELD_TYPE.DATE: convert_date,
-        FIELD_TYPE.SET: convert_set,
-        FIELD_TYPE.BLOB: through,
-        FIELD_TYPE.TINY_BLOB: through,
-        FIELD_TYPE.MEDIUM_BLOB: through,
-        FIELD_TYPE.LONG_BLOB: through,
-        FIELD_TYPE.STRING: through,
-        FIELD_TYPE.VAR_STRING: through,
-        FIELD_TYPE.VARCHAR: through,
-        FIELD_TYPE.DECIMAL: Decimal,
-        FIELD_TYPE.NEWDECIMAL: Decimal,
-        }
+    FIELD_TYPE.BIT: convert_bit,
+    FIELD_TYPE.TINY: int,
+    FIELD_TYPE.SHORT: int,
+    FIELD_TYPE.LONG: int,
+    FIELD_TYPE.FLOAT: float,
+    FIELD_TYPE.DOUBLE: float,
+    FIELD_TYPE.LONGLONG: int,
+    FIELD_TYPE.INT24: int,
+    FIELD_TYPE.YEAR: int,
+    FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
+    FIELD_TYPE.DATETIME: convert_datetime,
+    FIELD_TYPE.TIME: convert_timedelta,
+    FIELD_TYPE.DATE: convert_date,
+    FIELD_TYPE.SET: convert_set,
+    FIELD_TYPE.BLOB: through,
+    FIELD_TYPE.TINY_BLOB: through,
+    FIELD_TYPE.MEDIUM_BLOB: through,
+    FIELD_TYPE.LONG_BLOB: through,
+    FIELD_TYPE.STRING: through,
+    FIELD_TYPE.VAR_STRING: through,
+    FIELD_TYPE.VARCHAR: through,
+    FIELD_TYPE.DECIMAL: Decimal,
+    FIELD_TYPE.NEWDECIMAL: Decimal,
+}
 
 
 # for MySQLdb compatibility

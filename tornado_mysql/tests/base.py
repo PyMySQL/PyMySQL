@@ -1,7 +1,12 @@
+import gc
 import os
 import json
 import tornado_mysql
 import unittest
+
+from .._compat import CPYTHON
+
+import warnings
 
 from tornado import gen
 from tornado.testing import AsyncTestCase, gen_test
@@ -17,7 +22,7 @@ class PyMySQLTestCase(AsyncTestCase):
     else:
         databases = [
             {"host":"localhost","user":"root",
-             "passwd":"","db":"test_pymysql", "use_unicode": True},
+             "passwd":"","db":"test_pymysql", "use_unicode": True, 'local_infile': True},
             {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
 
     @gen.coroutine
@@ -26,12 +31,75 @@ class PyMySQLTestCase(AsyncTestCase):
             conn = yield tornado_mysql.connect(io_loop=self.io_loop, **params)
             self.connections.append(conn)
 
+    def mysql_server_is(self, conn, version_tuple):
+        """Return True if the given connection is on the version given or
+        greater.
+
+        e.g.::
+
+            if self.mysql_server_is(conn, (5, 6, 4)):
+                # do something for MySQL 5.6.4 and above
+        """
+        server_version = conn.get_server_info()
+        server_version_tuple = tuple(
+            (int(dig) if dig is not None else 0)
+            for dig in
+            re.match(r'(\d+)\.(\d+)\.(\d+)', server_version).group(1, 2, 3)
+        )
+        return server_version_tuple >= version_tuple
+
     def setUp(self):
         super(PyMySQLTestCase, self).setUp()
         self.connections = []
         self.io_loop.run_sync(self._connect_all)
+        for params in self.databases:
+            self.connections.append(pymysql.connect(**params))
+        self.addCleanup(self._teardown_connections)
 
-    def tearDown(self):
-        for connection in self.connections:
-            connection.close()
-        super(PyMySQLTestCase, self).tearDown()
+    def _teardown_connections(self):
+        @self.io_loop.run_sync
+        @gen.coroutine
+        def inner():
+            for connection in self.connections:
+                yield connection.close()
+
+    def safe_create_table(self, connection, tablename, ddl, cleanup=False):
+        """create a table.
+
+        Ensures any existing version of that table
+        is first dropped.
+
+        Also adds a cleanup rule to drop the table after the test
+        completes.
+
+        """
+
+        cursor = connection.cursor()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield cursor.execute("drop table if exists test")
+        yield cursor.execute("create table test (data varchar(10))")
+        yield cursor.close()
+        if cleanup:
+            self.addCleanup(self.drop_table, connection, tablename)
+
+    def drop_table(self, connection, tablename):
+        @self.io_loop.run_sync
+        @gen.coroutine
+        def _drop_table_inner():
+            cursor = connection.cursor()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                yield cursor.execute("drop table if exists %s" % tablename)
+            yield cursor.close()
+
+    def safe_gc_collect(self):
+        """Ensure cycles are collected via gc.
+
+        Runs additional times on non-CPython platforms.
+
+        """
+        gc.collect()
+        if not CPYTHON:
+            gc.collect()

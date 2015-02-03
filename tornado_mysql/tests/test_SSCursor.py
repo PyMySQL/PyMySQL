@@ -84,6 +84,15 @@ class TestSSCursor(base.PyMySQLTestCase):
             self.assertEqual(cursor.rowcount, len(data),
                 'executemany failed. cursor.rowcount != %s' % (str(len(data))))
 
+            # Test multiple datasets
+            cursor.execute('SELECT 1; SELECT 2; SELECT 3')
+            self.assertListEqual(list(cursor), [(1, )])
+            self.assertTrue(cursor.nextset())
+            self.assertListEqual(list(cursor), [(2, )])
+            self.assertTrue(cursor.nextset())
+            self.assertListEqual(list(cursor), [(3, )])
+            self.assertFalse(cursor.nextset())
+
         finally:
             cursor.execute('DROP TABLE tz_data')
             cursor.close()
