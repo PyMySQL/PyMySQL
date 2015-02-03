@@ -6,6 +6,7 @@ from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 DEBUG = False
 
+from collections import deque
 import errno
 from functools import partial
 import hashlib
@@ -14,6 +15,7 @@ import os
 import socket
 import struct
 import sys
+import types
 
 try:
     import ssl
@@ -107,6 +109,36 @@ UNSIGNED_INT64_COLUMN = 254
 DEFAULT_CHARSET = 'latin1'
 
 MAX_PACKET_LEN = 2**24-1
+
+
+class _PollType(object):
+    __slots__ = ()
+
+POLL_OK = _PollType()
+POLL_READ = _PollType()
+POLL_WRITE = _PollType()
+
+
+# These errnos indicate that a non-blocking operation must be retried
+# at a later time.  On most platforms they're the same value, but on
+# some they differ.
+_ERRNO_WOULDBLOCK = (errno.EWOULDBLOCK, errno.EAGAIN, errno.EINPROGRESS)
+
+# More non-portable errnos:
+if hasattr(errno, "WSAEINPROGRESS"):
+    _ERRNO_WOULDBLOCK += (errno.WSAEINPROGRESS,)
+
+
+class Return(Exception):
+    """Special exception to "return" value from a generator.
+
+    Once we drop support for python < 3.3, we can just use
+    return instead
+    """
+
+    def __init__(self, value=None):
+        super(Return, self).__init__()
+        self.value = value
 
 
 def dump_packet(data):
@@ -222,8 +254,8 @@ class MysqlPacket(object):
     __slots__ = ('_position', '_data')
 
     def __init__(self, data, encoding):
-        self._position = 0
         self._data = data
+        self._position = 0
 
     def get_all_data(self):
         return self._data
@@ -382,7 +414,7 @@ class FieldDescriptorPacket(MysqlPacket):
     """
 
     def __init__(self, data, encoding):
-        MysqlPacket.__init__(self, data, encoding)
+        MysqlPacket.__init__(self, data)
         self.__parse_field_descriptor(encoding)
 
     def __parse_field_descriptor(self, encoding):
@@ -510,7 +542,8 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False, db=None, passwd=None, local_infile=False):
+                 autocommit=False, db=None, passwd=None, local_infile=False,
+                 async=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -541,9 +574,10 @@ class Connection(object):
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
-        no_delay: Disable Nagle's algorithm on the socket
+        no_delay: Disable Nagle's algorthm on the socket
         autocommit: Autocommit mode. None means use server default. (default: False)
         local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
+        async: Work in asynchronous mode
 
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
@@ -643,7 +677,13 @@ class Connection(object):
         self.decoders = conv
         self.sql_mode = sql_mode
         self.init_command = init_command
-        self._connect()
+
+        self.async = async
+        self.async_stack = []
+        if not async:
+            self._connect()
+        else:
+            self.async_stack.append(self._connect_async())
 
     def close(self):
         ''' Send the quit message and close the socket '''
@@ -806,6 +846,86 @@ class Connection(object):
         self.charset = charset
         self.encoding = encoding
 
+    def _connect_async(self):
+        sock = None
+        try:
+            if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.setblocking(False)
+                t = sock.gettimeout()
+                sock.settimeout(self.connect_timeout)
+                try:
+                    sock.connect(self.unix_socket)
+                except socket.error as err:
+                    if err.errno not in _ERRNO_WOULDBLOCK:
+                        raise
+
+                self.host_info = "Localhost via UNIX socket"
+                if DEBUG: print('connected using unix_socket')
+            else:
+                while True:
+                    try:
+                        for remote in socket.getaddrinfo(self.host, self.port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+                            af, socktype, proto, canonname, sa = remote
+                            sock = socket.socket(af, socktype, proto)
+                            sock.setblocking(False)
+                            t = sock.gettimeout()
+
+                            try:
+                                sock.connect(sa)
+                            except socket.error as err:
+                                if err.errno in _ERRNO_WOULDBLOCK:
+                                    break
+                        if sock is None:
+                            raise Exception("None of the resolved address endpoints are available")
+
+                        break
+                    except (OSError, IOError) as e:
+                        if e.errno == errno.EINTR:
+                            continue
+                        raise
+                self.host_info = "socket %s:%d" % (self.host, self.port)
+                if DEBUG: print('connected using socket')
+
+            self.socket = sock
+
+            yield POLL_WRITE
+            err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            if err:
+                raise Exception(os.strerr(err))
+            sock.settimeout(t)
+
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            if self.no_delay:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            yield self._get_server_information_async()
+            yield self._request_authentication_async()
+
+            # FIXME: Document that sql_mode is not supported in async
+            #if self.sql_mode is not None:
+            #    c = self.cursor()
+            #    c.execute("SET sql_mode=%s", (self.sql_mode,))
+            #
+
+            # FIXME: Document that init command is not supported in async mode
+            #if self.init_command is not None:
+            #    c = self.cursor()
+            #    c.execute(self.init_command)
+            #    self.commit()
+
+            # FIXME: Document that autocommit setting is not supported in async
+            #if self.autocommit_mode is not None:
+            #    self.autocommit(self.autocommit_mode)
+        except Exception as e:
+            self._rfile = None
+            if sock is not None:
+                try:
+                    sock.close()
+                except socket.error:
+                    pass
+            raise OperationalError(
+                2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e))
+        
     def _connect(self):
         sock = None
         try:
@@ -860,6 +980,36 @@ class Connection(object):
                 2003,
                 "Can't connect to MySQL server on %r (%s)" % (self.host, e))
 
+    def poll(self, value=None):
+        if not self.async_stack:
+            return POLL_OK  # All generators are done - opration finished
+
+        try:
+            if value is not None:
+                value = self.async_stack[-1].send(value)
+            else:
+                # Because we can't send non-None values to not started generators
+                value = next(self.async_stack[-1])
+        except (Return, StopIteration) as err:
+            value = getattr(err, "value", None)
+            self.async_stack.pop()
+
+        if not self.async_stack:
+            return POLL_OK  # All generators are done - opration finished
+
+        if value in (POLL_READ, POLL_WRITE):
+            return value  # Need to wait for socket
+
+        if isinstance(value, types.GeneratorType):
+            self.async_stack.append(value)
+            return self.poll()  # Continue "pulling" next generator
+
+        # Pass return value to previous (caller) generator
+        return self.poll(value)
+
+    def fileno(self):
+        return self.socket.fileno()
+
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results.
@@ -872,6 +1022,28 @@ class Connection(object):
             bytes_to_read = btrl + (btrh << 16)
             #TODO: check sequence id
             recv_data = self._read_bytes(bytes_to_read)
+            if DEBUG: dump_packet(recv_data)
+            buff += recv_data
+            if bytes_to_read < MAX_PACKET_LEN:
+                break
+        packet = packet_type(buff, self.encoding)
+        packet.check_error()
+        return packet
+
+    def _read_packet_async(self, packet_type=MysqlPacket):
+        """Parse the packet header and read entire packet payload into buffer."""
+        buff = b''
+        while True:
+            packet_header = yield self._read_bytes_async(4)
+            if DEBUG: dump_packet(packet_header)
+            packet_length_bin = packet_header[:3]
+
+            # TODO: check sequence id
+            # packet_number = byte2int(packet_header[3])
+
+            bin_length = packet_length_bin + b'\0'  # pad little-endian number
+            bytes_to_read = struct.unpack('<I', bin_length)[0]
+            recv_data = yield self._read_bytes_async(bytes_to_read)
             if DEBUG: dump_packet(recv_data)
             buff += recv_data
             if bytes_to_read < MAX_PACKET_LEN:
@@ -896,11 +1068,41 @@ class Connection(object):
                 2013, "Lost connection to MySQL server during query")
         return data
 
+    def _read_bytes_async(self, num_bytes):
+        buff = []
+        left = num_bytes
+        while left:
+            yield POLL_READ
+            while True:
+                try:
+                    data = self.socket.recv(left)
+                    break
+                except (IOError, OSError) as e:
+                    if e.errno == errno.EINTR:
+                        continue
+                    raise OperationalError(2013, "Lost connection to MySQL server during query (%r)" % (e,))
+            left -= len(data)
+            buff.append(data)
+        raise Return(b"".join(buff))
+
     def _write_bytes(self, data):
         try:
             self.socket.sendall(data)
         except IOError as e:
             raise OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
+
+    def _write_bytes_async(self, data):
+        left = len(data)
+        while left:
+            try:
+                left -= self.socket.send(data[-left:])
+            except (IOError, OSError) as e:
+                if e.errno == errno.EINTR:
+                    continue
+                if e.errno not in _ERRNO_WOULDBLOCK:
+                    raise OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
+            if left:
+                yield POLL_WRITE
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
@@ -958,6 +1160,69 @@ class Connection(object):
             if not sql and chunk_size < MAX_PACKET_LEN:
                 break
             seq_id += 1
+
+    def _request_authentication_async(self):
+        self.client_flag |= CAPABILITIES
+        if self.server_version.startswith('5'):
+            self.client_flag |= MULTI_RESULTS
+
+        if self.user is None:
+            raise ValueError("Did not specify a username")
+
+        charset_id = charset_by_name(self.charset).id
+        if isinstance(self.user, text_type):
+            self.user = self.user.encode(self.encoding)
+
+        data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
+                     int2byte(charset_id) + int2byte(0)*23
+
+        next_packet = 1
+
+        if self.ssl:
+            raise Exception("SSL is currently not supported in async")  # FIXME: support SSL
+            data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
+            next_packet += 1
+
+            if DEBUG: dump_packet(data)
+
+            self._write_bytes(data)
+            self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
+                                          certfile=self.cert,
+                                          ssl_version=ssl.PROTOCOL_TLSv1,
+                                          cert_reqs=ssl.CERT_REQUIRED,
+                                          ca_certs=self.ca)
+
+        data = data_init + self.user + b'\0' + \
+            _scramble(self.password.encode('latin1'), self.salt)
+
+        if self.db:
+            if isinstance(self.db, text_type):
+                self.db = self.db.encode(self.encoding)
+            data += self.db + int2byte(0)
+
+        data = pack_int24(len(data)) + int2byte(next_packet) + data
+        next_packet += 2
+
+        if DEBUG: dump_packet(data)
+
+        yield self._write_bytes(data)
+
+        auth_packet = yield self._recv_packet_async()
+        auth_packet.check_error()
+        if DEBUG: auth_packet.dump()
+
+        # if old_passwords is enabled the packet will be 1 byte long and
+        # have the octet 254
+
+        if auth_packet.is_eof_packet():
+            # send legacy handshake
+            data = _scramble_323(self.password.encode('latin1'), self.salt) + b'\0'
+            data = pack_int24(len(data)) + int2byte(next_packet) + data
+
+            yield self._write_bytes(data)
+            auth_packet = yield self._recv_packet_async()
+            auth_packet.check_error()
+            if DEBUG: auth_packet.dump()
 
     def _request_authentication(self):
         self.client_flag |= CLIENT.CAPABILITIES
@@ -1029,9 +1294,18 @@ class Connection(object):
     def get_proto_info(self):
         return self.protocol_version
 
+    def _get_server_information_async(self):
+        packet = yield self._read_packet_async()
+        self._parse_server_information(packet)
+
     def _get_server_information(self):
+        packet = MysqlPacket(self)
+        packet.check_error()
+        self._parse_server_information(packet)
+
+    def _parse_server_information(self, packet):
         i = 0
-        packet = self._read_packet()
+        packet.check_error()
         data = packet.get_all_data()
 
         if DEBUG: dump_packet(data)
