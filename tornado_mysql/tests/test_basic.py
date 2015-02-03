@@ -54,7 +54,7 @@ class TestConversion(base.PyMySQLTestCase):
             r = c.fetchall()
             self.assertEqual(((4,),(8,)), r)
         finally:
-            c.execute("drop table test_datatypes")
+            yield c.execute("drop table test_datatypes")
 
     @gen_test
     def test_dict(self):

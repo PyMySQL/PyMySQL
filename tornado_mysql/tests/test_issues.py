@@ -1,5 +1,6 @@
 import datetime
 import unittest
+import warnings
 
 try:
     import imp
@@ -271,13 +272,15 @@ class TestNewIssues(base.PyMySQLTestCase):
 class TestGitHubIssues(base.PyMySQLTestCase):
     @gen_test
     def test_issue_66(self):
-        """ 'Connection' object has no attribute 'insert_id' """
+        """'Connection' object has no attribute 'insert_id'"""
         conn = self.connections[0]
         c = conn.cursor()
         self.assertEqual(0, conn.insert_id())
-        try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             yield c.execute("drop table if exists issue66")
-            yield c.execute("create table issue66 (id integer primary key auto_increment, x integer)")
+        yield c.execute("create table issue66 (id integer primary key auto_increment, x integer)")
+        try:
             yield c.execute("insert into issue66 (x) values (1)")
             yield c.execute("insert into issue66 (x) values (1)")
             self.assertEqual(2, conn.insert_id())
@@ -290,8 +293,10 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor(tornado_mysql.cursors.DictCursor)
 
-        yield c.execute("drop table if exists a")
-        yield c.execute("drop table if exists b")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            yield c.execute("drop table if exists a")
+            yield c.execute("drop table if exists b")
         yield c.execute("""CREATE TABLE a (id int, value int)""")
         yield c.execute("""CREATE TABLE b (id int, value int)""")
 

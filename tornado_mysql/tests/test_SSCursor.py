@@ -94,14 +94,16 @@ class TestSSCursor(base.PyMySQLTestCase):
                              'executemany failed. cursor.rowcount != %s' % (str(len(self.data))))
 
             # Test multiple datasets
-            cursor.execute('SELECT 1; SELECT 2; SELECT 3')
+            yield cursor.execute('SELECT 1; SELECT 2; SELECT 3')
             self.assertListEqual(list(cursor), [(1, )])
-            self.assertTrue(cursor.nextset())
+            res = yield cursor.nextset()
+            self.assertTrue(res)
             self.assertListEqual(list(cursor), [(2, )])
-            self.assertTrue(cursor.nextset())
+            res = yield cursor.nextset()
+            self.assertTrue(res)
             self.assertListEqual(list(cursor), [(3, )])
-            self.assertFalse(cursor.nextset())
-
+            res = yield cursor.nextset()
+            self.assertFalse(res)
         finally:
             yield cursor.execute('DROP TABLE tz_data')
             yield cursor.close()
@@ -126,6 +128,7 @@ class TestSSCursor(base.PyMySQLTestCase):
         conn = self.connections[0]
         cursor = conn.cursor()
         yield cursor.execute('DROP TABLE IF EXISTS tz_data;')
+        yield cursor.close()
 
     @gen_test
     def test_sscursor_executemany(self):
@@ -135,6 +138,7 @@ class TestSSCursor(base.PyMySQLTestCase):
         # Test executemany
         yield cursor.executemany(
             'INSERT INTO tz_data VALUES (%s, %s, %s)', self.data)
+        yield cursor._close()
         msg = 'executemany failed. cursor.rowcount != %s'
         self.assertEqual(cursor.rowcount, len(self.data),
                          msg % (str(len(self.data))))
