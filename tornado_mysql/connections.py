@@ -624,7 +624,7 @@ class Connection(object):
     @gen.coroutine
     def close_async(self):
         """Send the quit message and close the socket"""
-        send_data = struct.pack('<i', 1) + int2byte(COM_QUIT)
+        send_data = struct.pack('<i', 1) + int2byte(COMMAND.COM_QUIT)
         yield self._stream.write(send_data)
         self.close()
 

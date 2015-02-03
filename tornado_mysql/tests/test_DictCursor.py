@@ -41,8 +41,9 @@ class TestDictCursor(base.PyMySQLTestCase):
             c.execute("drop table dictcursor")
         super(TestDictCursor, self).tearDown()
 
+    @gen.coroutine
     def _ensure_cursor_expired(self, cursor):
-        pass
+        raise gen.Return()
 
     @gen_test
     def test_DictCursor(self):
@@ -58,7 +59,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield c.execute("SELECT * from dictcursor where name='bob'")
         r = c.fetchone()
         self.assertEqual(bob, r, "fetchone via DictCursor failed")
-        self._ensure_cursor_expired(c)
+        yield self._ensure_cursor_expired(c)
 
         # same again, but via fetchall => tuple)
         yield c.execute("SELECT * from dictcursor where name='bob'")
@@ -80,7 +81,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield c.execute("SELECT * from dictcursor")
         r = c.fetchmany(2)
         self.assertEqual([bob, jim], r, "fetchmany failed via DictCursor")
-        self._ensure_cursor_expired(c)
+        yield self._ensure_cursor_expired(c)
 
     @gen_test
     def test_custom_dict(self):
@@ -98,7 +99,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         yield cur.execute("SELECT * FROM dictcursor WHERE name='bob'")
         r = cur.fetchone()
         self.assertEqual(bob, r, "fetchone() returns MyDictCursor")
-        self._ensure_cursor_expired(cur)
+        yield self._ensure_cursor_expired(cur)
 
         yield cur.execute("SELECT * FROM dictcursor")
         r = cur.fetchall()
@@ -114,14 +115,15 @@ class TestDictCursor(base.PyMySQLTestCase):
         r = cur.fetchmany(2)
         self.assertEqual([bob, jim], r,
                          "list failed via MyDictCursor")
-        self._ensure_cursor_expired(cur)
+        yield self._ensure_cursor_expired(cur)
 
 
-#class TestSSDictCursor(TestDictCursor):
-#    cursor_type = tornado_mysql.cursors.SSDictCursor
+class TestSSDictCursor(TestDictCursor):
+    cursor_type = tornado_mysql.cursors.SSDictCursor
 
+    @gen.coroutine
     def _ensure_cursor_expired(self, cursor):
-        list(cursor.fetchall_unbuffered())
+        yield cursor.fetchall()
 
 if __name__ == "__main__":
     import unittest
