@@ -1,13 +1,13 @@
 import gc
-import os
 import json
-import tornado_mysql
+import os
+import re
 import unittest
+import warnings
 
 from .._compat import CPYTHON
 
-import warnings
-
+import tornado_mysql
 from tornado import gen
 from tornado.testing import AsyncTestCase, gen_test
 
@@ -55,11 +55,12 @@ class PyMySQLTestCase(AsyncTestCase):
         self.addCleanup(self._teardown_connections)
 
     def _teardown_connections(self):
-        @self.io_loop.run_sync
-        @gen.coroutine
-        def inner():
-            for connection in self.connections:
-                yield connection.close()
+        for connection in self.connections:
+            try:
+                connection.close()
+            except:
+                # IOLoop closed already
+                pass
 
     def safe_create_table(self, connection, tablename, ddl, cleanup=False):
         """create a table.

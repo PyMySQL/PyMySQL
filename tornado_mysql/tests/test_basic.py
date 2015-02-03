@@ -30,8 +30,8 @@ class TestConversion(base.PyMySQLTestCase):
         try:
             # insert values
             v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", "binary\x00data".encode(conn.charset), datetime.date(1988,2,2), datetime.datetime(2014, 5, 15, 7, 45, 57), datetime.timedelta(5,6), datetime.time(16,32), time.localtime())
-            c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
-            c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
+            yield c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
+            yield c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
             self.assertEqual(util.int2byte(1), r[0])
             self.assertEqual(v[1:10], r[1:10])
@@ -337,12 +337,13 @@ values (0,
         yield cursor.execute('commit')
         yield self._verify_records(data)
 
+    @gen_test
     def test_issue_288(self):
         """executemany should work with "insert ... on update" """
         conn = self.connections[0]
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
-        cursor.executemany("""insert
+        yield cursor.executemany("""insert
 into bulkinsert (id, name,
 age, height)
 values (%s,
@@ -361,17 +362,20 @@ values (0,
 'fred' , 100,
 180 ) on duplicate key update
 age = values(age)"""))
-        cursor.execute('commit')
-        self._verify_records(data)
+        yield cursor.execute('commit')
+        yield self._verify_records(data)
 
+    @gen_test
     def test_warnings(self):
         con = self.connections[0]
         cur = con.cursor()
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter("always")
-            cur.execute("drop table if exists no_exists_table")
+            yield cur.execute("drop table if exists no_exists_table")
+        for w in ws:
+            print(w)
         self.assertEqual(len(ws), 1)
-        self.assertEqual(ws[0].category, pymysql.Warning)
+        self.assertEqual(ws[0].category, tornado_mysql.Warning)
         self.assertTrue(u"no_exists_table" in str(ws[0].message))
 
 
