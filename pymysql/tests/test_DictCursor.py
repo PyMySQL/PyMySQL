@@ -32,6 +32,9 @@ class TestDictCursor(base.PyMySQLTestCase):
         c.execute("drop table dictcursor")
         super(TestDictCursor, self).tearDown()
 
+    def _ensure_cursor_expired(self, cursor):
+        pass
+
     def test_DictCursor(self):
         bob, jim, fred = self.bob.copy(), self.jim.copy(), self.fred.copy()
         #all assert test compare to the structure as would come out from MySQLdb
@@ -45,6 +48,8 @@ class TestDictCursor(base.PyMySQLTestCase):
         c.execute("SELECT * from dictcursor where name='bob'")
         r = c.fetchone()
         self.assertEqual(bob, r, "fetchone via DictCursor failed")
+        self._ensure_cursor_expired(c)
+
         # same again, but via fetchall => tuple)
         c.execute("SELECT * from dictcursor where name='bob'")
         r = c.fetchall()
@@ -65,6 +70,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         c.execute("SELECT * from dictcursor")
         r = c.fetchmany(2)
         self.assertEqual([bob, jim], r, "fetchmany failed via DictCursor")
+        self._ensure_cursor_expired(c)
 
     def test_custom_dict(self):
         class MyDict(dict): pass
@@ -81,6 +87,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         cur.execute("SELECT * FROM dictcursor WHERE name='bob'")
         r = cur.fetchone()
         self.assertEqual(bob, r, "fetchone() returns MyDictCursor")
+        self._ensure_cursor_expired(cur)
 
         cur.execute("SELECT * FROM dictcursor")
         r = cur.fetchall()
@@ -96,11 +103,14 @@ class TestDictCursor(base.PyMySQLTestCase):
         r = cur.fetchmany(2)
         self.assertEqual([bob, jim], r,
                          "list failed via MyDictCursor")
+        self._ensure_cursor_expired(cur)
 
 
 class TestSSDictCursor(TestDictCursor):
     cursor_type = pymysql.cursors.SSDictCursor
 
+    def _ensure_cursor_expired(self, cursor):
+        list(cursor.fetchall_unbuffered())
 
 if __name__ == "__main__":
     import unittest

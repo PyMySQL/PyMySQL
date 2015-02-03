@@ -4,6 +4,10 @@ Changes
 0.6.4 -Support "LOAD LOCAL INFILE".  Thanks @wraziens
       -Show MySQL warnings after execute query.
       -Fix MySQLError may be wrapped with OperationalError while connectiong. (#274)
+      -SSCursor no longer attempts to expire un-collected rows within __del__,
+       delaying termination of an interrupted program; cleanup of uncollected
+       rows is left to the Connection on next execute, which emits a
+       warning at that time. (#287)
 
 0.6.3 -Fixed multiple result sets with SSCursor.
       -Fixed connection timeout.
@@ -47,7 +51,7 @@ Changes
       -Removed DeprecationWarnings
       -Ran against the MySQLdb unit tests to check for bugs
       -Added support for client_flag, charset, sql_mode, read_default_file,
-       use_unicode, cursorclass, init_command, and connect_timeout. 
+       use_unicode, cursorclass, init_command, and connect_timeout.
       -Refactoring for some more compatibility with MySQLdb including a fake
        pymysql.version_info attribute.
       -Now runs with no warnings with the -3 command-line switch

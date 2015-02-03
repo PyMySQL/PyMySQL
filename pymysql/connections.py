@@ -14,6 +14,7 @@ import os
 import socket
 import struct
 import sys
+import warnings
 
 try:
     import ssl
@@ -932,6 +933,7 @@ class Connection(object):
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
         if self._result is not None and self._result.unbuffered_active:
+            warnings.warn("Previous unbuffered result was left incomplete")
             self._result._finish_unbuffered_query()
 
         if isinstance(sql, text_type):
