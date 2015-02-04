@@ -50,23 +50,20 @@ class PyMySQLTestCase(unittest2.TestCase):
         for connection in self.connections:
             connection.close()
 
-    def safe_create_table(self, connection, tablename, ddl, cleanup=False):
+    def safe_create_table(self, connection, tablename, ddl, cleanup=True):
         """create a table.
 
-        Ensures any existing version of that table
-        is first dropped.
+        Ensures any existing version of that table is first dropped.
 
         Also adds a cleanup rule to drop the table after the test
         completes.
-
         """
-
         cursor = connection.cursor()
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists test")
-        cursor.execute("create table test (data varchar(10))")
+            cursor.execute("drop table if exists `%s`" % (tablename,))
+        cursor.execute(ddl)
         cursor.close()
         if cleanup:
             self.addCleanup(self.drop_table, connection, tablename)
@@ -75,7 +72,7 @@ class PyMySQLTestCase(unittest2.TestCase):
         cursor = connection.cursor()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists %s" % tablename)
+            cursor.execute("drop table if exists `%s`" % (tablename,))
         cursor.close()
 
     def safe_gc_collect(self):

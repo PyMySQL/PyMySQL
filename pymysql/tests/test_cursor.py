@@ -11,7 +11,7 @@ class CursorTest(base.PyMySQLTestCase):
         self.safe_create_table(
             conn,
             "test", "create table test (data varchar(10))",
-            cleanup=True)
+        )
         cursor = conn.cursor()
         cursor.execute(
             "insert into test (data) values "

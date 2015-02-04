@@ -227,14 +227,14 @@ class TestCursor(base.PyMySQLTestCase):
         """ test a single tuple """
         conn = self.connections[0]
         c = conn.cursor()
-        try:
-            c.execute("create table mystuff (id integer primary key)")
-            c.execute("insert into mystuff (id) values (1)")
-            c.execute("insert into mystuff (id) values (2)")
-            c.execute("select id from mystuff where id in %s", ((1,),))
-            self.assertEqual([(1,)], list(c.fetchall()))
-        finally:
-            c.execute("drop table mystuff")
+        self.safe_create_table(
+            conn, 'mystuff',
+            "create table mystuff (id integer primary key)")
+        c.execute("insert into mystuff (id) values (1)")
+        c.execute("insert into mystuff (id) values (2)")
+        c.execute("select id from mystuff where id in %s", ((1,),))
+        self.assertEqual([(1,)], list(c.fetchall()))
+        c.close()
 
 
 class TestBulkInserts(base.PyMySQLTestCase):
@@ -247,11 +247,8 @@ class TestBulkInserts(base.PyMySQLTestCase):
         c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            c.execute("drop table if exists bulkinsert")
-        c.execute(
-"""CREATE TABLE bulkinsert
+        self.safe_create_table(conn, 'bulkinsert', """\
+CREATE TABLE bulkinsert
 (
 id int(11),
 name char(20),
