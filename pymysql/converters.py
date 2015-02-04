@@ -76,21 +76,29 @@ def escape_timedelta(obj):
     seconds = int(obj.seconds) % 60
     minutes = int(obj.seconds // 60) % 60
     hours = int(obj.seconds // 3600) % 24 + int(obj.days) * 24
-    return escape_str('%02d:%02d:%02d' % (hours, minutes, seconds))
+    if obj.microseconds:
+        fmt = "'{0:02d}:{1:02d}:{2:02d}.{3:06d}'"
+    else:
+        fmt = "'{0:02d}:{1:02d}:{2:02d}'"
+    return fmt.format(hours, minutes, seconds, obj.microseconds)
 
 def escape_time(obj):
-    s = "%02d:%02d:%02d" % (int(obj.hour), int(obj.minute),
-                            int(obj.second))
     if obj.microsecond:
-        s += ".{0:06}".format(obj.microsecond)
-
-    return escape_str(s)
+        fmt = "'{0.hour:02}:{0.minute:02}:{0.second:02}.{0.microsecond:06}'"
+    else:
+        fmt = "'{0.hour:02}:{0.minute:02}:{0.second:02}'"
+    return fmt.format(obj)
 
 def escape_datetime(obj):
-    return escape_str(obj.isoformat(' '))
+    if obj.microsecond:
+        fmt = "'{0.year:04}-{0.month:02}-{0.day:02} {0.hour:02}:{0.minute:02}:{0.second:02}.{0.microsecond:06}'"
+    else:
+        fmt = "'{0.year:04}-{0.month:02}-{0.day:02} {0.hour:02}:{0.minute:02}:{0.second:02}'"
+    return fmt.format(obj)
 
 def escape_date(obj):
-    return escape_str(obj.isoformat())
+    fmt = "'{0.year:04}-{0.month:02}-{0.day:02}'"
+    return fmt.format(obj)
 
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
