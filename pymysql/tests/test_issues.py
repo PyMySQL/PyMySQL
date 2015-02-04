@@ -212,6 +212,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             if info == "show processlist":
                 kill_id = id
                 break
+        self.assertEqual(kill_id, conn.thread_id())
         # now nuke the connection
         self.connections[1].kill(kill_id)
         # make sure this connection has broken
@@ -220,6 +221,9 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
         except Exception:
             pass
+        c.close()
+        conn.close()
+
         # check the process list from the other connection
         try:
             c = self.connections[1].cursor()
