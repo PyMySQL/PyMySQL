@@ -1,4 +1,5 @@
 import datetime
+import time
 import warnings
 
 import pymysql
@@ -226,6 +227,9 @@ class TestNewIssues(base.PyMySQLTestCase):
 
         # check the process list from the other connection
         try:
+            # Wait since Travis-CI sometimes fail this test.
+            time.sleep(0.1)
+
             c = self.connections[1].cursor()
             c.execute("show processlist")
             ids = [row[0] for row in c.fetchall()]
