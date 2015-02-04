@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest2
 
 from pymysql._compat import PYPY, JYTHON, IRONPYTHON
 
@@ -26,4 +23,4 @@ if not (PYPY or JYTHON or IRONPYTHON):
             print('---')
 
 import pymysql.tests
-unittest.main(pymysql.tests, verbosity=2)
+unittest2.main(pymysql.tests, verbosity=2)

@@ -69,11 +69,3 @@ class TestConnection(base.PyMySQLTestCase):
         # error occures while reading, not writing because of socket buffer.
         #self.assertEquals(cm.exception.args[0], 2006)
         self.assertIn(cm.exception.args[0], (2006, 2013))
-
-
-if __name__ == "__main__":
-    try:
-        import unittest2 as unittest
-    except ImportError:
-        import unittest
-    unittest.main()

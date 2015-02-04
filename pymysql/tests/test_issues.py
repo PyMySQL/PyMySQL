@@ -1,9 +1,9 @@
+import datetime
+import warnings
+
 import pymysql
 from pymysql.tests import base
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest2
 
 try:
     import imp
@@ -11,9 +11,8 @@ try:
 except AttributeError:
     pass
 
-import datetime
-import warnings
 
+__all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
@@ -142,7 +141,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         finally:
             c.execute("drop table issue16")
 
-    @unittest.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
+    @unittest2.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
     def test_issue_17(self):
         """ could not connect mysql use passwod """
         conn = self.connections[0]
@@ -190,7 +189,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         finally:
             c.execute(b"drop table hei\xc3\x9fe".decode("utf8"))
 
-    @unittest.skip("This test requires manual intervention")
+    @unittest2.skip("This test requires manual intervention")
     def test_issue_35(self):
         conn = self.connections[0]
         c = conn.cursor()
@@ -213,6 +212,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             if info == "show processlist":
                 kill_id = id
                 break
+        self.assertEqual(kill_id, conn.thread_id())
         # now nuke the connection
         self.connections[1].kill(kill_id)
         # make sure this connection has broken
@@ -221,6 +221,9 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
         except Exception:
             pass
+        c.close()
+        conn.close()
+
         # check the process list from the other connection
         try:
             c = self.connections[1].cursor()
@@ -374,9 +377,3 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                     warnings.filterwarnings("ignore")
                     cur.execute('drop table if exists test_field_count')
 
-
-__all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
-
-if __name__ == "__main__":
-    import unittest
-    unittest.main()

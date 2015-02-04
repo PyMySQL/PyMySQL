@@ -1,10 +1,7 @@
+import unittest2
+
 from pymysql.tests import base
 from pymysql import util
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
 
 
 class TestNextset(base.PyMySQLTestCase):
@@ -41,7 +38,7 @@ class TestNextset(base.PyMySQLTestCase):
         self.assertEqual([(2,)], list(cur))
         self.assertFalse(bool(cur.nextset()))
 
-    @unittest.expectedFailure
+    @unittest2.expectedFailure
     def test_multi_cursor(self):
         cur1 = self.con.cursor()
         cur2 = self.con.cursor()

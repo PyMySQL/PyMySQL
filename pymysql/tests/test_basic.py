@@ -8,10 +8,7 @@ import time
 import datetime
 import warnings
 
-try:
-    from unittest2 import SkipTest
-except:
-    from unittest import SkipTest
+from unittest2 import SkipTest
 
 
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
@@ -230,14 +227,14 @@ class TestCursor(base.PyMySQLTestCase):
         """ test a single tuple """
         conn = self.connections[0]
         c = conn.cursor()
-        try:
-            c.execute("create table mystuff (id integer primary key)")
-            c.execute("insert into mystuff (id) values (1)")
-            c.execute("insert into mystuff (id) values (2)")
-            c.execute("select id from mystuff where id in %s", ((1,),))
-            self.assertEqual([(1,)], list(c.fetchall()))
-        finally:
-            c.execute("drop table mystuff")
+        self.safe_create_table(
+            conn, 'mystuff',
+            "create table mystuff (id integer primary key)")
+        c.execute("insert into mystuff (id) values (1)")
+        c.execute("insert into mystuff (id) values (2)")
+        c.execute("select id from mystuff where id in %s", ((1,),))
+        self.assertEqual([(1,)], list(c.fetchall()))
+        c.close()
 
 
 class TestBulkInserts(base.PyMySQLTestCase):
@@ -250,11 +247,8 @@ class TestBulkInserts(base.PyMySQLTestCase):
         c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            c.execute("drop table if exists bulkinsert")
-        c.execute(
-"""CREATE TABLE bulkinsert
+        self.safe_create_table(conn, 'bulkinsert', """\
+CREATE TABLE bulkinsert
 (
 id int(11),
 name char(20),
@@ -354,8 +348,3 @@ age = values(age)"""))
         self.assertEqual(len(ws), 1)
         self.assertEqual(ws[0].category, pymysql.Warning)
         self.assertTrue(u"no_exists_table" in str(ws[0].message))
-
-
-if __name__ == "__main__":
-    import unittest
-    unittest.main()

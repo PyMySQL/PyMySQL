@@ -1,18 +1,16 @@
 import gc
-import os
 import json
-import pymysql
+import os
 import re
-
-from .._compat import CPYTHON
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
 import warnings
 
-class PyMySQLTestCase(unittest.TestCase):
+import unittest2
+
+import pymysql
+from .._compat import CPYTHON
+
+
+class PyMySQLTestCase(unittest2.TestCase):
     # You can specify your test environment creating a file named
     #  "databases.json" or editing the `databases` variable below.
     fname = os.path.join(os.path.dirname(__file__), "databases.json")
@@ -52,23 +50,20 @@ class PyMySQLTestCase(unittest.TestCase):
         for connection in self.connections:
             connection.close()
 
-    def safe_create_table(self, connection, tablename, ddl, cleanup=False):
+    def safe_create_table(self, connection, tablename, ddl, cleanup=True):
         """create a table.
 
-        Ensures any existing version of that table
-        is first dropped.
+        Ensures any existing version of that table is first dropped.
 
         Also adds a cleanup rule to drop the table after the test
         completes.
-
         """
-
         cursor = connection.cursor()
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists test")
-        cursor.execute("create table test (data varchar(10))")
+            cursor.execute("drop table if exists `%s`" % (tablename,))
+        cursor.execute(ddl)
         cursor.close()
         if cleanup:
             self.addCleanup(self.drop_table, connection, tablename)
@@ -77,7 +72,7 @@ class PyMySQLTestCase(unittest.TestCase):
         cursor = connection.cursor()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists %s" % tablename)
+            cursor.execute("drop table if exists `%s`" % (tablename,))
         cursor.close()
 
     def safe_gc_collect(self):
