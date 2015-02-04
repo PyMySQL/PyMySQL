@@ -161,13 +161,19 @@ class Cursor(object):
         args = iter(args)
         v = values % escape(next(args), conn)
         if isinstance(v, text_type):
-            v = v.encode(encoding)
+            if PY2:
+                v = v.encode(encoding)
+            else:
+                v = v.encode(encoding, 'surrogateescape')
         sql += v
         rows = 0
         for arg in args:
             v = values % escape(arg, conn)
             if isinstance(v, text_type):
-                v = v.encode(encoding)
+                if PY2:
+                    v = v.encode(encoding)
+                else:
+                    v = v.encode(encoding, 'surrogateescape')
             if len(sql) + len(v) + len(postfix) + 1 > max_stmt_length:
                 rows += self.execute(sql + postfix)
                 sql = bytearray(prefix)

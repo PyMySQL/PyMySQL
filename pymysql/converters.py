@@ -67,7 +67,8 @@ def escape_unicode(value):
     return escape_str(value)
 
 def escape_bytes(value):
-    return "x'%s'" % binascii.hexlify(value).decode(sys.getdefaultencoding())
+    # escape_bytes is calld only on Python 3.
+    return escape_str(value.decode('ascii', 'surrogateescape'))
 
 def escape_None(value):
     return 'NULL'
