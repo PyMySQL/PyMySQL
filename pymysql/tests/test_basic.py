@@ -8,10 +8,7 @@ import time
 import datetime
 import warnings
 
-try:
-    from unittest2 import SkipTest
-except:
-    from unittest import SkipTest
+from unittest2 import SkipTest
 
 
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
@@ -354,8 +351,3 @@ age = values(age)"""))
         self.assertEqual(len(ws), 1)
         self.assertEqual(ws[0].category, pymysql.Warning)
         self.assertTrue(u"no_exists_table" in str(ws[0].message))
-
-
-if __name__ == "__main__":
-    import unittest
-    unittest.main()

@@ -1,18 +1,16 @@
 import gc
-import os
 import json
-import pymysql
+import os
 import re
-
-from .._compat import CPYTHON
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
 import warnings
 
-class PyMySQLTestCase(unittest.TestCase):
+import unittest2
+
+import pymysql
+from .._compat import CPYTHON
+
+
+class PyMySQLTestCase(unittest2.TestCase):
     # You can specify your test environment creating a file named
     #  "databases.json" or editing the `databases` variable below.
     fname = os.path.join(os.path.dirname(__file__), "databases.json")
