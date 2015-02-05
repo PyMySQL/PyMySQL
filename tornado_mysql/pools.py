@@ -112,7 +112,7 @@ class Pool(object):
         """
         conn = yield self._get_conn()
         trx = Transaction(self, conn)
-        raise gen.Return(trx)
+        raise Return(trx)
 
 
 class Transaction(object):
