@@ -14,6 +14,7 @@ import os
 import socket
 import struct
 import sys
+import traceback
 import warnings
 
 try:
@@ -853,13 +854,24 @@ class Connection(object):
             if sock is not None:
                 try:
                     sock.close()
-                except socket.error:
+                except:
                     pass
-            if isinstance(e, err.MySQLError):
-                raise
-            raise OperationalError(
-                2003,
-                "Can't connect to MySQL server on %r (%s)" % (self.host, e))
+
+            if isinstance(e, (OSError, IOError, socket.error)):
+                err = OperationalError(
+                        2003,
+                        "Can't connect to MySQL server on %r\n%s" % (
+                            self.host, e)
+                )
+                # Keep original traceback to investigate error.
+                err.traceback = traceback.format_exc()
+                if DEBUG: print(err.traceback)
+                raise err
+
+            # If e is neither DatabaseError or IOError, It's a bug.
+            # But raising AssertionError hides original error.
+            # So just reraise DatabaseError and other errors.
+            raise
 
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
