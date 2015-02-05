@@ -36,6 +36,8 @@ except ImportError:
     DEFAULT_USER = None
 
 
+import _connection_protocol
+
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
 from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
@@ -1044,7 +1046,7 @@ class Connection(object):
 
     # _mysql support
     def thread_id(self):
-        return self.server_thread_id[0]
+        return self.server_thread_id
 
     def character_set_name(self):
         return self.charset
@@ -1056,47 +1058,52 @@ class Connection(object):
         return self.protocol_version
 
     def _get_server_information(self):
-        i = 0
         packet = self._read_packet()
         data = packet.get_all_data()
-
         if DEBUG: dump_packet(data)
-        self.protocol_version = byte2int(data[i:i+1])
-        i += 1
 
-        server_end = data.find(int2byte(0), i)
-        self.server_version = data[i:server_end].decode('latin1')
-        i = server_end + 1
+        # Parse basic
+        basics_size, parsed_basics = _connection_protocol.parse_basics(data)
+        pos = basics_size
 
-        self.server_thread_id = struct.unpack('<I', data[i:i+4])
-        i += 4
+        # Bail if all data has been consumed
+        if len(data) > basics_size:
+            # Parse aditional info
+            size, parsed_additional = _connection_protocol.parse_additional(data[pos:])
+            pos += size
 
-        self.salt = data[i:i+8]
-        i += 9  # 8 + 1(filler)
+            if DEBUG: print("server_status: %x" % parsed_additional.status_flags)
 
-        self.server_capabilities = struct.unpack('<H', data[i:i+2])[0]
-        i += 2
+            # Some data needs interpretation
+            capabilities = (parsed_basics.capabilities_lower
+                            | parsed_additional.capabilities_upper << 16)
 
-        if len(data) >= i + 6:
-            lang, stat, cap_h, salt_len = struct.unpack('<BHHB', data[i:i+6])
-            i += 6
-            self.server_language = lang
-            self.server_charset = charset_by_id(lang).name
+            if capabilities & CLIENT.SECURE_CONNECTION:
 
-            self.server_status = stat
-            if DEBUG: print("server_status: %x" % stat)
+                if DEBUG: print("salt_len:", parsed_additional.auth_plugin_data_length)
 
-            self.server_capabilities |= cap_h << 16
-            if DEBUG: print("salt_len:", salt_len)
-            salt_len = max(12, salt_len - 9)
+                # Null teminated auth_plugin_data
+                data_length = max(13, parsed_additional.auth_plugin_data_length - 8)
+                auth_plugin_data_part2 = data[pos:pos+data_length - 1]
 
-        # reserved
-        i += 10
+                salt = parsed_basics.auth_plugin_data_part1 + auth_plugin_data_part2
+                pos += data_length
 
-        if len(data) >= i + salt_len:
-            # salt_len includes auth_plugin_data_part_1 and filler
-            self.salt += data[i:i+salt_len]
-        # TODO: AUTH PLUGIN NAME may appeare here.
+            # Currently not used... but part of the protocol spec.
+            # if capabilities & CLIENT_PLUGIN_AUTH:
+            #   plugin_auth_expr = _expand_expression("<z", data[pos:])
+
+        else:
+            raise NotImplementedError()
+
+        self.protocol_version = parsed_basics.protocol_version
+        self.server_version = parsed_basics.server_version
+        self.server_thread_id = parsed_basics.server_thread_id
+        self.server_capabilities = capabilities
+        self.server_language = parsed_additional.character_set
+        self.server_charset = charset_by_id(self.server_language).name
+        self.server_status = parsed_additional.status_flags
+        self.salt = salt
 
     def get_server_info(self):
         return self.server_version
