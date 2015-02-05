@@ -29,6 +29,16 @@ class TestConnection(base.PyMySQLTestCase):
         cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
+    def test_escape_custom_object(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        class Foo(object):
+            value = "bar"
+        encoder = lambda x: x.value
+
+        self.assertEqual(con.escape(Foo(), encoders={Foo: encoder}), "bar")
+
     def test_autocommit(self):
         con = self.connections[0]
         self.assertFalse(con.get_autocommit())

@@ -15,13 +15,13 @@ ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
 
-
-def escape_item(val, charset):
+def escape_item(val, charset, custom_encoders=None):
     if type(val) in [tuple, list, set]:
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    encoder = encoders[type(val)]
+    item_encoders = custom_encoders or encoders
+    encoder = item_encoders[type(val)]
     val = encoder(val)
     return val
 

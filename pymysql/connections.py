@@ -725,11 +725,11 @@ class Connection(object):
         self._execute_command(COMMAND.COM_INIT_DB, db)
         self._read_ok_packet()
 
-    def escape(self, obj):
+    def escape(self, obj, encoders=None):
         ''' Escape whatever value you pass to it  '''
         if isinstance(obj, str_type):
             return "'" + self.escape_string(obj) + "'"
-        return escape_item(obj, self.charset)
+        return escape_item(obj, self.charset, custom_encoders=encoders)
 
     def literal(self, obj):
         '''Alias for escape()'''
