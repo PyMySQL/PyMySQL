@@ -43,10 +43,6 @@ from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
 from .util import byte2int, int2byte
 from .converters import (
     escape_item, encoders, decoders, escape_string, through)
-from .err import (
-    raise_mysql_exception, Warning, Error,
-    InterfaceError, DataError, DatabaseError, OperationalError,
-    IntegrityError, InternalError, NotSupportedError, ProgrammingError)
 from . import err
 
 _py_version = sys.version_info[:2]
@@ -370,7 +366,7 @@ class MysqlPacket(object):
             self.advance(1)  # field_count == error (we already know that)
             errno = self.read_uint16()
             if DEBUG: print("errno =", errno)
-            raise_mysql_exception(self._data)
+            err.raise_mysql_exception(self._data)
 
     def dump(self):
         dump_packet(self._data)
@@ -650,7 +646,7 @@ class Connection(object):
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
-            raise Error("Already closed")
+            raise err.Error("Already closed")
         send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
         try:
             self._write_bytes(send_data)
@@ -688,7 +684,7 @@ class Connection(object):
     def _read_ok_packet(self):
         pkt = self._read_packet()
         if not pkt.is_ok_packet():
-            raise OperationalError(2014, "Command Out of Sync")
+            raise err.OperationalError(2014, "Command Out of Sync")
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
         return ok
@@ -788,7 +784,7 @@ class Connection(object):
                 self._connect()
                 reconnect = False
             else:
-                raise Error("Already closed")
+                raise err.Error("Already closed")
         try:
             self._execute_command(COMMAND.COM_PING, "")
             return self._read_ok_packet()
@@ -858,15 +854,15 @@ class Connection(object):
                     pass
 
             if isinstance(e, (OSError, IOError, socket.error)):
-                err = OperationalError(
+                exc = err.OperationalError(
                         2003,
                         "Can't connect to MySQL server on %r (%s)" % (
                             self.host, e))
                 # Keep original exception and traceback to investigate error.
-                err.original_exception = e
-                err.traceback = traceback.format_exc()
-                if DEBUG: print(err.traceback)
-                raise err
+                exc.original_exception = e
+                exc.traceback = traceback.format_exc()
+                if DEBUG: print(exc.traceback)
+                raise exc
 
             # If e is neither DatabaseError or IOError, It's a bug.
             # But raising AssertionError hides original error.
@@ -901,11 +897,11 @@ class Connection(object):
             except (IOError, OSError) as e:
                 if e.errno == errno.EINTR:
                     continue
-                raise OperationalError(
+                raise err.OperationalError(
                     2013,
                     "Lost connection to MySQL server during query (%s)" % (e,))
         if len(data) < num_bytes:
-            raise OperationalError(
+            raise err.OperationalError(
                 2013, "Lost connection to MySQL server during query")
         return data
 
@@ -913,7 +909,7 @@ class Connection(object):
         try:
             self.socket.sendall(data)
         except IOError as e:
-            raise OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
+            raise err.OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
@@ -940,7 +936,7 @@ class Connection(object):
 
     def _execute_command(self, command, sql):
         if not self.socket:
-            raise InterfaceError("(0, '')")
+            raise err.InterfaceError("(0, '')")
 
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
@@ -1089,16 +1085,16 @@ class Connection(object):
     def get_server_info(self):
         return self.server_version
 
-    Warning = Warning
-    Error = Error
-    InterfaceError = InterfaceError
-    DatabaseError = DatabaseError
-    DataError = DataError
-    OperationalError = OperationalError
-    IntegrityError = IntegrityError
-    InternalError = InternalError
-    ProgrammingError = ProgrammingError
-    NotSupportedError = NotSupportedError
+    Warning = err.Warning
+    Error = err.Error
+    InterfaceError = err.InterfaceError
+    DatabaseError = err.DatabaseError
+    DataError = err.DataError
+    OperationalError = err.OperationalError
+    IntegrityError = err.IntegrityError
+    InternalError = err.InternalError
+    ProgrammingError = err.ProgrammingError
+    NotSupportedError = err.NotSupportedError
 
 
 class MySQLResult(object):
@@ -1166,7 +1162,7 @@ class MySQLResult(object):
 
         ok_packet = self.connection._read_packet()
         if not ok_packet.is_ok_packet():
-            raise OperationalError(2014, "Commands Out of Sync")
+            raise err.OperationalError(2014, "Commands Out of Sync")
         self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
@@ -1278,7 +1274,7 @@ class LoadLocalFile(object):
     def send_data(self):
         """Send data packets from the local file to the server"""
         if not self.connection.socket:
-            raise InterfaceError("(0, '')")
+            raise err.InterfaceError("(0, '')")
 
         # sequence id is 2 as we already sent a query packet
         seq_id = 2
@@ -1299,7 +1295,7 @@ class LoadLocalFile(object):
                     self.connection._write_bytes(packet)
                     seq_id += 1
         except IOError:
-            raise OperationalError(1017, "Can't find file '{0}'".format(self.filename))
+            raise err.OperationalError(1017, "Can't find file '{0}'".format(self.filename))
         finally:
             # send the empty packet to signify we are done sending data
             packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
