@@ -9,7 +9,7 @@ except IOError:
 
 setup(
     name="Tornado-MySQL",
-    version="0.2",
+    version="0.3",
     url='https://github.com/PyMySQL/Tornado-MySQL',
     author='INADA Naoki',
     author_email='songofacandy@gmail.com',
