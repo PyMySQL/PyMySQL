@@ -860,17 +860,17 @@ class Connection(object):
             if isinstance(e, (OSError, IOError, socket.error)):
                 err = OperationalError(
                         2003,
-                        "Can't connect to MySQL server on %r\n%s" % (
-                            self.host, e)
-                )
-                # Keep original traceback to investigate error.
+                        "Can't connect to MySQL server on %r (%s)" % (
+                            self.host, e))
+                # Keep original exception and traceback to investigate error.
+                err.original_exception = e
                 err.traceback = traceback.format_exc()
                 if DEBUG: print(err.traceback)
                 raise err
 
             # If e is neither DatabaseError or IOError, It's a bug.
             # But raising AssertionError hides original error.
-            # So just reraise DatabaseError and other errors.
+            # So just reraise it.
             raise
 
     def _read_packet(self, packet_type=MysqlPacket):
