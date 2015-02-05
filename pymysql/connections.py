@@ -844,6 +844,9 @@ class Connection(object):
             if self.init_command is not None:
                 c = self.cursor()
                 c.execute(self.init_command)
+                # Wind pass any additional results
+                while self._result.has_next:
+                    self.next_result()
                 self.commit()
 
             if self.autocommit_mode is not None:

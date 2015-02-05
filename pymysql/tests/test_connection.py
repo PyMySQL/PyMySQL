@@ -69,3 +69,13 @@ class TestConnection(base.PyMySQLTestCase):
         # error occures while reading, not writing because of socket buffer.
         #self.assertEquals(cm.exception.args[0], 2006)
         self.assertIn(cm.exception.args[0], (2006, 2013))
+
+    def test_init_command(self):
+        conn = pymysql.connect(
+            init_command='SELECT "bar"; SELECT "baz"',
+            **self.databases[0]
+        )
+        c = conn.cursor()
+        c.execute('select "foobar";')
+        self.assertEqual(('foobar',), c.fetchone())
+        conn.close()
