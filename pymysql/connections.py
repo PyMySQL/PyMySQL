@@ -501,7 +501,6 @@ class Connection(object):
     connect().
 
     """
-
     socket = None
 
     def __init__(self, host="localhost", user=None, password="",
@@ -549,36 +548,78 @@ class Connection(object):
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
         """
-
-        if use_unicode is None and sys.version_info[0] > 2:
-            use_unicode = True
-
         if db is not None and database is None:
             database = db
         if passwd is not None and not password:
             password = passwd
 
+        self.host = host
+        self.port = port
+        self.user = user or DEFAULT_USER
+        self.password = password or ""
+        self.db = database
+        self.no_delay = no_delay
+        self.unix_socket = unix_socket
+        self.charset = charset
+        self.client_flag = client_flag
+        self._local_infile = local_infile
+
+        self.key = None
+        self.cert = None
+        self.ca = None
+
+
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        if local_infile:
-            client_flag |= CLIENT.LOCAL_FILES
+        self.ssl = self._init_ssl(ssl)
+        self._read_config(read_default_group, read_default_file)
 
-        if ssl and ('capath' in ssl or 'cipher' in ssl):
+        if use_unicode is None and sys.version_info[0] > 2:
+            use_unicode = True
+
+        if self.charset:
+            self.use_unicode = True
+        else:
+            self.charset = DEFAULT_CHARSET
+            self.use_unicode = False
+
+        if use_unicode is not None:
+            self.use_unicode = use_unicode
+
+        self.encoding = charset_by_name(self.charset).encoding
+
+        self.cursorclass = cursorclass
+        self.connect_timeout = connect_timeout
+
+        self._result = None
+        self._affected_rows = 0
+        self.host_info = "Not connected"
+
+        #: specified autocommit mode. None means use server default.
+        self.autocommit_mode = autocommit
+
+        self.encoders = encoders  # Need for MySQLdb compatibility.
+        self.decoders = conv
+        self.sql_mode = sql_mode
+        self.init_command = init_command
+        self._connect()
+
+    def _init_ssl(self, ssl):
+        if not ssl:
+            return False
+
+        if 'capath' in ssl or 'cipher' in ssl:
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
-        self.ssl = False
-        if ssl:
-            if not SSL_ENABLED:
-                raise NotImplementedError("ssl module not found")
-            self.ssl = True
-            client_flag |= CLIENT.SSL
-            for k in ('key', 'cert', 'ca'):
-                v = None
-                if k in ssl:
-                    v = ssl[k]
-                setattr(self, k, v)
+        if not SSL_ENABLED:
+            raise NotImplementedError("ssl module not found")
 
+        self.key = ssl.get('key')
+        self.cert = ssl.get('cert')
+        self.ca = ssl.get('ca')
+
+    def _read_config(self, read_default_group, read_default_file):
         if read_default_group and not read_default_file:
             if sys.platform.startswith("win"):
                 read_default_file = "c:\\my.ini"
@@ -598,53 +639,13 @@ class Connection(object):
                 except Exception:
                     return default
 
-            user = _config("user", user)
-            password = _config("password", password)
-            host = _config("host", host)
-            database = _config("database", database)
-            unix_socket = _config("socket", unix_socket)
-            port = int(_config("port", port))
-            charset = _config("default-character-set", charset)
-
-        self.host = host
-        self.port = port
-        self.user = user or DEFAULT_USER
-        self.password = password or ""
-        self.db = database
-        self.no_delay = no_delay
-        self.unix_socket = unix_socket
-        if charset:
-            self.charset = charset
-            self.use_unicode = True
-        else:
-            self.charset = DEFAULT_CHARSET
-            self.use_unicode = False
-
-        if use_unicode is not None:
-            self.use_unicode = use_unicode
-
-        self.encoding = charset_by_name(self.charset).encoding
-
-        client_flag |= CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
-        if self.db:
-            client_flag |= CLIENT.CONNECT_WITH_DB
-        self.client_flag = client_flag
-
-        self.cursorclass = cursorclass
-        self.connect_timeout = connect_timeout
-
-        self._result = None
-        self._affected_rows = 0
-        self.host_info = "Not connected"
-
-        #: specified autocommit mode. None means use server default.
-        self.autocommit_mode = autocommit
-
-        self.encoders = encoders  # Need for MySQLdb compatibility.
-        self.decoders = conv
-        self.sql_mode = sql_mode
-        self.init_command = init_command
-        self._connect()
+            self.host = _config("host", self.host)
+            self.port = int(_config("port", self.port))
+            self.user = _config("user", self.user)
+            self.password = _config("password", self.password)
+            self.db = _config("database", self.db)
+            self.unix_socket = _config("socket", self.unix_socket)
+            self.charset = _config("default-character-set", self.charset)
 
     def close(self):
         ''' Send the quit message and close the socket '''
@@ -834,20 +835,26 @@ class Connection(object):
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket = sock
             self._rfile = _makefile(sock, 'rb')
+
+            # Server --> Client
             self._get_server_information()
+
+            # Client --> Server
             self._request_authentication()
+
 
             if self.sql_mode is not None:
                 c = self.cursor()
                 c.execute("SET sql_mode=%s", (self.sql_mode,))
+
+            if self.autocommit_mode is not None:
+                self.autocommit(self.autocommit_mode)
 
             if self.init_command is not None:
                 c = self.cursor()
                 c.execute(self.init_command)
                 self.commit()
 
-            if self.autocommit_mode is not None:
-                self.autocommit(self.autocommit_mode)
         except BaseException as e:
             self._rfile = None
             if sock is not None:
@@ -961,10 +968,27 @@ class Connection(object):
                 break
             seq_id += 1
 
-    def _request_authentication(self):
-        self.client_flag |= CLIENT.CAPABILITIES
+    def _client_flag_for_features(self):
+
+        client_flag = CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
+
+        if self._local_infile:
+            client_flag |= CLIENT.LOCAL_FILES
+
+        if self.ssl:
+            client_flag |= CLIENT.SSL
+
+        if self.db:
+            client_flag |= CLIENT.CONNECT_WITH_DB
+
         if self.server_version.startswith('5'):
-            self.client_flag |= CLIENT.MULTI_RESULTS
+            client_flag |= CLIENT.MULTI_RESULTS
+
+        return client_flag
+
+    def _request_authentication(self):
+
+        self.client_flag |= self._client_flag_for_features()
 
         if self.user is None:
             raise ValueError("Did not specify a username")
