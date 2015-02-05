@@ -570,26 +570,8 @@ class Connection(object):
         self.cert = None
         self.ca = None
 
-
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
-
-        self.ssl = self._init_ssl(ssl)
-        self._read_config(read_default_group, read_default_file)
-
-        if use_unicode is None and sys.version_info[0] > 2:
-            use_unicode = True
-
-        if self.charset:
-            self.use_unicode = True
-        else:
-            self.charset = DEFAULT_CHARSET
-            self.use_unicode = False
-
-        if use_unicode is not None:
-            self.use_unicode = use_unicode
-
-        self.encoding = charset_by_name(self.charset).encoding
 
         self.cursorclass = cursorclass
         self.connect_timeout = connect_timeout
@@ -605,6 +587,12 @@ class Connection(object):
         self.decoders = conv
         self.sql_mode = sql_mode
         self.init_command = init_command
+
+        # Initialise aspects of the connection
+        self.ssl = self._init_ssl(ssl)
+        self._read_config(read_default_group, read_default_file)
+        self._init_char_encoding(use_unicode)
+
         self._connect()
 
     def _init_ssl(self, ssl):
@@ -649,6 +637,19 @@ class Connection(object):
             self.unix_socket = _config("socket", self.unix_socket)
             self.charset = _config("default-character-set", self.charset)
 
+    def _init_char_encoding(self, force_unicode=None):
+        if force_unicode is not None:
+            self.use_unicode = force_unicode
+        elif sys.version_info[0] > 2:
+            self.use_unicode = True
+        else:
+            self.use_unicode = bool(self.charset)
+
+        if not self.charset:
+            self.charset = DEFAULT_CHARSET
+
+        self.encoding = charset_by_name(self.charset).encoding
+
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
@@ -678,10 +679,16 @@ class Connection(object):
         self._rfile = None
 
     def autocommit(self, value):
+        ac_vars = self._autocommit_vars(value)
+        self._set_variables(ac_vars)
+
+    def _autocommit_vars(self, value):
         self.autocommit_mode = bool(value)
         current = self.get_autocommit()
-        if value != current:
-            self._send_autocommit_mode()
+
+        if value == current:
+            return []
+        return [("AUTOCOMMIT", self.autocommit_mode)]
 
     def get_autocommit(self):
         return bool(self.server_status &
@@ -695,26 +702,34 @@ class Connection(object):
         self.server_status = ok.server_status
         return ok
 
-    def _send_autocommit_mode(self):
-        ''' Set whether or not to commit after every execute() '''
-        self._execute_command(COMMAND.COM_QUERY, "SET AUTOCOMMIT = %s" %
-                              self.escape(self.autocommit_mode))
-        self._read_ok_packet()
+    def _set_variables(self, pairs):
+        if not pairs:
+            return
+        sql = self._set_variables_sql(pairs)
+        self._execute_query(sql)
+
+    def _set_variables_sql(self, pairs):
+        '''Form sql to set a collection of variables.'''
+        if not pairs:
+            return ''
+        parts = []
+        for variable, value in pairs:
+            parts.append("%s = %s" % (variable, self.escape(value)))
+        query = "SET " + ", ".join(parts)
+
+        return query
 
     def begin(self):
         """Begin transaction."""
-        self._execute_command(COMMAND.COM_QUERY, "BEGIN")
-        self._read_ok_packet()
+        self._execute_query("BEGIN")
 
     def commit(self):
         ''' Commit changes to stable storage '''
-        self._execute_command(COMMAND.COM_QUERY, "COMMIT")
-        self._read_ok_packet()
+        self._execute_query("COMMIT")
 
     def rollback(self):
         ''' Roll back the current transaction '''
-        self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
-        self._read_ok_packet()
+        self._execute_query("ROLLBACK")
 
     def show_warnings(self):
         """SHOW WARNINGS"""
@@ -805,37 +820,43 @@ class Connection(object):
         # Make sure charset is supported.
         encoding = charset_by_name(charset).encoding
 
-        self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" % self.escape(charset))
-        self._read_packet()
+        self._set_variables([("NAMES", charset)])
+
         self.charset = charset
         self.encoding = encoding
+
+    def _get_socket(self):
+
+        sock = None
+        if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(self.connect_timeout)
+            sock.connect(self.unix_socket)
+            self.host_info = "Localhost via UNIX socket"
+            if DEBUG: print('connected using unix_socket')
+        else:
+            while True:
+                try:
+                    sock = socket.create_connection(
+                        (self.host, self.port), self.connect_timeout)
+                    break
+                except (OSError, IOError) as e:
+                    if e.errno == errno.EINTR:
+                        continue
+                    raise
+            self.host_info = "socket %s:%d" % (self.host, self.port)
+            if DEBUG: print('connected using socket')
+
+        sock.settimeout(None)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if self.no_delay:
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        return sock
 
     def _connect(self):
         sock = None
         try:
-            if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.settimeout(self.connect_timeout)
-                sock.connect(self.unix_socket)
-                self.host_info = "Localhost via UNIX socket"
-                if DEBUG: print('connected using unix_socket')
-            else:
-                while True:
-                    try:
-                        sock = socket.create_connection(
-                            (self.host, self.port), self.connect_timeout)
-                        break
-                    except (OSError, IOError) as e:
-                        if e.errno == errno.EINTR:
-                            continue
-                        raise
-                self.host_info = "socket %s:%d" % (self.host, self.port)
-                if DEBUG: print('connected using socket')
-            sock.settimeout(None)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            if self.no_delay:
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self.socket = sock
+            self.socket = sock = self._get_socket()
             self._rfile = _makefile(sock, 'rb')
 
             # Server --> Client
@@ -844,18 +865,8 @@ class Connection(object):
             # Client --> Server
             self._request_authentication()
 
-
-            if self.sql_mode is not None:
-                c = self.cursor()
-                c.execute("SET sql_mode=%s", (self.sql_mode,))
-
-            if self.autocommit_mode is not None:
-                self.autocommit(self.autocommit_mode)
-
-            if self.init_command is not None:
-                c = self.cursor()
-                c.execute(self.init_command)
-                self.commit()
+            # Send initialisation query
+            self._send_init_query()
 
         except BaseException as e:
             self._rfile = None
@@ -970,6 +981,11 @@ class Connection(object):
                 break
             seq_id += 1
 
+    def _execute_query(self, query):
+        """ Execute a query """
+        self._execute_command(COMMAND.COM_QUERY, query)
+        self._read_ok_packet()
+
     def _client_flag_for_features(self):
 
         client_flag = CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
@@ -1043,6 +1059,22 @@ class Connection(object):
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             self._write_bytes(data)
             auth_packet = self._read_packet()
+
+    def _send_init_query(self):
+        sql_var = []
+        if self.sql_mode is not None:
+            sql_var.append(('sql_mode', self.sql_mode))
+
+        if self.autocommit_mode is not None:
+            sql_var.extend(self._autocommit_vars(self.autocommit_mode))
+
+        init_vars_sql = self._set_variables_sql(sql_var)
+        self._execute_query(init_vars_sql)
+
+        if self.init_command is not None:
+            c = self.cursor()
+            c.execute(self.init_command)
+            self.commit()
 
     # _mysql support
     def thread_id(self):
