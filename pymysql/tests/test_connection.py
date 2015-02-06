@@ -1,3 +1,5 @@
+import datetime
+import decimal
 import pymysql
 import time
 from pymysql.tests import base
@@ -20,24 +22,6 @@ class TestConnection(base.PyMySQLTestCase):
         t = 'a' * (16*1024*1024)
         cur.execute("SELECT '" + t + "'")
         assert cur.fetchone()[0] == t
-
-    def test_escape_string(self):
-        con = self.connections[0]
-        cur = con.cursor()
-
-        self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
-        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
-        self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
-
-    def test_escape_custom_object(self):
-        con = self.connections[0]
-        cur = con.cursor()
-
-        class Foo(object):
-            value = "bar"
-        encoder = lambda x: x.value
-
-        self.assertEqual(con.escape(Foo(), encoders={Foo: encoder}), "bar")
 
     def test_autocommit(self):
         con = self.connections[0]
@@ -79,3 +63,68 @@ class TestConnection(base.PyMySQLTestCase):
         # error occures while reading, not writing because of socket buffer.
         #self.assertEquals(cm.exception.args[0], 2006)
         self.assertIn(cm.exception.args[0], (2006, 2013))
+
+
+# A custom type and function to escape it
+class Foo(object):
+    value = "bar"
+
+def escape_foo(x, d):
+    return x.value
+
+
+class TestEscape(base.PyMySQLTestCase):
+    def test_escape_string(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
+        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
+
+    def test_escape_builtin_encoders(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        val = datetime.datetime(2012, 3, 4, 5, 6)
+        self.assertEqual(con.escape(val, con.encoders), "'2012-03-04 05:06:00'")
+
+    def test_escape_custom_object(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        mapping = {Foo: escape_foo}
+        self.assertEqual(con.escape(Foo(), mapping), "bar")
+
+    def test_escape_fallback_encoder(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        class Custom(str):
+            pass
+
+        mapping = {pymysql.text_type: pymysql.escape_string}
+        self.assertEqual(con.escape(Custom('foobar'), mapping), "'foobar'")
+
+    def test_escape_no_default(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        self.assertRaises(TypeError, con.escape, 42, {})
+
+    def test_escape_dict_value(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        mapping = con.encoders.copy()
+        mapping[Foo] = escape_foo
+        self.assertEqual(con.escape({'foo': Foo()}, mapping), {'foo': "bar"})
+
+    def test_escape_list_item(self):
+        con = self.connections[0]
+        cur = con.cursor()
+
+        mapping = con.encoders.copy()
+        mapping[Foo] = escape_foo
+        self.assertEqual(con.escape([Foo()], mapping), "(bar)")
+
