@@ -36,7 +36,6 @@ except ImportError:
     DEFAULT_USER = None
 
 
-import _connection_protocol
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
@@ -49,6 +48,7 @@ from .err import (
     InterfaceError, DataError, DatabaseError, OperationalError,
     IntegrityError, InternalError, NotSupportedError, ProgrammingError)
 from . import err
+from . import _connection_protocol
 
 _py_version = sys.version_info[:2]
 
