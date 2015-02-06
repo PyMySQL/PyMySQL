@@ -37,6 +37,7 @@ except ImportError:
     DEFAULT_USER = None
 
 
+
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
 from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
@@ -44,6 +45,7 @@ from .util import byte2int, int2byte
 from .converters import (
     escape_item, encoders, decoders, escape_string, through)
 from . import err
+from . import _connection_protocol
 
 _py_version = sys.version_info[:2]
 
@@ -498,7 +500,6 @@ class Connection(object):
     connect().
 
     """
-
     socket = None
 
     def __init__(self, host="localhost", user=None, password="",
@@ -508,7 +509,8 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False, db=None, passwd=None, local_infile=False):
+                 autocommit=False, db=None, passwd=None, local_infile=False,
+                 defer_mode=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -546,36 +548,69 @@ class Connection(object):
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
         """
-
-        if use_unicode is None and sys.version_info[0] > 2:
-            use_unicode = True
-
         if db is not None and database is None:
             database = db
         if passwd is not None and not password:
             password = passwd
 
+        self.host = host
+        self.port = port
+        self.user = user or DEFAULT_USER
+        self.password = password or ""
+        self.db = database
+        self.no_delay = no_delay
+        self.unix_socket = unix_socket
+        self.charset = charset
+        self.client_flag = client_flag
+        self._local_infile = local_infile
+
+        self.key = None
+        self.cert = None
+        self.ca = None
+
+        self.__defer_mode = defer_mode
+        self.__deferred = []
+
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        if local_infile:
-            client_flag |= CLIENT.LOCAL_FILES
+        self.cursorclass = cursorclass
+        self.connect_timeout = connect_timeout
 
-        if ssl and ('capath' in ssl or 'cipher' in ssl):
+        self._result = None
+        self._affected_rows = 0
+        self.host_info = "Not connected"
+
+        #: specified autocommit mode. None means use server default.
+        self.autocommit_mode = autocommit
+
+        self.encoders = encoders  # Need for MySQLdb compatibility.
+        self.decoders = conv
+        self.sql_mode = sql_mode
+        self.init_command = init_command
+
+        # Initialise aspects of the connection
+        self.ssl = self._init_ssl(ssl)
+        self._read_config(read_default_group, read_default_file)
+        self._init_char_encoding(use_unicode)
+
+        self._connect()
+
+    def _init_ssl(self, ssl):
+        if not ssl:
+            return False
+
+        if 'capath' in ssl or 'cipher' in ssl:
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
-        self.ssl = False
-        if ssl:
-            if not SSL_ENABLED:
-                raise NotImplementedError("ssl module not found")
-            self.ssl = True
-            client_flag |= CLIENT.SSL
-            for k in ('key', 'cert', 'ca'):
-                v = None
-                if k in ssl:
-                    v = ssl[k]
-                setattr(self, k, v)
+        if not SSL_ENABLED:
+            raise NotImplementedError("ssl module not found")
 
+        self.key = ssl.get('key')
+        self.cert = ssl.get('cert')
+        self.ca = ssl.get('ca')
+
+    def _read_config(self, read_default_group, read_default_file):
         if read_default_group and not read_default_file:
             if sys.platform.startswith("win"):
                 read_default_file = "c:\\my.ini"
@@ -595,53 +630,26 @@ class Connection(object):
                 except Exception:
                     return default
 
-            user = _config("user", user)
-            password = _config("password", password)
-            host = _config("host", host)
-            database = _config("database", database)
-            unix_socket = _config("socket", unix_socket)
-            port = int(_config("port", port))
-            charset = _config("default-character-set", charset)
+            self.host = _config("host", self.host)
+            self.port = int(_config("port", self.port))
+            self.user = _config("user", self.user)
+            self.password = _config("password", self.password)
+            self.db = _config("database", self.db)
+            self.unix_socket = _config("socket", self.unix_socket)
+            self.charset = _config("default-character-set", self.charset)
 
-        self.host = host
-        self.port = port
-        self.user = user or DEFAULT_USER
-        self.password = password or ""
-        self.db = database
-        self.no_delay = no_delay
-        self.unix_socket = unix_socket
-        if charset:
-            self.charset = charset
+    def _init_char_encoding(self, force_unicode=None):
+        if force_unicode is not None:
+            self.use_unicode = force_unicode
+        elif sys.version_info[0] > 2:
             self.use_unicode = True
         else:
-            self.charset = DEFAULT_CHARSET
-            self.use_unicode = False
+            self.use_unicode = bool(self.charset)
 
-        if use_unicode is not None:
-            self.use_unicode = use_unicode
+        if not self.charset:
+            self.charset = DEFAULT_CHARSET
 
         self.encoding = charset_by_name(self.charset).encoding
-
-        client_flag |= CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
-        if self.db:
-            client_flag |= CLIENT.CONNECT_WITH_DB
-        self.client_flag = client_flag
-
-        self.cursorclass = cursorclass
-        self.connect_timeout = connect_timeout
-
-        self._result = None
-        self._affected_rows = 0
-        self.host_info = "Not connected"
-
-        #: specified autocommit mode. None means use server default.
-        self.autocommit_mode = autocommit
-
-        self.encoders = encoders  # Need for MySQLdb compatibility.
-        self.decoders = conv
-        self.sql_mode = sql_mode
-        self.init_command = init_command
-        self._connect()
 
     def close(self):
         ''' Send the quit message and close the socket '''
@@ -672,12 +680,23 @@ class Connection(object):
         self._rfile = None
 
     def autocommit(self, value):
+        ac_vars = self._autocommit_vars(value)
+        self._set_variables(ac_vars)
+
+    def _autocommit_vars(self, value):
         self.autocommit_mode = bool(value)
         current = self.get_autocommit()
-        if value != current:
-            self._send_autocommit_mode()
+
+        if value == current:
+            return []
+        return [("AUTOCOMMIT", self.autocommit_mode)]
 
     def get_autocommit(self):
+
+        # TODO This code should be more descriptive
+        if self.__deferred:
+            self._execute_command(COMMAND.COM_QUERY, "")
+
         return bool(self.server_status &
                     SERVER_STATUS.SERVER_STATUS_AUTOCOMMIT)
 
@@ -689,26 +708,37 @@ class Connection(object):
         self.server_status = ok.server_status
         return ok
 
-    def _send_autocommit_mode(self):
-        ''' Set whether or not to commit after every execute() '''
-        self._execute_command(COMMAND.COM_QUERY, "SET AUTOCOMMIT = %s" %
-                              self.escape(self.autocommit_mode))
-        self._read_ok_packet()
+    def _set_variables(self, pairs):
+        if not pairs:
+            return
+        sql = self._set_variables_sql(pairs)
+        self._execute_query(sql)
+
+    def _set_variables_sql(self, pairs):
+        '''Form sql to set a collection of variables.'''
+        if not pairs:
+            return ''
+        parts = []
+        for variable, value in pairs:
+            parts.append("%s = %s" % (variable, self.escape(value)))
+        query = "SET " + ", ".join(parts)
+
+        return query
 
     def begin(self):
         """Begin transaction."""
-        self._execute_command(COMMAND.COM_QUERY, "BEGIN")
-        self._read_ok_packet()
+        if self.__defer_mode:
+            self.__deferred.append("BEGIN")
+        else:
+            self._execute_query("BEGIN")
 
     def commit(self):
         ''' Commit changes to stable storage '''
-        self._execute_command(COMMAND.COM_QUERY, "COMMIT")
-        self._read_ok_packet()
+        self._execute_query("COMMIT")
 
     def rollback(self):
         ''' Roll back the current transaction '''
-        self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
-        self._read_ok_packet()
+        self._execute_query("ROLLBACK")
 
     def show_warnings(self):
         """SHOW WARNINGS"""
@@ -799,52 +829,55 @@ class Connection(object):
         # Make sure charset is supported.
         encoding = charset_by_name(charset).encoding
 
-        self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" % self.escape(charset))
-        self._read_packet()
+        self._set_variables([("NAMES", charset)])
+
         self.charset = charset
         self.encoding = encoding
+
+    def _get_socket(self):
+
+        sock = None
+        if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(self.connect_timeout)
+            sock.connect(self.unix_socket)
+            self.host_info = "Localhost via UNIX socket"
+            if DEBUG: print('connected using unix_socket')
+        else:
+            while True:
+                try:
+                    sock = socket.create_connection(
+                        (self.host, self.port), self.connect_timeout)
+                    break
+                except (OSError, IOError) as e:
+                    if e.errno == errno.EINTR:
+                        continue
+                    raise
+            self.host_info = "socket %s:%d" % (self.host, self.port)
+            if DEBUG: print('connected using socket')
+
+        sock.settimeout(None)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if self.no_delay:
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+        return sock
 
     def _connect(self):
         sock = None
         try:
-            if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.settimeout(self.connect_timeout)
-                sock.connect(self.unix_socket)
-                self.host_info = "Localhost via UNIX socket"
-                if DEBUG: print('connected using unix_socket')
-            else:
-                while True:
-                    try:
-                        sock = socket.create_connection(
-                            (self.host, self.port), self.connect_timeout)
-                        break
-                    except (OSError, IOError) as e:
-                        if e.errno == errno.EINTR:
-                            continue
-                        raise
-                self.host_info = "socket %s:%d" % (self.host, self.port)
-                if DEBUG: print('connected using socket')
-            sock.settimeout(None)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            if self.no_delay:
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self.socket = sock
+            self.socket = sock = self._get_socket()
             self._rfile = _makefile(sock, 'rb')
+
+            # Server --> Client
             self._get_server_information()
+
+            # Client --> Server
             self._request_authentication()
 
-            if self.sql_mode is not None:
-                c = self.cursor()
-                c.execute("SET sql_mode=%s", (self.sql_mode,))
+            # Send initialisation query
+            self._send_init_query()
 
-            if self.init_command is not None:
-                c = self.cursor()
-                c.execute(self.init_command)
-                self.commit()
-
-            if self.autocommit_mode is not None:
-                self.autocommit(self.autocommit_mode)
         except BaseException as e:
             self._rfile = None
             if sock is not None:
@@ -935,6 +968,18 @@ class Connection(object):
             return 0
 
     def _execute_command(self, command, sql):
+
+        deferred_parts = self.__deferred[:]
+
+        if self.__deferred:
+            deferred_sql = ";".join(deferred_parts)
+            self.__deferred = []
+
+            if command == COMMAND.COM_QUERY:
+                sql = deferred_sql + "; " + sql
+            else:
+                self._execute_query(deferred_sql)
+
         if not self.socket:
             raise err.InterfaceError("(0, '')")
 
@@ -954,25 +999,56 @@ class Connection(object):
         if DEBUG: dump_packet(prelude + sql)
 
         if chunk_size < MAX_PACKET_LEN:
-            return
+            pass
+        else:
+            seq_id = 1
+            sql = sql[chunk_size-1:]
+            while True:
+                chunk_size = min(MAX_PACKET_LEN, len(sql))
+                prelude = struct.pack('<i', chunk_size)[:3]
+                data = prelude + int2byte(seq_id%256) + sql[:chunk_size]
+                self._write_bytes(data)
+                if DEBUG: dump_packet(data)
+                sql = sql[chunk_size:]
+                if not sql and chunk_size < MAX_PACKET_LEN:
+                    break
+                seq_id += 1
 
-        seq_id = 1
-        sql = sql[chunk_size-1:]
-        while True:
-            chunk_size = min(MAX_PACKET_LEN, len(sql))
-            prelude = struct.pack('<i', chunk_size)[:3]
-            data = prelude + int2byte(seq_id%256) + sql[:chunk_size]
-            self._write_bytes(data)
-            if DEBUG: dump_packet(data)
-            sql = sql[chunk_size:]
-            if not sql and chunk_size < MAX_PACKET_LEN:
-                break
-            seq_id += 1
+        if command == COMMAND.COM_QUERY:
+            for _ in deferred_parts:
+                self._read_query_result()
+
+    def _execute_query(self, query):
+        """ Execute a query """
+        self._execute_command(COMMAND.COM_QUERY, query)
+        self._read_ok_packet()
+
+    def _execute_query(self, query):
+        """ Execute a query """
+        self._execute_command(COMMAND.COM_QUERY, query)
+        self._read_ok_packet()
+
+    def _client_flag_for_features(self):
+
+        client_flag = CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
+
+        if self._local_infile:
+            client_flag |= CLIENT.LOCAL_FILES
+
+        if self.ssl:
+            client_flag |= CLIENT.SSL
+
+        if self.db:
+            client_flag |= CLIENT.CONNECT_WITH_DB
+
+        if self.server_version.startswith('5'):
+            client_flag |= CLIENT.MULTI_RESULTS
+
+        return client_flag
 
     def _request_authentication(self):
-        self.client_flag |= CLIENT.CAPABILITIES
-        if self.server_version.startswith('5'):
-            self.client_flag |= CLIENT.MULTI_RESULTS
+
+        self.client_flag |= self._client_flag_for_features()
 
         if self.user is None:
             raise ValueError("Did not specify a username")
@@ -1026,9 +1102,30 @@ class Connection(object):
             self._write_bytes(data)
             auth_packet = self._read_packet()
 
+    def _send_init_query(self):
+        sql_var = []
+        if self.sql_mode is not None:
+            sql_var.append(('sql_mode', self.sql_mode))
+
+        if self.autocommit_mode is not None:
+            sql_var.extend(self._autocommit_vars(self.autocommit_mode))
+
+        init_sql = [self._set_variables_sql(sql_var)]
+
+        if self.__defer_mode and self.init_command is None:
+            self.__deferred.extend(init_sql)
+        else:
+            sql = ";".join(init_sql)
+            self._execute_query(sql)
+
+        if self.init_command is not None:
+            c = self.cursor()
+            c.execute(self.init_command)
+            self.commit()
+
     # _mysql support
     def thread_id(self):
-        return self.server_thread_id[0]
+        return self.server_thread_id
 
     def character_set_name(self):
         return self.charset
@@ -1040,47 +1137,52 @@ class Connection(object):
         return self.protocol_version
 
     def _get_server_information(self):
-        i = 0
         packet = self._read_packet()
         data = packet.get_all_data()
-
         if DEBUG: dump_packet(data)
-        self.protocol_version = byte2int(data[i:i+1])
-        i += 1
 
-        server_end = data.find(int2byte(0), i)
-        self.server_version = data[i:server_end].decode('latin1')
-        i = server_end + 1
+        # Parse basic
+        basics_size, parsed_basics = _connection_protocol.parse_basics(data)
+        pos = basics_size
 
-        self.server_thread_id = struct.unpack('<I', data[i:i+4])
-        i += 4
+        # Bail if all data has been consumed
+        if len(data) > basics_size:
+            # Parse aditional info
+            size, parsed_additional = _connection_protocol.parse_additional(data[pos:])
+            pos += size
 
-        self.salt = data[i:i+8]
-        i += 9  # 8 + 1(filler)
+            if DEBUG: print("server_status: %x" % parsed_additional.status_flags)
 
-        self.server_capabilities = struct.unpack('<H', data[i:i+2])[0]
-        i += 2
+            # Some data needs interpretation
+            capabilities = (parsed_basics.capabilities_lower
+                            | parsed_additional.capabilities_upper << 16)
 
-        if len(data) >= i + 6:
-            lang, stat, cap_h, salt_len = struct.unpack('<BHHB', data[i:i+6])
-            i += 6
-            self.server_language = lang
-            self.server_charset = charset_by_id(lang).name
+            if capabilities & CLIENT.SECURE_CONNECTION:
 
-            self.server_status = stat
-            if DEBUG: print("server_status: %x" % stat)
+                if DEBUG: print("salt_len:", parsed_additional.auth_plugin_data_length)
 
-            self.server_capabilities |= cap_h << 16
-            if DEBUG: print("salt_len:", salt_len)
-            salt_len = max(12, salt_len - 9)
+                # Null teminated auth_plugin_data
+                data_length = max(13, parsed_additional.auth_plugin_data_length - 8)
+                auth_plugin_data_part2 = data[pos:pos+data_length - 1]
 
-        # reserved
-        i += 10
+                salt = parsed_basics.auth_plugin_data_part1 + auth_plugin_data_part2
+                pos += data_length
 
-        if len(data) >= i + salt_len:
-            # salt_len includes auth_plugin_data_part_1 and filler
-            self.salt += data[i:i+salt_len]
-        # TODO: AUTH PLUGIN NAME may appeare here.
+            # Currently not used... but part of the protocol spec.
+            # if capabilities & CLIENT_PLUGIN_AUTH:
+            #   plugin_auth_expr = _expand_expression("<z", data[pos:])
+
+        else:
+            raise NotImplementedError()
+
+        self.protocol_version = parsed_basics.protocol_version
+        self.server_version = parsed_basics.server_version
+        self.server_thread_id = parsed_basics.server_thread_id
+        self.server_capabilities = capabilities
+        self.server_language = parsed_additional.character_set
+        self.server_charset = charset_by_id(self.server_language).name
+        self.server_status = parsed_additional.status_flags
+        self.salt = salt
 
     def get_server_info(self):
         return self.server_version
