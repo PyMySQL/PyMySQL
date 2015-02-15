@@ -841,6 +841,7 @@ class Connection(object):
             if self.init_command is not None:
                 c = self.cursor()
                 c.execute(self.init_command)
+                c.close()
                 self.commit()
 
             if self.autocommit_mode is not None:
