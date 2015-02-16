@@ -262,7 +262,7 @@ class MySQLResult(object):
         self.message = None
         self.field_count = 0
         self.description = None
-        self.has_next = None
+        self.has_next = 0
         self.has_result = False
         self.rest_rows = None
         self.rest_row_index = 0
