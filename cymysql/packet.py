@@ -23,6 +23,8 @@ UNSIGNED_SHORT_COLUMN = 252
 UNSIGNED_INT24_COLUMN = 253
 UNSIGNED_INT64_COLUMN = 254
 
+SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
+
 def unpack_uint16(n):
     if PYTHON3:
         return n[0] + (n[1] << 8)
@@ -288,8 +290,7 @@ class MySQLResult(object):
             if is_eof:
                 self.warning_count = warning_count
                 self.server_status = server_status
-                self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+                self.has_next = (server_status & SERVER_MORE_RESULTS_EXISTS)
                 break
             rest_rows.append(packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
@@ -317,8 +318,7 @@ class MySQLResult(object):
             if is_eof:
                 self.warning_count = warning_count
                 self.server_status = server_status
-                self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+                self.has_next = (server_status & SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
             return packet.read_decode_data(self.fields)

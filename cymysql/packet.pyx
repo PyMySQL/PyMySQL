@@ -24,6 +24,8 @@ cdef int UNSIGNED_SHORT_COLUMN = 252
 cdef int UNSIGNED_INT24_COLUMN = 253
 cdef int UNSIGNED_INT64_COLUMN = 254
 
+cdef int SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
+
 cdef uint16_t unpack_uint16(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8)
@@ -267,9 +269,9 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 cdef class MySQLResult(object):
     cdef public object affected_rows, insert_id, rest_rows, has_next, has_result
     cdef public object message, description
-    cdef public object server_status, warning_count, field_count
+    cdef public object warning_count, field_count
     cdef object connection, first_packet, fields
-    cdef int rest_row_index
+    cdef int rest_row_index, server_status
 
     def __init__(self, connection):
         from weakref import proxy
@@ -310,8 +312,7 @@ cdef class MySQLResult(object):
             if is_eof:
                 self.warning_count = warning_count
                 self.server_status = server_status
-                self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+                self.has_next = (server_status & SERVER_MORE_RESULTS_EXISTS)
                 break
             rest_rows.append(packet.read_decode_data(self.fields))
         self.rest_rows = rest_rows
@@ -342,8 +343,7 @@ cdef class MySQLResult(object):
             if is_eof:
                 self.warning_count = warning_count
                 self.server_status = server_status
-                self.has_next = (server_status
-                             & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS)
+                self.has_next = (server_status & SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
             return packet.read_decode_data(self.fields)
