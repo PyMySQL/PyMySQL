@@ -1,72 +1,79 @@
-Changes
---------
+# Changes
 
-0.6.4 -Support "LOAD LOCAL INFILE".  Thanks @wraziens
-      -Show MySQL warnings after execute query.
-      -Fix MySQLError may be wrapped with OperationalError while connectiong. (#274)
-      -SSCursor no longer attempts to expire un-collected rows within __del__,
-       delaying termination of an interrupted program; cleanup of uncollected
-       rows is left to the Connection on next execute, which emits a
-       warning at that time. (#287)
+## 0.6.4
+* Support "LOAD LOCAL INFILE".  Thanks @wraziens
+* Show MySQL warnings after execute query.
+* Fix MySQLError may be wrapped with OperationalError while connectiong. (#274)
+* SSCursor no longer attempts to expire un-collected rows within __del__,
+  delaying termination of an interrupted program; cleanup of uncollected
+  rows is left to the Connection on next execute, which emits a
+  warning at that time. (#287)
 
-0.6.3 -Fixed multiple result sets with SSCursor.
-      -Fixed connection timeout.
-      -Fixed literal set syntax to work on Py2.6.
-      -Allow for mysql negative values with 0 hour timedelta.
-      -Added Connection.begin().
+## 0.6.3
+* Fixed multiple result sets with SSCursor.
+* Fixed connection timeout.
+* Fixed literal set syntax to work on Py2.6.
+* Allow for mysql negative values with 0 hour timedelta.
+* Added Connection.begin().
 
-0.6.2 -Fixed old password on Python 3.
-      -Added support for bulk insert in Cursor.executemany().
-      -Added support for microseconds in datetimes and dates before 1900.
-      -Several other bug fixes.
+## 0.6.2
+* Fixed old password on Python 3.
+* Added support for bulk insert in Cursor.executemany().
+* Added support for microseconds in datetimes and dates before 1900.
+* Several other bug fixes.
 
-0.6.1 -Added cursor._last_executed for MySQLdb compatibility
-      -Cursor.fetchall() and .fetchmany now return list, not tuple
-      -Allow "length of auth-plugin-data" = 0
-      -Cursor.connection references connection object without weakref
+## 0.6.1
+* Added cursor._last_executed for MySQLdb compatibility
+* Cursor.fetchall() and .fetchmany now return list, not tuple
+* Allow "length of auth-plugin-data" = 0
+* Cursor.connection references connection object without weakref
 
-0.6   -Improved Py3k support
-      -Improved PyPy support
-      -Added IPv6 support
-      -Added Thing2Literal for Django/MySQLdb compatibility
-      -Removed errorhandler
-      -Fixed GC errors
-      -Improved test suite
-      -Many bug fixes
-      -Many performance improvements
+## 0.6
+* Improved Py3k support
+* Improved PyPy support
+* Added IPv6 support
+* Added Thing2Literal for Django/MySQLdb compatibility
+* Removed errorhandler
+* Fixed GC errors
+* Improved test suite
+* Many bug fixes
+* Many performance improvements
 
-0.4   -Miscellaneous bug fixes
-      -Implementation of SSL support
-      -Implementation of kill()
-      -Cleaned up charset functionality
-      -Fixed BIT type handling
-      -Connections raise exceptions after they are close()'d
-      -Full Py3k and unicode support
+## 0.4
+* Miscellaneous bug fixes
+* Implementation of SSL support
+* Implementation of kill()
+* Cleaned up charset functionality
+* Fixed BIT type handling
+* Connections raise exceptions after they are close()'d
+* Full Py3k and unicode support
 
-0.3   -Implemented most of the extended DBAPI 2.0 spec including callproc()
-      -Fixed error handling to include the message from the server and support
-       multiple protocol versions.
-      -Implemented ping()
-      -Implemented unicode support (probably needs better testing)
-      -Removed DeprecationWarnings
-      -Ran against the MySQLdb unit tests to check for bugs
-      -Added support for client_flag, charset, sql_mode, read_default_file,
-       use_unicode, cursorclass, init_command, and connect_timeout.
-      -Refactoring for some more compatibility with MySQLdb including a fake
-       pymysql.version_info attribute.
-      -Now runs with no warnings with the -3 command-line switch
-      -Added test cases for all outstanding tickets and closed most of them.
-      -Basic Jython support added.
-      -Fixed empty result sets bug.
-      -Integrated new unit tests and refactored the example into one.
-      -Fixed bug with decimal conversion.
-      -Fixed string encoding bug. Now unicode and binary data work!
-      -Added very basic docstrings.
+## 0.3
+* Implemented most of the extended DBAPI 2.0 spec including callproc()
+* Fixed error handling to include the message from the server and support
+  multiple protocol versions.
+* Implemented ping()
+* Implemented unicode support (probably needs better testing)
+* Removed DeprecationWarnings
+* Ran against the MySQLdb unit tests to check for bugs
+* Added support for client_flag, charset, sql_mode, read_default_file,
+  use_unicode, cursorclass, init_command, and connect_timeout.
+* Refactoring for some more compatibility with MySQLdb including a fake
+  pymysql.version_info attribute.
+* Now runs with no warnings with the -3 command-line switch
+* Added test cases for all outstanding tickets and closed most of them.
+* Basic Jython support added.
+* Fixed empty result sets bug.
+* Integrated new unit tests and refactored the example into one.
+* Fixed bug with decimal conversion.
+* Fixed string encoding bug. Now unicode and binary data work!
+* Added very basic docstrings.
 
-0.2   -Changed connection parameter name 'password' to 'passwd'
-       to make it more plugin replaceable for the other mysql clients.
-      -Changed pack()/unpack() calls so it runs on 64 bit OSes too.
-      -Added support for unix_socket.
-      -Added support for no password.
-      -Renamed decorders to decoders.
-      -Better handling of non-existing decoder.
+## 0.2
+* Changed connection parameter name 'password' to 'passwd'
+  to make it more plugin replaceable for the other mysql clients.
+* Changed pack()/unpack() calls so it runs on 64 bit OSes too.
+* Added support for unix_socket.
+* Added support for no password.
+* Renamed decorders to decoders.
+* Better handling of non-existing decoder.
