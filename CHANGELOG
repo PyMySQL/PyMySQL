@@ -8,6 +8,13 @@
   delaying termination of an interrupted program; cleanup of uncollected
   rows is left to the Connection on next execute, which emits a
   warning at that time. (#287)
+* Support datetime and time with microsecond. (#303)
+* Use surrogateescape to format bytes on Python 3.
+* OperationalError raised from connect() have information about original
+  exception. (#304)
+* `init_command` now support multi statement.
+* `Connection.escape()` method now accepts second argument compatible to
+  MySQL-Python.
 
 ## 0.6.3
 * Fixed multiple result sets with SSCursor.
