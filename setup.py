@@ -8,12 +8,6 @@ if version_tuple[3] is not None:
 else:
     version = "%d.%d.%d" % version_tuple[:3]
 
-try:
-    with open('README.rst') as f:
-        readme = f.read()
-except IOError:
-    readme = ''
-
 setup(
     name="PyMySQL",
     version=version,
@@ -24,7 +18,6 @@ setup(
     maintainer='Marcel Rodrigues',
     maintainer_email='marcelgmr@gmail.com',
     description='Pure-Python MySQL Driver',
-    long_description=readme,
     license="MIT",
     packages=find_packages(),
     classifiers=[
