@@ -760,7 +760,10 @@ class Connection(object):
         #if DEBUG:
         #    print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
-            sql = sql.encode(self.encoding)
+            if PY2:
+                sql = sql.encode(self.encoding)
+            else:
+                sql = sql.encode(self.encoding, 'surrogateescape')
         self._execute_command(COMMAND.COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
