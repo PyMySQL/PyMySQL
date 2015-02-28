@@ -86,19 +86,20 @@ class TestConversion(base.PyMySQLTestCase):
         finally:
             c.execute("drop table test_dict")
 
-
-    def test_big_blob(self):
-        """ test tons of data """
+    def test_blob(self):
+        """test binary data"""
+        data = bytes(bytearray(range(256)) * 4)
         conn = self.connections[0]
+        self.safe_create_table(
+            conn, "test_blob", "create table test_blob (b blob)")
+
         c = conn.cursor()
-        c.execute("create table test_big_blob (b blob)")
         try:
-            data = "pymysql" * 1024
-            c.execute("insert into test_big_blob (b) values (%s)", (data,))
-            c.execute("select b from test_big_blob")
-            self.assertEqual(data.encode(conn.charset), c.fetchone()[0])
+            c.execute("insert into test_blob (b) values (%s)", (data,))
+            c.execute("select b from test_blob")
+            self.assertEqual(data, c.fetchone()[0])
         finally:
-            c.execute("drop table test_big_blob")
+            c.close()
 
     def test_untyped(self):
         """ test conversion of null, empty string """
