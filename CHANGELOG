@@ -1,10 +1,13 @@
 # Changes
 
-## 0.6.5
+## 0.6.6
 
 * Add context manager to cursor
 * Fix can't encode blob that is not utf-8 on PY3. (regression of 0.6.4,
   Thanks to @wiggzz)
+
+## 0.6.5
+Skipped
 
 ## 0.6.4
 * Support "LOAD LOCAL INFILE".  Thanks @wraziens
