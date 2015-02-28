@@ -93,13 +93,10 @@ class TestConversion(base.PyMySQLTestCase):
         self.safe_create_table(
             conn, "test_blob", "create table test_blob (b blob)")
 
-        c = conn.cursor()
-        try:
+        with conn.cursor() as c:
             c.execute("insert into test_blob (b) values (%s)", (data,))
             c.execute("select b from test_blob")
             self.assertEqual(data, c.fetchone()[0])
-        finally:
-            c.close()
 
     def test_untyped(self):
         """ test conversion of null, empty string """
