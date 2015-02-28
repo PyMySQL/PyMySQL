@@ -53,6 +53,13 @@ class Cursor(object):
         finally:
             self.connection = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        del exc_info
+        self.close()
+
     def _get_db(self):
         if not self.connection:
             raise err.ProgrammingError("Cursor closed")
