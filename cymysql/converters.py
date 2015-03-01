@@ -2,7 +2,7 @@ import re
 import datetime
 import time
 import sys
-from decimal import Decimal
+import decimal
 
 from cymysql.constants import FIELD_TYPE, FLAG
 from cymysql.charset import charset_by_id
@@ -255,9 +255,6 @@ def convert_characters(data, charset=None, field=None, use_unicode=None):
         data = data.encode(charset)
     return data
 
-def convert_decimal(data):
-    return Decimal(data)
-
 decoders = {
         FIELD_TYPE.BIT: convert_bit,
         FIELD_TYPE.TINY: int,
@@ -269,8 +266,8 @@ decoders = {
         FIELD_TYPE.NEWDECIMAL: float,
         FIELD_TYPE.LONGLONG: int if PYTHON3 else long,
         FIELD_TYPE.INT24: int,
-        FIELD_TYPE.DECIMAL:  convert_decimal,
-        FIELD_TYPE.NEWDECIMAL: convert_decimal,
+        FIELD_TYPE.DECIMAL:  decimal.Decimal,
+        FIELD_TYPE.NEWDECIMAL: decimal.Decimal,
         FIELD_TYPE.YEAR: int,
         FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
         FIELD_TYPE.DATETIME: convert_datetime,
