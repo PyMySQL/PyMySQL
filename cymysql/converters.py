@@ -100,9 +100,6 @@ def convert_datetime(obj, charset='ascii', field=None, use_unicode=None):
       True
 
     """
-    if ((PYTHON3 and not isinstance(obj, str)) or 
-        (not PYTHON3 and not isinstance(obj, unicode))):
-        obj = obj.decode(charset)
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
@@ -135,9 +132,6 @@ def convert_timedelta(obj, charset=None, field=None, use_unicode=None):
     """
     try:
         microseconds = 0
-        if ((PYTHON3 and not isinstance(obj, str)) or 
-            (not PYTHON3 and not isinstance(obj, unicode))):
-            obj = obj.decode(charset)
         if "." in obj:
             (obj, tail) = obj.split('.')
             microseconds = int(tail)
@@ -200,9 +194,6 @@ def convert_date(obj, charset=None, field=None, use_unicode=None):
 
     """
     try:
-        if ((PYTHON3 and not isinstance(obj, str)) or
-            (not PYTHON3 and not isinstance(obj, unicode))):
-            obj = obj.decode(charset)
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
         return None
@@ -228,10 +219,6 @@ def convert_mysql_timestamp(timestamp, charset=None, field=None, use_unicode=Non
       True
 
     """
-    if ((PYTHON3 and not isinstance(timestamp, str)) or
-        (not PYTHON3 and not isinstance(timestamp, unicode))):
-        timestamp = timestamp.decode(charset)
-
     if timestamp[4] == '-':
         return convert_datetime(timestamp, charset, field, use_unicode)
     timestamp += "0"*(14-len(timestamp)) # padding
@@ -287,7 +274,6 @@ def convert_float(data, charset=None, field=None, use_unicode=None):
     return float(data)
 
 def convert_decimal(data, charset=None, field=None, use_unicode=None):
-    data = data.decode(charset)
     return Decimal(data)
 
 decoders = {
