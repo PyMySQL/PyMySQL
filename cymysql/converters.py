@@ -287,7 +287,7 @@ encoders = {
         bool: escape_bool,
         int: escape_int,
         float: escape_float,
-        Decimal: escape_decimal,
+        decimal.Decimal: escape_decimal,
         str: escape_string,
         tuple: escape_sequence,
         list:escape_sequence,
