@@ -241,9 +241,6 @@ def convert_bit(b, charset=None, field=None, use_unicode=None):
     # so we shouldn't either
     return b
 
-def convert_blob(data, charset=None, field=None, use_unicode=None):
-    return convert_characters(data, charset, field, use_unicode)
-
 def convert_characters(data, charset=None, field=None, use_unicode=None):
     field_charset = charset_by_id(field.charsetnr).name
     if field.flags & FLAG.SET:
@@ -295,10 +292,10 @@ decoders = {
         FIELD_TYPE.TIME: convert_timedelta,
         FIELD_TYPE.DATE: convert_date,
         FIELD_TYPE.SET: convert_set,
-        FIELD_TYPE.BLOB: convert_blob,
-        FIELD_TYPE.TINY_BLOB: convert_blob,
-        FIELD_TYPE.MEDIUM_BLOB: convert_blob,
-        FIELD_TYPE.LONG_BLOB: convert_blob,
+        FIELD_TYPE.BLOB: convert_characters,
+        FIELD_TYPE.TINY_BLOB: convert_characters,
+        FIELD_TYPE.MEDIUM_BLOB: convert_characters,
+        FIELD_TYPE.LONG_BLOB: convert_characters,
         FIELD_TYPE.STRING: convert_characters,
         FIELD_TYPE.VAR_STRING: convert_characters,
         FIELD_TYPE.VARCHAR: convert_characters,
