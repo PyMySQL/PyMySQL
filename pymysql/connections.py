@@ -990,6 +990,14 @@ class Connection(object):
         next_packet = 1
 
         if self.ssl:
+            
+            # [ https://docs.python.org/2/library/ssl.html#ssl.wrap_socket ]
+            ca_certs = self.ca
+            if ca_certs is None:
+                cert_reqs = ssl.CERT_NONE
+            else: # "require and validate"
+                cert_reqs = ssl.CERT_REQUIRED
+            
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
             next_packet += 1
 
@@ -999,8 +1007,10 @@ class Connection(object):
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
                                           ssl_version=ssl.PROTOCOL_TLSv1,
-                                          cert_reqs=ssl.CERT_REQUIRED,
-                                          ca_certs=self.ca)
+                                            ##  cert_reqs=ssl.CERT_REQUIRED,
+                                            ##  ca_certs=self.ca)
+                                          cert_reqs=cert_reqs, 
+                                          ca_certs=ca_certs )
             self._rfile = _makefile(self.socket, 'rb')
 
         data = data_init + self.user + b'\0' + \
