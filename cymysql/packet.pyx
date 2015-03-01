@@ -116,27 +116,16 @@ cdef class MysqlPacket(object):
 
     cdef bytes _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        cdef bytes result
-
-        if self.__position + size > self.__data_length:
-            error = ('Result length not requested length:\n'
-                 'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                 % (size, self.__data_length - self.__position,
-                    self.__position, self.__data_length))
-            raise AssertionError(error)
-        result = self.__data[self.__position:(self.__position+size)]
-
         self.__position += size
-        return result
-  
+        return self.__data[self.__position-size:self.__position]
+
     def read_all(self):
         """Read all remaining data in the packet.
 
         (Subsequent read() or peek() will return errors.)
         """
-        result = self.__data[self.__position:]
         self.__position = -1  # ensure no subsequent read() or peek()
-        return result
+        return self.__data[self.__position:]
   
     cdef int read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
