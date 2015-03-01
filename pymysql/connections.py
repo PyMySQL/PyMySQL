@@ -994,12 +994,13 @@ class Connection(object):
             next_packet += 1
 
             if DEBUG: dump_packet(data)
-
             self._write_bytes(data)
+
+            cert_reqs = ssl.CERT_NONE if self.ca is None else ssl.CERT_REQUIRED
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
                                           ssl_version=ssl.PROTOCOL_TLSv1,
-                                          cert_reqs=ssl.CERT_REQUIRED,
+                                          cert_reqs=cert_reqs,
                                           ca_certs=self.ca)
             self._rfile = _makefile(self.socket, 'rb')
 
@@ -1015,7 +1016,6 @@ class Connection(object):
         next_packet += 2
 
         if DEBUG: dump_packet(data)
-
         self._write_bytes(data)
 
         auth_packet = self._read_packet()
