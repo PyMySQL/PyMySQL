@@ -5,7 +5,7 @@ import sys
 import struct
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
-from cymysql.converters import decoders as default_decoders
+from cymysql.converters import convert_characters
 
 from libc.stdint cimport uint16_t, uint32_t
 cdef int PYTHON3 = sys.version_info[0] > 2
@@ -41,17 +41,17 @@ cdef uint32_t unpack_uint32(bytes s):
 cdef long long unpack_uint64(bytes n):
     return struct.unpack('<Q', n)[0]
 
-cdef get_decode_values(values, charset, fields, use_unicode, decoders=default_decoders):
+cdef get_decode_values(values, charset, fields, use_unicode, decoders):
     cdef Py_ssize_t i
     cdef int type_code
     r = [None] * len(values)
     for i, value in enumerate(values):
         if value is not None:
             type_code = fields[i].type_code
-            if decoders[type_code] != default_decoders[type_code]:
-                r[i] = decoders[type_code](value)
-            else:
+            if decoders[type_code] == convert_characters:
                 r[i] = decoders[type_code](value, charset, fields[i], use_unicode)
+            else:
+                r[i] = decoders[type_code](value)
     return r
 
 

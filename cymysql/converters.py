@@ -84,7 +84,7 @@ def escape_struct_time(obj):
 def escape_decimal(obj):
     return str(obj)
 
-def convert_datetime(obj, charset='ascii', field=None, use_unicode=None):
+def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
       >>> datetime_or_None('2007-02-25 23:06:20')
@@ -105,15 +105,15 @@ def convert_datetime(obj, charset='ascii', field=None, use_unicode=None):
     elif 'T' in obj:
         sep = 'T'
     else:
-        return convert_date(obj, charset, field, use_unicode)
+        return convert_date(obj)
 
     try:
         ymd, hms = obj.split(sep, 1)
         return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
-        return convert_date(obj, charset, field, use_unicode)
+        return convert_date(obj)
 
-def convert_timedelta(obj, charset=None, field=None, use_unicode=None):
+def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
 
       >>> timedelta_or_None('25:06:17')
@@ -146,7 +146,7 @@ def convert_timedelta(obj, charset=None, field=None, use_unicode=None):
     except ValueError:
         return None
 
-def convert_time(obj, charset=None, field=None, use_unicode=None):
+def convert_time(obj):
     """Returns a TIME column as a time object:
 
       >>> time_or_None('15:06:17')
@@ -179,7 +179,7 @@ def convert_time(obj, charset=None, field=None, use_unicode=None):
     except ValueError:
         return None
 
-def convert_date(obj, charset=None, field=None, use_unicode=None):
+def convert_date(obj):
     """Returns a DATE column as a date object:
 
       >>> date_or_None('2007-02-26')
@@ -198,7 +198,7 @@ def convert_date(obj, charset=None, field=None, use_unicode=None):
     except ValueError:
         return None
 
-def convert_mysql_timestamp(timestamp, charset=None, field=None, use_unicode=None):
+def convert_mysql_timestamp(timestamp):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
 
     MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
@@ -220,7 +220,7 @@ def convert_mysql_timestamp(timestamp, charset=None, field=None, use_unicode=Non
 
     """
     if timestamp[4] == '-':
-        return convert_datetime(timestamp, charset, field, use_unicode)
+        return convert_datetime(timestamp)
     timestamp += "0"*(14-len(timestamp)) # padding
     year, month, day, hour, minute, second = \
         int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
@@ -233,10 +233,7 @@ def convert_mysql_timestamp(timestamp, charset=None, field=None, use_unicode=Non
 def convert_set(s):
     return set(s.split(","))
 
-def convert_bit(b, charset=None, field=None, use_unicode=None):
-    #b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
-    #return struct.unpack(">Q", b)[0]
-    #
+def convert_bit(b):
     # the snippet above is right, but MySQLdb doesn't process bits,
     # so we shouldn't either
     return b
@@ -258,35 +255,23 @@ def convert_characters(data, charset=None, field=None, use_unicode=None):
         data = data.encode(charset)
     return data
 
-def convert_int(data, charset=None, field=None, use_unicode=None):
-    return int(data)
-
-def convert_long(data, charset=None, field=None, use_unicode=None):
-    if PYTHON3:
-        return int(data)
-    else:
-        return long(data)
-
-def convert_float(data, charset=None, field=None, use_unicode=None):
-    return float(data)
-
-def convert_decimal(data, charset=None, field=None, use_unicode=None):
+def convert_decimal(data):
     return Decimal(data)
 
 decoders = {
         FIELD_TYPE.BIT: convert_bit,
-        FIELD_TYPE.TINY: convert_int,
-        FIELD_TYPE.SHORT: convert_int,
-        FIELD_TYPE.LONG: convert_long,
-        FIELD_TYPE.FLOAT: convert_float,
-        FIELD_TYPE.DOUBLE: convert_float,
-        FIELD_TYPE.DECIMAL: convert_float,
-        FIELD_TYPE.NEWDECIMAL: convert_float,
-        FIELD_TYPE.LONGLONG: convert_long,
-        FIELD_TYPE.INT24: convert_int,
+        FIELD_TYPE.TINY: int,
+        FIELD_TYPE.SHORT: int,
+        FIELD_TYPE.LONG: int if PYTHON3 else long,
+        FIELD_TYPE.FLOAT: float,
+        FIELD_TYPE.DOUBLE: float,
+        FIELD_TYPE.DECIMAL: float,
+        FIELD_TYPE.NEWDECIMAL: float,
+        FIELD_TYPE.LONGLONG: int if PYTHON3 else long,
+        FIELD_TYPE.INT24: int,
         FIELD_TYPE.DECIMAL:  convert_decimal,
         FIELD_TYPE.NEWDECIMAL: convert_decimal,
-        FIELD_TYPE.YEAR: convert_int,
+        FIELD_TYPE.YEAR: int,
         FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
         FIELD_TYPE.DATETIME: convert_datetime,
         FIELD_TYPE.TIME: convert_timedelta,
