@@ -24,7 +24,7 @@ Requirements
 -------------
 
 - Python 2.6 or higher
-- Cython 17.1 or higher
+- Cython 0.22 or higher
 - MySQL 4.1 or higher
     
 Installation & Example
