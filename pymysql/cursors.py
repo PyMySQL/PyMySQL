@@ -304,7 +304,7 @@ class Cursor(object):
         if ws is None:
             return
         for w in ws:
-            warnings.warn(w[-1], err.Warning, 4)
+            warnings.warn(str(w[-1]), err.Warning, 4)
 
     def __iter__(self):
         return iter(self.fetchone, None)
