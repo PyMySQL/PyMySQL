@@ -100,6 +100,8 @@ def convert_datetime(obj):
       True
 
     """
+    if PYTHON3 and not isinstance(obj, str):
+        obj = obj.decode('ascii')
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
@@ -130,6 +132,8 @@ def convert_timedelta(obj):
     can accept values as (+|-)DD HH:MM:SS. The latter format will not
     be parsed correctly by this function.
     """
+    if PYTHON3 and not isinstance(obj, str):
+        obj = obj.decode('ascii')
     try:
         microseconds = 0
         if "." in obj:
@@ -193,12 +197,14 @@ def convert_date(obj):
       True
 
     """
+    if PYTHON3 and not isinstance(obj, str):
+        obj = obj.decode('ascii')
     try:
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
         return None
 
-def convert_mysql_timestamp(timestamp):
+def convert_mysql_timestamp(obj):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
 
     MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
@@ -219,12 +225,14 @@ def convert_mysql_timestamp(timestamp):
       True
 
     """
-    if timestamp[4] == '-':
-        return convert_datetime(timestamp)
-    timestamp += "0"*(14-len(timestamp)) # padding
+    if PYTHON3 and not isinstance(obj, str):
+        obj = obj.decode('ascii')
+    if obj[4] == '-':
+        return convert_datetime(obj)
+    obj += "0"*(14-len(obj)) # padding
     year, month, day, hour, minute, second = \
-        int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
-        int(timestamp[8:10]), int(timestamp[10:12]), int(timestamp[12:14])
+        int(obj[:4]), int(obj[4:6]), int(obj[6:8]), \
+        int(obj[8:10]), int(obj[10:12]), int(obj[12:14])
     try:
         return datetime.datetime(year, month, day, hour, minute, second)
     except ValueError:
@@ -255,6 +263,12 @@ def convert_characters(data, charset=None, field=None, use_unicode=None):
         data = data.encode(charset)
     return data
 
+def convert_decimal(obj):
+    if PYTHON3 and not isinstance(obj, str):
+        obj = obj.decode('ascii')
+    return decimal.Decimal(obj)
+
+
 decoders = {
         FIELD_TYPE.BIT: convert_bit,
         FIELD_TYPE.TINY: int,
@@ -266,8 +280,8 @@ decoders = {
         FIELD_TYPE.NEWDECIMAL: float,
         FIELD_TYPE.LONGLONG: int if PYTHON3 else long,
         FIELD_TYPE.INT24: int,
-        FIELD_TYPE.DECIMAL:  decimal.Decimal,
-        FIELD_TYPE.NEWDECIMAL: decimal.Decimal,
+        FIELD_TYPE.DECIMAL:  convert_decimal,
+        FIELD_TYPE.NEWDECIMAL: convert_decimal,
         FIELD_TYPE.YEAR: int,
         FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
         FIELD_TYPE.DATETIME: convert_datetime,
