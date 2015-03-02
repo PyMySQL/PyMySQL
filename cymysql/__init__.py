@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 import sys
 
-VERSION = (0, 7, 8)
+VERSION = (0, 7, 9)
 
 from cymysql import converters
 from cymysql.converters import escape_dict, escape_sequence, escape_string
