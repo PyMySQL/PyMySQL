@@ -508,7 +508,8 @@ class Connection(object):
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=False,
-                 autocommit=False, db=None, passwd=None, local_infile=False):
+                 autocommit=False, db=None, passwd=None, local_infile=False,
+                 max_allowed_packet=16*1024*1024):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -542,11 +543,11 @@ class Connection(object):
         no_delay: Disable Nagle's algorithm on the socket
         autocommit: Autocommit mode. None means use server default. (default: False)
         local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
+        max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
 
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
         """
-
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
 
@@ -641,6 +642,7 @@ class Connection(object):
         self.decoders = conv
         self.sql_mode = sql_mode
         self.init_command = init_command
+        self.max_allowed_packet = max_allowed_packet
         self._connect()
 
     def close(self):
@@ -951,25 +953,25 @@ class Connection(object):
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
 
-        chunk_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
+        chunk_size = min(self.max_allowed_packet, len(sql) + 1)  # +1 is for command
 
         prelude = struct.pack('<iB', chunk_size, command)
         self._write_bytes(prelude + sql[:chunk_size-1])
         if DEBUG: dump_packet(prelude + sql)
 
-        if chunk_size < MAX_PACKET_LEN:
+        if chunk_size < self.max_allowed_packet:
             return
 
         seq_id = 1
         sql = sql[chunk_size-1:]
         while True:
-            chunk_size = min(MAX_PACKET_LEN, len(sql))
+            chunk_size = min(self.max_allowed_packet, len(sql))
             prelude = struct.pack('<i', chunk_size)[:3]
             data = prelude + int2byte(seq_id%256) + sql[:chunk_size]
             self._write_bytes(data)
             if DEBUG: dump_packet(data)
             sql = sql[chunk_size:]
-            if not sql and chunk_size < MAX_PACKET_LEN:
+            if not sql and chunk_size < self.max_allowed_packet:
                 break
             seq_id += 1
 
@@ -1284,7 +1286,7 @@ class LoadLocalFile(object):
         seq_id = 2
         try:
             with open(self.filename, 'rb') as open_file:
-                chunk_size = MAX_PACKET_LEN
+                chunk_size = self.connection.max_allowed_packet
                 prelude = b""
                 packet = b""
                 packet_size = 0
