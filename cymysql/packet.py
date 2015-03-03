@@ -137,8 +137,7 @@ class MysqlPacket(object):
             return None
         return self._read(length)
 
-    def read_decode_data(self, fields):
-        decoders = self.connection.conv
+    def read_decode_data(self, fields, decoders):
         return tuple([None if value is None
                 else decoders[field.type_code](
                         value, self.connection.charset, field, self.connection.use_unicode)
@@ -262,6 +261,7 @@ class MySQLResult(object):
         if (not self.has_result) or (self.rest_rows is not None):
             return
         rest_rows = []
+        decoder = self.connection.conv
         while True:
             packet = MysqlPacket(self.connection)
             is_eof, warning_count, server_status = packet.is_eof_and_status()
@@ -270,7 +270,7 @@ class MySQLResult(object):
                 self.server_status = server_status
                 self.has_next = (server_status & SERVER_MORE_RESULTS_EXISTS)
                 break
-            rest_rows.append(packet.read_decode_data(self.fields))
+            rest_rows.append(packet.read_decode_data(self.fields, decoder))
         self.rest_rows = rest_rows
         self.rest_row_index = 0
 
@@ -299,7 +299,7 @@ class MySQLResult(object):
                 self.has_next = (server_status & SERVER_MORE_RESULTS_EXISTS)
                 self.rest_rows = []
                 return None
-            return packet.read_decode_data(self.fields)
+            return packet.read_decode_data(self.fields, self.connection.conv)
         elif len(self.rest_rows) != self.rest_row_index:
             self.rest_row_index += 1
             return self.rest_rows[self.rest_row_index-1]
