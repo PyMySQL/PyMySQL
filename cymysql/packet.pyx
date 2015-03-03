@@ -45,12 +45,13 @@ cdef get_decode_values(values, charset, fields, use_unicode, decoders):
     cdef Py_ssize_t i
     r = [None] * len(values)
     for i, value in enumerate(values):
-        if value is not None:
-            decoder = decoders[fields[i].type_code]
-            if decoder is convert_characters:
-                r[i] = decoder(value, charset, fields[i], use_unicode)
-            else:
-                r[i] = decoder(value)
+        if value is None:
+            continue
+        decoder = decoders[fields[i].type_code]
+        if decoder is convert_characters:
+            r[i] = decoder(value, charset, fields[i], use_unicode)
+        else:
+            r[i] = decoder(value)
     return r
 
 
