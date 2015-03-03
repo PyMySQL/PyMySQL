@@ -111,11 +111,11 @@ def convert_datetime(obj):
 
     try:
         ymd, hms = obj.split(sep, 1)
-        usecs = '0'
         if '.' in hms:
             hms, usecs = hms.split('.')
-        usecs = float('0.' + usecs) * 1e6
-        return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':')+[usecs] ])
+            return datetime.datetime(
+                *[ int(x) for x in ymd.split('-')+hms.split(':')+[float('0.' + usecs) * 1e6] ])
+        return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
     except ValueError:
         return convert_date(obj)
 
