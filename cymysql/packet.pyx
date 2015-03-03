@@ -41,20 +41,6 @@ cdef uint32_t unpack_uint32(bytes s):
 cdef long long unpack_uint64(bytes n):
     return struct.unpack('<Q', n)[0]
 
-cdef get_decode_values(values, charset, fields, use_unicode, decoders):
-    cdef Py_ssize_t i
-    r = [None] * len(values)
-    for i, value in enumerate(values):
-        if value is None:
-            continue
-        decoder = decoders[fields[i].type_code]
-        if decoder is convert_characters:
-            r[i] = decoder(value, charset, fields[i], use_unicode)
-        else:
-            r[i] = decoder(value)
-    return r
-
-
 cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
@@ -159,13 +145,13 @@ cdef class MysqlPacket(object):
         return self._read(length)
 
     cdef read_decode_data(self, fields):
-        return tuple(
-            get_decode_values([self._read_length_coded_string() for f in fields],
-                self.connection.charset,
-                fields,
-                self.connection.use_unicode,
-                self.connection.conv)
-        )
+        decoders = self.connection.conv
+        return tuple([None if value is None
+                else decoders[field.type_code](
+                        value, self.connection.charset, field, self.connection.use_unicode)
+                    if decoders[field.type_code] is convert_characters
+                    else decoders[field.type_code](value)
+            for value, field in zip([self._read_length_coded_string() for f in fields], fields)])
 
     def is_ok_packet(self):
         return (<unsigned char>(self.__data[0])) == 0
