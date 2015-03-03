@@ -251,21 +251,18 @@ def convert_bit(b):
     return b
 
 def convert_characters(data, charset=None, field=None, use_unicode=None):
-    field_charset = charset_by_id(field.charsetnr).name
     if field.flags & FLAG.SET:
-        return convert_set(data.decode(field_charset))
+        return convert_set(data.decode(field.charset))
     if field.flags & FLAG.BINARY:
-        if PYTHON3 and field_charset != 'binary':
-            return data.decode(field_charset)
+        if PYTHON3 and field.charset != 'binary':
+            return data.decode(field.charset)
         else:
             return data
 
     if use_unicode or PYTHON3:
-        data = data.decode(field_charset)
-    elif charset != field_charset:
-        data = data.decode(field_charset)
-        data = data.encode(charset)
-    return data
+        return data.decode(field.charset)
+    elif charset != field.charset:
+        return data.decode(field.charset).encode(charset)
 
 def convert_decimal(obj):
     if PYTHON3 and not isinstance(obj, str):

@@ -6,6 +6,7 @@ import struct
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS
 from cymysql.converters import convert_characters
+from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -192,6 +193,7 @@ class FieldDescriptorPacket(MysqlPacket):
         self.org_name = self._read_length_coded_string()
         self.read(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
+        self.charset = charset_by_id(self.charsetnr).name
         self.length = unpack_uint32(self._read(4))
         self.type_code = ord(self._read(1))
         self.flags = unpack_uint16(self._read(2))
