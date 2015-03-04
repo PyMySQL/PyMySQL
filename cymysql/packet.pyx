@@ -4,7 +4,7 @@
 import sys
 import struct
 from cymysql.err import raise_mysql_exception, OperationalError
-from cymysql.constants import SERVER_STATUS
+from cymysql.constants import SERVER_STATUS, FLAG
 from cymysql.converters import convert_characters
 from cymysql.charset import charset_by_id
 
@@ -185,7 +185,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
     attributes on the class such as: db, table_name, name, length, type_code.
     """
     cdef public object catalog, db, table_name, org_table, name, org_name
-    cdef public int charsetnr, length, type_code, flags, scale
+    cdef public int charsetnr, length, type_code, flags, scale, is_set, is_binary
     cdef public str charset
 
     def __init__(self, *args):
@@ -209,6 +209,8 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         self.length = unpack_uint32(self._read(4))
         self.type_code = ord(self._read(1))
         self.flags = unpack_uint16(self._read(2))
+        self.is_set = self.flags & FLAG.SET
+        self.is_binary = self.flags & FLAG.BINARY
         self.scale = ord(self._read(1))  # "decimals"
         self.read(2)  # filler (always 0x00)
     

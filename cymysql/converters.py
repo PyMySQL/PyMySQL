@@ -4,7 +4,7 @@ import time
 import sys
 import decimal
 
-from cymysql.constants import FIELD_TYPE, FLAG
+from cymysql.constants import FIELD_TYPE
 from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
@@ -251,9 +251,9 @@ def convert_bit(b):
     return b
 
 def convert_characters(data, charset=None, field=None, use_unicode=None):
-    if field.flags & FLAG.SET:
+    if field.is_set:
         return convert_set(data.decode(field.charset))
-    if field.flags & FLAG.BINARY:
+    if field.is_binary:
         if PYTHON3 and field.charset != 'binary':
             return data.decode(field.charset)
         else:

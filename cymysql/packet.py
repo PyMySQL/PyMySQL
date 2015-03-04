@@ -4,7 +4,7 @@
 import sys
 import struct
 from cymysql.err import raise_mysql_exception, OperationalError
-from cymysql.constants import SERVER_STATUS
+from cymysql.constants import SERVER_STATUS, FLAG
 from cymysql.converters import convert_characters
 from cymysql.charset import charset_by_id
 
@@ -197,6 +197,8 @@ class FieldDescriptorPacket(MysqlPacket):
         self.length = unpack_uint32(self._read(4))
         self.type_code = ord(self._read(1))
         self.flags = unpack_uint16(self._read(2))
+        self.is_set = self.flags & FLAG.SET
+        self.is_binary = self.flags & FLAG.BINARY
         self.scale = ord(self._read(1))  # "decimals"
         self.read(2)  # filler (always 0x00)
     
