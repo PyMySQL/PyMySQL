@@ -117,7 +117,7 @@ class Cursor(object):
                 if isinstance(x, unicode):
                     x = x.encode(encoding)
                 if isinstance(x, (tuple, list)):
-                    x = tuple(ensure_bytes(v) for v in x)
+                    x = type(x)(ensure_bytes(v) for v in x)
                 return x
 
             query = ensure_bytes(query)
