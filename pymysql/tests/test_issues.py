@@ -103,7 +103,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         try:
             cur.execute("create table issue13 (t text)")
             # ticket says 18k
-            size = 18*1024
+            size = 18 * 1024
             cur.execute("insert into issue13 (t) values (%s)", ("x" * size,))
             cur.execute("select t from issue13")
             # use assertTrue so that obscenely huge error messages don't print
@@ -165,6 +165,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             self.assertEqual("hello, world!", c2.fetchone()[0])
         finally:
             c.execute("drop table issue17")
+
 
 class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_34(self):
@@ -248,7 +249,7 @@ class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_38(self):
         conn = self.connections[0]
         c = conn.cursor()
-        datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
+        datum = "a" * 1024 * 1023  # reduced size for most default mysql installs
 
         try:
             with warnings.catch_warnings():
@@ -266,7 +267,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             warnings.filterwarnings("ignore")
             c.execute("drop table if exists issue54")
         big_sql = "select * from issue54 where "
-        big_sql += " and ".join("%d=%d" % (i,i) for i in range(0, 100000))
+        big_sql += " and ".join("%d=%d" % (i, i) for i in range(0, 100000))
 
         try:
             c.execute("create table issue54 (id integer primary key)")
@@ -275,6 +276,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.assertEqual(7, c.fetchone()[0])
         finally:
             c.execute("drop table issue54")
+
 
 class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_66(self):
@@ -305,8 +307,8 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         c.execute("""CREATE TABLE a (id int, value int)""")
         c.execute("""CREATE TABLE b (id int, value int)""")
 
-        a=(1,11)
-        b=(1,22)
+        a = (1, 11)
+        b = (1, 22)
         try:
             c.execute("insert into a values (%s, %s)", a)
             c.execute("insert into b values (%s, %s)", b)
@@ -381,3 +383,26 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                     warnings.filterwarnings("ignore")
                     cur.execute('drop table if exists test_field_count')
 
+    def test_pull_request_for_fix_tuple_and_unicode_encoding_issue(self):
+        """ Encoding error appears when iterable is passed in query args list.
+        List should contain two types of items:
+        iterable containing unicode string and unicode string with non-ascii symbol"""
+        table_name = 'tuple_and_unicode'
+        connection = pymysql.connect(charset="utf8", **self.databases[0])
+        cursor = connection.cursor()
+        try:
+            cursor.execute('create table %s (value_1 varchar(1), value_2 varchar(1))' % table_name)
+            sql_insert_template = 'insert into {0}(value_1, value_2) values (%s,%s)'.format(table_name)
+            sql_select_template = 'select * from {0} where value_1 in %s and value_2=%s'.format(table_name)
+            data = [
+                [(u'a',), u'\u0430'],
+                [[u'b'], u'\u0430']
+            ]
+            self.assertEqual(cursor.execute(sql_insert_template, data[0]), 1)
+            self.assertEqual(cursor.execute(sql_insert_template, data[1]), 1)
+            self.assertEqual(cursor.execute(sql_select_template, [(u'a', u'b'), u'\u0430']), 2)
+            self.assertEqual(cursor.fetchone(), (u'a', u'\u0430'))
+            self.assertEqual(cursor.fetchone(), (u'b', u'\u0430'))
+        finally:
+            cursor.execute('drop table if exists %s' % table_name)
+            connection.close()
