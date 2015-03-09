@@ -4,7 +4,6 @@
 # http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
-DEBUG = False
 
 import errno
 from functools import partial
@@ -16,6 +15,14 @@ import struct
 import sys
 import traceback
 import warnings
+
+from .charset import MBLENGTH, charset_by_name, charset_by_id
+from .cursors import Cursor
+from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
+from .util import byte2int, int2byte
+from .converters import (
+    escape_item, encoders, decoders, escape_string, through)
+from . import err
 
 try:
     import ssl
@@ -37,13 +44,7 @@ except ImportError:
     DEFAULT_USER = None
 
 
-from .charset import MBLENGTH, charset_by_name, charset_by_id
-from .cursors import Cursor
-from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
-from .util import byte2int, int2byte
-from .converters import (
-    escape_item, encoders, decoders, escape_string, through)
-from . import err
+DEBUG = False
 
 _py_version = sys.version_info[:2]
 
@@ -55,6 +56,7 @@ if _py_version == (2, 7) and not IRONPYTHON:
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
+
     def _makefile(sock, mode):
         return io.BufferedReader(SocketIO(sock, mode))
 elif _py_version == (2, 6):
@@ -63,6 +65,7 @@ elif _py_version == (2, 6):
     class SockFile(object):
         def __init__(self, sock):
             self._sock = sock
+
         def read(self, n):
             read = self._sock.recv(n)
             if len(read) == n:
@@ -137,7 +140,7 @@ def dump_packet(data):
 def _scramble(password, message):
     if not password:
         return b'\0'
-    if DEBUG: print('password=' + password)
+    if DEBUG: print('password=' + str(password))
     stage1 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
@@ -197,14 +200,12 @@ def _hash_password_323(password):
     nr2 = 0x12345671
 
     for c in [byte2int(x) for x in password if x not in (' ', '\t')]:
-        nr^= (((nr & 63)+add)*c)+ (nr << 8) & 0xFFFFFFFF
-        nr2= (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
-        add= (add + c) & 0xFFFFFFFF
+        nr ^= (((nr & 63) + add) * c) + (nr << 8) & 0xFFFFFFFF
+        nr2 = (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
+        add = (add + c) & 0xFFFFFFFF
 
-    r1 = nr & ((1 << 31) - 1) # kill sign bits
+    r1 = nr & ((1 << 31) - 1)  # kill sign bits
     r2 = nr2 & ((1 << 31) - 1)
-
-    # pack
     return struct.pack(">LL", r1, r2)
 
 
@@ -646,7 +647,7 @@ class Connection(object):
         self._connect()
 
     def close(self):
-        ''' Send the quit message and close the socket '''
+        """Send the quit message and close the socket"""
         if self.socket is None:
             raise err.Error("Already closed")
         send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
@@ -692,7 +693,7 @@ class Connection(object):
         return ok
 
     def _send_autocommit_mode(self):
-        ''' Set whether or not to commit after every execute() '''
+        """Set whether or not to commit after every execute()"""
         self._execute_command(COMMAND.COM_QUERY, "SET AUTOCOMMIT = %s" %
                               self.escape(self.autocommit_mode))
         self._read_ok_packet()
@@ -703,12 +704,12 @@ class Connection(object):
         self._read_ok_packet()
 
     def commit(self):
-        ''' Commit changes to stable storage '''
+        """Commit changes to stable storage"""
         self._execute_command(COMMAND.COM_QUERY, "COMMIT")
         self._read_ok_packet()
 
     def rollback(self):
-        ''' Roll back the current transaction '''
+        """Roll back the current transaction"""
         self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
 
@@ -725,7 +726,7 @@ class Connection(object):
         self._read_ok_packet()
 
     def escape(self, obj, mapping=None):
-        ''' Escape whatever value you pass to it  '''
+        """Escape whatever value you pass to it"""
         if isinstance(obj, str_type):
             return "'" + self.escape_string(obj) + "'"
         return escape_item(obj, self.charset, mapping=mapping)
@@ -741,17 +742,17 @@ class Connection(object):
         return escape_string(s)
 
     def cursor(self, cursor=None):
-        ''' Create a new cursor to execute queries with '''
+        """Create a new cursor to execute queries with"""
         if cursor:
             return cursor(self)
         return self.cursorclass(self)
 
     def __enter__(self):
-        ''' Context manager that returns a Cursor '''
+        """Context manager that returns a Cursor"""
         return self.cursor()
 
     def __exit__(self, exc, value, traceback):
-        ''' On successful exit, commit. On exception, rollback. '''
+        """On successful exit, commit. On exception, rollback"""
         if exc:
             self.rollback()
         else:
@@ -759,8 +760,8 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
-        #if DEBUG:
-        #    print("DEBUG: sending query:", sql)
+        # if DEBUG:
+        #     print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
             if PY2:
                 sql = sql.encode(self.encoding)
@@ -783,7 +784,7 @@ class Connection(object):
         return self._read_ok_packet()
 
     def ping(self, reconnect=True):
-        ''' Check if the server is alive '''
+        """Check if the server is alive"""
         if self.socket is None:
             if reconnect:
                 self._connect()
@@ -1287,9 +1288,7 @@ class LoadLocalFile(object):
         try:
             with open(self.filename, 'rb') as open_file:
                 chunk_size = self.connection.max_allowed_packet
-                prelude = b""
                 packet = b""
-                packet_size = 0
 
                 while True:
                     chunk = open_file.read(chunk_size)
@@ -1306,5 +1305,3 @@ class LoadLocalFile(object):
             # send the empty packet to signify we are done sending data
             packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
             self.connection._write_bytes(packet)
-
-# g:khuno_ignore='E226,E301,E701'
