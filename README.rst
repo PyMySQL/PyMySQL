@@ -80,9 +80,10 @@ The following examples make use of a simple table
 .. code:: sql
 
    CREATE TABLE `users` (
-       `id` int(11) NOT NULL,
+       `id` int(11) NOT NULL AUTO_INCREMENT,
        `email` varchar(255) COLLATE utf8_bin NOT NULL,
-       `password` varchar(255) COLLATE utf8_bin NOT NULL
+       `password` varchar(255) COLLATE utf8_bin NOT NULL,
+       PRIMARY KEY (`id`)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin
    AUTO_INCREMENT=1 ;
 
@@ -93,15 +94,16 @@ Create new record
 .. code:: python
 
     import pymysql
-    connection = pymysql.connect(host='host',
+    connection = pymysql.connect(host='localhost',
                                  user='user',
                                  passwd='passwd',
                                  db='db')
-    with closing(connection.cursor()) as cursor:
+    with connection.cursor() as cursor:
         sql = ("INSERT INTO `users` "
                "(`email`, `password`) "
                "VALUES ('webmaster@python.org', 'very-secret');")
         cursor.execute(sql)
+    connection.commit()
     connection.close()
 
 
@@ -111,7 +113,7 @@ Read records
 .. code:: python
 
     import pymysql
-    connection = pymysql.connect(host='host',
+    connection = pymysql.connect(host='localhost',
                                  user='user',
                                  passwd='passwd',
                                  db='db',
@@ -119,14 +121,23 @@ Read records
     cursor = connection.cursor()
 
     sql = ("SELECT `id`, `password` "
-           "FROM `users` WHERE `email`=%s") % email
+           "FROM `users` WHERE `email`='%s'") % 'webmaster@python.org'
 
     try:
         cursor.execute(sql)
         result = cursor.fetchone()
     finally:
         connection.close()
-    return result['id']
+    print(result)
+
+prints
+
+.. code:: python
+
+    {'password': 'very-secret', 'id': 4}
+
+assuming the first matching recording has id 4 and password 'very-secret'.
+If there is no match, `None` is printed.
 
 
 Update records
@@ -135,7 +146,7 @@ Update records
 .. code:: python
 
     import pymysql
-    connection = pymysql.connect(host='host',
+    connection = pymysql.connect(host='localhost',
                                  user='user',
                                  passwd='passwd',
                                  db='db')
@@ -157,7 +168,7 @@ Delete records
 .. code:: python
 
     import pymysql
-    connection = pymysql.connect(host='host',
+    connection = pymysql.connect(host='localhost',
                                  user='user',
                                  passwd='passwd',
                                  db='db')
