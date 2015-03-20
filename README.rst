@@ -121,10 +121,10 @@ Read records
     cursor = connection.cursor()
 
     sql = ("SELECT `id`, `password` "
-           "FROM `users` WHERE `email`='%s'") % 'webmaster@python.org'
+           "FROM `users` WHERE `email`=%s")
 
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, 'webmaster@python.org')
         result = cursor.fetchone()
     finally:
         connection.close()
@@ -153,10 +153,10 @@ Update records
     cursor = connection.cursor()
 
     sql = ("UPDATE `users` SET `email`= 'maxmustermann@email.de' "
-           "WHERE `id` = %i LIMIT 1") % 42
+           "WHERE `id` = %s LIMIT 1")
 
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, "42")
         connection.commit()
     finally:
         connection.close()
@@ -174,10 +174,10 @@ Delete records
                                  db='db')
     cursor = connection.cursor()
 
-    sql = ("DELETE FROM `users` WHERE `id` = %i") % 42
+    sql = "DELETE FROM `users` WHERE `id` = %s"
 
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, "42")
         connection.commit()
     finally:
         connection.close()
