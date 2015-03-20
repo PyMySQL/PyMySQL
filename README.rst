@@ -71,6 +71,84 @@ Python versions::
 
     $ tox
 
+
+CRUD
+----
+
+Create
+~~~~~~
+
+.. code:: python
+
+    import pymysql
+    connection = pymysql.connect(host='host',
+                                 user='user',
+                                 passwd='passwd',
+                                 db='db')
+    with closing(connection.cursor()) as cursor:
+        sql = ("CREATE TABLE `users` ("
+               "`id` int(11) NOT NULL, "
+               "`email` varchar(255) COLLATE utf8_bin NOT NULL, "
+               "`password` varchar(255) COLLATE utf8_bin NOT NULL "
+               ") ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin "
+               "AUTO_INCREMENT=1 ;")
+        cursor.execute(sql)
+    connection.close()
+
+Read
+~~~~
+
+.. code:: python
+
+    import pymysql
+    connection = pymysql.connect(host='host',
+                                 user='user',
+                                 passwd='passwd',
+                                 db='db',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    cursor = connection.cursor()
+
+    sql = ("SELECT `id`, `password` "
+           "FROM `users` WHERE `email`=%s") % email
+    cursor.execute(sql)
+    result = cursor.fetchone()
+    connection.close()
+    return result['id']
+
+Update
+~~~~~~
+
+.. code:: python
+
+    import pymysql
+    connection = pymysql.connect(host='host',
+                                 user='user',
+                                 passwd='passwd',
+                                 db='db')
+    cursor = connection.cursor()
+
+    sql = ("UPDATE `users` SET `email`= 'maxmustermann@email.de' "
+           "WHERE `id` = %i LIMIT 1") % 42
+    cursor.execute(sql)
+    connection.commit()
+
+Delete
+~~~~~~
+
+.. code:: python
+
+    import pymysql
+    connection = pymysql.connect(host='host',
+                                 user='user',
+                                 passwd='passwd',
+                                 db='db')
+    cursor = connection.cursor()
+
+    sql = ("DELETE FROM `users` WHERE `id` = %i") % 42
+    cursor.execute(sql)
+    connection.commit()
+
+
 Resources
 ---------
 
