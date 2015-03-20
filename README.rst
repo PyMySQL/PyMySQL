@@ -75,8 +75,20 @@ Python versions::
 CRUD Exapmle
 ------------
 
-Create
-~~~~~~
+The following examples make use of a simple table
+
+.. code:: sql
+
+   CREATE TABLE `users` (
+       `id` int(11) NOT NULL,
+       `email` varchar(255) COLLATE utf8_bin NOT NULL,
+       `password` varchar(255) COLLATE utf8_bin NOT NULL
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin
+   AUTO_INCREMENT=1 ;
+
+
+Create new record
+~~~~~~~~~~~~~~~~~
 
 .. code:: python
 
@@ -86,17 +98,15 @@ Create
                                  passwd='passwd',
                                  db='db')
     with closing(connection.cursor()) as cursor:
-        sql = ("CREATE TABLE `users` ("
-               "`id` int(11) NOT NULL, "
-               "`email` varchar(255) COLLATE utf8_bin NOT NULL, "
-               "`password` varchar(255) COLLATE utf8_bin NOT NULL "
-               ") ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin "
-               "AUTO_INCREMENT=1 ;")
+        sql = ("INSERT INTO `users` "
+               "(`email`, `password`) "
+               "VALUES ('webmaster@python.org', 'very-secret');")
         cursor.execute(sql)
     connection.close()
 
-Read
-~~~~
+
+Read records
+~~~~~~~~~~~~
 
 .. code:: python
 
@@ -110,13 +120,17 @@ Read
 
     sql = ("SELECT `id`, `password` "
            "FROM `users` WHERE `email`=%s") % email
-    cursor.execute(sql)
-    result = cursor.fetchone()
-    connection.close()
+
+    try:
+        cursor.execute(sql)
+        result = cursor.fetchone()
+    finally:
+        connection.close()
     return result['id']
 
-Update
-~~~~~~
+
+Update records
+~~~~~~~~~~~~~~
 
 .. code:: python
 
@@ -129,11 +143,16 @@ Update
 
     sql = ("UPDATE `users` SET `email`= 'maxmustermann@email.de' "
            "WHERE `id` = %i LIMIT 1") % 42
-    cursor.execute(sql)
-    connection.commit()
 
-Delete
-~~~~~~
+    try:
+        cursor.execute(sql)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+Delete records
+~~~~~~~~~~~~~~
 
 .. code:: python
 
@@ -145,8 +164,12 @@ Delete
     cursor = connection.cursor()
 
     sql = ("DELETE FROM `users` WHERE `id` = %i") % 42
-    cursor.execute(sql)
-    connection.commit()
+
+    try:
+        cursor.execute(sql)
+        connection.commit()
+    finally:
+        connection.close()
 
 
 Resources
