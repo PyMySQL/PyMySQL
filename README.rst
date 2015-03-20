@@ -72,8 +72,8 @@ Python versions::
     $ tox
 
 
-CRUD
-----
+CRUD Exapmle
+------------
 
 Create
 ~~~~~~
