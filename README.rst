@@ -72,8 +72,8 @@ Python versions::
     $ tox
 
 
-CRUD Exapmle
-------------
+Exapmle
+-------
 
 The following examples make use of a simple table
 
@@ -88,99 +88,42 @@ The following examples make use of a simple table
    AUTO_INCREMENT=1 ;
 
 
-Create new record
-~~~~~~~~~~~~~~~~~
-
 .. code:: python
 
     import pymysql
-    connection = pymysql.connect(host='localhost',
-                                 user='user',
-                                 passwd='passwd',
-                                 db='db')
-    with connection.cursor() as cursor:
-        sql = ("INSERT INTO `users` "
-               "(`email`, `password`) "
-               "VALUES ('webmaster@python.org', 'very-secret');")
-        cursor.execute(sql)
-    connection.commit()
-    connection.close()
 
-
-Read records
-~~~~~~~~~~~~
-
-.. code:: python
-
-    import pymysql
+    # Connect to the database
     connection = pymysql.connect(host='localhost',
                                  user='user',
                                  passwd='passwd',
                                  db='db',
                                  cursorclass=pymysql.cursors.DictCursor)
-    cursor = connection.cursor()
-
-    sql = ("SELECT `id`, `password` "
-           "FROM `users` WHERE `email`=%s")
 
     try:
-        cursor.execute(sql, 'webmaster@python.org')
-        result = cursor.fetchone()
+        with connection.cursor() as cursor:
+            # Create a new record
+            sql = ("INSERT INTO `users` (`email`, `password`) "
+                   "VALUES ('webmaster@python.org', 'very-secret');")
+            cursor.execute(sql)
+            connection.commit()
+
+            # Read a single record
+            sql = "SELECT `id`, `password` FROM `users` WHERE `email`=%s"
+            cursor.execute(sql, 'webmaster@python.org')
+            result = cursor.fetchone()
+            print(result)
     finally:
         connection.close()
-    print(result)
 
-prints
+This example will print:
 
 .. code:: python
 
     {'password': 'very-secret', 'id': 4}
 
+
 assuming the first matching recording has id 4 and password 'very-secret'.
 If there is no match, `None` is printed.
-
-
-Update records
-~~~~~~~~~~~~~~
-
-.. code:: python
-
-    import pymysql
-    connection = pymysql.connect(host='localhost',
-                                 user='user',
-                                 passwd='passwd',
-                                 db='db')
-    cursor = connection.cursor()
-
-    sql = ("UPDATE `users` SET `email`= 'maxmustermann@email.de' "
-           "WHERE `id` = %s LIMIT 1")
-
-    try:
-        cursor.execute(sql, "42")
-        connection.commit()
-    finally:
-        connection.close()
-
-
-Delete records
-~~~~~~~~~~~~~~
-
-.. code:: python
-
-    import pymysql
-    connection = pymysql.connect(host='localhost',
-                                 user='user',
-                                 passwd='passwd',
-                                 db='db')
-    cursor = connection.cursor()
-
-    sql = "DELETE FROM `users` WHERE `id` = %s"
-
-    try:
-        cursor.execute(sql, "42")
-        connection.commit()
-    finally:
-        connection.close()
 
 
 Resources
