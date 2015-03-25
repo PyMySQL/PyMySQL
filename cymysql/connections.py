@@ -463,11 +463,11 @@ class Connection(object):
             if DEBUG: dump_packet(data)
 
             self.socket.sendall(data)
-            self.socket = ssl.wrap_self.socketet(self.socket, keyfile=self.key,
-                                                 certfile=self.cert,
-                                                 ssl_version=ssl.PROTOCOL_TLSv1,
-                                                 cert_reqs=ssl.CERT_REQUIRED,
-                                                 ca_certs=self.ca)
+            self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
+                                          certfile=self.cert,
+                                          ssl_version=ssl.PROTOCOL_TLSv1,
+                                          cert_reqs=ssl.CERT_REQUIRED,
+                                          ca_certs=self.ca)
 
         data = data_init + user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
 
