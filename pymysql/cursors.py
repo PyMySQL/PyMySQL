@@ -103,12 +103,14 @@ class Cursor(object):
             #Worst case it will throw a Value error
             return conn.escape(args)
 
-    def execute(self, query, args=None):
-        '''Execute a query'''
-        conn = self._get_db()
+    def mogrify(self, query, args=None):
+        """
+        Returns the exact string that is sent to the database by calling the
+        execute() method.
 
-        while self.nextset():
-            pass
+        This method follows the extension to the DB API 2.0 followed by Psycopg.
+        """
+        conn = self._get_db()
 
         if PY2:  # Use bytes on Python 2 always
             encoding = conn.encoding
@@ -130,6 +132,15 @@ class Cursor(object):
 
         if args is not None:
             query = query % self._escape_args(args, conn)
+
+        return query
+
+    def execute(self, query, args=None):
+        '''Execute a query'''
+        while self.nextset():
+            pass
+
+        query = self.mogrify(query, args)
 
         result = self._query(query)
         self._executed = query
