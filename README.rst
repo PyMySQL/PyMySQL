@@ -72,7 +72,7 @@ Python versions::
     $ tox
 
 
-Exapmle
+Example
 -------
 
 The following examples make use of a simple table
@@ -90,7 +90,7 @@ The following examples make use of a simple table
 
 .. code:: python
 
-    import pymysql
+    import pymysql.cursors
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
@@ -102,14 +102,17 @@ The following examples make use of a simple table
     try:
         with connection.cursor() as cursor:
             # Create a new record
-            sql = ("INSERT INTO `users` (`email`, `password`) "
-                   "VALUES ('webmaster@python.org', 'very-secret');")
-            cursor.execute(sql)
-            connection.commit()
+            sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
+            cursor.execute(sql, ('webmaster@python.org', 'very-secret'))
 
+        # connection is not autocommit by default. So you must commit to save
+        # your changes.
+        connection.commit()
+
+        with connection.cursor() as cursor:
             # Read a single record
             sql = "SELECT `id`, `password` FROM `users` WHERE `email`=%s"
-            cursor.execute(sql, 'webmaster@python.org')
+            cursor.execute(sql, ('webmaster@python.org',)
             result = cursor.fetchone()
             print(result)
     finally:
@@ -119,11 +122,7 @@ This example will print:
 
 .. code:: python
 
-    {'password': 'very-secret', 'id': 4}
-
-
-assuming the first matching recording has id 4 and password 'very-secret'.
-If there is no match, `None` is printed.
+    {'password': 'very-secret', 'id': 1}
 
 
 Resources
