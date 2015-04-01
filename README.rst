@@ -97,7 +97,7 @@ The following examples make use of a simple table
                                  user='user',
                                  passwd='passwd',
                                  db='db',
-                                 charset='utf8',
+                                 charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
     try:
