@@ -606,7 +606,7 @@ class Connection(object):
             charset = _config("default-character-set", charset)
 
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.user = user or DEFAULT_USER
         self.password = password or ""
         self.db = database
