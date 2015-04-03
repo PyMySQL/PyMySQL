@@ -55,5 +55,14 @@ class TestNextset(base.PyMySQLTestCase):
         self.assertEqual([(2,)], list(cur1))
         self.assertIsNone(cur1.nextset())
 
+    def test_multi_statement_warnings(self):
+        cursor = self.con.cursor()
+
+        try:
+            cursor.execute('DROP TABLE IF EXISTS a; '
+                           'DROP TABLE IF EXISTS b;')
+        except TypeError:
+            self.fail()
+
     #TODO: How about SSCursor and nextset?
     # It's very hard to implement correctly...
