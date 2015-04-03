@@ -299,8 +299,9 @@ class Cursor(object):
 
     def _show_warnings(self, conn):
         ws = conn.show_warnings()
-        for w in ws:
-            warnings.warn(w[-1], err.Warning, 4)
+        if ws is not None:
+            for w in ws:
+                warnings.warn(w[-1], err.Warning, 4)
 
     def __iter__(self):
         return iter(self.fetchone, None)
