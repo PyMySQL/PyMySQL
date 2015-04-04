@@ -215,6 +215,8 @@ class Connection(object):
         self.host = host
         self.port = port
         self.user = user or DEFAULT_USER
+        if isinstance(passwd, bytes):
+            passwd = passwd.decode(charset)
         self.password = passwd
         self.db = db
         self.unix_socket = unix_socket
