@@ -1,3 +1,2 @@
 include README.rst LICENSE CHANGELOG
 include runtests.py tox.ini
-include example.py example_pool
