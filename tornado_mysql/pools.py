@@ -144,7 +144,11 @@ class Pool(object):
         :rtype: Future
         """
         conn = yield self._get_conn()
-        yield conn.begin()
+        try:
+            yield conn.begin()
+        except:
+            self._close_conn(conn)
+            raise
         trx = Transaction(self, conn)
         raise Return(trx)
 
