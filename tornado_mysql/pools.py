@@ -6,7 +6,7 @@ import warnings
 
 from tornado.ioloop import IOLoop
 from tornado.gen import coroutine, Return
-from tornado.concurrent import Future, chain_future
+from tornado.concurrent import Future
 
 from tornado_mysql import connect
 from tornado_mysql.connections import Connection
@@ -55,6 +55,7 @@ class Pool(object):
         self._waitings = deque()
 
     def stat(self):
+        """Returns (opened connections, free connections, waiters)"""
         return (self._opened_conns, len(self._free_conn), len(self._waitings))
 
     def _get_conn(self):
