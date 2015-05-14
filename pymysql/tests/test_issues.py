@@ -393,16 +393,20 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         try:
             cursor.execute('create table %s (value_1 varchar(1), value_2 varchar(1))' % table_name)
             sql_insert_template = 'insert into {0}(value_1, value_2) values (%s,%s)'.format(table_name)
+            sql_dictionary_insert_template = 'insert into {0}(value_1, value_2) values (%(value_1)s,%(value_2)s)'.format(table_name)
             sql_select_template = 'select * from {0} where value_1 in %s and value_2=%s'.format(table_name)
             data = [
                 [(u'a',), u'\u0430'],
-                [[u'b'], u'\u0430']
+                [[u'b'], u'\u0430'],
+                {'value_1': [[u'c']], 'value_2': u'\u0430'}
             ]
             self.assertEqual(cursor.execute(sql_insert_template, data[0]), 1)
             self.assertEqual(cursor.execute(sql_insert_template, data[1]), 1)
-            self.assertEqual(cursor.execute(sql_select_template, [(u'a', u'b'), u'\u0430']), 2)
+            self.assertEqual(cursor.execute(sql_dictionary_insert_template, data[2]), 1)
+            self.assertEqual(cursor.execute(sql_select_template, [(u'a', u'b', u'c'), u'\u0430']), 3)
             self.assertEqual(cursor.fetchone(), (u'a', u'\u0430'))
             self.assertEqual(cursor.fetchone(), (u'b', u'\u0430'))
+            self.assertEqual(cursor.fetchone(), (u'c', u'\u0430'))
         finally:
             cursor.execute('drop table if exists %s' % table_name)
             connection.close()
