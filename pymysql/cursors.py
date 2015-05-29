@@ -298,7 +298,11 @@ class Cursor(object):
             self._show_warnings(conn)
 
     def _show_warnings(self, conn):
+        if self._result and self._result.has_next:
+            return
         ws = conn.show_warnings()
+        if ws is None:
+            return
         for w in ws:
             warnings.warn(w[-1], err.Warning, 4)
 
