@@ -149,6 +149,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         host = self.databases[0]["host"]
         db = self.databases[0]["db"]
         c = conn.cursor()
+
         # grant access to a table to a user with a password
         try:
             with warnings.catch_warnings():
@@ -178,17 +179,12 @@ class TestNewIssues(base.PyMySQLTestCase):
 
     def test_issue_33(self):
         conn = pymysql.connect(charset="utf8", **self.databases[0])
+        self.safe_create_table(conn, u'hei\xdfe',
+                               u'create table hei\xdfe (name varchar(32))')
         c = conn.cursor()
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                c.execute(b"drop table if exists hei\xc3\x9fe".decode("utf8"))
-            c.execute(b"create table hei\xc3\x9fe (name varchar(32))".decode("utf8"))
-            c.execute(b"insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')".decode("utf8"))
-            c.execute(b"select name from hei\xc3\x9fe".decode("utf8"))
-            self.assertEqual(b"Pi\xc3\xb1ata".decode("utf8"), c.fetchone()[0])
-        finally:
-            c.execute(b"drop table hei\xc3\x9fe".decode("utf8"))
+        c.execute(u"insert into hei\xdfe (name) values ('Pi\xdfata')")
+        c.execute(u"select name from hei\xdfe")
+        self.assertEqual(u"Pi\xdfata", c.fetchone()[0])
 
     @unittest2.skip("This test requires manual intervention")
     def test_issue_35(self):
