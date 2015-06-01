@@ -508,7 +508,7 @@ class Connection(object):
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None, no_delay=False,
+                 compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024):
         """
@@ -541,7 +541,7 @@ class Connection(object):
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
-        no_delay: Disable Nagle's algorithm on the socket
+        no_delay: Disable Nagle's algorithm on the socket. (deprecated, default: True)
         autocommit: Autocommit mode. None means use server default. (default: False)
         local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
         max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
@@ -549,6 +549,12 @@ class Connection(object):
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
         """
+        if no_delay is not None:
+            warnings.warn("no_delay option is deprecated", DeprecationWarning)
+            no_delay = bool(no_delay)
+        else:
+            no_delay = True
+
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
 
