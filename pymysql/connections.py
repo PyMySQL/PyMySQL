@@ -591,11 +591,13 @@ class Connection(object):
             cfg = configparser.RawConfigParser()
             cfg.read(os.path.expanduser(read_default_file))
 
-            def _config(key, default):
+            def _config(key, arg):
+                if arg:
+                    return arg
                 try:
                     return cfg.get(read_default_group, key)
                 except Exception:
-                    return default
+                    return arg
 
             user = _config("user", user)
             password = _config("password", password)
