@@ -32,7 +32,7 @@ class PyMySQLTestCase(unittest2.TestCase):
                 # do something for MySQL 5.6.4 and above
         """
         server_version = conn.get_server_version()
-        return server_version_tuple >= version_tuple
+        return server_version >= version_tuple
 
     def setUp(self):
         self.connections = []
