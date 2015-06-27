@@ -987,7 +987,7 @@ class Connection(object):
 
     def _request_authentication(self):
         self.client_flag |= CLIENT.CAPABILITIES
-        if self.server_version.startswith('5'):
+        if self.server_version_tuple >= (5,0,0):
             self.client_flag |= CLIENT.MULTI_RESULTS
 
         if self.user is None:
