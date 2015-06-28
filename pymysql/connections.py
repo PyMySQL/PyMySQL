@@ -19,7 +19,7 @@ import warnings
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .cursors import Cursor
 from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
-from .util import byte2int, int2byte
+from .util import byte2int, int2byte, lenenc_int
 from .converters import (
     escape_item, encoders, decoders, escape_string, through)
 from . import err
@@ -139,7 +139,7 @@ def dump_packet(data):
 
 def _scramble(password, message):
     if not password:
-        return b'\0'
+        return b''
     if DEBUG: print('password=' + str(password))
     stage1 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
@@ -152,7 +152,7 @@ def _scramble(password, message):
 
 def _my_crypt(message1, message2):
     length = len(message1)
-    result = struct.pack('B', length)
+    result = ''
     for i in range_type(length):
         x = (struct.unpack('B', message1[i:i+1])[0] ^
              struct.unpack('B', message2[i:i+1])[0])
@@ -985,6 +985,7 @@ class Connection(object):
             seq_id += 1
 
     def _request_authentication(self):
+        # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::HandshakeResponse
         self.client_flag |= CLIENT.CAPABILITIES
         if self.server_version.startswith('5'):
             self.client_flag |= CLIENT.MULTI_RESULTS
@@ -1000,7 +1001,7 @@ class Connection(object):
 
         next_packet = 1
 
-        if self.ssl:
+        if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
             next_packet += 1
 
@@ -1015,13 +1016,29 @@ class Connection(object):
                                           ca_certs=self.ca)
             self._rfile = _makefile(self.socket, 'rb')
 
-        data = data_init + self.user + b'\0' + \
-            _scramble(self.password.encode('latin1'), self.salt)
+        data = data_init + self.user + b'\0'
 
-        if self.db:
+        authresp = ''
+        if self.plugin_name == 'mysql_native_password':
+            authresp = _scramble(self.password.encode('latin1'), self.salt)
+
+        if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
+            data += lenenc_int(len(authresp))
+            data += authresp
+        elif self.server_capabilities & CLIENT.SECURE_CONNECTION:
+            length = len(authresp)
+            data += struct.pack('B', length)
+            data += authresp
+        else:
+            data += authresp + int2byte(0)
+
+        if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
             if isinstance(self.db, text_type):
                 self.db = self.db.encode(self.encoding)
             data += self.db + int2byte(0)
+
+        if self.server_capabilities & CLIENT.PLUGIN_AUTH:
+            data += self.plugin_name.encode('latin1') + int2byte(0)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
@@ -1095,10 +1112,30 @@ class Connection(object):
         if len(data) >= i + salt_len:
             # salt_len includes auth_plugin_data_part_1 and filler
             self.salt += data[i:i+salt_len]
-        # TODO: AUTH PLUGIN NAME may appeare here.
+            i += salt_len
+
+        i+=1
+        # AUTH PLUGIN NAME may appear here.
+        if self.server_capabilities & CLIENT.PLUGIN_AUTH and len(data) >= i:
+            # Due to Bug#59453 the auth-plugin-name is missing the terminating
+            # NUL-char in versions prior to 5.5.10 and 5.6.2.
+            # ref: https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
+            # didn't use version checks as mariadb is corrected and reports
+            # earlier than those two.
+            server_end = data.find(int2byte(0), i)
+            if server_end < 0:
+                # not found \0 and last field so take it all
+                self.plugin_name = data[i:].decode('latin1')
+            else:
+                self.plugin_name = data[i:server_end].decode('latin1')
+        else:
+            self.plugin_name = ''
 
     def get_server_info(self):
         return self.server_version
+
+    def get_plugin_name(self):
+        return self.plugin_name
 
     Warning = err.Warning
     Error = err.Error
