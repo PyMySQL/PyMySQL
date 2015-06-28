@@ -89,15 +89,21 @@ class TestConnection(base.PyMySQLTestCase):
         cur.execute("SHOW PLUGINS")
         found = False
         for r in cur:
-            if r == (u'unix_socket', u'ACTIVE', u'AUTHENTICATION', u'auth_socket.so', u'GPL'):
+            if (r[1], r[2], r[3]) ==  (u'ACTIVE', u'AUTHENTICATION', u'auth_socket.so'):
+                plugin_name = r[0]
                 found = True
                 break
         # needs plugin. lets install it.
         if not found:
-            cur.execute("install soname 'auth_socket'")
+            try:
+                cur.execute("install plugin auth_socket soname 'auth_socket.so'")
+                plugin_name = 'auth_socket'
+            except pymysql.err.InternalError:
+                cur.execute("install soname 'auth_socket'")
+                plugin_name = 'unix_socket'
 
         current_db = self.databases[0]['db']
-        cur.execute("GRANT ALL ON %s TO %s@localhost IDENTIFIED VIA unix_socket" % ( current_db, user))
+        cur.execute("GRANT ALL ON %s TO %s@localhost IDENTIFIED WITH %s" % ( current_db, user, plugin_name))
         db = copy.copy(self.databases[0])
         del db['user']
         c = pymysql.connect(user=user, **db)
