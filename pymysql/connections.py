@@ -798,7 +798,7 @@ class Connection(object):
         """Check if the server is alive"""
         if self.socket is None:
             if reconnect:
-                self._connect()
+                self.connect()
                 reconnect = False
             else:
                 raise err.Error("Already closed")
@@ -807,7 +807,7 @@ class Connection(object):
             return self._read_ok_packet()
         except Exception:
             if reconnect:
-                self._connect()
+                self.connect()
                 return self.ping(False)
             else:
                 raise
