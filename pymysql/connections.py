@@ -823,7 +823,7 @@ class Connection(object):
 
     def connect(self, sock=None):
         try:
-            if sock == None:
+            if sock is None:
                 if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     sock.settimeout(self.connect_timeout)
