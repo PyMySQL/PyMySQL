@@ -510,7 +510,7 @@ class Connection(object):
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
-                 max_allowed_packet=16*1024*1024):
+                 max_allowed_packet=16*1024*1024, defer_connect=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -545,6 +545,8 @@ class Connection(object):
         autocommit: Autocommit mode. None means use server default. (default: False)
         local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
         max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
+        defer_connect: Don't explicitly connect on contruction - wait for connect call.
+            (default: False)
 
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
@@ -652,7 +654,8 @@ class Connection(object):
         self.sql_mode = sql_mode
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
-        self._connect()
+        if not defer_connect:
+            self.connect()
 
     def close(self):
         """Send the quit message and close the socket"""
@@ -795,7 +798,7 @@ class Connection(object):
         """Check if the server is alive"""
         if self.socket is None:
             if reconnect:
-                self._connect()
+                self.connect()
                 reconnect = False
             else:
                 raise err.Error("Already closed")
@@ -804,7 +807,7 @@ class Connection(object):
             return self._read_ok_packet()
         except Exception:
             if reconnect:
-                self._connect()
+                self.connect()
                 return self.ping(False)
             else:
                 raise
@@ -818,31 +821,31 @@ class Connection(object):
         self.charset = charset
         self.encoding = encoding
 
-    def _connect(self):
-        sock = None
+    def connect(self, sock=None):
         try:
-            if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.settimeout(self.connect_timeout)
-                sock.connect(self.unix_socket)
-                self.host_info = "Localhost via UNIX socket"
-                if DEBUG: print('connected using unix_socket')
-            else:
-                while True:
-                    try:
-                        sock = socket.create_connection(
-                            (self.host, self.port), self.connect_timeout)
-                        break
-                    except (OSError, IOError) as e:
-                        if e.errno == errno.EINTR:
-                            continue
-                        raise
-                self.host_info = "socket %s:%d" % (self.host, self.port)
-                if DEBUG: print('connected using socket')
-                if self.no_delay:
-                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            sock.settimeout(None)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            if sock is None:
+                if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
+                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    sock.settimeout(self.connect_timeout)
+                    sock.connect(self.unix_socket)
+                    self.host_info = "Localhost via UNIX socket"
+                    if DEBUG: print('connected using unix_socket')
+                else:
+                    while True:
+                        try:
+                            sock = socket.create_connection(
+                                (self.host, self.port), self.connect_timeout)
+                            break
+                        except (OSError, IOError) as e:
+                            if e.errno == errno.EINTR:
+                                continue
+                            raise
+                    self.host_info = "socket %s:%d" % (self.host, self.port)
+                    if DEBUG: print('connected using socket')
+                    if self.no_delay:
+                        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                sock.settimeout(None)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             self.socket = sock
             self._rfile = _makefile(sock, 'rb')
             self._get_server_information()
