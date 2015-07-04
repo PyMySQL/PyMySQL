@@ -2,6 +2,8 @@ import datetime
 import decimal
 import pymysql
 import time
+import os
+import copy
 from pymysql.tests import base
 
 
@@ -73,6 +75,43 @@ class TestConnection(base.PyMySQLTestCase):
         c.execute('select "foobar";')
         self.assertEqual(('foobar',), c.fetchone())
         conn.close()
+
+    def test_plugin(self):
+        con = self.connections[0]
+        self.assertEqual('mysql_native_password',con.get_plugin_name())
+
+        # attempt a unix socket test which is included in some versions
+        # and doesn't require a client side handler
+        user = os.environ.get('USER')
+        if not user or self.databases[0]['host'] != 'localhost':
+            return
+        cur = con.cursor()
+        cur.execute("SHOW PLUGINS")
+        found = False
+        for r in cur:
+            if (r[1], r[2], r[3]) ==  (u'ACTIVE', u'AUTHENTICATION', u'auth_socket.so'):
+                plugin_name = r[0]
+                found = True
+                break
+        # needs plugin. lets install it.
+        if not found:
+            try:
+                cur.execute("install plugin auth_socket soname 'auth_socket.so'")
+                plugin_name = 'auth_socket'
+            except pymysql.err.InternalError:
+                cur.execute("install soname 'auth_socket'")
+                plugin_name = 'unix_socket'
+
+        current_db = self.databases[0]['db']
+        cur.execute("GRANT ALL ON %s TO %s@localhost IDENTIFIED WITH %s" % ( current_db, user, plugin_name))
+        db = copy.copy(self.databases[0])
+        del db['user']
+        c = pymysql.connect(user=user, **db)
+
+        if not found:
+            cur.execute("uninstall soname 'auth_socket'")
+        cur.execute("DROP USER %s@localhost" % user)
+
 
 
 # A custom type and function to escape it
