@@ -87,31 +87,90 @@ class TestConnection(base.PyMySQLTestCase):
             return
         cur = con.cursor()
         cur.execute("SHOW PLUGINS")
-        found = False
+        socketfound = False
+        socket_added = False
+        two = three = False
+        pam_plugin = False
         for r in cur:
             if (r[1], r[2], r[3]) ==  (u'ACTIVE', u'AUTHENTICATION', u'auth_socket.so'):
                 plugin_name = r[0]
-                found = True
-                break
-        # needs plugin. lets install it.
-        if not found:
+                socketfound = True
+            if (r[1], r[2], r[3]) ==  (u'ACTIVE', u'AUTHENTICATION', u'dialog_examples.so'):
+                if r[0] == 'two_questions':
+                    two=True
+                elif r[0] == 'three_attempts':
+                    three=True
+                socketfound = True
+            if (r[0], r[1], r[2]) ==  (u'pam', u'ACTIVE', u'AUTHENTICATION'):
+                pam_plugin = r[3].split('.')[0]
+                if pam_plugin == 'auth_pam':
+                    pam_plugin = 'pam'
+                # MySQL: authentication_pam
+                # https://dev.mysql.com/doc/refman/5.5/en/pam-authentication-plugin.html
+
+                # MariaDB: pam
+                # https://mariadb.com/kb/en/mariadb/pam-authentication-plugin/
+                # uses client plugin 'dialog' by default however 'mysql_cleartext_password' if
+                # variable pam-use-cleartext-plugin enabled
+        if not socketfound:
+            # needs plugin. lets install it.
             try:
                 cur.execute("install plugin auth_socket soname 'auth_socket.so'")
-                plugin_name = 'auth_socket'
+                socket_plugin_name = 'auth_socket'
+                socket_added = True
             except pymysql.err.InternalError:
                 cur.execute("install soname 'auth_socket'")
-                plugin_name = 'unix_socket'
+                socket_plugin_name = 'unix_socket'
+                socket_added = True
 
         current_db = self.databases[0]['db']
-        cur.execute("GRANT ALL ON %s TO %s@localhost IDENTIFIED WITH %s" % ( current_db, user, plugin_name))
         db = copy.copy(self.databases[0])
         del db['user']
-        c = pymysql.connect(user=user, **db)
+        if socketfound or socket_added:
+            cur.execute("CREATE USER %s@localhost IDENTIFIED WITH %s" % ( user, plugin_name))
+            cur.execute("GRANT ALL ON %s TO %s@localhost" % ( current_db, user))
+            c = pymysql.connect(user=user, **db)
+            if socket_added:
+                cur.execute("uninstall soname 'auth_socket'")
+            cur.execute("DROP USER %s@localhost" % user)
 
-        if not found:
-            cur.execute("uninstall soname 'auth_socket'")
-        cur.execute("DROP USER %s@localhost" % user)
+        class Dialog(object):
+            m = {'Password, please:': b'notverysecret',
+                 'Are you sure ?': b'yes, of course'}
+            fail=False
 
+            def __init__(self, con):
+                self.con=con
+
+            def prompt(self, echo, prompt):
+                if self.fail:
+                   self.fail=False
+                   return 'bad guess'
+                return self.m.get(prompt)
+
+        if two:
+            cur.execute("CREATE USER pymysql_test_two_questions" \
+                        " IDENTIFIED WITH two_questions" \
+                        " AS 'notverysecret'")
+            cur.execute("GRANT ALL ON %s TO pymysql_test_two_questions" % current_db)
+            c = pymysql.connect(user='pymysql_test_two_questions', plugin_map={b'dialog': Dialog}, **db)
+            cur.execute("DROP USER pymysql_test_two_questions")
+
+        if three:
+            Dialog.m = {'Password, please:': b'stillnotverysecret'}
+            Dialog.fail=True   # fail just once. We've got three attempts after all
+            cur.execute("CREATE USER pymysql_test_three_attempts"
+                        " IDENTIFIED WITH three_attempts" \
+                        " AS 'stillnotverysecret'")
+            cur.execute("GRANT ALL ON %s TO pymysql_test_three_attempts" % current_db)
+            c = pymysql.connect(user='pymysql_test_three_attempts', plugin_map={b'dialog': Dialog}, **db)
+            cur.execute("DROP USER pymysql_test_three_attempts")
+
+        if pam_plugin:
+            cur.execute("CREATE USER %s IDENTIFIED WITH %s" % ( user, pam_plugin))
+            cur.execute("GRANT ALL ON %s TO %s" % ( current_db, user))
+            c = pymysql.connect(user=user, **db)
+            cur.execute("DROP USER %s" % user)
 
 
 # A custom type and function to escape it
