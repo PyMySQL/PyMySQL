@@ -142,9 +142,13 @@ class Cursor(object):
         ''' Run several data against one query '''
         del self.messages[:]
 
+        rowcount = 0
         for params in args:
             self.execute(query, params)
+            if self.rowcount != -1:
+                rowcount += self.rowcount
         self._result = None
+        return rowcount
 
     def callproc(self, procname, args=()):
         """Execute stored procedure procname with args
