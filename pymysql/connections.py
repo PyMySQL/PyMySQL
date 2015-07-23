@@ -68,14 +68,15 @@ elif _py_version == (2, 6):
 
         def read(self, n):
             read = self._sock.recv(n)
-            n -= len(read)
-            while n > 0:
-                data = self._sock.recv(n)
+            if len(read) == n:
+                return read
+            while True:
+                data = self._sock.recv(n-len(read))
                 if not data:
-                    break
+                    return read
                 read += data
-                n -= len(read)
-            return read
+                if len(read) == n:
+                    return read
 
     def _makefile(sock, mode):
         assert mode == 'rb'
@@ -933,10 +934,7 @@ class Connection(object):
         while True:
             packet_header = self._read_bytes(4)
             if DEBUG: dump_packet(packet_header)
-            try:
-                btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
-            except struct.error:
-                break
+            btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
             bytes_to_read = btrl + (btrh << 16)
             #TODO: check sequence id
             recv_data = self._read_bytes(bytes_to_read)
@@ -949,14 +947,9 @@ class Connection(object):
         return packet
 
     def _read_bytes(self, num_bytes):
-        data = b''
-        while num_bytes > 0:
+        while True:
             try:
-                d = self._rfile.read(num_bytes)
-                if d is None:
-                    break
-                data += d
-                num_bytes -= len(d)
+                data = self._rfile.read(num_bytes)
                 break
             except (IOError, OSError) as e:
                 if e.errno == errno.EINTR:
@@ -964,7 +957,7 @@ class Connection(object):
                 raise err.OperationalError(
                     2013,
                     "Lost connection to MySQL server during query (%s)" % (e,))
-        if num_bytes != 0:
+        if len(data) < num_bytes:
             raise err.OperationalError(
                 2013, "Lost connection to MySQL server during query")
         return data
