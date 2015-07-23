@@ -846,6 +846,9 @@ class Connection(object):
 
                         # avoid all the deprecation warnings
 
+                        def makefile(self, mode):
+                             return self.socket.makefile(mode)
+
                         def settimeout(self, timeout):
                              return self.socket.settimeout(timeout)
 
