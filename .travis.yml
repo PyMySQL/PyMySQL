@@ -12,11 +12,14 @@ env:
 matrix:
    include:
      - addons:
-        mariadb: 5.5
+          mariadb: 5.5
+       env: TOX_ENV=py27
      - addons:
-        mariadb: 10.0
+          mariadb: 10.0
+       env: TOX_ENV=py33
      - addons:
-        mariadb: 10.1
+          mariadb: 10.1
+       env: TOX_ENV=py34
 
 install:
     - pip install -U tox
