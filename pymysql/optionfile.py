@@ -6,7 +6,7 @@ else:
     import configparser
 
 
-class DefaultFileParser(configparser.RawConfigParser):
+class Parser(configparser.RawConfigParser):
 
     def __remove_quotes(self, value):
         quotes = ["'", "\""]

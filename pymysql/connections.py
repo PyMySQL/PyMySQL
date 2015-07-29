@@ -21,7 +21,7 @@ from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
 from .converters import (
     escape_item, encoders, decoders, escape_string, through)
 from .cursors import Cursor
-from .parsers import DefaultFileParser
+from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
 
@@ -592,7 +592,7 @@ class Connection(object):
             if not read_default_group:
                 read_default_group = "client"
 
-            cfg = DefaultFileParser()
+            cfg = Parser()
             cfg.read(os.path.expanduser(read_default_file))
 
             def _config(key, arg):
