@@ -95,9 +95,7 @@ class Cursor(object):
         return self._nextset(False)
 
     def _ensure_bytes(self, x, encoding=None):
-        if not PY2:
-            return x
-        if isinstance(x, unicode):
+        if isinstance(x, text_type):
             x = x.encode(encoding)
         elif isinstance(x, (tuple, list)):
             x = type(x)(self._ensure_bytes(v, encoding=encoding) for v in x)
