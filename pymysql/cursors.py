@@ -176,6 +176,8 @@ class Cursor(object):
         escape = self._escape_args
         if isinstance(prefix, text_type):
             prefix = prefix.encode(encoding)
+        if PY2 and isinstance(values, text_type):
+            values = values.encode(encoding)
         if isinstance(postfix, text_type):
             postfix = postfix.encode(encoding)
         sql = bytearray(prefix)
