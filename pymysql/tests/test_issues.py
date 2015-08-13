@@ -377,3 +377,59 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                     warnings.filterwarnings("ignore")
                     cur.execute('drop table if exists test_field_count')
 
+    def test_issue_321(self):
+        """ Test iterable as query argument. """
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        self.safe_create_table(
+            conn, "issue321",
+            "create table issue321 (value_1 varchar(1), value_2 varchar(1))")
+
+        sql_insert = "insert into issue321 (value_1, value_2) values (%s, %s)"
+        sql_dict_insert = ("insert into issue321 (value_1, value_2) "
+                           "values (%(value_1)s, %(value_2)s)")
+        sql_select = ("select * from issue321 where "
+                      "value_1 in %s and value_2=%s")
+        data = [
+            [(u"a", ), u"\u0430"],
+            [[u"b"], u"\u0430"],
+            {"value_1": [[u"c"]], "value_2": u"\u0430"}
+        ]
+        cur = conn.cursor()
+        self.assertEqual(cur.execute(sql_insert, data[0]), 1)
+        self.assertEqual(cur.execute(sql_insert, data[1]), 1)
+        self.assertEqual(cur.execute(sql_dict_insert, data[2]), 1)
+        self.assertEqual(
+            cur.execute(sql_select, [(u"a", u"b", u"c"), u"\u0430"]), 3)
+        self.assertEqual(cur.fetchone(), (u"a", u"\u0430"))
+        self.assertEqual(cur.fetchone(), (u"b", u"\u0430"))
+        self.assertEqual(cur.fetchone(), (u"c", u"\u0430"))
+
+    def test_issue_364(self):
+        """ Test mixed unicode/binary arguments in executemany. """
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        self.safe_create_table(
+            conn, "issue363",
+            "create table issue363 (value_1 binary(3), value_2 varchar(3)) "
+            "engine=InnoDB default charset=utf8")
+
+        sql = "insert into issue363 (value_1, value_2) values (%s, %s)"
+        usql = u"insert into issue363 (value_1, value_2) values (%s, %s)"
+        values = [b"\x00\xff\x00", u"\xe4\xf6\xfc"]
+
+        # test single insert and select
+        cur = conn.cursor()
+        cur.execute(sql, args=values)
+        cur.execute("select * from issue363")
+        self.assertEqual(cur.fetchone(), tuple(values))
+
+        # test single insert unicode query
+        cur.execute(usql, args=values)
+
+        # test multi insert and select
+        cur.executemany(sql, args=(values, values, values))
+        cur.execute("select * from issue363")
+        for row in cur.fetchall():
+            self.assertEqual(row, tuple(values))
+
+        # test multi insert with unicode query
+        cur.executemany(usql, args=(values, values, values))
