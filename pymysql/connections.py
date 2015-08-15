@@ -91,7 +91,8 @@ TEXT_TYPES = set([
     FIELD_TYPE.STRING,
     FIELD_TYPE.TINY_BLOB,
     FIELD_TYPE.VAR_STRING,
-    FIELD_TYPE.VARCHAR])
+    FIELD_TYPE.VARCHAR,
+    FIELD_TYPE.GEOMETRY])
 
 sha_new = partial(hashlib.new, 'sha1')
 
