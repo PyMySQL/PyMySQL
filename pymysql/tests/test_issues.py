@@ -408,18 +408,18 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         """ Test mixed unicode/binary arguments in executemany. """
         conn = pymysql.connect(charset="utf8", **self.databases[0])
         self.safe_create_table(
-            conn, "issue363",
-            "create table issue363 (value_1 binary(3), value_2 varchar(3)) "
+            conn, "issue364",
+            "create table issue364 (value_1 binary(3), value_2 varchar(3)) "
             "engine=InnoDB default charset=utf8")
 
-        sql = "insert into issue363 (value_1, value_2) values (%s, %s)"
-        usql = u"insert into issue363 (value_1, value_2) values (%s, %s)"
+        sql = "insert into issue364 (value_1, value_2) values (%s, %s)"
+        usql = u"insert into issue364 (value_1, value_2) values (%s, %s)"
         values = [b"\x00\xff\x00", u"\xe4\xf6\xfc"]
 
         # test single insert and select
         cur = conn.cursor()
         cur.execute(sql, args=values)
-        cur.execute("select * from issue363")
+        cur.execute("select * from issue364")
         self.assertEqual(cur.fetchone(), tuple(values))
 
         # test single insert unicode query
@@ -427,9 +427,45 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
         # test multi insert and select
         cur.executemany(sql, args=(values, values, values))
-        cur.execute("select * from issue363")
+        cur.execute("select * from issue364")
         for row in cur.fetchall():
             self.assertEqual(row, tuple(values))
 
         # test multi insert with unicode query
         cur.executemany(usql, args=(values, values, values))
+
+    def test_issue_363(self):
+        """ Test binary / geometry types. """
+        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        self.safe_create_table(
+            conn, "issue363",
+            "CREATE TABLE issue363 ( "
+            "id INTEGER PRIMARY KEY, geom LINESTRING NOT NULL, "
+            "SPATIAL KEY geom (geom)) "
+            "ENGINE=MyISAM default charset=utf8")
+
+        cur = conn.cursor()
+        cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
+                    "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
+
+        # select WKT
+        cur.execute("SELECT AsText(geom) FROM issue363")
+        row = cur.fetchone()
+        self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)", ))
+
+        # select WKB
+        cur.execute("SELECT AsBinary(geom) FROM issue363")
+        row = cur.fetchone()
+        self.assertEqual(row,
+                         (b"\x01\x02\x00\x00\x00\x02\x00\x00\x00"
+                          b"\x9a\x99\x99\x99\x99\x99\xf1?"
+                          b"\x9a\x99\x99\x99\x99\x99\xf1?"
+                          b"\x9a\x99\x99\x99\x99\x99\x01@"
+                          b"\x9a\x99\x99\x99\x99\x99\x01@", ))
+
+        # select internal binary
+        cur.execute("SELECT geom FROM issue363")
+        row = cur.fetchone()
+        # don't assert the exact internal binary value, as it could
+        # vary across implementations
+        self.assertTrue(isinstance(row[0], bytes))
