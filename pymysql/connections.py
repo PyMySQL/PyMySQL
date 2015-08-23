@@ -1108,7 +1108,7 @@ class Connection(object):
             handler = None
         if plugin_name == "mysql_native_password":
             # https://dev.mysql.com/doc/internals/en/secure-password-authentication.html#packet-Authentication::Native41
-            data = _scramble(self.password.encode('latin1'), auth_packet.read_all()) + int2byte(0)
+            data = _scramble(self.password.encode('latin1'), auth_packet.read_all()) + b'\0'
         elif plugin_name == "mysql_old_password":
             # https://dev.mysql.com/doc/internals/en/old-password-authentication.html
             data = _scramble_323(self.password.encode('latin1'), auth_packet.read_all()) + b'\0'
