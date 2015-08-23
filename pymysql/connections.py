@@ -986,7 +986,7 @@ class Connection(object):
 
     def _request_authentication(self):
         self.client_flag |= CLIENT.CAPABILITIES
-        if int(self.server_version.split('.',1)[0]) >= 5:
+        if int(self.server_version.split('.', 1)[0]) >= 5:
             self.client_flag |= CLIENT.MULTI_RESULTS
 
         if self.user is None:
