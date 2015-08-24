@@ -133,7 +133,6 @@ class TestConnection(base.PyMySQLTestCase):
                 # user already exists
                 socket_user_added = False
             cur.execute("GRANT SELECT ON %s.* TO %s@localhost" % ( current_db, user))
-            print db
             c = pymysql.connect(user=user, **db)
             if socket_added:
                 cur.execute("uninstall soname 'auth_socket'")
