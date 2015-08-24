@@ -349,11 +349,15 @@ class MysqlPacket(object):
     def is_ok_packet(self):
         return self._data[0:1] == b'\0'
 
+    def is_auth_switch_request(self):
+        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+        return self._data[0:1] == b'\xfe'
+
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return self._data[0:1] == b'\xfe'
+        return len(self._data) < 9 and self._data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
@@ -1082,7 +1086,7 @@ class Connection(object):
         # if authentication method isn't accepted the first byte
         # will have the octet 254
 
-        if auth_packet.is_eof_packet():
+        if auth_packet.is_auth_switch_request():
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             if self.server_capabilities & CLIENT.PLUGIN_AUTH:
                 auth_packet.read_uint8() # 0xfe packet identifier
