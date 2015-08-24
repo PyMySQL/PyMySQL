@@ -1099,7 +1099,7 @@ class Connection(object):
         if plugin_class:
             handler = plugin_class(self)
             try:
-              return handler.authenticate(auth_pkt)
+                return handler.authenticate(auth_pkt)
             except AttributeError:
                 if plugin_name != 'dialog':
                     raise err.OperationalError(2059, "Authentication plugin '%s'" +

@@ -3,7 +3,6 @@ import decimal
 import pymysql
 import time
 import os
-import copy
 from pymysql.tests import base
 
 
@@ -78,7 +77,7 @@ class TestConnection(base.PyMySQLTestCase):
 
     def test_plugin(self):
         con = self.connections[0]
-        self.assertEqual('mysql_native_password',con.get_plugin_name())
+        self.assertEqual('mysql_native_password', con.get_plugin_name())
 
         # attempt a unix socket test which is included in some versions
         # and doesn't require a client side handler
@@ -93,7 +92,7 @@ class TestConnection(base.PyMySQLTestCase):
         pam_plugin = False
         for r in cur:
             if (r[1], r[2], r[3]) ==  (u'ACTIVE', u'AUTHENTICATION', u'auth_socket.so'):
-                plugin_name = r[0]
+                socket_plugin_name = r[0]
                 socketfound = True
             if (r[1], r[2], r[3]) ==  (u'ACTIVE', u'AUTHENTICATION', u'dialog_examples.so'):
                 if r[0] == 'two_questions':
@@ -123,16 +122,23 @@ class TestConnection(base.PyMySQLTestCase):
                 socket_plugin_name = 'unix_socket'
                 socket_added = True
 
-        current_db = self.databases[0]['db']
-        db = copy.copy(self.databases[0])
+        db = self.databases[0].copy()
         del db['user']
+        current_db = db['db']
         if socketfound or socket_added:
-            cur.execute("CREATE USER %s@localhost IDENTIFIED WITH %s" % ( user, plugin_name))
-            cur.execute("GRANT ALL ON %s TO %s@localhost" % ( current_db, user))
+            try:
+                cur.execute("CREATE USER %s@localhost IDENTIFIED WITH %s" % ( user, socket_plugin_name))
+                socket_user_added = True
+            except pymysql.err.InternalError:
+                # user already exists
+                socket_user_added = False
+            cur.execute("GRANT SELECT ON %s.* TO %s@localhost" % ( current_db, user))
+            print db
             c = pymysql.connect(user=user, **db)
             if socket_added:
                 cur.execute("uninstall soname 'auth_socket'")
-            cur.execute("DROP USER %s@localhost" % user)
+            if socket_user_added:
+                cur.execute("DROP USER %s@localhost" % user)
 
         class Dialog(object):
             m = {'Password, please:': b'notverysecret',
@@ -152,7 +158,7 @@ class TestConnection(base.PyMySQLTestCase):
             cur.execute("CREATE USER pymysql_test_two_questions" \
                         " IDENTIFIED WITH two_questions" \
                         " AS 'notverysecret'")
-            cur.execute("GRANT ALL ON %s TO pymysql_test_two_questions" % current_db)
+            cur.execute("GRANT SELECT ON %s.* TO pymysql_test_two_questions" % current_db)
             c = pymysql.connect(user='pymysql_test_two_questions', plugin_map={b'dialog': Dialog}, **db)
             cur.execute("DROP USER pymysql_test_two_questions")
 
@@ -162,7 +168,7 @@ class TestConnection(base.PyMySQLTestCase):
             cur.execute("CREATE USER pymysql_test_three_attempts"
                         " IDENTIFIED WITH three_attempts" \
                         " AS 'stillnotverysecret'")
-            cur.execute("GRANT ALL ON %s TO pymysql_test_three_attempts" % current_db)
+            cur.execute("GRANT SELECT ON %s.* TO pymysql_test_three_attempts" % current_db)
             c = pymysql.connect(user='pymysql_test_three_attempts', plugin_map={b'dialog': Dialog}, **db)
             cur.execute("DROP USER pymysql_test_three_attempts")
 
