@@ -1,6 +1,10 @@
 sudo: false
 language: python
 python: "3.4"
+cache:
+    directories:
+        - mysql
+
 env:
     matrix:
         - TOX_ENV=py26
@@ -21,14 +25,48 @@ matrix:
         - addons:
              mariadb: 10.1
           env: TOX_ENV=py34
+        - env:
+             - TOX_ENV=py34
+             - DB=5.6.26
+          addons:
+              apt:
+                 packages:
+                     - libaio-dev
+# really only need libaio1 however libaio-dev is whitelisted
+#
+# http://dev.mysql.com/downloads/mysql/5.7.html
+#        - env:
+#             - TOX_ENV=py34
+#             - DB=5.7.8-rc
 
+before_install:
 install:
     - pip install -U tox
 
 before_script:
+    - if [ ! -z "${DB}" ]; then
+          F=mysql-${DB}-linux-glibc2.5-x86_64;
+          mkdir -p ${HOME}/mysql;
+          P=${HOME}/mysql/${F} ;
+          if [ ! -d "${P}" ]; then
+              wget http://cdn.mysql.com/Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql ;
+          fi;
+          ${P}/scripts/mysql_install_db  --defaults-file=${P}/my.cnf --basedir=${P} --datadir=${HOME}/db-"${DB}" --log-error=/tmp/mysql.err;
+          ${P}/bin/mysqld_safe --defaults-file=${P}/my.cnf --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
+          sleep 5; cat /tmp/mysql.err; df -h;
+          mysql -S /tmp/mysql.sock "create user ${USER}@localhost; create user ${USER}@'%'; grant all on *.* to  ${USER}@localhost WITH GRANT OPTION;grant all on *.* to  ${USER}@'%' WITH GRANT OPTION;";
+          echo 'check we are talking about the right sed' 1>&2 ;
+          sed -e 's/3306/3307/g' -e 's:/var/run/mysqld/mysqld.sock:/tmp/mysql.sock:g' .travis.databases.json > pymysql/tests/databases.json;
+          echo -e '[client]\nsocket = /tmp/mysql.sock\n' > "${HOME}"/.my.cnf ;
+      else
+          cp .travis.databases.json pymysql/tests/databases.json;
+      fi
     - "mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - "mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - "mysql -e 'select VERSION();'"
-    - cp .travis.databases.json pymysql/tests/databases.json
 
-script: tox -e $TOX_ENV
+script:
+    - tox -e $TOX_ENV
+
+after_failure:
+    - cat /tmp/mysql.err
