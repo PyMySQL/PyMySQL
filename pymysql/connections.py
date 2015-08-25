@@ -1069,15 +1069,15 @@ class Connection(object):
             data += struct.pack('B', length)
             data += authresp
         else:
-            data += authresp + int2byte(0)
+            data += authresp + b'\0'
 
         if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
             if isinstance(self.db, text_type):
                 self.db = self.db.encode(self.encoding)
-            data += self.db + int2byte(0)
+            data += self.db + b'\0'
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH:
-            data += self.plugin_name.encode('latin1') + int2byte(0)
+            data += self.plugin_name.encode('latin1') + b'\0'
 
         self.write_packet(data)
 
@@ -1177,7 +1177,7 @@ class Connection(object):
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
 
-        server_end = data.find(int2byte(0), i)
+        server_end = data.find(b'\0', i)
         self.server_version = data[i:server_end].decode('latin1')
         i = server_end + 1
 
@@ -1219,7 +1219,7 @@ class Connection(object):
             # ref: https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
             # didn't use version checks as mariadb is corrected and reports
             # earlier than those two.
-            server_end = data.find(int2byte(0), i)
+            server_end = data.find(b'\0', i)
             if server_end < 0:
                 # not found \0 and last field so take it all
                 self.plugin_name = data[i:].decode('latin1')
