@@ -1,0 +1,14 @@
+[run]
+branch = True
+source =
+    pymysql
+
+
+[report]
+exclude_lines =
+    pragma: no cover
+    except ImportError:
+    if DEBUG:
+    def __repr__
+    def __str__
+    raise NotImplementedError
