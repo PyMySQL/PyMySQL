@@ -34,7 +34,7 @@ matrix:
               apt:
                  packages:
                      - libaio-dev
-          python: 3.3
+          python: 3.4
         - env:
              - TOX_ENV=py34
              - DB=5.7.8-rc
