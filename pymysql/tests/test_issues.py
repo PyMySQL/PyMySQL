@@ -1,6 +1,7 @@
 import datetime
 import time
 import warnings
+import sys
 
 import pymysql
 from pymysql.tests import base
@@ -445,8 +446,14 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             "ENGINE=MyISAM default charset=utf8")
 
         cur = conn.cursor()
-        cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
-                    "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
+        # FYI - not sure of 5.7.0 version
+        if sys.version_info[0:1] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
+                            "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
+        else:
+            cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
+                        "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
 
         # select WKT
         cur.execute("SELECT AsText(geom) FROM issue363")
