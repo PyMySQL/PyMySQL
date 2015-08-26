@@ -199,9 +199,9 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.assertEqual(2013, e.args[0])
 
     def test_issue_36(self):
-        conn = self.connections[0]
+        # connection 0 is super user, connection 1 isn't
+        conn = self.connections[1]
         c = conn.cursor()
-        # kill connections[0]
         c.execute("show processlist")
         kill_id = None
         for row in c.fetchall():
@@ -212,7 +212,7 @@ class TestNewIssues(base.PyMySQLTestCase):
                 break
         self.assertEqual(kill_id, conn.thread_id())
         # now nuke the connection
-        self.connections[1].kill(kill_id)
+        self.connections[0].kill(kill_id)
         # make sure this connection has broken
         try:
             c.execute("show tables")
@@ -227,12 +227,12 @@ class TestNewIssues(base.PyMySQLTestCase):
             # Wait since Travis-CI sometimes fail this test.
             time.sleep(0.1)
 
-            c = self.connections[1].cursor()
+            c = self.connections[0].cursor()
             c.execute("show processlist")
             ids = [row[0] for row in c.fetchall()]
             self.assertFalse(kill_id in ids)
         finally:
-            del self.connections[0]
+            del self.connections[1]
 
     def test_issue_37(self):
         conn = self.connections[0]

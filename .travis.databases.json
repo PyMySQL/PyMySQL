@@ -1,4 +1,4 @@
 [
     {"host": "localhost", "unix_socket": "/var/run/mysqld/mysqld.sock", "user": "root", "passwd": "", "db": "test_pymysql",  "use_unicode": true, "local_infile": true},
-    {"host": "localhost", "port": 3306, "user": "root", "passwd": "", "db": "test_pymysql2" }
+    {"host": "127.0.0.1", "port": 3306, "user": "travis_pymysql2", "password": "some password", "db": "test_pymysql2" }
 ]
