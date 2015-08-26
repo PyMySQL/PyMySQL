@@ -33,7 +33,9 @@ if [ ! -z "${DB}" ]; then
         ${P}/bin/mysql_ssl_rsa_setup --datadir=${HOME}/db-"${DB}"
     fi
     ${P}/bin/mysqld_safe ${O} --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
-    sleep 5
+    while [ ! -S /tmp/mysql.sock  ]; do
+       sleep 2
+    done
     cat /tmp/mysql.err
     if [ ! -z "${PASSWD}" ]; then
         ${P}/bin/mysql -S /tmp/mysql.sock -u root -p"${PASSWD}" --connect-expired-password -e "SET PASSWORD = PASSWORD('')"
