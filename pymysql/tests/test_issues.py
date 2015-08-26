@@ -419,21 +419,37 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
         # test single insert and select
         cur = conn.cursor()
-        cur.execute(sql, args=values)
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.execute(sql, args=values)
+        else:
+            cur.execute(sql, args=values)
         cur.execute("select * from issue364")
         self.assertEqual(cur.fetchone(), tuple(values))
 
         # test single insert unicode query
-        cur.execute(usql, args=values)
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.execute(usql, args=values)
+        else:
+            cur.execute(usql, args=values)
 
         # test multi insert and select
-        cur.executemany(sql, args=(values, values, values))
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.executemany(sql, args=(values, values, values))
+        else:
+            cur.executemany(sql, args=(values, values, values))
         cur.execute("select * from issue364")
         for row in cur.fetchall():
             self.assertEqual(row, tuple(values))
 
         # test multi insert with unicode query
-        cur.executemany(usql, args=(values, values, values))
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.executemany(usql, args=(values, values, values))
+        else:
+            cur.executemany(usql, args=(values, values, values))
 
     def test_issue_363(self):
         """ Test binary / geometry types. """
@@ -447,7 +463,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
         cur = conn.cursor()
         # FYI - not sure of 5.7.0 version
-        if sys.version_info[0:1] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
                 cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
                             "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
@@ -456,12 +472,20 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                         "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
 
         # select WKT
-        cur.execute("SELECT AsText(geom) FROM issue363")
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.execute("SELECT AsText(geom) FROM issue363")
+        else:
+            cur.execute("SELECT AsText(geom) FROM issue363")
         row = cur.fetchone()
         self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)", ))
 
         # select WKB
-        cur.execute("SELECT AsBinary(geom) FROM issue363")
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
+                cur.execute("SELECT AsBinary(geom) FROM issue363")
+        else:
+            cur.execute("SELECT AsBinary(geom) FROM issue363")
         row = cur.fetchone()
         self.assertEqual(row,
                          (b"\x01\x02\x00\x00\x00\x02\x00\x00\x00"
