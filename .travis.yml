@@ -54,9 +54,7 @@ install:
     - pip install -U tox
 
 before_script:
-    - if [ ! -z "${DB}" ]; then
-          ./.travis.initialize.db.sh;
-      fi
+    - ./.travis.initialize.db.sh;
     - "mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - "mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
     - mysql -u root -e "create user travis_pymysql2 identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2;"
