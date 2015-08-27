@@ -55,7 +55,7 @@ matrix:
 # really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 
 install:
-    - pip install -U tox
+    - pip install -U tox coveralls
 
 before_script:
     - ./.travis.initialize.db.sh;
@@ -65,9 +65,13 @@ before_script:
     - mysql -u root -e "create user travis_pymysql2@localhost identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2@localhost;"
     - mysql -e 'select VERSION();'
     - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
+    - export COVERALLS_PARALLEL=true
 
 script:
     - tox -e $TOX_ENV
+
+after_success:
+    - coveralls
 
 after_failure:
     - cat /tmp/mysql.err
