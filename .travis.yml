@@ -2,8 +2,6 @@ sudo: false
 language: python
 python: "3.4"
 cache:
-    directories:
-        - ${HOME}/mysql
     pip: true
 
 
@@ -34,7 +32,10 @@ matrix:
               apt:
                  packages:
                      - libaio-dev
-          python: 3.4
+          python: 3.3
+          cache:
+              directories:
+                  - ${HOME}/mysql
         - env:
              - TOX_ENV=py34
              - DB=5.7.8-rc
@@ -43,12 +44,15 @@ matrix:
                  packages:
                      - libaio-dev
           python: 3.4
+          cache:
+              directories:
+                  - ${HOME}/mysql
 
 # different py version from 5.6 and 5.7 as cache seems to be based on py version
 
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
 
-# really only need libaio1 however libaio-dev is whitelisted for container builds and liaio1 isn't
+# really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 
 install:
     - pip install -U tox
