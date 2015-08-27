@@ -107,7 +107,7 @@ DEFAULT_CHARSET = 'latin1'
 MAX_PACKET_LEN = 2**24-1
 
 
-def dump_packet(data):
+def dump_packet(data): # pragma: no cover
     def is_ascii(data):
         if 65 <= byte2int(data) <= 122:
             if isinstance(data, int):
