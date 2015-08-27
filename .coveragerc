@@ -12,3 +12,5 @@ exclude_lines =
     def __repr__
     def __str__
     raise NotImplementedError
+    def __getattr__
+    raise ValueError
