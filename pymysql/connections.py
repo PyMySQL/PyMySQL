@@ -195,7 +195,8 @@ def _hash_password_323(password):
     add = 7
     nr2 = 0x12345671
 
-    for c in [byte2int(x) for x in password if x not in (' ', '\t')]:
+    # x in py3 is numbers, p27 is chars
+    for c in [byte2int(x) for x in password if x not in (' ', '\t', 32, 9)]:
         nr ^= (((nr & 63) + add) * c) + (nr << 8) & 0xFFFFFFFF
         nr2 = (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
         add = (add + c) & 0xFFFFFFFF
@@ -1088,9 +1089,9 @@ class Connection(object):
 
         if auth_packet.is_auth_switch_request():
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-            if self.server_capabilities & CLIENT.PLUGIN_AUTH:
-                auth_packet.read_uint8() # 0xfe packet identifier
-                plugin_name = auth_packet.read_string()
+            auth_packet.read_uint8() # 0xfe packet identifier
+            plugin_name = auth_packet.read_string()
+            if self.server_capabilities & CLIENT.PLUGIN_AUTH and plugin_name is not None:
                 auth_packet = self._process_auth(plugin_name, auth_packet)
             else:
                 # send legacy handshake
@@ -1105,21 +1106,21 @@ class Connection(object):
             try:
                 return handler.authenticate(auth_pkt)
             except AttributeError:
-                if plugin_name != 'dialog':
+                if plugin_name != b'dialog':
                     raise err.OperationalError(2059, "Authentication plugin '%s'" +
                               " not loaded: - missing authenticate method" % plugin)
         else:
             handler = None
-        if plugin_name == "mysql_native_password":
+        if plugin_name == b"mysql_native_password":
             # https://dev.mysql.com/doc/internals/en/secure-password-authentication.html#packet-Authentication::Native41
             data = _scramble(self.password.encode('latin1'), auth_packet.read_all()) + b'\0'
-        elif plugin_name == "mysql_old_password":
+        elif plugin_name == b"mysql_old_password":
             # https://dev.mysql.com/doc/internals/en/old-password-authentication.html
             data = _scramble_323(self.password.encode('latin1'), auth_packet.read_all()) + b'\0'
-        elif plugin_name == "mysql_clear_password":
+        elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
             data = self.password.encode('latin1') + b'\0'
-        elif plugin_name == "dialog":
+        elif plugin_name == b"dialog":
             pkt = auth_packet
             while True:
                 flag = pkt.read_uint8()
