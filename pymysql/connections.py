@@ -148,7 +148,7 @@ def _scramble(password, message):
 
 def _my_crypt(message1, message2):
     length = len(message1)
-    result = ''
+    result = b''
     for i in range_type(length):
         x = (struct.unpack('B', message1[i:i+1])[0] ^
              struct.unpack('B', message2[i:i+1])[0])
