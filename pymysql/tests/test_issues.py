@@ -414,7 +414,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             "engine=InnoDB default charset=utf8")
 
         sql = "insert into issue364 (value_1, value_2) values (%s, %s)"
-        usql = u"insert into issue364 (value_1, value_2) values (%s, %s)"
+        usql = u"insert into issue364 (value_1, value_2) values (_binary%s, _binary%s)"
         values = [b"\x00\xff\x00", u"\xe4\xf6\xfc"]
 
         # test single insert and select
