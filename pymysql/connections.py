@@ -1069,7 +1069,7 @@ class Connection(object):
             length = len(authresp)
             data += struct.pack('B', length)
             data += authresp
-        else:
+        else: # pragma: no cover - not testing against servers without secure auth (>=5.0)
             data += authresp + b'\0'
 
         if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
@@ -1221,12 +1221,12 @@ class Connection(object):
             # didn't use version checks as mariadb is corrected and reports
             # earlier than those two.
             server_end = data.find(b'\0', i)
-            if server_end < 0:
+            if server_end < 0: # pragma: no cover - very specific upstream bug
                 # not found \0 and last field so take it all
                 self.plugin_name = data[i:].decode('latin1')
             else:
                 self.plugin_name = data[i:server_end].decode('latin1')
-        else:
+        else: # pragma: no cover - not testing against any plugin uncapable servers
             self.plugin_name = ''
 
     def get_server_info(self):
@@ -1311,7 +1311,7 @@ class MySQLResult(object):
         sender.send_data()
 
         ok_packet = self.connection._read_packet()
-        if not ok_packet.is_ok_packet():
+        if not ok_packet.is_ok_packet(): # pragma: no cover - upstream induced protocol error
             raise err.OperationalError(2014, "Commands Out of Sync")
         self._read_ok_packet(ok_packet)
 
