@@ -5,6 +5,8 @@ PyMySQL
 .. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
    :target: https://travis-ci.org/PyMySQL/PyMySQL
 
+.. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=coveralls&service=github :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=coveralls
+
 .. contents::
 
 This package contains a pure-Python MySQL client library. The goal of PyMySQL
