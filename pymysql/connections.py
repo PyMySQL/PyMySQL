@@ -91,7 +91,8 @@ TEXT_TYPES = set([
     FIELD_TYPE.STRING,
     FIELD_TYPE.TINY_BLOB,
     FIELD_TYPE.VAR_STRING,
-    FIELD_TYPE.VARCHAR])
+    FIELD_TYPE.VARCHAR,
+    FIELD_TYPE.GEOMETRY])
 
 sha_new = partial(hashlib.new, 'sha1')
 
@@ -106,7 +107,7 @@ DEFAULT_CHARSET = 'latin1'
 MAX_PACKET_LEN = 2**24-1
 
 
-def dump_packet(data):
+def dump_packet(data): # pragma: no cover
     def is_ascii(data):
         if 65 <= byte2int(data) <= 122:
             if isinstance(data, int):

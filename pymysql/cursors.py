@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
+from functools import partial
 import re
 import warnings
 
@@ -93,14 +94,30 @@ class Cursor(object):
     def nextset(self):
         return self._nextset(False)
 
+    def _ensure_bytes(self, x, encoding=None):
+        if isinstance(x, text_type):
+            x = x.encode(encoding)
+        elif isinstance(x, (tuple, list)):
+            x = type(x)(self._ensure_bytes(v, encoding=encoding) for v in x)
+        return x
+
     def _escape_args(self, args, conn):
+        ensure_bytes = partial(self._ensure_bytes, encoding=conn.encoding)
+
         if isinstance(args, (tuple, list)):
+            if PY2:
+                args = tuple(map(ensure_bytes, args))
             return tuple(conn.escape(arg) for arg in args)
         elif isinstance(args, dict):
+            if PY2:
+                args = dict((ensure_bytes(key), ensure_bytes(val)) for
+                            (key, val) in args.items())
             return dict((key, conn.escape(val)) for (key, val) in args.items())
         else:
-            #If it's not a dictionary let's try escaping it anyways.
-            #Worst case it will throw a Value error
+            # If it's not a dictionary let's try escaping it anyways.
+            # Worst case it will throw a Value error
+            if PY2:
+                ensure_bytes(args)
             return conn.escape(args)
 
     def mogrify(self, query, args=None):
@@ -111,24 +128,8 @@ class Cursor(object):
         This method follows the extension to the DB API 2.0 followed by Psycopg.
         """
         conn = self._get_db()
-
         if PY2:  # Use bytes on Python 2 always
-            encoding = conn.encoding
-
-            def ensure_bytes(x):
-                if isinstance(x, unicode):
-                    x = x.encode(encoding)
-                return x
-
-            query = ensure_bytes(query)
-
-            if args is not None:
-                if isinstance(args, (tuple, list)):
-                    args = tuple(map(ensure_bytes, args))
-                elif isinstance(args, dict):
-                    args = dict((ensure_bytes(key), ensure_bytes(val)) for (key, val) in args.items())
-                else:
-                    args = ensure_bytes(args)
+            query = self._ensure_bytes(query, encoding=conn.encoding)
 
         if args is not None:
             query = query % self._escape_args(args, conn)
@@ -173,6 +174,8 @@ class Cursor(object):
         escape = self._escape_args
         if isinstance(prefix, text_type):
             prefix = prefix.encode(encoding)
+        if PY2 and isinstance(values, text_type):
+            values = values.encode(encoding)
         if isinstance(postfix, text_type):
             postfix = postfix.encode(encoding)
         sql = bytearray(prefix)
