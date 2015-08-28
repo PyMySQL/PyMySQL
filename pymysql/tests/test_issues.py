@@ -469,3 +469,26 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         # don't assert the exact internal binary value, as it could
         # vary across implementations
         self.assertTrue(isinstance(row[0], bytes))
+    def test_issue_371(self):
+        """ Test return string is not trim. """
+        conn = self.connections[0]
+        self.safe_create_table(
+            conn,
+            "test", "create table test (data varchar(10))",
+        )
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "insert into test (data) values "
+                "('string'), ('string   ')")
+
+            cursor.execute("select data from test")
+
+            string_with_no_space = cursor.fetchone()
+            self.assertEqual(len(string_with_no_space[0]), 6)
+            
+            # 'string   ' has 3 space at the tail
+            string_with_space = cursor.fetchone()
+            self.assertEqual(len(string_with_space[0]), 9)
+        finally:
+            cursor.execute("drop table test")
