@@ -165,6 +165,9 @@ class TestAuthentication(base.PyMySQLTestCase):
                     break
             return pkt
 
+    class DefectiveHandler(object):
+        def __init__(self, con):
+            self.con=con
 
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
@@ -227,11 +230,8 @@ class TestAuthentication(base.PyMySQLTestCase):
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': object}, **self.db)
 
-            class DefectiveHandler(object):
-                def __init__(self, con):
-                    self.con=con
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': DefectiveHandler}, **self.db)
+                pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.DefectiveHandler}, **self.db)
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user='pymysql_3a', plugin_map={b'notdialogplugin': TestAuthentication.Dialog}, **self.db)
             TestAuthentication.Dialog.m = {b'Password, please:': b'I do not know'}
@@ -242,18 +242,45 @@ class TestAuthentication(base.PyMySQLTestCase):
                 pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
+    @unittest2.skipIf(pam_found, "pam plugin already installed")
+    @unittest2.skipIf(os.environ.get('PASSWORD') is None, "PASSWORD env var required")
+    @unittest2.skipIf(os.environ.get('PAMSERVICE') is None, "PAMSERVICE env var required")
+    def testPamAuthInstallPlugin(self):
+        # needs plugin. lets install it.
+        cur = self.connections[0].cursor()
+        try:
+            cur.execute("install plugin pam soname 'auth_pam.so'")
+            TestAuthentication.pam_found = True
+            self.realTestPamAuth()
+        except pymysql.err.InternalError:
+            raise unittest2.SkipTest('we couldn\'t install the auth_pam plugin')
+        finally:
+            if TestAuthentication.pam_found:
+                cur.execute("uninstall plugin pam")
+
+
+    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipUnless(pam_found, "no pam plugin")
+    @unittest2.skipIf(os.environ.get('PASSWORD') is None, "PASSWORD env var required")
+    @unittest2.skipIf(os.environ.get('PAMSERVICE') is None, "PAMSERVICE env var required")
     def testPamAuth(self):
+        self.realTestPamAuth()
+
+    def realTestPamAuth(self):
         db = self.db.copy()
-        db['password'] = b'bad guess at password'
+        import os
+        db['password'] = os.environ.get('PASSWORD')
+
         with TempUser(self.connections[0].cursor(), TestAuthentication.osuser + '@localhost',
-                      self.databases[0]['db'], self.pam_plugin_name) as u:
+                      self.databases[0]['db'], 'pam', os.environ.get('PAMSERVICE')) as u:
             try:
                c = pymysql.connect(user=TestAuthentication.osuser, **db)
             except pymysql.OperationalError as e:
                self.assertEqual(1045, e.args[0])
                return
             # else we had 'bad guess at password' work with pam. Well cool
+            with self.assertRaises(pymysql.err.OperationalError):
+                pymysql.connect(user=TestAuthentication.osuser + '@localhost', plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)
 
     # select old_password("crummy p\tassword");
     #| old_password("crummy p\tassword") |

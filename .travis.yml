@@ -2,8 +2,7 @@ sudo: false
 language: python
 python: "3.4"
 cache:
-    directories:
-        - mysql
+    - pip
 
 env:
     matrix:
@@ -27,6 +26,7 @@ matrix:
           env:
              - TOX_ENV=py33
              - EXTRAPKG=mariadb-test
+             - PAMCLEAR=1
           sudo: required
         - addons:
              mariadb: 10.1
@@ -41,6 +41,9 @@ matrix:
               apt:
                  packages:
                      - libaio-dev
+          cache:
+              directories:
+                  - mysql
 # really only need libaio1 however libaio-dev is whitelisted
 #
 # http://dev.mysql.com/downloads/mysql/5.7.html
@@ -51,6 +54,10 @@ matrix:
 install:
     - if [ -n "${EXTRAPKG}" ]; then
           sudo apt-get install ${EXTRAPKG};
+      fi
+    - if [ -n "${PAMCLEAR}" ]; then
+          echo -e '[mysqld]\n\nplugin-load=auth_pam.so\npam-use-cleartext-plugin' | sudo tee -a /etc/mysql/pam-cleartext.cnf;
+          sudo service mysql restart;
       fi
     - pip install -U tox coveralls
 
@@ -80,6 +87,8 @@ before_script:
     - export COVERALLS_PARALLEL=true
 
 script:
+    - export PAMSERVICE=chfn
+    - export PASSWORD=travis
     - tox -e $TOX_ENV
 
 after_success:
