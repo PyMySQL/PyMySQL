@@ -2,6 +2,7 @@
 branch = True
 source =
     pymysql
+omit = pymysql/test
 
 
 [report]
