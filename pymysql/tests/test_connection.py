@@ -84,6 +84,21 @@ class TestConnection(base.PyMySQLTestCase):
             conn = pymysql.connect(**current_db)
 
 
+class TestConnectionAsync(TestConnection):
+
+    def setUp(self):
+        self.connections = []
+        for params in self.databases:
+            params['async'] = True
+            self.connections.append(pymysql.connect(**params))
+        self.addCleanup(self._teardown_connections)
+        import asyncore
+        import threading
+        class asyncThread(threading.Thread):
+            def run(self):
+                asyncore.loop()
+        asyncThread().start()
+
 # A custom type and function to escape it
 class Foo(object):
     value = "bar"

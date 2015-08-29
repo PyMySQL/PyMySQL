@@ -507,7 +507,7 @@ class Connection(object):
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
-                 max_allowed_packet=16*1024*1024, defer_connect=False):
+                 max_allowed_packet=16*1024*1024, defer_connect=False, async=False):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -544,6 +544,7 @@ class Connection(object):
         max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
         defer_connect: Don't explicitly connect on contruction - wait for connect call.
             (default: False)
+        async: Boolean to create asyncronious mysql connection on asynccore
 
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
@@ -651,6 +652,7 @@ class Connection(object):
         self.sql_mode = sql_mode
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
+        self.async = async
         if not defer_connect:
             self.connect()
 
@@ -821,8 +823,47 @@ class Connection(object):
     def connect(self, sock=None):
         try:
             if sock is None:
+                if self.async:
+                    import asyncore
+                    class async_socket(asyncore.dispatcher):
+
+                        def __init__(self, family):
+                             asyncore.dispatcher.__init__(self)
+                             self.create_socket(family, socket.SOCK_STREAM)
+                             self.buffer=''
+
+                        def handle_write(self):
+                             sent = self.send(self.buffer)
+                             self.buffer = self.buffer[sent:]
+ 
+                        def writable(self):
+                             return len(self.buffer) > 0
+
+                        def sendall(self, b):
+                             return self.socket.sendall(b)
+
+                        # avoid all the deprecation warnings
+
+                        def makefile(self, mode):
+                             return self.socket.makefile(mode)
+
+                        def settimeout(self, timeout):
+                             return self.socket.settimeout(timeout)
+
+                        def setsockopt(self, t, o, v):
+                             return self.socket.setsockopt(t,o,v)
+
+                        def recv_into(self, b, s=0):
+                             return self.socket.recv_into(b, s)
+
+
+                    def create_socket(family):
+                        return async_socket(family)
+                else:
+                    def create_socket(family):
+                        return socket.socket(family, socket.SOCK_STREAM)
                 if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
-                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    sock = create_socket(socket.AF_UNIX)
                     sock.settimeout(self.connect_timeout)
                     sock.connect(self.unix_socket)
                     self.host_info = "Localhost via UNIX socket"
@@ -830,8 +871,9 @@ class Connection(object):
                 else:
                     while True:
                         try:
-                            sock = socket.create_connection(
-                                (self.host, self.port), self.connect_timeout)
+                            sock = create_socket(socket.AF_INET)
+                            sock.settimeout(self.connect_timeout)
+                            sock.connect((self.host, self.port))
                             break
                         except (OSError, IOError) as e:
                             if e.errno == errno.EINTR:
