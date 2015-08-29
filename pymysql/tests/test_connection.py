@@ -73,6 +73,8 @@ class TestConnection(base.PyMySQLTestCase):
         c.execute('select "foobar";')
         self.assertEqual(('foobar',), c.fetchone())
         conn.close()
+        with self.assertRaises(pymysql.err.Error):
+            conn.ping(reconnect=False)
 
     def test_read_default_group(self):
         conn = pymysql.connect(
@@ -80,6 +82,30 @@ class TestConnection(base.PyMySQLTestCase):
             **self.databases[0]
         )
         self.assertTrue(conn.open)
+
+    def test_context(self):
+        with self.assertRaises(ValueError):
+            c = pymysql.connect(**self.databases[0])
+            with c as cur:
+                cur.execute('create table test ( a int )')
+                c.begin()
+                cur.execute('insert into test values ((1))')
+                raise ValueError('pseudo abort')
+                c.commit()
+        c = pymysql.connect(**self.databases[0])
+        with c as cur:
+            cur.execute('select count(*) from test')
+            self.assertEqual(0, cur.fetchone()[0])
+            cur.execute('insert into test values ((1))')
+        with c as cur:
+            cur.execute('select count(*) from test')
+            self.assertEqual(1,cur.fetchone()[0])
+            cur.execute('drop table test')
+
+    def test_set_charset(self):
+        c = pymysql.connect(**self.databases[0])
+        c.set_charset('utf8')
+        # TODO validate setting here
 
 
 # A custom type and function to escape it
