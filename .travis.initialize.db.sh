@@ -32,6 +32,9 @@ if [ ! -z "${DB}" ]; then
     if [ -x ${P}/bin/mysql_ssl_rsa_setup ]; then
         ${P}/bin/mysql_ssl_rsa_setup --datadir=${HOME}/db-"${DB}"
     fi
+     # sha256 password auth keys:
+     openssl genrsa -out "${P}"/private_key.pem 2048
+     openssl rsa -in "${P}"/private_key.pem -pubout -out "${P}"/public_key.pem
     ${P}/bin/mysqld_safe ${O} --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
     while [ ! -S /tmp/mysql.sock  ]; do
        sleep 2
