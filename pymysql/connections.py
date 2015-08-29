@@ -1103,13 +1103,16 @@ class Connection(object):
     def _process_auth(self, plugin_name, auth_packet):
         plugin_class = self.plugin_map.get(plugin_name)
         if plugin_class:
-            handler = plugin_class(self)
             try:
-                return handler.authenticate(auth_pkt)
+                handler = plugin_class(self)
+                return handler.authenticate(auth_packet)
             except AttributeError:
                 if plugin_name != b'dialog':
-                    raise err.OperationalError(2059, "Authentication plugin '%s'" +
-                              " not loaded: - missing authenticate method" % plugin)
+                    raise err.OperationalError(2059, "Authentication plugin '%s'" \
+                              " not loaded: - %r missing authenticate method" % (plugin_name, plugin_class))
+            except TypeError:
+                raise err.OperationalError(2059, "Authentication plugin '%s'" \
+                    " not loaded: - %r cannot be constructed with connection object" % (plugin_name, plugin_class))
         else:
             handler = None
         if plugin_name == b"mysql_native_password":
@@ -1129,7 +1132,7 @@ class Connection(object):
                 last = (flag & 0x01) == 0x01
                 prompt = pkt.read_all()
 
-                if prompt == "Password: ":
+                if prompt == b"Password: ":
                     self.write_packet(self.password.encode('latin1') + b'\0')
                 elif handler:
                     resp = 'no response - TypeError within plugin.prompt method'
@@ -1137,13 +1140,13 @@ class Connection(object):
                         resp = handler.prompt(echo, prompt)
                         self.write_packet(resp + b'\0')
                     except AttributeError:
-                        raise err.OperationalError(2059, "Authentication plugin '%s'" +
-                                  " not loaded: - missing prompt method" % plugin_name)
+                        raise err.OperationalError(2059, "Authentication plugin '%s'" \
+                                  " not loaded: - %r missing prompt method" % (plugin_name, handler))
                     except TypeError:
                         raise err.OperationalError(2061, "Authentication plugin '%s'" \
-                                  " didn't respond with string. Returned '%r'" % (plugin_name, resp))
+                                  " %r didn't respond with string. Returned '%r' to prompt %r" % (plugin_name, handler, resp, prompt))
                 else:
-                    raise err.OperationalError(2059, "Authentication plugin '%s' not configured" % plugin_name)
+                    raise err.OperationalError(2059, "Authentication plugin '%s' (%r) not configured" % (plugin_name, handler))
                 pkt = self._read_packet()
                 pkt.check_error()
                 if pkt.is_ok_packet() or last:
