@@ -74,6 +74,13 @@ class TestConnection(base.PyMySQLTestCase):
         self.assertEqual(('foobar',), c.fetchone())
         conn.close()
 
+    def test_read_default_group(self):
+        conn = pymysql.connect(
+            read_default_group='client',
+            **self.databases[0]
+        )
+        self.assertTrue(conn.open)
+
 
 # A custom type and function to escape it
 class Foo(object):
