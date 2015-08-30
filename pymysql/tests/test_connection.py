@@ -466,6 +466,7 @@ class TestConnection(base.PyMySQLTestCase):
             self.assertFalse(c.open)
             c.connect(sock)
             c.close()
+            sock.close()
 
     @unittest2.skipUnless(sys.version_info[0:2] >= (3,2), "required py-3.2")
     def test_no_delay_warning(self):
