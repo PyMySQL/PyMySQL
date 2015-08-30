@@ -126,6 +126,7 @@ class TestConnection(base.PyMySQLTestCase):
             c = pymysql.connect(defer_connect=True, **d)
             self.assertFalse(c.open)
             c.connect(sock)
+            c.close()
 
 
 # A custom type and function to escape it
