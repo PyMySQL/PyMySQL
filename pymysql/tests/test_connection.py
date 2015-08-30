@@ -75,6 +75,60 @@ class TestConnection(base.PyMySQLTestCase):
         c.execute('select "foobar";')
         self.assertEqual(('foobar',), c.fetchone())
         conn.close()
+        with self.assertRaises(pymysql.err.Error):
+            conn.ping(reconnect=False)
+
+    def test_read_default_group(self):
+        conn = pymysql.connect(
+            read_default_group='client',
+            **self.databases[0]
+        )
+        self.assertTrue(conn.open)
+
+    def test_context(self):
+        with self.assertRaises(ValueError):
+            c = pymysql.connect(**self.databases[0])
+            with c as cur:
+                cur.execute('create table test ( a int )')
+                c.begin()
+                cur.execute('insert into test values ((1))')
+                raise ValueError('pseudo abort')
+                c.commit()
+        c = pymysql.connect(**self.databases[0])
+        with c as cur:
+            cur.execute('select count(*) from test')
+            self.assertEqual(0, cur.fetchone()[0])
+            cur.execute('insert into test values ((1))')
+        with c as cur:
+            cur.execute('select count(*) from test')
+            self.assertEqual(1,cur.fetchone()[0])
+            cur.execute('drop table test')
+
+    def test_set_charset(self):
+        c = pymysql.connect(**self.databases[0])
+        c.set_charset('utf8')
+        # TODO validate setting here
+
+    def test_defer_connect(self):
+        import socket
+        for db in self.databases:
+            d = db.copy()
+            try:
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.connect(d['unix_socket'])
+            except KeyError:
+                sock = socket.create_connection(
+                                (d.get('host', 'localhost'), d.get('port', 3306)))
+            for k in ['unix_socket', 'host', 'port']:
+                try:
+                    del d[k]
+                except KeyError:
+                    pass
+
+            c = pymysql.connect(defer_connect=True, **d)
+            self.assertFalse(c.open)
+            c.connect(sock)
+            c.close()
 
     @unittest2.skipUnless(sys.version_info[0:2] >= (3,2), "required py-3.2")
     def test_no_delay_warning(self):
@@ -99,7 +153,8 @@ class TestEscape(base.PyMySQLTestCase):
         cur = con.cursor()
 
         self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
-        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        # added NO_AUTO_CREATE_USER as not including it in 5.7 generates warnings
+        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES,NO_AUTO_CREATE_USER'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
     def test_escape_builtin_encoders(self):

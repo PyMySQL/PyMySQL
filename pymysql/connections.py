@@ -651,7 +651,9 @@ class Connection(object):
         self.sql_mode = sql_mode
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
-        if not defer_connect:
+        if defer_connect:
+            self.socket = None
+        else:
             self.connect()
 
     def close(self):
