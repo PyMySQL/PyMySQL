@@ -35,6 +35,7 @@ class TestSSCursor(base.PyMySQLTestCase):
                 'zone VARCHAR(64),'
                 'name VARCHAR(64))'))
 
+            conn.begin()
             # Test INSERT
             for i in data:
                 cursor.execute('INSERT INTO tz_data VALUES (%s, %s, %s)', i)

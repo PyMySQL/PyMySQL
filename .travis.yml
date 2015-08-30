@@ -2,7 +2,7 @@ sudo: false
 language: python
 python: "3.4"
 cache:
-    - pip
+    pip: true
 
 env:
     matrix:
@@ -41,15 +41,27 @@ matrix:
               apt:
                  packages:
                      - libaio-dev
+          python: 3.3
           cache:
               directories:
-                  - mysql
-# really only need libaio1 however libaio-dev is whitelisted
-#
-# http://dev.mysql.com/downloads/mysql/5.7.html
-#        - env:
-#             - TOX_ENV=py34
-#             - DB=5.7.8-rc
+                  - ${HOME}/mysql
+        - env:
+             - TOX_ENV=py34
+             - DB=5.7.8-rc
+          addons:
+              apt:
+                 packages:
+                     - libaio-dev
+          python: 3.4
+          cache:
+              directories:
+                  - ${HOME}/mysql
+
+# different py version from 5.6 and 5.7 as cache seems to be based on py version
+
+# http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
+
+# really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 
 install:
     - if [ -n "${EXTRAPKG}" ]; then
@@ -62,33 +74,16 @@ install:
     - pip install -U tox coveralls
 
 before_script:
-    - if [ ! -z "${DB}" ]; then
-          F=mysql-${DB}-linux-glibc2.5-x86_64;
-          mkdir -p ${HOME}/mysql;
-          P=${HOME}/mysql/${F} ;
-          if [ ! -d "${P}" ]; then
-              wget http://cdn.mysql.com/Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql ;
-          fi;
-          openssl genrsa -out "${P}"/private_key.pem 2048;
-          openssl rsa -in "${P}"/private_key.pem -pubout -out "${P}"/public_key.pem;
-          ${P}/scripts/mysql_install_db  --defaults-file=${P}/my.cnf --basedir=${P} --datadir=${HOME}/db-"${DB}" --log-error=/tmp/mysql.err;
-          ${P}/bin/mysqld_safe --defaults-file=${P}/my.cnf --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
-          sleep 5; cat /tmp/mysql.err; df -h;
-          mysql -S /tmp/mysql.sock "create user ${USER}@localhost; create user ${USER}@'%'; grant all on *.* to  ${USER}@localhost WITH GRANT OPTION;grant all on *.* to  ${USER}@'%' WITH GRANT OPTION;";
-          echo 'check we are talking about the right sed' 1>&2 ;
-          sed -e 's/3306/3307/g' -e 's:/var/run/mysqld/mysqld.sock:/tmp/mysql.sock:g' .travis.databases.json > pymysql/tests/databases.json;
-          echo -e '[client]\nsocket = /tmp/mysql.sock\n' > "${HOME}"/.my.cnf ;
-      else
-          cp .travis.databases.json pymysql/tests/databases.json;
-      fi
-    - "mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
-    - "mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'"
-    - "mysql -e 'select VERSION();'"
+    - ./.travis.initialize.db.sh;
+    - mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
+    - mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
+    - mysql -u root -e "create user travis_pymysql2 identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2;"
+    - mysql -u root -e "create user travis_pymysql2@localhost identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2@localhost;"
+    - mysql -e 'select VERSION();'
+    - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
     - export COVERALLS_PARALLEL=true
 
 script:
-    - export PAMSERVICE=chfn
-    - export PASSWORD=travis
     - tox -e $TOX_ENV
 
 after_success:

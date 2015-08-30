@@ -671,7 +671,9 @@ class Connection(object):
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
         self.plugin_map = plugin_map
-        if not defer_connect:
+        if defer_connect:
+            self.socket = None
+        else:
             self.connect()
 
     def close(self):
