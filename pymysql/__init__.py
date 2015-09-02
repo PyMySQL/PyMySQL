@@ -46,7 +46,7 @@ class DBAPISet(frozenset):
 
     def __ne__(self, other):
         if isinstance(other, set):
-            return super(DBAPISet, self).__ne__(self, other)
+            return frozenset.__ne__(self, other)
         else:
             return other not in self
 
