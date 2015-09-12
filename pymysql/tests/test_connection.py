@@ -277,7 +277,6 @@ class TestAuthentication(base.PyMySQLTestCase):
                c = pymysql.connect(user=TestAuthentication.osuser, **db)
             except pymysql.OperationalError as e:
                self.assertEqual(1045, e.args[0])
-               return
             # else we had 'bad guess at password' work with pam. Well cool
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user=TestAuthentication.osuser + '@localhost', plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)

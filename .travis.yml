@@ -68,11 +68,12 @@ install:
           sudo apt-get install ${EXTRAPKG};
       fi
     - if [ -n "${PAMCLEAR}" ]; then
-          echo -e '[mysqld]\n\nplugin-load=auth_pam.so\npam-use-cleartext-plugin' | sudo tee -a /etc/mysql/pam-cleartext.cnf;
+          echo -e '[mysqld]\n\npam-use-cleartext-plugin' | sudo tee -a /etc/mysql/conf.d/pam-cleartext.cnf;
+          mysql -u root -e "install plugin pam soname 'auth_pam.so'";
           sudo service mysql restart;
-          export PASSWORD=travis;
-          export PAMSERVICE=chfn;
       fi
+    - export PASSWORD=travis;
+    - export PAMSERVICE=chfn;
     - pip install -U tox coveralls
 
 before_script:
@@ -81,7 +82,7 @@ before_script:
     - mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
     - mysql -u root -e "create user travis_pymysql2 identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2;"
     - mysql -u root -e "create user travis_pymysql2@localhost identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2@localhost;"
-    - mysql -e 'select VERSION();'
+    - mysql -e 'select VERSION()'
     - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
     - export COVERALLS_PARALLEL=true
 
