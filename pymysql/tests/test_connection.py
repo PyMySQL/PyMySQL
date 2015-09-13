@@ -270,16 +270,30 @@ class TestAuthentication(base.PyMySQLTestCase):
         db = self.db.copy()
         import os
         db['password'] = os.environ.get('PASSWORD')
-
-        with TempUser(self.connections[0].cursor(), TestAuthentication.osuser + '@localhost',
+        cur = self.connections[0].cursor()
+        try:
+            cur.execute('show grants for ' + TestAuthentication.osuser + '@localhost')
+            grants = cur.fetchone()[0]
+            cur.execute('drop user ' + TestAuthentication.osuser + '@localhost')
+        except pymysql.OperationalError as e:
+            # assuming the user doesn't exist which is ok too
+            self.assertEqual(1045, e.args[0])
+            grants = None
+        with TempUser(cur, TestAuthentication.osuser + '@localhost',
                       self.databases[0]['db'], 'pam', os.environ.get('PAMSERVICE')) as u:
             try:
-               c = pymysql.connect(user=TestAuthentication.osuser, **db)
+                c = pymysql.connect(user=TestAuthentication.osuser, **db)
+                db['password'] = 'very bad guess at password'
+                with self.assertRaises(pymysql.err.OperationalError):
+                    pymysql.connect(user=TestAuthentication.osuser, plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)
             except pymysql.OperationalError as e:
-               self.assertEqual(1045, e.args[0])
-            # else we had 'bad guess at password' work with pam. Well cool
-            with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user=TestAuthentication.osuser + '@localhost', plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)
+                self.assertEqual(1045, e.args[0])
+                # we had 'bad guess at password' work with pam. Well at least we get a permission denied here
+                with self.assertRaises(pymysql.err.OperationalError):
+                    pymysql.connect(user=TestAuthentication.osuser, plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)
+        if grants:
+            # recreate the user
+            cur.execute(grants)
 
     # select old_password("crummy p\tassword");
     #| old_password("crummy p\tassword") |
