@@ -92,6 +92,10 @@ class MysqlPacket(object):
         self.__position += size
         return self.__data[self.__position-size:self.__position]
   
+    def _skip(self, size):
+        """Read the first 'size' bytes in packet and advance cursor past them."""
+        self.__position += size
+
     def _read_all(self):
         """Read all remaining data in the packet.
 
@@ -152,7 +156,7 @@ class MysqlPacket(object):
         return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
     def read_ok_packet(self):
-        self.read(1)  # field_count (always '0')
+        self._skip(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
@@ -185,7 +189,7 @@ class FieldDescriptorPacket(MysqlPacket):
         self.org_table = self._read_length_coded_string()
         self.name = self._read_length_coded_string().decode(self.connection.charset)
         self.org_name = self._read_length_coded_string()
-        self.read(1)  # non-null filler
+        self._skip(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.charset = charset_by_id(self.charsetnr).name
         self.length = unpack_uint32(self._read(4))
@@ -194,7 +198,7 @@ class FieldDescriptorPacket(MysqlPacket):
         self.is_set = self.flags & FLAG.SET
         self.is_binary = self.flags & FLAG.BINARY
         self.scale = ord(self._read(1))  # "decimals"
-        self.read(2)  # filler (always 0x00)
+        self._skip(2)  # filler (always 0x00)
     
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
