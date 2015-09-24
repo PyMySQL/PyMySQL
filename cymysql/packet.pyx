@@ -150,11 +150,13 @@ cdef class MysqlPacket(object):
 
     cdef read_decode_data(self, fields, decoders):
         return tuple([None if value is None
-                else decoders[field.type_code](
-                        value, self._charset, field, self._use_unicode)
-                    if decoders[field.type_code] is convert_characters
-                    else decoders[field.type_code](value)
-            for value, field in zip([self._read_length_coded_string() for f in fields], fields)])
+                else decoder(value, self._charset, field, self._use_unicode)
+                    if decoder is convert_characters
+                    else decoder(value)
+            for value, field, decoder in zip(
+                [self._read_length_coded_string() for f in fields], fields, [decoders[f.type_code] for f in fields]
+            )
+        ])
 
     def is_ok_packet(self):
         return (<unsigned char>(self.__data[0])) == 0
