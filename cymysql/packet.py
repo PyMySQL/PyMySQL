@@ -92,7 +92,7 @@ class MysqlPacket(object):
         self.__position += size
         return self.__data[self.__position-size:self.__position]
   
-    def read_all(self):
+    def _read_all(self):
         """Read all remaining data in the packet.
 
         (Subsequent read() or peek() will return errors.)
@@ -157,7 +157,7 @@ class MysqlPacket(object):
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
         warning_count = unpack_uint16(self._read(2))
-        message = self.read_all()
+        message = self._read_all()
         return (None if affected_rows < 0 else affected_rows,
                 None if insert_id < 0 else insert_id,
                 server_status, warning_count, message)

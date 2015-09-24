@@ -99,7 +99,7 @@ cdef class MysqlPacket(object):
   
     def get_all_data(self): return self.__data
 
-    def read(self, size):
+    cpdef read(self, size):
         return self._read(size)
 
     cdef bytes _read(self, int size):
@@ -107,7 +107,7 @@ cdef class MysqlPacket(object):
         self.__position += size
         return self.__data[self.__position-size:self.__position]
 
-    def read_all(self):
+    cdef _read_all(self):
         """Read all remaining data in the packet.
 
         (Subsequent read() or peek() will return errors.)
@@ -156,26 +156,26 @@ cdef class MysqlPacket(object):
             )
         ])
 
-    def is_ok_packet(self):
+    cpdef is_ok_packet(self):
         return (<unsigned char>(self.__data[0])) == 0
 
-    def is_eof_packet(self):
+    cpdef is_eof_packet(self):
         return (<unsigned char>(self.__data[0])) == 0xfe
 
-    def is_eof_and_status(self):
+    cpdef is_eof_and_status(self):
         if (<unsigned char>(self.__data[0])) != 0xfe:
            return False, 0, 0
         return True, unpack_uint16(self._read(2)), unpack_uint16(self._read(2))
 
-    def read_ok_packet(self):
+    cpdef read_ok_packet(self):
         cdef int affected_rows, insert_id, server_status, warning_count
         cdef message
-        self.read(1)  # field_count (always '0')
+        self._read(1)  # field_count (always '0')
         affected_rows = self.read_length_coded_binary()
         insert_id = self.read_length_coded_binary()
         server_status = unpack_uint16(self._read(2))
         warning_count = unpack_uint16(self._read(2))
-        message = self.read_all()
+        message = self._read_all()
         return (None if affected_rows < 0 else affected_rows,
                 None if insert_id < 0 else insert_id,
                 server_status, warning_count, message)
@@ -206,7 +206,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         self.org_table = self._read_length_coded_string()
         self.name = self._read_length_coded_string().decode(self.connection.charset)
         self.org_name = self._read_length_coded_string()
-        self.read(1)  # non-null filler
+        self._read(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.charset = charset_by_id(self.charsetnr).name
         self.length = unpack_uint32(self._read(4))
@@ -215,7 +215,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         self.is_set = self.flags & FLAG.SET
         self.is_binary = self.flags & FLAG.BINARY
         self.scale = ord(self._read(1))  # "decimals"
-        self.read(2)  # filler (always 0x00)
+        self._read(2)  # filler (always 0x00)
     
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
