@@ -55,6 +55,9 @@ class MysqlPacket(object):
 
     def __init__(self, connection):
         self.connection = connection
+        self._socket = connection.socket
+        self._charset = connection.charset
+        self._use_unicode = connection.use_unicode
         self.__position = 0
         self.__recv_packet()
         is_error = self.__data[0] == (0xff if PYTHON3 else b'\xff')
@@ -66,7 +69,7 @@ class MysqlPacket(object):
     def __recv_from_socket(self, size):
         r = b''
         while size:
-            recv_data = self.connection.socket.recv(size)
+            recv_data = self._socket.recv(size)
             if not recv_data:
                 break
             size -= len(recv_data)
@@ -141,7 +144,7 @@ class MysqlPacket(object):
     def read_decode_data(self, fields, decoders):
         return tuple([None if value is None
                 else decoders[field.type_code](
-                        value, self.connection.charset, field, self.connection.use_unicode)
+                        value, self._charset, field, self._use_unicode)
                     if decoders[field.type_code] is convert_characters
                     else decoders[field.type_code](value)
             for value, field in zip([self._read_length_coded_string() for f in fields], fields)])

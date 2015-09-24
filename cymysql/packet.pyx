@@ -46,7 +46,7 @@ cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
     for reading/parsing the packet results."""
-    cdef object connection
+    cdef object connection, _socket, _charset, _use_unicode
     cdef bytes __data
     cdef int __data_length
     cdef int __position
@@ -55,6 +55,9 @@ cdef class MysqlPacket(object):
         cdef int is_error
         cdef int errno
         self.connection = connection
+        self._socket = connection.socket
+        self._charset = connection.charset
+        self._use_unicode = connection.use_unicode
         self.__position = 0
         self.__recv_packet()
         is_error = (<unsigned char>(self.__data[0])) == 0xff
@@ -69,7 +72,7 @@ cdef class MysqlPacket(object):
 
         r = b''
         while size:
-            recv_data = self.connection.socket.recv(size)
+            recv_data = self._socket.recv(size)
             if not recv_data:
                 break
             size -= len(recv_data)
@@ -148,7 +151,7 @@ cdef class MysqlPacket(object):
     cdef read_decode_data(self, fields, decoders):
         return tuple([None if value is None
                 else decoders[field.type_code](
-                        value, self.connection.charset, field, self.connection.use_unicode)
+                        value, self._charset, field, self._use_unicode)
                     if decoders[field.type_code] is convert_characters
                     else decoders[field.type_code](value)
             for value, field in zip([self._read_length_coded_string() for f in fields], fields)])
