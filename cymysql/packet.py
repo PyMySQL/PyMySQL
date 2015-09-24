@@ -19,10 +19,10 @@ MBLENGTH = {
 
 FIELD_TYPE_VAR_STRING=253
 
-UNSIGNED_CHAR_COLUMN = 251
-UNSIGNED_SHORT_COLUMN = 252
-UNSIGNED_INT24_COLUMN = 253
-UNSIGNED_INT64_COLUMN = 254
+UNSIGNED_CHAR_COLUMN = b'\xfb'
+UNSIGNED_SHORT_COLUMN = b'\xfc'
+UNSIGNED_INT24_COLUMN = b'\xfd'
+UNSIGNED_INT64_COLUMN = b'\xfe'
 
 SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -117,9 +117,9 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = ord(self._read(1))
-        if c < UNSIGNED_CHAR_COLUMN:
-            return c
+        c = self._read(1)
+        if c == UNSIGNED_CHAR_COLUMN:
+            return -1
         elif c == UNSIGNED_SHORT_COLUMN:
             return unpack_uint16(self._read(2))
         elif c == UNSIGNED_INT24_COLUMN:
@@ -127,7 +127,7 @@ class MysqlPacket(object):
         elif c == UNSIGNED_INT64_COLUMN:
             return unpack_uint64(self._read(8))
         else:
-            return -1
+            return ord(c)
   
     def _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.

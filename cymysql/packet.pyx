@@ -20,10 +20,10 @@ MBLENGTH = {
 
 cdef int FIELD_TYPE_VAR_STRING=253
 
-cdef int UNSIGNED_CHAR_COLUMN = 251
-cdef int UNSIGNED_SHORT_COLUMN = 252
-cdef int UNSIGNED_INT24_COLUMN = 253
-cdef int UNSIGNED_INT64_COLUMN = 254
+cdef int UNSIGNED_CHAR_COLUMN = 0xfb
+cdef int UNSIGNED_SHORT_COLUMN = 0xfc
+cdef int UNSIGNED_INT24_COLUMN = 0xfd
+cdef int UNSIGNED_INT64_COLUMN = 0xfe
 
 cdef int SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -124,8 +124,8 @@ cdef class MysqlPacket(object):
         on the value of the first byte.
         """
         cdef unsigned char c = self._read(1)[0]
-        if c < UNSIGNED_CHAR_COLUMN:
-            return c
+        if c == UNSIGNED_CHAR_COLUMN:
+            return -1
         elif c == UNSIGNED_SHORT_COLUMN:
             return unpack_uint16(self._read(2))
         elif c == UNSIGNED_INT24_COLUMN:
@@ -133,7 +133,7 @@ cdef class MysqlPacket(object):
         elif c == UNSIGNED_INT64_COLUMN:
             return unpack_uint64(self._read(8))
         else:
-            return -1
+            return c
   
     cdef bytes _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
