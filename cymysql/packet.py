@@ -90,6 +90,8 @@ class MysqlPacket(object):
     def _read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         self.__position += size
+        if size == 1:
+            return self.__data[self.__position-1]
         return self.__data[self.__position-size:self.__position]
   
     def _skip(self, size):

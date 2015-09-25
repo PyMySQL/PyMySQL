@@ -105,6 +105,8 @@ cdef class MysqlPacket(object):
     cdef bytes _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         self.__position += size
+        if size == 1:
+            return self.__data[self.__position-1]
         return self.__data[self.__position-size:self.__position]
 
     cdef void _skip(self, int size):
