@@ -8,8 +8,6 @@ from cymysql.err import Warning, Error, InterfaceError, DataError, \
              DatabaseError, OperationalError, IntegrityError, InternalError, \
             NotSupportedError, ProgrammingError
 
-insert_values = re.compile(r'\svalues\s*(\(.+\))', re.IGNORECASE)
-
 PYTHON3 = sys.version_info[0] > 2
 
 class Cursor(object):
