@@ -158,7 +158,7 @@ cdef class MysqlPacket(object):
             else decoder(value, self._charset, field, self._use_unicode)
                 if decoder is convert_characters
                 else decoder(value)
-            for value, field, decoder in [(self._read_length_coded_string(), f, decoders[f.type_code]) for f in fields]
+            for value, field, decoder in [(self._read_length_coded_string(), f, decoders.get(f.type_code)) for f in fields]
         ])
 
     cpdef is_ok_packet(self):
