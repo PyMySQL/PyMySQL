@@ -20,10 +20,10 @@ MBLENGTH = {
 
 cdef int FIELD_TYPE_VAR_STRING=253
 
-cdef int UNSIGNED_CHAR_COLUMN = 0xfb
-cdef int UNSIGNED_SHORT_COLUMN = 0xfc
-cdef int UNSIGNED_INT24_COLUMN = 0xfd
-cdef int UNSIGNED_INT64_COLUMN = 0xfe
+cdef int UNSIGNED_CHAR_COLUMN = 251
+cdef int UNSIGNED_SHORT_COLUMN = 252
+cdef int UNSIGNED_INT24_COLUMN = 253
+cdef int UNSIGNED_INT64_COLUMN = 254
 
 cdef int SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -105,8 +105,6 @@ cdef class MysqlPacket(object):
     cdef bytes _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         self.__position += size
-        if size == 1:
-            return self.__data[self.__position-1]
         return self.__data[self.__position-size:self.__position]
 
     cdef void _skip(self, int size):

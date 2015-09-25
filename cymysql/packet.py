@@ -19,10 +19,10 @@ MBLENGTH = {
 
 FIELD_TYPE_VAR_STRING=253
 
-UNSIGNED_CHAR_COLUMN = b'\xfb'
-UNSIGNED_SHORT_COLUMN = b'\xfc'
-UNSIGNED_INT24_COLUMN = b'\xfd'
-UNSIGNED_INT64_COLUMN = b'\xfe'
+UNSIGNED_CHAR_COLUMN = 251
+UNSIGNED_SHORT_COLUMN = 252
+UNSIGNED_INT24_COLUMN = 253
+UNSIGNED_INT64_COLUMN = 254
 
 SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -90,8 +90,6 @@ class MysqlPacket(object):
     def _read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         self.__position += size
-        if size == 1:
-            return self.__data[self.__position-1]
         return self.__data[self.__position-size:self.__position]
   
     def _skip(self, size):
@@ -112,7 +110,9 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = self._read(1)
+        c = self._read(1)[0]
+        if not PYTHON3:
+            c = ord(c)
         if c == UNSIGNED_CHAR_COLUMN:
             return -1
         elif c == UNSIGNED_SHORT_COLUMN:
@@ -122,7 +122,7 @@ class MysqlPacket(object):
         elif c == UNSIGNED_INT64_COLUMN:
             return unpack_uint64(self._read(8))
         else:
-            return ord(c)
+            return c
   
     def _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
