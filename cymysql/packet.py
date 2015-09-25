@@ -110,9 +110,7 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = self._read(1)[0]
-        if not PYTHON3:
-            c = ord(c)
+        c = ord(self._read(1))
         if c == UNSIGNED_CHAR_COLUMN:
             return -1
         elif c == UNSIGNED_SHORT_COLUMN:
