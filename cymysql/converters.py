@@ -14,18 +14,10 @@ ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
 
 def escape_dict(val, charset):
-    n = {}
-    for k, v in val.items():
-        quoted = escape_item(v, charset)
-        n[k] = quoted
-    return n
+    return dict([(k, escape_item(v, charset)) for k, v in val.items()])
 
 def escape_sequence(val, charset):
-    n = []
-    for item in val:
-        quoted = escape_item(item, charset)
-        n.append(quoted)
-    return "(" + ",".join(n) + ")"
+    return "(" + ",".join([escape_item(v, charset) for v in val]) + ")"
 
 def escape_set(val, charset):
     val = map(lambda x: escape_item(x, charset), val)
