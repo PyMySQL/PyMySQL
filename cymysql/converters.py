@@ -13,6 +13,7 @@ ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
               '\'': '\\\'', '"': '\\"', '\\': '\\\\'}
 
+
 def escape_dict(val, charset):
     return dict([(k, escape_item(v, charset)) for k, v in val.items()])
 
@@ -20,8 +21,7 @@ def escape_sequence(val, charset):
     return "(" + ",".join([escape_item(v, charset) for v in val]) + ")"
 
 def escape_set(val, charset):
-    val = map(lambda x: escape_item(x, charset), val)
-    return ','.join(val)
+    return ",".join([escape_item(v, charset) for v in val])
 
 def escape_bool(value):
     return str(int(value))
@@ -317,10 +317,5 @@ def escape_item(val, charset, encoders=encoders):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    encoder = encoders[type(val)]
-    val = encoder(val)
-    if type(val) is str:
-        return val
-    val = val.encode(charset)
-    return val
+    return encoders[type(val)](val)
 

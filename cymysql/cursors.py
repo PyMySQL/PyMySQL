@@ -113,7 +113,7 @@ class Cursor(object):
             query = query.encode(charset)
 
         if args is not None:
-            if isinstance(args, tuple) or isinstance(args, list):
+            if isinstance(args, (tuple, list)):
                 escaped_args = tuple(conn.escape(arg) for arg in args)
             elif isinstance(args, dict):
                 escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
