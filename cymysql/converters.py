@@ -47,10 +47,11 @@ def escape_None(value):
     return 'NULL'
 
 def escape_timedelta(obj):
-    seconds = obj.seconds % 60
-    minutes = (obj.seconds // 60) % 60
-    hours = (obj.seconds // 3600) % 24 + obj.days * 24
-    return "'%02d:%02d:%02d'" % (hours, minutes, seconds)
+    return "'%02d:%02d:%02d'" % (
+        (obj.seconds // 3600) % 24 + obj.days * 24,     # hours
+        (obj.seconds // 60) % 60,                       # minutes
+        obj.seconds % 60                                # seconds
+    )
 
 def escape_time(obj):
     if obj.microsecond:
@@ -222,12 +223,16 @@ def convert_mysql_timestamp(obj):
         obj = obj.decode('ascii')
     if obj[4] == '-':
         return convert_datetime(obj)
-    obj += "0"*(14-len(obj)) # padding
-    year, month, day, hour, minute, second = \
-        int(obj[:4]), int(obj[4:6]), int(obj[6:8]), \
-        int(obj[8:10]), int(obj[10:12]), int(obj[12:14])
+    obj += "0"*(14-len(obj))    # padding
     try:
-        return datetime.datetime(year, month, day, hour, minute, second)
+        return datetime.datetime(
+            int(obj[:4]),       # year
+            int(obj[4:6]),      # month
+            int(obj[6:8]),      # day
+            int(obj[8:10]),     # hour
+            int(obj[10:12]),    # minute
+            int(obj[12:14])     # second
+        )
     except ValueError:
         return None
 
