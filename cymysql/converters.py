@@ -51,32 +51,29 @@ def escape_bytes(value):
         return "''"
     return '0x' + ''.join([('0'+hex(c)[2:])[-2:] for c in value])
 
-def escape_unicode(value):
-    return escape_string(value)
-
 def escape_None(value):
     return 'NULL'
 
 def escape_timedelta(obj):
-    seconds = int(obj.seconds) % 60
-    minutes = int(obj.seconds // 60) % 60
-    hours = int(obj.seconds // 3600) % 24 + int(obj.days) * 24
-    return escape_string('%02d:%02d:%02d' % (hours, minutes, seconds))
+    seconds = obj.seconds % 60
+    minutes = (obj.seconds // 60) % 60
+    hours = (obj.seconds // 3600) % 24 + obj.days * 24
+    return "'%02d:%02d:%02d'" % (hours, minutes, seconds)
 
 def escape_time(obj):
-    s = "%02d:%02d:%02d" % (int(obj.hour), int(obj.minute),
-                            int(obj.second))
     if obj.microsecond:
-        s += ".%f" % obj.microsecond
+        return "'%02d:%02d:%02d.%f'" % (
+            obj.hour, obj.minute, obj.second, obj.microsecond)
+    else:
+        return "'%02d:%02d:%02d'" % (obj.hour, obj.minute, obj.second)
 
-    return escape_string(s)
 
 def escape_datetime(obj):
-    return escape_string("%04d-%02d-%02d %02d:%02d:%02d" % (
-            obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second))
+    return "'%04d-%02d-%02d %02d:%02d:%02d'" % (
+            obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second)
 
 def escape_date(obj):
-    return escape_string("%04d-%02d-%02d" % (obj.year, obj.month, obj.day))
+    return "'%04d-%02d-%02d'" % (obj.year, obj.month, obj.day)
 
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
@@ -319,7 +316,7 @@ encoders = {
 if PYTHON3:
     encoders[bytes] = escape_bytes
 else:
-    encoders[unicode] = escape_unicode
+    encoders[unicode] = escape_string
     encoders[long] = escape_long
 
 
