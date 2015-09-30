@@ -12,7 +12,6 @@ setup(
     name="PyMySQL",
     version=version,
     url='https://github.com/PyMySQL/PyMySQL/',
-    download_url = 'https://github.com/PyMySQL/PyMySQL/tarball/pymysql-%s' % version,
     author='yutaka.matsubara',
     author_email='yutaka.matsubara@gmail.com',
     maintainer='INADA Naoki',
