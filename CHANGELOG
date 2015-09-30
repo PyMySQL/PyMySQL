@@ -1,5 +1,22 @@
 # Changes
 
+## 0.6.7
+
+Release date: 2015-09-30
+
+* Allow self signed certificate
+* Add max_allowed_packet option
+* Fix error when bytes in executemany
+* Support geometry type
+* Add coveralls badge to README
+* Fix some bugs relating to warnings
+* Add Cursor.mogrify() method
+* no_delay option is deprecated and True by default
+* Fix options from my.cnf overrides options from arguments
+* Allow socket like object.  (It's not feature for end users)
+* Strip quotes while reading options from my.cnf file
+* Fix encoding issue in executemany()
+
 ## 0.6.6
 
 * Add context manager to cursor
