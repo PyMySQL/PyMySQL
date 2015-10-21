@@ -79,7 +79,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("""CREATE TABLE `test` (`station` int(10) NOT NULL DEFAULT '0', `dh`
-datetime NOT NULL DEFAULT '0000-00-00 00:00:00', `echeance` int(1) NOT NULL
+datetime NOT NULL DEFAULT '1000-01-01 00:00:01', `echeance` int(1) NOT NULL
 DEFAULT '0', `me` double DEFAULT NULL, `mo` double DEFAULT NULL, PRIMARY
 KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         try:
