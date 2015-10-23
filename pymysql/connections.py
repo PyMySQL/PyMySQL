@@ -1118,7 +1118,7 @@ class MySQLResult(object):
 
     def __init__(self, connection):
         """
-        @type connection: Connection
+        :type connection: Connection
         """
         self.connection = connection
         self.affected_rows = None
