@@ -1117,6 +1117,9 @@ class Connection(object):
 class MySQLResult(object):
 
     def __init__(self, connection):
+        """
+        @type connection: Connection
+        """
         self.connection = connection
         self.affected_rows = None
         self.insert_id = None
@@ -1144,7 +1147,7 @@ class MySQLResult(object):
             else:
                 self._read_result_packet(first_packet)
         finally:
-            self.connection = False
+            self.connection = None
 
     def init_unbuffered_query(self):
         self.unbuffered_active = True
