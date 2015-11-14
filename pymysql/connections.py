@@ -652,14 +652,16 @@ class Connection(object):
     def _create_ssl_ctx(self,sslp):
         if isinstance(sslp,ssl.SSLContext):
             return sslp
-        if ('capath' in sslp or 'cipher' in sslp):
-            raise NotImplementedError('ssl options capath and cipher are not supported')
         ca = sslp.get('ca')
-        ctx = ssl.create_default_context(cafile=ca)
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE if ca is None else ssl.CERT_REQUIRED
+        capath = sslp.get('capath')
+        hasnoca = ca is None and capath is None
+        ctx = ssl.create_default_context(cafile=ca,capath=capath)
+        ctx.check_hostname = not hasnoca and sslp.get('check_hostname',True)
+        ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if 'cert' in sslp:
             ctx.load_cert_chain(sslp['cert'], keyfile=sslp.get('key'))
+        if 'cipher' in sslp:
+            ctx.set_ciphers(sslp['cipher'])
         ctx.options |= ssl.OP_NO_SSLv2
         ctx.options |= ssl.OP_NO_SSLv3
         return ctx
