@@ -649,14 +649,14 @@ class Connection(object):
         else:
             self.connect()
     
-    def _create_ssl_ctx(self,sslp):
-        if isinstance(sslp,ssl.SSLContext):
+    def _create_ssl_ctx(self, sslp):
+        if isinstance(sslp, ssl.SSLContext):
             return sslp
         ca = sslp.get('ca')
         capath = sslp.get('capath')
         hasnoca = ca is None and capath is None
-        ctx = ssl.create_default_context(cafile=ca,capath=capath)
-        ctx.check_hostname = not hasnoca and sslp.get('check_hostname',True)
+        ctx = ssl.create_default_context(cafile=ca, capath=capath)
+        ctx.check_hostname = not hasnoca and sslp.get('check_hostname', True)
         ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if 'cert' in sslp:
             ctx.load_cert_chain(sslp['cert'], keyfile=sslp.get('key'))
@@ -1019,7 +1019,7 @@ class Connection(object):
             if DEBUG: dump_packet(data)
             self._write_bytes(data)
 
-            self.socket = self.ctx.wrap_socket(self.socket,server_hostname=self.host)
+            self.socket = self.ctx.wrap_socket(self.socket, server_hostname=self.host)
             self._rfile = _makefile(self.socket, 'rb')
 
         data = data_init + self.user + b'\0' + \
