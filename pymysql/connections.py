@@ -568,20 +568,13 @@ class Connection(object):
         if local_infile:
             client_flag |= CLIENT.LOCAL_FILES
 
-        if ssl and ('capath' in ssl or 'cipher' in ssl):
-            raise NotImplementedError('ssl options capath and cipher are not supported')
-
         self.ssl = False
         if ssl:
             if not SSL_ENABLED:
                 raise NotImplementedError("ssl module not found")
             self.ssl = True
             client_flag |= CLIENT.SSL
-            for k in ('key', 'cert', 'ca'):
-                v = None
-                if k in ssl:
-                    v = ssl[k]
-                setattr(self, k, v)
+            self.ctx = self._create_ssl_ctx(ssl)
 
         if read_default_group and not read_default_file:
             if sys.platform.startswith("win"):
@@ -655,6 +648,23 @@ class Connection(object):
             self.socket = None
         else:
             self.connect()
+    
+    def _create_ssl_ctx(self, sslp):
+        if isinstance(sslp, ssl.SSLContext):
+            return sslp
+        ca = sslp.get('ca')
+        capath = sslp.get('capath')
+        hasnoca = ca is None and capath is None
+        ctx = ssl.create_default_context(cafile=ca, capath=capath)
+        ctx.check_hostname = not hasnoca and sslp.get('check_hostname', True)
+        ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
+        if 'cert' in sslp:
+            ctx.load_cert_chain(sslp['cert'], keyfile=sslp.get('key'))
+        if 'cipher' in sslp:
+            ctx.set_ciphers(sslp['cipher'])
+        ctx.options |= ssl.OP_NO_SSLv2
+        ctx.options |= ssl.OP_NO_SSLv3
+        return ctx
 
     def close(self):
         """Send the quit message and close the socket"""
@@ -1009,12 +1019,7 @@ class Connection(object):
             if DEBUG: dump_packet(data)
             self._write_bytes(data)
 
-            cert_reqs = ssl.CERT_NONE if self.ca is None else ssl.CERT_REQUIRED
-            self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
-                                          certfile=self.cert,
-                                          ssl_version=ssl.PROTOCOL_TLSv1,
-                                          cert_reqs=cert_reqs,
-                                          ca_certs=self.ca)
+            self.socket = self.ctx.wrap_socket(self.socket, server_hostname=self.host)
             self._rfile = _makefile(self.socket, 'rb')
 
         data = data_init + self.user + b'\0' + \
