@@ -502,7 +502,7 @@ class Connection(object):
     def __init__(self, host="localhost", user=None, password="",
                  database=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
-                 read_default_file=None, conv=decoders, use_unicode=None,
+                 read_default_file=None, conv=decoders, encoders=encoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=None,
@@ -525,6 +525,8 @@ class Connection(object):
         conv:
             Decoders dictionary to use instead of the default one.
             This is used to provide custom marshalling of types. See converters.
+        encoders:
+            Encoder dictionary to use instead of the default one.
         use_unicode:
             Whether or not to default to unicode strings.
             This option defaults to true for Py3k.
@@ -747,6 +749,8 @@ class Connection(object):
 
     def escape(self, obj, mapping=None):
         """Escape whatever value you pass to it"""
+        if mapping is None:
+            mapping = self.encoders
         if isinstance(obj, str_type):
             return "'" + self.escape_string(obj) + "'"
         return escape_item(obj, self.charset, mapping=mapping)
