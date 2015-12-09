@@ -137,7 +137,25 @@ class Cursor(object):
         return query
 
     def execute(self, query, args=None):
-        '''Execute a query'''
+        """
+        Execute a query
+
+        Parameters
+        ----------
+        query : str
+            Query to execute on the server.
+        args : sequence or mapping, optional
+            Will be used with query
+
+        Returns
+        -------
+        int
+            Number of affected rows
+
+        Notes
+        -----
+        If args is a sequence, %s can be used as a placeholder in the query.
+        """
         while self.nextset():
             pass
 
