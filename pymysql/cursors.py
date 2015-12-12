@@ -144,7 +144,7 @@ class Cursor(object):
         ----------
         query : str
             Query to execute on the server.
-        args : sequence or mapping, optional
+        args : tuple, list or dict, optional
             Will be used with query
 
         Returns
@@ -155,6 +155,7 @@ class Cursor(object):
         Notes
         -----
         If args is a sequence, %s can be used as a placeholder in the query.
+        If args is a dict, %(name)s can be used as a placeholder in the query.
         """
         while self.nextset():
             pass
