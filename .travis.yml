@@ -1,9 +1,10 @@
-sudo: false
+sudo: required
+dist: trusty
 language: python
-python: "3.4"
+python: "3.5"
 cache:
-    pip: true
-
+  directories:
+    - $HOME/.cache/pip
 
 env:
     matrix:
