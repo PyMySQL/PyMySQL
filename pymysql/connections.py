@@ -499,7 +499,7 @@ class Connection(object):
 
     socket = None
 
-    def __init__(self, host="localhost", user=None, password="",
+    def __init__(self, host=None, user=None, password="",
                  database=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
                  read_default_file=None, conv=decoders, use_unicode=None,
@@ -601,7 +601,7 @@ class Connection(object):
             port = int(_config("port", port))
             charset = _config("default-character-set", charset)
 
-        self.host = host
+        self.host = host or "localhost"
         self.port = port
         self.user = user or DEFAULT_USER
         self.password = password or ""
