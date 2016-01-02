@@ -538,7 +538,6 @@ class Connection(object):
         read_default_group: Group to read from in the configuration file.
         compress; Not supported
         named_pipe: Not supported
-        no_delay: Disable Nagle's algorithm on the socket. (deprecated, default: True)
         autocommit: Autocommit mode. None means use server default. (default: False)
         local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
         max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
@@ -550,9 +549,6 @@ class Connection(object):
         """
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
-            no_delay = bool(no_delay)
-        else:
-            no_delay = True
 
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
@@ -610,7 +606,6 @@ class Connection(object):
         self.user = user or DEFAULT_USER
         self.password = password or ""
         self.db = database
-        self.no_delay = no_delay
         self.unix_socket = unix_socket
         if charset:
             self.charset = charset
@@ -851,8 +846,7 @@ class Connection(object):
                             raise
                     self.host_info = "socket %s:%d" % (self.host, self.port)
                     if DEBUG: print('connected using socket')
-                    if self.no_delay:
-                        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 sock.settimeout(None)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             self.socket = sock
