@@ -1471,4 +1471,3 @@ class LoadLocalFile(object):
             # send the empty packet to signify we are done sending data
             packet = struct.pack('<i', 0)[:3] + int2byte(seq_id)
             self.connection._write_bytes(packet)
-            self.next_packet = (seq_id + 1) % 256
