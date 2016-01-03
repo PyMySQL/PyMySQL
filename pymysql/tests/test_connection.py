@@ -1,7 +1,7 @@
 import datetime
 import decimal
-import time
 import sys
+import time
 import unittest2
 import pymysql
 from pymysql.tests import base
@@ -202,3 +202,11 @@ class TestEscape(base.PyMySQLTestCase):
         mapping = con.encoders.copy()
         mapping[Foo] = escape_foo
         self.assertEqual(con.escape([Foo()], mapping), "(bar)")
+
+    def test_previous_cursor_not_closed(self):
+        con = self.connections[0]
+        cur1 = con.cursor()
+        cur1.execute("SELECT 1; SELECT 2")
+        cur2 = con.cursor()
+        with self.assertRaises(pymysql.ProgrammingError):
+            cur2.execute("SELECT 3")
