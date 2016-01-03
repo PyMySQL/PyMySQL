@@ -4,7 +4,6 @@ python: "3.4"
 cache:
     pip: true
 
-
 env:
     matrix:
         - TOX_ENV=py26
@@ -18,13 +17,23 @@ matrix:
     include:
         - addons:
              mariadb: 5.5
-          env: TOX_ENV=py27
+          env:
+             - TOX_ENV=py27
+             - EXTRAPKG=mariadb-test
+          sudo: required
         - addons:
              mariadb: 10.0
-          env: TOX_ENV=py33
+          env:
+             - TOX_ENV=py33
+             - EXTRAPKG=mariadb-test
+             - PAMCLEAR=1
+          sudo: required
         - addons:
              mariadb: 10.1
-          env: TOX_ENV=py34
+          env:
+             - TOX_ENV=py34
+             - EXTRAPKG=mariadb-test
+          sudo: required
         - env:
              - TOX_ENV=py34
              - DB=5.6.26
@@ -55,6 +64,16 @@ matrix:
 # really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 
 install:
+    - if [ -n "${EXTRAPKG}" ]; then
+          sudo apt-get install ${EXTRAPKG};
+      fi
+    - if [ -n "${PAMCLEAR}" ]; then
+          echo -e '[mysqld]\n\npam-use-cleartext-plugin' | sudo tee -a /etc/mysql/conf.d/pam-cleartext.cnf;
+          mysql -u root -e "install plugin pam soname 'auth_pam.so'";
+          sudo service mysql restart;
+      fi
+    - export PASSWORD=travis;
+    - export PAMSERVICE=chfn;
     - pip install -U tox coveralls
 
 before_script:
@@ -63,7 +82,7 @@ before_script:
     - mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
     - mysql -u root -e "create user travis_pymysql2 identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2;"
     - mysql -u root -e "create user travis_pymysql2@localhost identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2@localhost;"
-    - mysql -e 'select VERSION();'
+    - mysql -e 'select VERSION()'
     - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
     - export COVERALLS_PARALLEL=true
 
@@ -72,6 +91,13 @@ script:
 
 after_success:
     - coveralls
+    - cat /tmp/mysql.err
+    - if [ -n "${PAMCLEAR}" ]; then
+         sudo cat /var/log/syslog;
+      fi
 
 after_failure:
     - cat /tmp/mysql.err
+    - if [ -n "${PAMCLEAR}" ]; then
+         sudo cat /var/log/syslog;
+      fi
