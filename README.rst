@@ -5,7 +5,8 @@ PyMySQL
 .. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
    :target: https://travis-ci.org/PyMySQL/PyMySQL
 
-.. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=master&service=github :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
+.. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=master&service=github
+   :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
 
 .. contents::
 
@@ -19,12 +20,12 @@ Requirements
 * Python -- one of the following:
 
   - CPython_ >= 2.6 or >= 3.3
-  - PyPy_ >= 2.3
+  - PyPy_ >= 4.0
   - IronPython_ 2.7
 
 * MySQL Server -- one of the following:
 
-  - MySQL_ >= 4.1
+  - MySQL_ >= 4.1  (tested with only 5.5~)
   - MariaDB_ >= 5.1
 
 .. _CPython: http://www.python.org/
