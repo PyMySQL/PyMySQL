@@ -1327,7 +1327,11 @@ class MySQLResult(object):
     def _read_load_local_packet(self, first_packet):
         load_packet = LoadLocalPacketWrapper(first_packet)
         sender = LoadLocalFile(load_packet.filename, self.connection)
-        sender.send_data()
+        try:
+            sender.send_data()
+        except:
+            self.connection._read_packet()  # skip ok packet
+            raise
 
         ok_packet = self.connection._read_packet()
         if not ok_packet.is_ok_packet(): # pragma: no cover - upstream induced protocol error
@@ -1448,7 +1452,7 @@ class LoadLocalFile(object):
 
         try:
             with open(self.filename, 'rb') as open_file:
-                chunk_size = self.connection.max_allowed_packet
+                chunk_size = conn.max_allowed_packet
                 packet = b""
 
                 while True:

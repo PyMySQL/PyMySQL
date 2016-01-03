@@ -61,6 +61,7 @@ class TestLoadLocal(base.PyMySQLTestCase):
                 self.assertTrue("Incorrect integer value" in str(w[-1].message))
         finally:
             c.execute("DROP TABLE test_load_local")
+            c.close()
 
 
 if __name__ == "__main__":
