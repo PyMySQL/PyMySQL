@@ -536,7 +536,7 @@ class Connection(object):
                  compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
-                 plugin_map={}):
+                 auth_plugin_map={}):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -572,12 +572,11 @@ class Connection(object):
         max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
         defer_connect: Don't explicitly connect on contruction - wait for connect call.
             (default: False)
-        plugin_map: Map of plugin names to a class that processes that plugin. The class
-            will take the Connection object as the argument to the constructor. The class
-            needs an authenticate method taking an authentication packet as an argument.
-            For the dialog plugin, a prompt(echo, prompt) method can be used (if no
-            authenticate method) for returning a string from the user.
-
+        auth_plugin_map: A dict of plugin names to a class that processes that plugin.
+            The class will take the Connection object as the argument to the constructor.
+            The class needs an authenticate method taking an authentication packet as
+            an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
+            (if no authenticate method) for returning a string from the user. (experimental)
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
         """
@@ -673,7 +672,7 @@ class Connection(object):
         self.sql_mode = sql_mode
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
-        self.plugin_map = plugin_map
+        self._auth_plugin_map = auth_plugin_map
         if defer_connect:
             self.socket = None
         else:
@@ -1075,18 +1074,15 @@ class Connection(object):
 
         data = data_init + self.user + b'\0'
 
-        authresp = ''
+        authresp = b''
         if self._auth_plugin_name == 'mysql_native_password':
             authresp = _scramble(self.password.encode('latin1'), self.salt)
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
-            data += lenenc_int(len(authresp))
-            data += authresp
+            data += lenenc_int(len(authresp)) + authresp
         elif self.server_capabilities & CLIENT.SECURE_CONNECTION:
-            length = len(authresp)
-            data += struct.pack('B', length)
-            data += authresp
-        else: # pragma: no cover - not testing against servers without secure auth (>=5.0)
+            data += struct.pack('B', len(authresp)) + authresp
+        else:  # pragma: no cover - not testing against servers without secure auth (>=5.0)
             data += authresp + b'\0'
 
         if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
@@ -1117,10 +1113,13 @@ class Connection(object):
                 self.write_packet(data)
                 auth_packet = self._read_packet()
 
+        #TODO: ok packet or error packet?
+
+
     def _process_auth(self, plugin_name, auth_packet):
-        plugin_class = self.plugin_map.get(plugin_name)
+        plugin_class = self._auth_plugin_map.get(plugin_name)
         if not plugin_class:
-            plugin_class = self.plugin_map.get(plugin_name.decode('ascii'))
+            plugin_class = self._auth_plugin_map.get(plugin_name.decode('ascii'))
         if plugin_class:
             try:
                 handler = plugin_class(self)
