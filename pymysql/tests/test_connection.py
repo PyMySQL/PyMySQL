@@ -418,7 +418,7 @@ class TestConnection(base.PyMySQLTestCase):
         with self.assertRaises(pymysql.OperationalError) as cm:
             cur.execute("SELECT 1+1")
         # error occures while reading, not writing because of socket buffer.
-        #self.assertEquals(cm.exception.args[0], 2006)
+        #self.assertEqual(cm.exception.args[0], 2006)
         self.assertIn(cm.exception.args[0], (2006, 2013))
 
     def test_init_command(self):
@@ -566,3 +566,11 @@ class TestEscape(base.PyMySQLTestCase):
         cur2 = con.cursor()
         with self.assertRaises(pymysql.ProgrammingError):
             cur2.execute("SELECT 3")
+
+    def test_commit_during_multi_result(self):
+        con = self.connections[0]
+        cur = con.cursor()
+        cur.execute("SELECT 1; SELECT 2")
+        con.commit()
+        cur.execute("SELECT 3")
+        self.assertEqual(cur.fetchone()[0], 3)
