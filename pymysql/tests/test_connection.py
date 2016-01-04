@@ -40,6 +40,7 @@ class TempUser:
         if self._created:
             self._c.execute("DROP USER %s" % self._user)
 
+
 class TestAuthentication(base.PyMySQLTestCase):
 
     socket_auth = False
@@ -95,7 +96,7 @@ class TestAuthentication(base.PyMySQLTestCase):
 
     def test_plugin(self):
         # Bit of an assumption that the current user is a native password
-        self.assertEqual('mysql_native_password', self.connections[0].get_plugin_name())
+        self.assertEqual('mysql_native_password', self.connections[0]._auth_plugin_name)
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipIf(socket_found, "socket plugin already installed")
@@ -198,7 +199,7 @@ class TestAuthentication(base.PyMySQLTestCase):
                       self.databases[0]['db'], 'two_questions', 'notverysecret') as u:
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user='pymysql_2q', **self.db)
-            pymysql.connect(user='pymysql_2q', plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
+            pymysql.connect(user='pymysql_2q', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipIf(three_attempts_found, "three_attempts plugin already installed")
@@ -225,21 +226,21 @@ class TestAuthentication(base.PyMySQLTestCase):
         TestAuthentication.Dialog.fail=True   # fail just once. We've got three attempts after all
         with TempUser(self.connections[0].cursor(), 'pymysql_3a@localhost',
                       self.databases[0]['db'], 'three_attempts', 'stillnotverysecret') as u:
-            pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
-            pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.DialogHandler}, **self.db)
+            pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
+            pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.DialogHandler}, **self.db)
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': object}, **self.db)
+                pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': object}, **self.db)
 
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.DefectiveHandler}, **self.db)
+                pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.DefectiveHandler}, **self.db)
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_3a', plugin_map={b'notdialogplugin': TestAuthentication.Dialog}, **self.db)
+                pymysql.connect(user='pymysql_3a', auth_plugin_map={b'notdialogplugin': TestAuthentication.Dialog}, **self.db)
             TestAuthentication.Dialog.m = {b'Password, please:': b'I do not know'}
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
+                pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
             TestAuthentication.Dialog.m = {b'Password, please:': None}
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_3a', plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
+                pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipIf(pam_found, "pam plugin already installed")
@@ -285,12 +286,16 @@ class TestAuthentication(base.PyMySQLTestCase):
                 c = pymysql.connect(user=TestAuthentication.osuser, **db)
                 db['password'] = 'very bad guess at password'
                 with self.assertRaises(pymysql.err.OperationalError):
-                    pymysql.connect(user=TestAuthentication.osuser, plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)
+                    pymysql.connect(user=TestAuthentication.osuser,
+                                    auth_plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler},
+                                    **self.db)
             except pymysql.OperationalError as e:
                 self.assertEqual(1045, e.args[0])
                 # we had 'bad guess at password' work with pam. Well at least we get a permission denied here
                 with self.assertRaises(pymysql.err.OperationalError):
-                    pymysql.connect(user=TestAuthentication.osuser, plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler}, **self.db)
+                    pymysql.connect(user=TestAuthentication.osuser,
+                                    auth_plugin_map={b'mysql_cleartext_password': TestAuthentication.DefectiveHandler},
+                                    **self.db)
         if grants:
             # recreate the user
             cur.execute(grants)

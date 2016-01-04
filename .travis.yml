@@ -1,8 +1,9 @@
 sudo: false
 language: python
-python: "3.4"
+python: "3.5"
 cache:
-    pip: true
+    directories:
+        - $HOME/.cache/pip
 
 env:
     matrix:
@@ -10,6 +11,7 @@ env:
         - TOX_ENV=py27
         - TOX_ENV=py33
         - TOX_ENV=py34
+        - TOX_ENV=py35
         - TOX_ENV=pypy
         - TOX_ENV=pypy3
 
@@ -36,7 +38,7 @@ matrix:
           sudo: required
         - env:
              - TOX_ENV=py34
-             - DB=5.6.26
+             - DB=5.6.28
           addons:
               apt:
                  packages:
