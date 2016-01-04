@@ -525,6 +525,7 @@ class Connection(object):
     """
 
     socket = None
+    _auth_plugin_name = ''
 
     def __init__(self, host=None, user=None, password="",
                  database=None, port=3306, unix_socket=None,
@@ -1075,7 +1076,7 @@ class Connection(object):
         data = data_init + self.user + b'\0'
 
         authresp = ''
-        if self.plugin_name == 'mysql_native_password':
+        if self._auth_plugin_name == 'mysql_native_password':
             authresp = _scramble(self.password.encode('latin1'), self.salt)
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
@@ -1094,15 +1095,16 @@ class Connection(object):
             data += self.db + b'\0'
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH:
-            data += self.plugin_name.encode('latin1') + b'\0'
+            name = self._auth_plugin_name
+            if isinstance(name, text_type):
+                name = name.encode('ascii')
+            data += name + b'\0'
 
         self.write_packet(data)
-
         auth_packet = self._read_packet()
 
         # if authentication method isn't accepted the first byte
         # will have the octet 254
-
         if auth_packet.is_auth_switch_request():
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             auth_packet.read_uint8() # 0xfe packet identifier
@@ -1117,6 +1119,8 @@ class Connection(object):
 
     def _process_auth(self, plugin_name, auth_packet):
         plugin_class = self.plugin_map.get(plugin_name)
+        if not plugin_class:
+            plugin_class = self.plugin_map.get(plugin_name.decode('ascii'))
         if plugin_class:
             try:
                 handler = plugin_class(self)
@@ -1242,17 +1246,12 @@ class Connection(object):
             server_end = data.find(b'\0', i)
             if server_end < 0: # pragma: no cover - very specific upstream bug
                 # not found \0 and last field so take it all
-                self.plugin_name = data[i:].decode('latin1')
+                self._auth_plugin_name = data[i:].decode('latin1')
             else:
-                self.plugin_name = data[i:server_end].decode('latin1')
-        else: # pragma: no cover - not testing against any plugin uncapable servers
-            self.plugin_name = ''
+                self._auth_plugin_name = data[i:server_end].decode('latin1')
 
     def get_server_info(self):
         return self.server_version
-
-    def get_plugin_name(self):
-        return self.plugin_name
 
     Warning = err.Warning
     Error = err.Error
