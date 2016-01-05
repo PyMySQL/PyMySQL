@@ -1021,10 +1021,13 @@ class Connection(object):
 
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
-        if self._result is not None and self._result.unbuffered_active:
-            warnings.warn("Previous unbuffered result was left incomplete")
-            self._result._finish_unbuffered_query()
-        self._result = None
+        if self._result is not None:
+            if self._result.unbuffered_active:
+                warnings.warn("Previous unbuffered result was left incomplete")
+                self._result._finish_unbuffered_query()
+            while self._result.has_next:
+                self.next_result()
+            self._result = None
 
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
@@ -1112,9 +1115,6 @@ class Connection(object):
                 data = _scramble_323(self.password.encode('latin1'), self.salt) + b'\0'
                 self.write_packet(data)
                 auth_packet = self._read_packet()
-
-        #TODO: ok packet or error packet?
-
 
     def _process_auth(self, plugin_name, auth_packet):
         plugin_class = self._auth_plugin_map.get(plugin_name)
