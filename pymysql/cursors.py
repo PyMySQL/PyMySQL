@@ -117,7 +117,7 @@ class Cursor(object):
             # If it's not a dictionary let's try escaping it anyways.
             # Worst case it will throw a Value error
             if PY2:
-                ensure_bytes(args)
+                args = ensure_bytes(args)
             return conn.escape(args)
 
     def mogrify(self, query, args=None):
