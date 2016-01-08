@@ -81,7 +81,7 @@ if PY2:
         """
         if isinstance(value, unicode):
             return escape_unicode(value)
-        assert isinstance(value, bytes)
+        assert isinstance(value, (bytes, bytearray))
         value = value.replace('\\', '\\\\')
         value = value.replace('\0', '\\0')
         value = value.replace('\n', '\\n')
@@ -93,7 +93,7 @@ if PY2:
 
     def escape_bytes(value, mapping=None):
         assert isinstance(value, (bytes, bytearray))
-        return b"_binary'%s'" % value
+        return b"_binary'%s'" % escape_string(value)
 else:
     escape_string = _escape_unicode
 
