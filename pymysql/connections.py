@@ -809,10 +809,6 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
-        if self._result is not None and self._result.has_next:
-            raise err.ProgrammingError(
-                "Previous results have not been fetched. "
-                "You may not close previous cursor.")
         # if DEBUG:
         #     print("DEBUG: sending query:", sql)
         if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
