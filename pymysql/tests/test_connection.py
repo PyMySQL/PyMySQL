@@ -564,8 +564,8 @@ class TestEscape(base.PyMySQLTestCase):
         cur1 = con.cursor()
         cur1.execute("SELECT 1; SELECT 2")
         cur2 = con.cursor()
-        with self.assertRaises(pymysql.ProgrammingError):
-            cur2.execute("SELECT 3")
+        cur2.execute("SELECT 3")
+        self.assertEqual(cur2.fetchone()[0], 3)
 
     def test_commit_during_multi_result(self):
         con = self.connections[0]
