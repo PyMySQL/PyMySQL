@@ -145,7 +145,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 
     @unittest2.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
     def test_issue_17(self):
-        """ could not connect mysql use passwod """
+        """could not connect mysql use passwod"""
         conn = self.connections[0]
         host = self.databases[0]["host"]
         db = self.databases[0]["db"]
@@ -413,9 +413,9 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             "create table issue364 (value_1 binary(3), value_2 varchar(3)) "
             "engine=InnoDB default charset=utf8")
 
-        sql = "insert into issue364 (value_1, value_2) values (_binary%s, _binary%s)"
-        usql = u"insert into issue364 (value_1, value_2) values (_binary%s, _binary%s)"
-        values = [b"\x00\xff\x00", u"\xe4\xf6\xfc"]
+        sql = "insert into issue364 (value_1, value_2) values (%s, %s)"
+        usql = u"insert into issue364 (value_1, value_2) values (%s, %s)"
+        values = [pymysql.Binary(b"\x00\xff\x00"), u"\xe4\xf6\xfc"]
 
         # test single insert and select
         cur = conn.cursor()
@@ -446,30 +446,32 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             "ENGINE=MyISAM default charset=utf8")
 
         cur = conn.cursor()
-        # FYI - not sure of 5.7.0 version
-        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+        query = ("INSERT INTO issue363 (id, geom) VALUES"
+                 "(1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
+        # From MySQL 5.7, ST_GeomFromText is added and GeomFromText is deprecated.
+        if self.mysql_server_is(conn, (5, 7, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
-                cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
-                            "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
+                cur.execute(query)
         else:
-            cur.execute("INSERT INTO issue363 (id, geom) VALUES ("
-                        "1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
+            cur.execute(query)
 
         # select WKT
+        query = "SELECT AsText(geom) FROM issue363"
         if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
-                cur.execute("SELECT AsText(geom) FROM issue363")
+                cur.execute(query)
         else:
-            cur.execute("SELECT AsText(geom) FROM issue363")
+            cur.execute(query)
         row = cur.fetchone()
         self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)", ))
 
         # select WKB
+        query = "SELECT AsBinary(geom) FROM issue363"
         if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
-                cur.execute("SELECT AsBinary(geom) FROM issue363")
+                cur.execute(query)
         else:
-            cur.execute("SELECT AsBinary(geom) FROM issue363")
+            cur.execute(query)
         row = cur.fetchone()
         self.assertEqual(row,
                          (b"\x01\x02\x00\x00\x00\x02\x00\x00\x00"

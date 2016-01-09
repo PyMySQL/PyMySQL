@@ -57,12 +57,31 @@ def escape_int(value, mapping=None):
 def escape_float(value, mapping=None):
     return ('%.15g' % value)
 
+_escape_table = [chr(x) for x in range(128)]
+_escape_table[0] = u'\\0'
+_escape_table[ord('\\')] = u'\\\\'
+_escape_table[ord('\n')] = u'\\n'
+_escape_table[ord('\r')] = u'\\r'
+_escape_table[ord('\032')] = u'\\Z'
+_escape_table[ord('"')] = u'\\"'
+_escape_table[ord("'")] = u"\\'"
+
+def _escape_unicode(value, mapping=None):
+    """escapes *value* without adding quote.
+
+    Value should be unicode
+    """
+    return value.translate(_escape_table)
+
 if PY2:
     def escape_string(value, mapping=None):
         """escape_string escapes *value* but not surround it with quotes.
 
         Value should be bytes or unicode.
         """
+        if isinstance(value, unicode):
+            return escape_unicode(value)
+        assert isinstance(value, (bytes, bytearray))
         value = value.replace('\\', '\\\\')
         value = value.replace('\0', '\\0')
         value = value.replace('\n', '\\n')
@@ -71,22 +90,12 @@ if PY2:
         value = value.replace("'", "\\'")
         value = value.replace('"', '\\"')
         return value
+
+    def escape_bytes(value, mapping=None):
+        assert isinstance(value, (bytes, bytearray))
+        return b"_binary'%s'" % escape_string(value)
 else:
-    _escape_table = [chr(x) for x in range(128)]
-    _escape_table[0] = '\\0'
-    _escape_table[ord('\\')] = '\\\\'
-    _escape_table[ord('\n')] = '\\n'
-    _escape_table[ord('\r')] = '\\r'
-    _escape_table[ord('\032')] = '\\Z'
-    _escape_table[ord('"')] = '\\"'
-    _escape_table[ord("'")] = "\\'"
-
-    def escape_string(value, mapping=None):
-        """escape_string escapes *value* but not surround it with quotes.
-
-        Value should be str (unicode).
-        """
-        return value.translate(_escape_table)
+    escape_string = _escape_unicode
 
     # On Python ~3.5, str.decode('ascii', 'surrogateescape') is slow.
     # (fixed in Python 3.6, http://bugs.python.org/issue24870)
@@ -95,14 +104,14 @@ else:
     _escape_bytes_table = _escape_table + [chr(i) for i in range(0xdc80, 0xdd00)]
 
     def escape_bytes(value, mapping=None):
-        return "'%s'" % value.decode('latin1').translate(_escape_bytes_table)
+        return "_binary'%s'" % value.decode('latin1').translate(_escape_bytes_table)
 
+
+def escape_unicode(value, mapping=None):
+    return u"'%s'" % _escape_unicode(value)
 
 def escape_str(value, mapping=None):
     return "'%s'" % escape_string(value, mapping)
-
-def escape_unicode(value, mapping=None):
-    return escape_str(value, mapping)
 
 def escape_None(value, mapping=None):
     return 'NULL'
@@ -337,6 +346,7 @@ encoders = {
     list: escape_sequence,
     set: escape_sequence,
     dict: escape_dict,
+    bytearray: escape_bytes,
     type(None): escape_None,
     datetime.date: escape_date,
     datetime.datetime: escape_datetime,
