@@ -1,5 +1,22 @@
 # Changes
 
+## 0.7
+
+Release date: 2016-01-10
+
+Notable changes:
+
+* Faster binary escaping
+* Add `"_binary" prefix` to string literal for binary types.
+  binary types are: `bytearray` on Python 2, `bytes` and `bytearray` on Python 3.
+  This is because recent MySQL show warnings when string literal is invalid for
+  connection encoding.
+* `pymysql.Binary()` returns `bytearray` on Python 2.  This is required to distinguish
+  binary and string.
+* Auth plugin support.
+* no_delay option is ignored.  It will be removed in PyMySQL 0.8.
+
+
 ## 0.6.7
 
 Release date: 2015-09-30
