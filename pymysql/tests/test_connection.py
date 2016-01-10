@@ -1,10 +1,10 @@
 import datetime
-import decimal
 import sys
 import time
 import unittest2
 import pymysql
 from pymysql.tests import base
+from pymysql._compat import text_type
 
 
 class TempUser:
@@ -534,7 +534,7 @@ class TestEscape(base.PyMySQLTestCase):
         class Custom(str):
             pass
 
-        mapping = {pymysql.text_type: pymysql.escape_string}
+        mapping = {text_type: pymysql.escape_string}
         self.assertEqual(con.escape(Custom('foobar'), mapping), "'foobar'")
 
     def test_escape_no_default(self):
