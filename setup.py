@@ -16,12 +16,11 @@ setup(
     author_email='yutaka.matsubara@gmail.com',
     maintainer='INADA Naoki',
     maintainer_email='songofacandy@gmail.com',
-    description='Pure-Python MySQL Driver',
+    description='Pure Python MySQL Driver',
     license="MIT",
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
@@ -33,5 +32,5 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Topic :: Database',
-    ]
+    ],
 )
