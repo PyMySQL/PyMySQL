@@ -1,7 +1,5 @@
-from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON
+from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON, unichr
 
-import sys
-import binascii
 import datetime
 from decimal import Decimal
 import time
@@ -57,7 +55,7 @@ def escape_int(value, mapping=None):
 def escape_float(value, mapping=None):
     return ('%.15g' % value)
 
-_escape_table = [chr(x) for x in range(128)]
+_escape_table = [unichr(x) for x in range(128)]
 _escape_table[0] = u'\\0'
 _escape_table[ord('\\')] = u'\\\\'
 _escape_table[ord('\n')] = u'\\n'
@@ -80,7 +78,7 @@ if PY2:
         Value should be bytes or unicode.
         """
         if isinstance(value, unicode):
-            return escape_unicode(value)
+            return _escape_unicode(value)
         assert isinstance(value, (bytes, bytearray))
         value = value.replace('\\', '\\\\')
         value = value.replace('\0', '\\0')
