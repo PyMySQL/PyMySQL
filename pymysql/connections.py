@@ -1051,7 +1051,6 @@ class Connection(object):
 
     def _request_authentication(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::HandshakeResponse
-        self.client_flag |= CLIENT.CAPABILITIES
         if int(self.server_version.split('.', 1)[0]) >= 5:
             self.client_flag |= CLIENT.MULTI_RESULTS
 
@@ -1073,7 +1072,7 @@ class Connection(object):
         data = data_init + self.user + b'\0'
 
         authresp = b''
-        if self._auth_plugin_name == 'mysql_native_password':
+        if self._auth_plugin_name in ('', 'mysql_native_password'):
             authresp = _scramble(self.password.encode('latin1'), self.salt)
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
