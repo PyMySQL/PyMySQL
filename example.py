@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 
 import pymysql
@@ -15,7 +14,7 @@ print(cur.description)
 print()
 
 for row in cur:
-   print(row)
+    print(row)
 
 cur.close()
 conn.close()
