@@ -12,7 +12,7 @@ from . import err
 #: Regular expression for :meth:`Cursor.executemany`.
 #: executemany only suports simple bulk insert.
 #: You can use it to load large dataset.
-RE_INSERT_VALUES = re.compile(r"""(INSERT\s.+\sVALUES\s+)(\(\s*%s\s*(?:,\s*%s\s*)*\))(\s*(?:ON DUPLICATE.*)?)\Z""",
+RE_INSERT_VALUES = re.compile(r"""(INSERT\s.+\sVALUES\s+)(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))(\s*(?:ON DUPLICATE.*)?)\Z""",
                               re.IGNORECASE | re.DOTALL)
 
 
