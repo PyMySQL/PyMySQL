@@ -92,7 +92,8 @@ TEXT_TYPES = set([
     FIELD_TYPE.TINY_BLOB,
     FIELD_TYPE.VAR_STRING,
     FIELD_TYPE.VARCHAR,
-    FIELD_TYPE.GEOMETRY])
+    FIELD_TYPE.GEOMETRY,
+    FIELD_TYPE.JSON])
 
 sha_new = partial(hashlib.new, 'sha1')
 
