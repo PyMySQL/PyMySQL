@@ -768,6 +768,15 @@ class Connection(object):
         result.read()
         return result.rows
 
+    def show_variable(self, name, default=0):
+        """ Get settings from server. only int type"""
+        self._execute_command(COMMAND.COM_QUERY,"show variables where variable_name = %s" % self.escape(name))
+        result = MySQLResult(self)
+        result.read()
+        if result.rows:
+            return int(result.rows[0][1])
+        return default
+
     def select_db(self, db):
         '''Set current db'''
         self._execute_command(COMMAND.COM_INIT_DB, db)
@@ -898,6 +907,8 @@ class Connection(object):
                 c.execute(self.init_command)
                 c.close()
                 self.commit()
+
+            self.max_allowed_packet = self.show_variable('max_allowed_packet')
 
             if self.autocommit_mode is not None:
                 self.autocommit(self.autocommit_mode)

@@ -40,6 +40,7 @@ class Cursor(object):
         self._executed = None
         self._result = None
         self._rows = None
+        self.max_stmt_length = connection.max_allowed_packet - 10000  # I don'n known packet_header_size
 
     def close(self):
         '''
