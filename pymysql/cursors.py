@@ -26,6 +26,7 @@ class Cursor(object):
     #: Max size of allowed statement is max_allowed_packet - packet_header_size.
     #: Default value of max_allowed_packet is 1048576.
     max_stmt_length = 1024000
+    packet_header_size = 4
 
     def __init__(self, connection):
         '''
@@ -40,7 +41,6 @@ class Cursor(object):
         self._executed = None
         self._result = None
         self._rows = None
-        self.max_stmt_length = connection.max_allowed_packet - 10000  # I don'n known packet_header_size
 
     def close(self):
         '''
@@ -159,6 +159,8 @@ class Cursor(object):
 
         m = RE_INSERT_VALUES.match(query)
         if m:
+            if self.max_stmt_length == Cursor.max_stmt_length:
+                self.max_stmt_length = self.connection.get_system_variable("max_allowed_packet") - self.packet_header_size
             q_prefix = m.group(1)
             q_values = m.group(2).rstrip()
             q_postfix = m.group(3) or ''
