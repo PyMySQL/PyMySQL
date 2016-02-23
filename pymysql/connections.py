@@ -569,6 +569,7 @@ class Connection(object):
         autocommit: Autocommit mode. None means use server default. (default: False)
         local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
         max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
+            Only used to limit size of "LOAD LOCAL INFILE" data packet smaller than default (16KB).
         defer_connect: Don't explicitly connect on contruction - wait for connect call.
             (default: False)
         auth_plugin_map: A dict of plugin names to a class that processes that plugin.
@@ -676,7 +677,7 @@ class Connection(object):
             self.socket = None
         else:
             self.connect()
-    
+
     def _create_ssl_ctx(self, sslp):
         if isinstance(sslp, ssl.SSLContext):
             return sslp
@@ -1027,26 +1028,25 @@ class Connection(object):
         if isinstance(sql, text_type):
             sql = sql.encode(self.encoding)
 
-        # +1 is for command
-        chunk_size = min(self.max_allowed_packet, len(sql) + 1)
+        packet_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
 
         # tiny optimization: build first packet manually instead of
         # calling self..write_packet()
-        prelude = struct.pack('<iB', chunk_size, command)
-        packet = prelude + sql[:chunk_size-1]
+        prelude = struct.pack('<iB', packet_size, command)
+        packet = prelude + sql[:packet_size-1]
         self._write_bytes(packet)
         if DEBUG: dump_packet(packet)
         self._next_seq_id = 1
 
-        if chunk_size < self.max_allowed_packet:
+        if packet_size < MAX_PACKET_LEN:
             return
 
-        sql = sql[chunk_size-1:]
+        sql = sql[packet_size-1:]
         while True:
-            chunk_size = min(self.max_allowed_packet, len(sql))
-            self.write_packet(sql[:chunk_size])
-            sql = sql[chunk_size:]
-            if not sql and chunk_size < self.max_allowed_packet:
+            packet_size = min(MAX_PACKET_LEN, len(sql))
+            self.write_packet(sql[:packet_size])
+            sql = sql[packet_size:]
+            if not sql and packet_size < MAX_PACKET_LEN:
                 break
 
     def _request_authentication(self):
@@ -1447,11 +1447,9 @@ class LoadLocalFile(object):
 
         try:
             with open(self.filename, 'rb') as open_file:
-                chunk_size = conn.max_allowed_packet
-                packet = b""
-
+                packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
                 while True:
-                    chunk = open_file.read(chunk_size)
+                    chunk = open_file.read(packet_size)
                     if not chunk:
                         break
                     conn.write_packet(chunk)
