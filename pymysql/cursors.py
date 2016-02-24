@@ -137,24 +137,17 @@ class Cursor(object):
         return query
 
     def execute(self, query, args=None):
-        """
-        Execute a query
+        """Execute a query
 
-        Parameters
-        ----------
-        query : str
-            Query to execute on the server.
-        args : tuple, list or dict, optional
-            Will be used with query
+        :param str query: Query to execute.
 
-        Returns
-        -------
-        int
-            Number of affected rows
+        :param args: arameters used with query. (optional)
+        :type args: tuple, list or dict
 
-        Notes
-        -----
-        If args is a sequence, %s can be used as a placeholder in the query.
+        :return: Number of affected rows
+        :rtype: int
+
+        If args is a list or tuple, %s can be used as a placeholder in the query.
         If args is a dict, %(name)s can be used as a placeholder in the query.
         """
         while self.nextset():
