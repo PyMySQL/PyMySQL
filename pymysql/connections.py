@@ -902,6 +902,9 @@ class Connection(object):
             self._get_server_information()
             self._request_authentication()
 
+            self.max_allowed_packet = min(self.max_allowed_packet,
+                                          self.get_system_variable('max_allowed_packet', self.max_allowed_packet))
+
             if self.sql_mode is not None:
                 c = self.cursor()
                 c.execute("SET sql_mode=%s", (self.sql_mode,))
