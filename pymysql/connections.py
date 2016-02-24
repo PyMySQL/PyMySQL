@@ -768,19 +768,6 @@ class Connection(object):
         result.read()
         return result.rows
 
-    def get_system_variable(self, name, default=None):
-        """Get settings from server"""
-        self._execute_command(COMMAND.COM_QUERY, "SHOW VARIABLES WHERE VARIABLE_NAME = %s" % self.escape(name))
-        result = MySQLResult(self)
-        result.read()
-        if result.rows:
-            variable = result.rows[0][1]
-            if variable.isdigit():
-                return int(variable)
-            else:
-                return variable
-        return default
-
     def select_db(self, db):
         '''Set current db'''
         self._execute_command(COMMAND.COM_INIT_DB, db)
@@ -901,9 +888,6 @@ class Connection(object):
 
             self._get_server_information()
             self._request_authentication()
-
-            self.max_allowed_packet = min(self.max_allowed_packet,
-                                          self.get_system_variable('max_allowed_packet', self.max_allowed_packet))
 
             if self.sql_mode is not None:
                 c = self.cursor()

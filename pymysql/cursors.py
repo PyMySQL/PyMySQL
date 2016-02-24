@@ -25,8 +25,7 @@ class Cursor(object):
     #:
     #: Max size of allowed statement is max_allowed_packet - packet_header_size.
     #: Default value of max_allowed_packet is 1048576.
-    max_stmt_length = 1024000 * 6
-    packet_header_size = 4
+    max_stmt_length = 1024000
 
     def __init__(self, connection):
         '''
@@ -41,7 +40,6 @@ class Cursor(object):
         self._executed = None
         self._result = None
         self._rows = None
-        self.max_stmt_length = min(Cursor.max_stmt_length, connection.max_allowed_packet - Cursor.packet_header_size)
 
     def close(self):
         '''
