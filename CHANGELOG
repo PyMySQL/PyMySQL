@@ -1,5 +1,12 @@
 # Changes
 
+## 0.7.2
+
+Release date: 2016-02-24
+
+* Fix misuse of `max_allowed_packet` parameter. (#426, #407 and #397)
+* Add %(name)s plceholder support to `Cursor.executemany()`. (#427, thanks to
+  @WorldException)
 
 ## 0.7.1
 
