@@ -1357,11 +1357,14 @@ class MySQLResult(object):
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
-            eof_packet = EOFPacketWrapper(packet)
-            self.warning_count = eof_packet.warning_count
-            self.has_next = eof_packet.has_next
-            return True
-        return False
+            wp = EOFPacketWrapper(packet)
+        elif packet.is_ok_packet():
+            wp = OKPacketWrapper(packet)
+        else:
+            return False
+        self.warning_count = wp.warning_count
+        self.has_next = wp.has_next
+        return True
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()
@@ -1466,7 +1469,7 @@ class MySQLResult(object):
             self.converters.append((encoding, converter))
 
         eof_packet = self.connection._read_packet()
-        assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
+        assert eof_packet.is_eof_packet() or eof_packet.is_ok_packet, 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
 
