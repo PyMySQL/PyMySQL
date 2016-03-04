@@ -106,6 +106,9 @@ DEFAULT_CHARSET = 'latin1'
 
 MAX_PACKET_LEN = 2**24-1
 
+class _NoMoreColumnsInRow(Exception):
+    pass
+
 
 def dump_packet(data): # pragma: no cover
     def is_ascii(data):
@@ -332,7 +335,11 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = self.read_uint8()
+        try:
+            c = self.read_uint8()
+        except IndexError:
+            raise _NoMoreColumnsInRow()
+
         if c == NULL_COLUMN:
             return None
         if c < UNSIGNED_CHAR_COLUMN:
@@ -1389,15 +1396,18 @@ class MySQLResult(object):
 
     def _read_row_from_packet(self, packet):
         row = []
-        for encoding, converter in self.converters:
-            data = packet.read_length_coded_string()
-            if data is not None:
-                if encoding is not None:
-                    data = data.decode(encoding)
-                if DEBUG: print("DEBUG: DATA = ", data)
-                if converter is not None:
-                    data = converter(data)
-            row.append(data)
+        try:
+            for encoding, converter in self.converters:
+                data = packet.read_length_coded_string()
+                if data is not None:
+                    if encoding is not None:
+                        data = data.decode(encoding)
+                    if DEBUG: print("DEBUG: DATA = ", data)
+                    if converter is not None:
+                        data = converter(data)
+                row.append(data)
+        except _NoMoreColumnsInRow:
+            pass
         return tuple(row)
 
     def _get_descriptions(self):
