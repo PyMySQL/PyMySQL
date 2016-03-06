@@ -6,6 +6,7 @@ import datetime
 from decimal import Decimal
 import re
 import time
+import uuid
 
 from .constants import FIELD_TYPE, FLAG
 from .charset import charset_by_id, charset_to_encoding
@@ -295,6 +296,7 @@ encoders = {
     datetime.time: escape_time,
     time.struct_time: escape_struct_time,
     Decimal: str,
+    uuid.UUID: escape_object,
 }
 
 
