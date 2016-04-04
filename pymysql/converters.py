@@ -309,13 +309,8 @@ def through(x):
     return x
 
 
-#def convert_bit(b):
-#    b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
-#    return struct.unpack(">Q", b)[0]
-#    
-#     the snippet above is right, but MySQLdb doesn't process bits,
-#     so we shouldn't either
-convert_bit = through
+def convert_bit(b):
+    return ord(b)
 
 
 def convert_characters(connection, field, data):
