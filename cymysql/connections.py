@@ -158,7 +158,7 @@ class Connection(object):
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        if ssl and (ssl.has_key('capath') or ssl.has_key('cipher')):
+        if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
         self.sock = None
@@ -168,7 +168,7 @@ class Connection(object):
             client_flag |= SSL
             for k in ('key', 'cert', 'ca'):
                 v = None
-                if ssl.has_key(k):
+                if k in ssl:
                     v = ssl[k]
                 setattr(self, k, v)
 
