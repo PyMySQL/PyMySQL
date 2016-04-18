@@ -109,7 +109,7 @@ def escape_unicode(value, mapping=None):
     return u"'%s'" % _escape_unicode(value)
 
 def escape_str(value, mapping=None):
-    return "'%s'" % escape_string(value, mapping)
+    return "'%s'" % escape_string(str(value), mapping)
 
 def escape_None(value, mapping=None):
     return 'NULL'
@@ -386,6 +386,4 @@ decoders = {
 
 # for MySQLdb compatibility
 conversions = decoders
-
-def Thing2Literal(obj):
-    return escape_str(str(obj))
+Thing2Literal = escape_str
