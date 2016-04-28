@@ -257,6 +257,7 @@ def convert_characters(data, charset=None, field=None, use_unicode=None):
         return data.decode(field.charset)
     elif charset != field.charset:
         return data.decode(field.charset).encode(charset)
+    return data
 
 def convert_decimal(obj):
     if PYTHON3 and not isinstance(obj, str):
