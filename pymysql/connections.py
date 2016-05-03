@@ -527,7 +527,7 @@ class Connection(object):
     _auth_plugin_name = ''
 
     def __init__(self, host=None, user=None, password="",
-                 database=None, port=3306, unix_socket=None,
+                 database=None, port=0, unix_socket=None,
                  charset='', sql_mode=None,
                  read_default_file=None, conv=decoders, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
@@ -544,7 +544,7 @@ class Connection(object):
         user: Username to log in as
         password: Password to use.
         database: Database to use, None to not use a particular one.
-        port: MySQL port to use, default is usually OK.
+        port: MySQL port to use, default is usually OK. (default: 3306)
         unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
         charset: Charset you want to use.
         sql_mode: Default SQL_MODE to use.
@@ -635,7 +635,7 @@ class Connection(object):
             charset = _config("default-character-set", charset)
 
         self.host = host or "localhost"
-        self.port = port
+        self.port = port or 3306
         self.user = user or DEFAULT_USER
         self.password = password or ""
         self.db = database
