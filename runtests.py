@@ -10,6 +10,7 @@ if not (PYPY or JYTHON or IRONPYTHON):
 
     @atexit.register
     def report_uncollectable():
+        import gc
         if not gc.garbage:
             print("No garbages!")
             return
