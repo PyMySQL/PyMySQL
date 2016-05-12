@@ -1,10 +1,12 @@
 <!--- Provide a general summary of the issue in the Title above -->
 
-<!--- IMPORTANT NOTE: --->
-<!--- This project is maintained one busy person having frail wife and infant daughter. --->
-<!--- My time and energy is very limited resource. I'm not teacher or free tech support. --->
-<!--- Don't ask a question here.  Don't file an issue until you believe it's a not problem of your code. --->
-<!--- Search friendly volunteer who teach you or investigate your problem on ML or Q&A site. --->
+<!---
+IMPORTANT NOTE:
+This project is maintained one busy person having frail wife and infant daughter.
+My time and energy is very limited resource. I'm not teacher or free tech support.
+Don't ask a question here.  Don't file an issue until you believe it's a not problem of your code.
+Search friendly volunteer who can teach you or review your code on ML or Q&A site.
+--->
 
 
 ## Expected Behavior
