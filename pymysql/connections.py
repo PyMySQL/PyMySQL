@@ -1390,7 +1390,12 @@ class MySQLResult(object):
     def _read_row_from_packet(self, packet):
         row = []
         for encoding, converter in self.converters:
-            data = packet.read_length_coded_string()
+            try:
+                data = packet.read_length_coded_string()
+            except IndexError:
+                # No more columns in this row
+                # See https://github.com/PyMySQL/PyMySQL/pull/434
+                break
             if data is not None:
                 if encoding is not None:
                     data = data.decode(encoding)
