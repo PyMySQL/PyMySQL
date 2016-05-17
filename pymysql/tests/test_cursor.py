@@ -89,7 +89,7 @@ class CursorTest(base.PyMySQLTestCase):
         self.assertIsNotNone(m, 'error parse %(id_name)s')
         self.assertEqual(m.group(3), ' ON duplicate update', 'group 3 not ON duplicate update, bug in RE_INSERT_VALUES?')
 
-        # cursor._executed myst bee "insert into test (data) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)"
+        # cursor._executed must bee "insert into test (data) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)"
         # list args
         data = xrange(10)
         cursor.executemany("insert into test (data) values (%s)", data)
