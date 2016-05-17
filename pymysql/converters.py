@@ -385,5 +385,6 @@ decoders = {
 
 
 # for MySQLdb compatibility
-conversions = decoders
+conversions = encoders.copy()
+conversions.update(decoders)
 Thing2Literal = escape_str
