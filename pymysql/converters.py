@@ -161,6 +161,8 @@ def convert_datetime(obj):
       True
 
     """
+    if not PY2 and isinstance(obj, (bytes, bytearray)):
+        obj = obj.decode('ascii')
     if ' ' in obj:
         sep = ' '
     elif 'T' in obj:
@@ -196,6 +198,8 @@ def convert_timedelta(obj):
     can accept values as (+|-)DD HH:MM:SS. The latter format will not
     be parsed correctly by this function.
     """
+    if not PY2 and isinstance(obj, (bytes, bytearray)):
+        obj = obj.decode('ascii')
     try:
         microseconds = 0
         if "." in obj:
@@ -238,6 +242,8 @@ def convert_time(obj):
     to be treated as time-of-day and not a time offset, then you can
     use set this function as the converter for FIELD_TYPE.TIME.
     """
+    if not PY2 and isinstance(obj, (bytes, bytearray)):
+        obj = obj.decode('ascii')
     try:
         microseconds = 0
         if "." in obj:
@@ -263,6 +269,8 @@ def convert_date(obj):
       True
 
     """
+    if not PY2 and isinstance(obj, (bytes, bytearray)):
+        obj = obj.decode('ascii')
     try:
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
@@ -290,6 +298,8 @@ def convert_mysql_timestamp(timestamp):
       True
 
     """
+    if not PY2 and isinstance(timestamp, (bytes, bytearray)):
+        timestamp = timestamp.decode('ascii')
     if timestamp[4] == '-':
         return convert_datetime(timestamp)
     timestamp += "0"*(14-len(timestamp)) # padding
@@ -302,6 +312,8 @@ def convert_mysql_timestamp(timestamp):
         return None
 
 def convert_set(s):
+    if isinstance(s, (bytes, bytearray)):
+        return set(s.split(b","))
     return set(s.split(","))
 
 
