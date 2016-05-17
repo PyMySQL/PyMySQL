@@ -1,1 +1,1 @@
-pymysql
+git+git://github.com/PyMySQL/PyMySQL.git
