@@ -2,6 +2,10 @@
 PyMySQL
 =======
 
+.. image:: https://readthedocs.org/projects/pymysql/badge/?version=latest
+   :target: http://pymysql.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+
 .. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
    :target: https://travis-ci.org/PyMySQL/PyMySQL
 
