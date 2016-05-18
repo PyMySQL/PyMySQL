@@ -534,7 +534,7 @@ class Connection(object):
                  compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
-                 auth_plugin_map={}):
+                 auth_plugin_map={}, read_timeout=None, write_timeout=None):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -640,6 +640,12 @@ class Connection(object):
         self.password = password or ""
         self.db = database
         self.unix_socket = unix_socket
+        if read_timeout is not None and read_timeout <= 0:
+            raise ValueError("read_timeout should be >= 0")
+        self._read_timeout = read_timeout
+        if write_timeout is not None and write_timeout <= 0:
+            raise ValueError("write_timeout should be >= 0")
+        self._write_timeout = write_timeout
         if charset:
             self.charset = charset
             self.use_unicode = True
@@ -677,7 +683,7 @@ class Connection(object):
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map
         if defer_connect:
-            self.socket = None
+            self._sock = None
         else:
             self.connect()
 
@@ -700,7 +706,7 @@ class Connection(object):
 
     def close(self):
         """Send the quit message and close the socket"""
-        if self.socket is None:
+        if self._sock is None:
             raise err.Error("Already closed")
         send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
         try:
@@ -708,22 +714,22 @@ class Connection(object):
         except Exception:
             pass
         finally:
-            sock = self.socket
-            self.socket = None
+            sock = self._sock
+            self._sock = None
             self._rfile = None
             sock.close()
 
     @property
     def open(self):
-        return self.socket is not None
+        return self._sock is not None
 
     def __del__(self):
-        if self.socket:
+        if self._sock:
             try:
-                self.socket.close()
+                self._sock.close()
             except:
                 pass
-        self.socket = None
+        self._sock = None
         self._rfile = None
 
     def autocommit(self, value):
@@ -843,7 +849,7 @@ class Connection(object):
 
     def ping(self, reconnect=True):
         """Check if the server is alive"""
-        if self.socket is None:
+        if self._sock is None:
             if reconnect:
                 self.connect()
                 reconnect = False
@@ -892,7 +898,7 @@ class Connection(object):
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 sock.settimeout(None)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            self.socket = sock
+            self._sock = sock
             self._rfile = _makefile(sock, 'rb')
             self._next_seq_id = 0
 
@@ -976,6 +982,7 @@ class Connection(object):
         return packet
 
     def _read_bytes(self, num_bytes):
+        self._sock.settimeout(self._read_timeout)
         while True:
             try:
                 data = self._rfile.read(num_bytes)
@@ -992,8 +999,9 @@ class Connection(object):
         return data
 
     def _write_bytes(self, data):
+        self._sock.settimeout(self._write_timeout)
         try:
-            self.socket.sendall(data)
+            self._sock.sendall(data)
         except IOError as e:
             raise err.OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
 
@@ -1021,7 +1029,7 @@ class Connection(object):
             return 0
 
     def _execute_command(self, command, sql):
-        if not self.socket:
+        if not self._sock:
             raise err.InterfaceError("(0, '')")
 
         # If the last query was unbuffered, make sure it finishes before
@@ -1075,8 +1083,8 @@ class Connection(object):
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             self.write_packet(data_init)
 
-            self.socket = self.ctx.wrap_socket(self.socket, server_hostname=self.host)
-            self._rfile = _makefile(self.socket, 'rb')
+            self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
+            self._rfile = _makefile(self._sock, 'rb')
 
         data = data_init + self.user + b'\0'
 
@@ -1455,7 +1463,7 @@ class LoadLocalFile(object):
 
     def send_data(self):
         """Send data packets from the local file to the server"""
-        if not self.connection.socket:
+        if not self.connection._sock:
             raise err.InterfaceError("(0, '')")
         conn = self.connection
 
