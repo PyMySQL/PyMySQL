@@ -2,7 +2,7 @@
 
 ## 0.7.3
 
-Release date: TBD
+Release date: 2016-05-19
 
 * Add read_timeout and write_timeout option.
 * Support serialization customization by `conv` option.
