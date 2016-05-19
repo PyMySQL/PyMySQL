@@ -1,5 +1,19 @@
 # Changes
 
+## 0.7.3
+
+Release date: TBD
+
+* Add read_timeout and write_timeout option.
+* Support serialization customization by `conv` option.
+* Unknown type is converted by `str()`, for MySQLdb compatibility.
+* Support '%%' in `Cursor.executemany()`
+* Support REPLACE statement in `Cursor.executemany()`
+* Fix handling incomplete row caused by 'SHOW SLAVE HOSTS'.
+* Fix decode error when use_unicode=False on PY3
+* Fix port option in my.cnf file is ignored.
+
+
 ## 0.7.2
 
 Release date: 2016-02-24
