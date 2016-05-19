@@ -33,7 +33,7 @@ from .times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
 
-VERSION = (0, 7, 2, None)
+VERSION = (0, 7, 3, None)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
