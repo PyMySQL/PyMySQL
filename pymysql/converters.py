@@ -355,6 +355,7 @@ encoders = {
     tuple: escape_sequence,
     list: escape_sequence,
     set: escape_sequence,
+    frozenset: escape_sequence,
     dict: escape_dict,
     bytearray: escape_bytes,
     type(None): escape_None,
