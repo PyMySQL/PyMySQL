@@ -522,7 +522,7 @@ class Connection(object):
     connect().
     """
 
-    socket = None
+    _sock = None
     _auth_plugin_name = ''
 
     def __init__(self, host=None, user=None, password="",
