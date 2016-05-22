@@ -107,7 +107,7 @@ class CursorTest(base.PyMySQLTestCase):
                 `B%` INTEGER)""")
         try:
             q = "INSERT INTO percent_test (`A%%`, `B%%`) VALUES (%s, %s)"
-            self.assertIsNotNone(pymysql.cursors.RE_INSERT_VALUES.match(q)
+            self.assertIsNotNone(pymysql.cursors.RE_INSERT_VALUES.match(q))
             cursor.executemany(q, [(3, 4), (5, 6)])
             self.assertTrue(cursor._executed.endswith("(3, 4),(5, 6)"), "executemany with %% not in one query")
         finally:
