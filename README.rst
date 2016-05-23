@@ -15,6 +15,8 @@
 PyMySQL
 =======
 
+.. contents::
+
 This package contains a pure-Python MySQL client library. The goal of PyMySQL
 is to be a drop-in replacement for MySQLdb and work on CPython, PyPy and IronPython.
 
@@ -22,6 +24,27 @@ NOTE: PyMySQL doesn't support low level APIs `_mysql` provides like `data_seek`,
 `store_result`, and `use_result`. You should use high level APIs defined in PEP 294.
 But some APIs like `autocommit` and `ping` are supported because PEP 294 doesn't cover
 their usecase.
+
+
+Requirements
+-------------
+
+* Python -- one of the following:
+
+  - CPython_ >= 2.6 or >= 3.3
+  - PyPy_ >= 4.0
+  - IronPython_ 2.7
+
+* MySQL Server -- one of the following:
+
+  - MySQL_ >= 4.1  (tested with only 5.5~)
+  - MariaDB_ >= 5.1
+
+.. _CPython: http://www.python.org/
+.. _PyPy: http://pypy.org/
+.. _IronPython: http://ironpython.net/
+.. _MySQL: http://www.mysql.com/
+.. _MariaDB: https://mariadb.org/
 
 
 Installation
@@ -97,3 +120,21 @@ This example will print:
 .. code:: python
 
     {'password': 'very-secret', 'id': 1}
+
+
+Resources
+---------
+
+DB-API 2.0: http://www.python.org/dev/peps/pep-0249
+
+MySQL Reference Manuals: http://dev.mysql.com/doc/
+
+MySQL client/server protocol:
+http://dev.mysql.com/doc/internals/en/client-server-protocol.html
+
+PyMySQL mailing list: https://groups.google.com/forum/#!forum/pymysql-users
+
+License
+-------
+
+PyMySQL is released under the MIT License. See LICENSE for more information.
