@@ -16,7 +16,9 @@ the library as a developer.
   :maxdepth: 2
 
   user/installation
+  user/CRUD
   user/development
+  user/resources
 
 
 API Reference
@@ -29,6 +31,7 @@ method, this part of the documentation is for you.
   :maxdepth: 2
 
   modules/connections
+  modules/cursors
 
 
 
