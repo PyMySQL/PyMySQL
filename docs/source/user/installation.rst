@@ -8,17 +8,6 @@ The last stable release is available on PyPI and can be installed with ``pip``::
 
     $ pip install PyMySQL
 
-Alternatively (e.g. if ``pip`` is not available), a tarball can be downloaded
-from GitHub and installed with Setuptools::
-
-    $ # X.X is the desired PyMySQL version (e.g. 0.5 or 0.6).
-    $ curl -L https://github.com/PyMySQL/PyMySQL/tarball/pymysql-X.X | tar xz
-    $ cd PyMySQL*
-    $ python setup.py install
-    $ # The folder PyMySQL* can be safely removed now.
-
-However, you might have to install some requirements first.
-
 Requirements
 -------------
 

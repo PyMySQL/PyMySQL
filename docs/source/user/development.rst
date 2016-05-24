@@ -8,15 +8,14 @@ You can help developing PyMySQL by `contributing on GitHub`_.
 
 .. _contributing on GitHub: https://github.com/PyMySQL/PyMySQL
 
-
 Building the documentation
-==========================
+--------------------------
 
 Go to the ``docs`` directory and run ``make html``.
 
 
 Test Suite
-==========
+-----------
 
 If you would like to run the test suite, create database for test like this::
 

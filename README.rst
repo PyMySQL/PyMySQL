@@ -54,10 +54,6 @@ The last stable release is available on PyPI and can be installed with ``pip``::
 
     $ pip install PyMySQL
 
-For more details, please have a look at the
-`installation instructions <http://tensorvision.readthedocs.io/en/latest/user/installation.html>`_
-in the documentation.
-
 
 Documentation
 -------------
@@ -66,7 +62,6 @@ Documentation is available online: http://pymysql.readthedocs.io/
 
 For support, please refer to the `StackOverflow
 <http://stackoverflow.com/questions/tagged/pymysql>`_.
-
 
 Example
 -------
