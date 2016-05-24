@@ -1,8 +1,10 @@
+Examples
+========
+
 .. _CRUD:
 
-====
 CRUD
-====
+----
 
 The following examples make use of a simple table
 
