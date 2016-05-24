@@ -1,12 +1,19 @@
-=======
-PyMySQL
-=======
+.. image:: https://readthedocs.org/projects/pymysql/badge/?version=latest
+    :target: http://pymysql.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 .. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
-   :target: https://travis-ci.org/PyMySQL/PyMySQL
+    :target: https://travis-ci.org/PyMySQL/PyMySQL
 
 .. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=master&service=github
-   :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
+    :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
+
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://github.com/PyMySQL/PyMySQL/blob/master/LICENSE
+
+
+PyMySQL
+=======
 
 .. contents::
 
@@ -47,37 +54,18 @@ The last stable release is available on PyPI and can be installed with ``pip``::
 
     $ pip install PyMySQL
 
-Alternatively (e.g. if ``pip`` is not available), a tarball can be downloaded
-from GitHub and installed with Setuptools::
+For more details, please have a look at the
+`installation instructions <http://tensorvision.readthedocs.io/en/latest/user/installation.html>`_
+in the documentation.
 
-    $ # X.X is the desired PyMySQL version (e.g. 0.5 or 0.6).
-    $ curl -L https://github.com/PyMySQL/PyMySQL/tarball/pymysql-X.X | tar xz
-    $ cd PyMySQL*
-    $ python setup.py install
-    $ # The folder PyMySQL* can be safely removed now.
 
-Test Suite
-----------
+Documentation
+-------------
 
-If you would like to run the test suite, create database for test like this::
+Documentation is available online: http://pymysql.readthedocs.io/
 
-    mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
-    mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
-
-Then, copy the file ``.travis.databases.json`` to ``pymysql/tests/databases.json``
-and edit the new file to match your MySQL configuration::
-
-    $ cp .travis.databases.json pymysql/tests/databases.json
-    $ $EDITOR pymysql/tests/databases.json
-
-To run all the tests, execute the script ``runtests.py``::
-
-    $ python runtests.py
-
-A ``tox.ini`` file is also provided for conveniently running tests on multiple
-Python versions::
-
-    $ tox
+For support, please refer to the `StackOverflow
+<http://stackoverflow.com/questions/tagged/pymysql>`_.
 
 
 Example

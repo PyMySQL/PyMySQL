@@ -9,3 +9,4 @@ __pycache__
 /pymysql/tests/databases.json
 
 /.idea
+docs/build
