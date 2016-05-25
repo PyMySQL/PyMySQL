@@ -34,18 +34,8 @@ class CursorTest(base.PyMySQLTestCase):
 
         c2 = conn.cursor()
 
-        with warnings.catch_warnings(record=True) as log:
-            warnings.filterwarnings("always")
-
-            c2.execute("select 1")
-
-        self.assertGreater(len(log), 0)
-        self.assertEqual(
-            "Previous unbuffered result was left incomplete",
-            str(log[-1].message))
-        self.assertEqual(
-            c2.fetchone(), (1,)
-        )
+        c2.execute("select 1")
+        self.assertEqual(c2.fetchone(), (1,))
         self.assertIsNone(c2.fetchone())
 
     def test_cleanup_rows_buffered(self):
