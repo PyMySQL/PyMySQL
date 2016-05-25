@@ -81,12 +81,12 @@ class CursorTest(base.PyMySQLTestCase):
 
         # cursor._executed must bee "insert into test (data) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)"
         # list args
-        data = xrange(10)
+        data = range(10)
         cursor.executemany("insert into test (data) values (%s)", data)
         self.assertTrue(cursor._executed.endswith(",(7),(8),(9)"), 'execute many with %s not in one query')
 
         # dict args
-        data_dict = [{'data': i} for i in xrange(10)]
+        data_dict = [{'data': i} for i in range(10)]
         cursor.executemany("insert into test (data) values (%(data)s)", data_dict)
         self.assertTrue(cursor._executed.endswith(",(7),(8),(9)"), 'execute many with %(data)s not in one query')
 
