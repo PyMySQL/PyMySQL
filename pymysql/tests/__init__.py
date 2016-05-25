@@ -5,7 +5,6 @@ from pymysql.tests.test_basic import *
 from pymysql.tests.test_connection import *
 from pymysql.tests.test_converters import *
 from pymysql.tests.test_cursor import *
-from pymysql.tests.test_example import *
 from pymysql.tests.test_issues import *
 from pymysql.tests.test_load_local import *
 from pymysql.tests.test_nextset import *
