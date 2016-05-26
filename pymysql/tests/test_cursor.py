@@ -34,18 +34,8 @@ class CursorTest(base.PyMySQLTestCase):
 
         c2 = conn.cursor()
 
-        with warnings.catch_warnings(record=True) as log:
-            warnings.filterwarnings("always")
-
-            c2.execute("select 1")
-
-        self.assertGreater(len(log), 0)
-        self.assertEqual(
-            "Previous unbuffered result was left incomplete",
-            str(log[-1].message))
-        self.assertEqual(
-            c2.fetchone(), (1,)
-        )
+        c2.execute("select 1")
+        self.assertEqual(c2.fetchone(), (1,))
         self.assertIsNone(c2.fetchone())
 
     def test_cleanup_rows_buffered(self):
@@ -91,14 +81,14 @@ class CursorTest(base.PyMySQLTestCase):
 
         # cursor._executed must bee "insert into test (data) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)"
         # list args
-        data = xrange(10)
+        data = range(10)
         cursor.executemany("insert into test (data) values (%s)", data)
-        self.assertTrue(cursor._executed.endswith(",(7),(8),(9)"), 'execute many with %s not in one query')
+        self.assertTrue(cursor._executed.endswith(b",(7),(8),(9)"), 'execute many with %s not in one query')
 
         # dict args
-        data_dict = [{'data': i} for i in xrange(10)]
+        data_dict = [{'data': i} for i in range(10)]
         cursor.executemany("insert into test (data) values (%(data)s)", data_dict)
-        self.assertTrue(cursor._executed.endswith(",(7),(8),(9)"), 'execute many with %(data)s not in one query')
+        self.assertTrue(cursor._executed.endswith(b",(7),(8),(9)"), 'execute many with %(data)s not in one query')
 
         # %% in column set
         cursor.execute("""\
@@ -109,6 +99,6 @@ class CursorTest(base.PyMySQLTestCase):
             q = "INSERT INTO percent_test (`A%%`, `B%%`) VALUES (%s, %s)"
             self.assertIsNotNone(pymysql.cursors.RE_INSERT_VALUES.match(q))
             cursor.executemany(q, [(3, 4), (5, 6)])
-            self.assertTrue(cursor._executed.endswith("(3, 4),(5, 6)"), "executemany with %% not in one query")
+            self.assertTrue(cursor._executed.endswith(b"(3, 4),(5, 6)"), "executemany with %% not in one query")
         finally:
             cursor.execute("DROP TABLE IF EXISTS percent_test")
