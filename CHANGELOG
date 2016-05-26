@@ -1,5 +1,14 @@
 # Changes
 
+## 0.7.4
+
+Release date: 2016-05-26
+
+* Fix AttributeError may happen while Connection.__del__ (#463)
+* Fix SyntaxError in test_cursor. (#464)
+* frozenset support for query value. (#461)
+* Start using readthedocs.io
+
 ## 0.7.3
 
 Release date: 2016-05-19
