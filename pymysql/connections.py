@@ -35,7 +35,8 @@ try:
     import getpass
     DEFAULT_USER = getpass.getuser()
     del getpass
-except ImportError:
+except (ImportError, KeyError):
+    # KeyError occurs when there's no entry in OS database for a current user.
     DEFAULT_USER = None
 
 
