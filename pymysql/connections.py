@@ -1319,6 +1319,10 @@ class MySQLResult(object):
             self._read_ok_packet(first_packet)
             self.unbuffered_active = False
             self.connection = None
+        elif first_packet.is_load_local_packet():
+            self._read_load_local_packet(first_packet)
+            self.unbuffered_active = False
+            self.connection = None
         else:
             self.field_count = first_packet.read_length_encoded_integer()
             self._get_descriptions()
