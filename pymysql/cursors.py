@@ -144,7 +144,7 @@ class Cursor(object):
 
         :param str query: Query to execute.
 
-        :param args: arameters used with query. (optional)
+        :param args: parameters used with query. (optional)
         :type args: tuple, list or dict
 
         :return: Number of affected rows
