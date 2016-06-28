@@ -1,5 +1,14 @@
 # Changes
 
+## 0.7.5
+
+Release date: 2016-06-28
+
+* Fix exception raised while importing when getpwuid() fails (#472)
+* SSCursor supports LOAD DATA LOCAL INFILE (#473)
+* Fix encoding error happen for JSON type (#477)
+* Fix test fail on Python 2.7 and MySQL 5.7 (#478)
+
 ## 0.7.4
 
 Release date: 2016-05-26
