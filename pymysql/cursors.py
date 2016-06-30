@@ -454,7 +454,7 @@ class SSCursor(Cursor):
 
     def fetchall_unbuffered(self):
         """
-        Fetch all, implemented as a generator, which isn't to standard,
+        Fetch all, implemented as a generator, which isn't too standard,
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
