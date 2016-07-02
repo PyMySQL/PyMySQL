@@ -23,11 +23,16 @@
 #SOFTWARE.
 ##############################################################################
 import sys
+import time
 import socket
 import binascii
+import select
 
 def recv_mysql_packet(sock):
     head = sock.recv(4)
+    if not head:
+        return
+
     n = int.from_bytes(head[:3], byteorder='little')
 
     recieved = b''
@@ -42,7 +47,7 @@ def asc_dump(s):
     for c in s:
         r += chr(c) if (c >= 32 and c < 128) else '.'
     if r:
-        print('[' + r + ']')
+        print('   [' + r + ']')
 
 
 def proxy_wire(server_name, server_port, listen_host, listen_port):
@@ -54,15 +59,19 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
     server_sock.connect((server_name, server_port))
 
     while True:
-        client_data = recv_mysql_packet(client_sock)
-        server_sock.send(client_data)
-        print('>>', binascii.b2a_hex(client_data).decode('ascii'))
-        asc_dump(client_data)
-
         server_data = recv_mysql_packet(server_sock)
-        client_sock.send(server_data)
-        print('<<', binascii.b2a_hex(server_data).decode('ascii'))
-        asc_dump(server_data)
+        if server_data:
+            client_sock.send(server_data)
+            print('<<', binascii.b2a_hex(server_data).decode('ascii'))
+            asc_dump(server_data)
+
+        client_data = recv_mysql_packet(client_sock)
+        if client_data:
+            server_sock.send(client_data)
+            print('>>', binascii.b2a_hex(client_data).decode('ascii'))
+            asc_dump(client_data)
+        time.sleep(1000)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
