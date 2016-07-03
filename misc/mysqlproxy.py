@@ -42,12 +42,17 @@ def recv_mysql_packet(sock):
         n -= len(bs)
     return head + recieved
 
-def asc_dump(s):
+def to_ascii(s):
     r = ''
     for c in s:
         r += chr(c) if (c >= 32 and c < 128) else '.'
-    if r:
-        print('   [' + r + ']')
+    return r
+
+
+def dump_connection_phase_packets(data):
+    # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html
+    print('<<', binascii.b2a_hex(data).decode('ascii'))
+    asc_dump(data)
 
 
 def proxy_wire(server_name, server_port, listen_host, listen_port):
@@ -58,18 +63,22 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.connect((server_name, server_port))
 
+    server_data = recv_mysql_packet(server_sock)
+    client_sock.send(server_data)
+    dump_connection_phase_packets(server_data)
+
     while True:
+        client_data = recv_mysql_packet(client_sock)
+        if client_data:
+            server_sock.send(client_data)
+            print('>>', binascii.b2a_hex(client_data).decode('ascii'))
+            asc_dump(client_data)
         server_data = recv_mysql_packet(server_sock)
         if server_data:
             client_sock.send(server_data)
             print('<<', binascii.b2a_hex(server_data).decode('ascii'))
             asc_dump(server_data)
 
-        client_data = recv_mysql_packet(client_sock)
-        if client_data:
-            server_sock.send(client_data)
-            print('>>', binascii.b2a_hex(client_data).decode('ascii'))
-            asc_dump(client_data)
         time.sleep(1000)
 
 
