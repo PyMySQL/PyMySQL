@@ -48,12 +48,6 @@ def to_ascii(s):
     return r
 
 
-def dump_connection_phase_packets(data):
-    # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html
-    print('S->C', binascii.b2a_hex(data).decode('ascii'))
-    print('   [' + to_ascii(data) + ']')
-
-
 def proxy_wire(server_name, server_port, listen_host, listen_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((listen_host, listen_port))
@@ -62,9 +56,29 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.connect((server_name, server_port))
 
+    # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html
+
+    # initial packet
     server_data = recv_mysql_packet(server_sock)
     client_sock.send(server_data)
-    dump_connection_phase_packets(server_data)
+    print('S->C initial packets', binascii.b2a_hex(server_data).decode('ascii'))
+    print('   [' + to_ascii(server_data) + ']')
+
+    # initial response (authentication)
+    client_data = recv_mysql_packet(client_sock)
+    server_sock.send(client_data)
+    print('C->S initial response', binascii.b2a_hex(client_data).decode('ascii'))
+    print('   [' + to_ascii(client_data) + ']')
+
+    # auth result
+    server_data = recv_mysql_packet(server_sock)
+    client_sock.send(server_data)
+    print('S->C auth result', binascii.b2a_hex(server_data).decode('ascii'))
+    print('   [' + to_ascii(server_data) + ']')
+
+    # http://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+    # payload first byte eq 0.
+    assert server_data[5] == 0
 
     while True:
         client_data = recv_mysql_packet(client_sock)
