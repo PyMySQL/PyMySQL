@@ -78,7 +78,7 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
 
     # http://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
     # payload first byte eq 0.
-    assert server_data[5] == 0
+    assert server_data[4] == 0
 
     while True:
         client_data = recv_mysql_packet(client_sock)
