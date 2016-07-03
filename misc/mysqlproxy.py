@@ -28,19 +28,18 @@ import socket
 import binascii
 import select
 
-def recv_mysql_packet(sock):
-    head = sock.recv(4)
-    if not head:
-        return
-
-    n = int.from_bytes(head[:3], byteorder='little')
-
+def recv_from_socket(sock, n):
     recieved = b''
     while n:
         bs = sock.recv(n)
         recieved += bs
         n -= len(bs)
-    return head + recieved
+    return recieved
+
+def recv_mysql_packet(sock):
+    head = recv_from_socket(sock, 4)
+    n = int.from_bytes(head[:3], byteorder='little')
+    return head + recv_from_socket(sock, n)
 
 def to_ascii(s):
     r = ''
@@ -78,8 +77,6 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
             client_sock.send(server_data)
             print('S->C', binascii.b2a_hex(server_data).decode('ascii'))
             print('   [' + to_ascii(server_data) + ']')
-
-        time.sleep(1000)
 
 
 if __name__ == '__main__':
