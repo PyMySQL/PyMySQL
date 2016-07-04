@@ -3,6 +3,7 @@ from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON, unichr
 import datetime
 from decimal import Decimal
 import time
+import json
 
 from .constants import FIELD_TYPE, FLAG
 from .charset import charset_by_id, charset_to_encoding
@@ -317,6 +318,12 @@ def convert_set(s):
     return set(s.split(","))
 
 
+def convert_json(j):
+    if isinstance(j, (bytes, bytearray)):
+        j = j.decode()
+    return json.loads(j)
+
+
 def through(x):
     return x
 
@@ -394,6 +401,7 @@ decoders = {
     FIELD_TYPE.VARCHAR: through,
     FIELD_TYPE.DECIMAL: Decimal,
     FIELD_TYPE.NEWDECIMAL: Decimal,
+    FIELD_TYPE.JSON: convert_json
 }
 
 
