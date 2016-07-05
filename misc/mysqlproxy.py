@@ -82,15 +82,18 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
 
     while True:
         client_data = recv_mysql_packet(client_sock)
-        if client_data:
-            server_sock.send(client_data)
-            print('C->S', binascii.b2a_hex(client_data).decode('ascii'))
-            print('   [' + to_ascii(client_data) + ']')
-        server_data = recv_mysql_packet(server_sock)
-        if server_data:
+        server_sock.send(client_data)
+        print('C->S', binascii.b2a_hex(client_data).decode('ascii'))
+        print('   [' + to_ascii(client_data) + ']')
+
+        while True:
+            server_data = recv_mysql_packet(server_sock)
             client_sock.send(server_data)
             print('S->C', binascii.b2a_hex(server_data).decode('ascii'))
             print('   [' + to_ascii(server_data) + ']')
+            # [payload first byte] in (OK, EOF, ERROR)
+            if server_data[4] in (0x00, 0xFE, 0xFF):
+                break
 
 
 if __name__ == '__main__':
