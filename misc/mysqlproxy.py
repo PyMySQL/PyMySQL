@@ -47,6 +47,15 @@ def to_ascii(s):
         r += chr(c) if (c >= 32 and c < 128) else '.'
     return r
 
+def print_command_type(code):
+    r = {
+        0x01: 'COM_QUIT',
+        0x03: 'COM_QUERY',
+    }.get(code, '')
+
+    print("%-12s" % (r), end='')
+    return r
+
 def print_response_type(code):
     r = {
         0x00: 'OK',
@@ -54,7 +63,7 @@ def print_response_type(code):
         0xFF: 'Error',
     }.get(code, '')
 
-    print("%5s" % (r), end='')
+    print("%-12s" % (r), end='')
     return r
 
 def proxy_wire(server_name, server_port, listen_host, listen_port):
@@ -78,6 +87,7 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
     client_data = recv_mysql_packet(client_sock)
     server_sock.send(client_data)
     print('C->S initial response', binascii.b2a_hex(client_data).decode('ascii'))
+    print_command_type(client_data[4])
     print('   [' + to_ascii(client_data) + ']')
 
     # auth result
@@ -95,6 +105,7 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
         client_data = recv_mysql_packet(client_sock)
         server_sock.send(client_data)
         print('C->S', binascii.b2a_hex(client_data).decode('ascii'))
+        print_command_type(client_data[4])
         print('   [' + to_ascii(client_data) + ']')
         if client_data[4] == 0x01:      # COM_QUIT
             break
