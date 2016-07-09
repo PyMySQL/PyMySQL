@@ -47,6 +47,15 @@ def to_ascii(s):
         r += chr(c) if (c >= 32 and c < 128) else '.'
     return r
 
+def print_response_type(code):
+    r = {
+        0x00: 'OK',
+        0xFE: 'EOF',
+        0xFF: 'Error',
+    }.get(code, '')
+
+    print("%5s" % (r), end='')
+    return r
 
 def proxy_wire(server_name, server_port, listen_host, listen_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -62,6 +71,7 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
     server_data = recv_mysql_packet(server_sock)
     client_sock.send(server_data)
     print('S->C initial packets', binascii.b2a_hex(server_data).decode('ascii'))
+    r = print_response_type(server_data[4])
     print('   [' + to_ascii(server_data) + ']')
 
     # initial response (authentication)
@@ -74,6 +84,7 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
     server_data = recv_mysql_packet(server_sock)
     client_sock.send(server_data)
     print('S->C auth result', binascii.b2a_hex(server_data).decode('ascii'))
+    r = print_response_type(server_data[4])
     print('   [' + to_ascii(server_data) + ']')
 
     # http://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
@@ -93,29 +104,30 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
         server_data = recv_mysql_packet(server_sock)
         client_sock.send(server_data)
         print('S->C', binascii.b2a_hex(server_data).decode('ascii'))
+        r = print_response_type(server_data[4])
         print('   [' + to_ascii(server_data) + ']')
 
-        if server_data[4] in (0x00, 0xFE, 0xFF):
+        if r:
             continue
 
-        print('   Column definition')
+        print('[Column definition]')
         while True:
             server_data = recv_mysql_packet(server_sock)
             client_sock.send(server_data)
             print('S->C', binascii.b2a_hex(server_data).decode('ascii'))
+            r = print_response_type(server_data[4])
             print('   [' + to_ascii(server_data) + ']')
-            # [payload first byte] in (OK, EOF, ERROR)
-            if server_data[4] in (0x00, 0xFE, 0xFF):
+            if r:
                 break
 
-        print('   Result Rows')
+        print('[Result Rows]')
         while True:
             server_data = recv_mysql_packet(server_sock)
             client_sock.send(server_data)
             print('S->C', binascii.b2a_hex(server_data).decode('ascii'))
+            r = print_response_type(server_data[4])
             print('   [' + to_ascii(server_data) + ']')
-            # [payload first byte] in (OK, EOF, ERROR)
-            if server_data[4] in (0x00, 0xFE, 0xFF):
+            if r:
                 break
 
 
