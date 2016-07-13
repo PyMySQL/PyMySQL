@@ -467,7 +467,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
         # select WKB
         query = "SELECT AsBinary(geom) FROM issue363"
-        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 7, 0)):
+        if self.mysql_server_is(conn, (5, 7, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
                 cur.execute(query)
         else:
