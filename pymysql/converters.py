@@ -333,6 +333,12 @@ def convert_set(s):
     return set(s.split(","))
 
 
+def convert_json(b):
+    # JSON is returned as binary data.
+    # Decode with utf-8 regardless connection encoding.
+    return b.decode('utf-8')
+
+
 def through(x):
     return x
 
@@ -410,6 +416,7 @@ decoders = {
     FIELD_TYPE.VARCHAR: through,
     FIELD_TYPE.DECIMAL: Decimal,
     FIELD_TYPE.NEWDECIMAL: Decimal,
+    FIELD_TYPE.JSON: convert_json,
 }
 
 
