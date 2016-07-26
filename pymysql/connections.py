@@ -1472,17 +1472,28 @@ class LoadLocalFile(object):
         if not self.connection._sock:
             raise err.InterfaceError("(0, '')")
         conn = self.connection
-
-        try:
-            with open(self.filename, 'rb') as open_file:
-                packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
-                while True:
-                    chunk = open_file.read(packet_size)
-                    if not chunk:
-                        break
-                    conn.write_packet(chunk)
-        except IOError:
-            raise err.OperationalError(1017, "Can't find file '{0}'".format(self.filename))
-        finally:
-            # send the empty packet to signify we are done sending data
-            conn.write_packet(b'')
+        
+        if type(self.filename) is file:
+            # If we have a file passed in, don't open it again
+            open_file = self.filename
+            packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
+            while True:
+                chunk = open_file.read(packet_size)
+                if not chunk:
+                    break
+                conn.write_packet(chunk)
+                conn.write_packet(b'')
+        else:
+            try:
+                with open(self.filename, 'rb') as open_file:
+                    packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
+                    while True:
+                        chunk = open_file.read(packet_size)
+                        if not chunk:
+                            break
+                        conn.write_packet(chunk)
+            except IOError:
+                raise err.OperationalError(1017, "Can't find file '{0}'".format(self.filename))
+            finally:
+                # send the empty packet to signify we are done sending data
+                conn.write_packet(b'')
