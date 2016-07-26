@@ -1473,7 +1473,7 @@ class LoadLocalFile(object):
             raise err.InterfaceError("(0, '')")
         conn = self.connection
         
-        if type(self.filename) is file:
+        if hasattr(self.filename, 'read'):
             # If we have a file passed in, don't open it again
             open_file = self.filename
             packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
