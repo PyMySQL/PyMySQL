@@ -1,14 +1,15 @@
-import pymysql.cursors
-
-from pymysql.tests import base
-from pymysql import util
-from pymysql.err import ProgrammingError
-
-import time
+# coding: utf-8
 import datetime
+import json
+import time
 import warnings
 
 from unittest2 import SkipTest
+
+from pymysql import util
+import pymysql.cursors
+from pymysql.tests import base
+from pymysql.err import ProgrammingError
 
 
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
@@ -237,6 +238,26 @@ class TestCursor(base.PyMySQLTestCase):
         c.execute("select id from mystuff where id in %s", ((1,),))
         self.assertEqual([(1,)], list(c.fetchall()))
         c.close()
+
+    def test_json(self):
+        args = self.databases[0].copy()
+        args["charset"] = "utf8mb4"
+        conn = pymysql.connect(**args)
+        if not self.mysql_server_is(conn, (5, 7, 0)):
+            raise SkipTest("JSON type is not supported on MySQL <= 5.6")
+
+        self.safe_create_table(conn, "test_json", """\
+create table test_json (
+    id int not null,
+    json JSON not null,
+    primary key (id)
+);""")
+        cur = conn.cursor()
+        json_str = u'{"hello": "こんにちは"}'
+        cur.execute("INSERT INTO test_json (id, `json`) values (42, %s)", (json_str,))
+        cur.execute("SELECT `json` from `test_json` WHERE `id`=42")
+        res = cur.fetchone()[0]
+        self.assertEqual(json.loads(res), json.loads(json_str))
 
 
 class TestBulkInserts(base.PyMySQLTestCase):
