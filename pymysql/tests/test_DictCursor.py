@@ -21,7 +21,9 @@ class TestDictCursor(base.PyMySQLTestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             c.execute("drop table if exists dictcursor")
-        c.execute("""CREATE TABLE dictcursor (name char(20), age int , DOB datetime)""")
+            # include in filterwarnings since for unbuffered dict cursor warning for lack of table
+            # will only be propagated at start of next execute() call
+            c.execute("""CREATE TABLE dictcursor (name char(20), age int , DOB datetime)""")
         data = [("bob", 21, "1990-02-06 23:04:56"),
                 ("jim", 56, "1955-05-09 13:12:45"),
                 ("fred", 100, "1911-09-12 01:01:01")]
