@@ -88,7 +88,6 @@ TEXT_TYPES = set([
     FIELD_TYPE.BLOB,
     FIELD_TYPE.LONG_BLOB,
     FIELD_TYPE.MEDIUM_BLOB,
-    FIELD_TYPE.JSON,
     FIELD_TYPE.STRING,
     FIELD_TYPE.TINY_BLOB,
     FIELD_TYPE.VAR_STRING,
@@ -407,9 +406,9 @@ class FieldDescriptorPacket(MysqlPacket):
 
     def __init__(self, data, encoding):
         MysqlPacket.__init__(self, data, encoding)
-        self.__parse_field_descriptor(encoding)
+        self._parse_field_descriptor(encoding)
 
-    def __parse_field_descriptor(self, encoding):
+    def _parse_field_descriptor(self, encoding):
         """Parse the 'Field Descriptor' (Metadata) packet.
 
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
@@ -1433,21 +1432,30 @@ class MySQLResult(object):
         self.fields = []
         self.converters = []
         use_unicode = self.connection.use_unicode
+        conn_encoding = self.connection.encoding
         description = []
+
         for i in range_type(self.field_count):
             field = self.connection._read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())
             field_type = field.type_code
             if use_unicode:
-                if field_type in TEXT_TYPES:
-                    charset = charset_by_id(field.charsetnr)
-                    if charset.is_binary:
+                if field_type == FIELD_TYPE.JSON:
+                    # When SELECT from JSON column: charset = binary
+                    # When SELECT CAST(... AS JSON): charset = connection encoding
+                    # This behavior is different from TEXT / BLOB.
+                    # We should decode result by connection encoding regardless charsetnr.
+                    # See https://github.com/PyMySQL/PyMySQL/issues/488
+                    encoding = conn_encoding  # SELECT CAST(... AS JSON) 
+                elif field_type in TEXT_TYPES:
+                    if field.charsetnr == 63:  # binary
                         # TEXTs with charset=binary means BINARY types.
                         encoding = None
                     else:
-                        encoding = charset.encoding
+                        encoding = conn_encoding
                 else:
+                    # Integers, Dates and Times, and other basic data is encoded in ascii
                     encoding = 'ascii'
             else:
                 encoding = None

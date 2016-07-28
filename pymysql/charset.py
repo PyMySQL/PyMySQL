@@ -11,6 +11,10 @@ class Charset(object):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'
 
+    def __repr__(self):
+        return "Charset(id=%s, name=%r, collation=%r)" % (
+                self.id, self.name, self.collation)
+
     @property
     def encoding(self):
         name = self.name
