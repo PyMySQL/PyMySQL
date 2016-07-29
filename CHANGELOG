@@ -1,5 +1,14 @@
 # Changes
 
+## 0.7.6
+
+Release date: 2016-07-29
+
+* Fix SELECT JSON type cause UnicodeError
+* Avoid float convertion while parsing microseconds
+* Warning has number
+* SSCursor supports warnings
+
 ## 0.7.5
 
 Release date: 2016-06-28
