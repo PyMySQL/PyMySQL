@@ -236,6 +236,7 @@ class Connection(object):
         client_flag |= MULTI_STATEMENTS
         if self.db:
             client_flag |= CONNECT_WITH_DB
+        # self.client_flag |= CLIENT_DEPRECATE_EOF
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
