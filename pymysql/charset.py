@@ -253,6 +253,10 @@ _charsets.add(Charset(240, 'utf8mb4', 'utf8mb4_persian_ci', ''))
 _charsets.add(Charset(241, 'utf8mb4', 'utf8mb4_esperanto_ci', ''))
 _charsets.add(Charset(242, 'utf8mb4', 'utf8mb4_hungarian_ci', ''))
 _charsets.add(Charset(243, 'utf8mb4', 'utf8mb4_sinhala_ci', ''))
+_charsets.add(Charset(244, 'utf8mb4', 'utf8mb4_german2_ci', ''))
+_charsets.add(Charset(245, 'utf8mb4', 'utf8mb4_croatian_ci', ''))
+_charsets.add(Charset(246, 'utf8mb4', 'utf8mb4_unicode_520_ci', ''))
+_charsets.add(Charset(247, 'utf8mb4', 'utf8mb4_vietnamese_ci', ''))
 
 
 charset_by_name = _charsets.by_name
