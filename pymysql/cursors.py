@@ -30,6 +30,8 @@ class Cursor(object):
     #: Default value of max_allowed_packet is 1048576.
     max_stmt_length = 1024000
 
+    _defer_warnings = False
+
     def __init__(self, connection):
         '''
         Do not create an instance of a Cursor yourself. Call
@@ -43,6 +45,7 @@ class Cursor(object):
         self._executed = None
         self._result = None
         self._rows = None
+        self._warnings_handled = False
 
     def close(self):
         '''
@@ -86,6 +89,9 @@ class Cursor(object):
         """Get the next query set"""
         conn = self._get_db()
         current_result = self._result
+        # for unbuffered queries warnings are only available once whole result has been read
+        if unbuffered:
+            self._show_warnings()
         if current_result is None or current_result is not conn._result:
             return None
         if not current_result.has_next:
@@ -328,14 +334,18 @@ class Cursor(object):
         self.description = result.description
         self.lastrowid = result.insert_id
         self._rows = result.rows
+        self._warnings_handled = False
 
-        if result.warning_count > 0:
-            self._show_warnings(conn)
+        if not self._defer_warnings:
+            self._show_warnings()
 
-    def _show_warnings(self, conn):
-        if self._result and self._result.has_next:
+    def _show_warnings(self):
+        if self._warnings_handled:
             return
-        ws = conn.show_warnings()
+        self._warnings_handled = True
+        if self._result and (self._result.has_next or not self._result.warning_count):
+            return
+        ws = self._get_db().show_warnings()
         if ws is None:
             return
         for w in ws:
@@ -343,7 +353,7 @@ class Cursor(object):
             if PY2:
                 if isinstance(msg, unicode):
                     msg = msg.encode('utf-8', 'replace')
-            warnings.warn(str(msg), err.Warning, 4)
+            warnings.warn(err.Warning(*w[1:3]), stacklevel=4)
 
     def __iter__(self):
         return iter(self.fetchone, None)
@@ -404,6 +414,8 @@ class SSCursor(Cursor):
     possible to scroll backwards, as only the current row is held in memory.
     """
 
+    _defer_warnings = True
+
     def _conv_row(self, row):
         return row
 
@@ -440,6 +452,7 @@ class SSCursor(Cursor):
         self._check_executed()
         row = self.read_next()
         if row is None:
+            self._show_warnings()
             return None
         self.rownumber += 1
         return row
@@ -473,6 +486,7 @@ class SSCursor(Cursor):
         for i in range_type(size):
             row = self.read_next()
             if row is None:
+                self._show_warnings()
                 break
             rows.append(row)
             self.rownumber += 1
