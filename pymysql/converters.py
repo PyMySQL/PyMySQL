@@ -70,6 +70,7 @@ def _escape_unicode(value, mapping=None):
 
     Value should be unicode
     """
+    value = unicode(value)
     return value.translate(_escape_table)
 
 if PY2:
