@@ -5,7 +5,6 @@ import re
 import warnings
 
 from ._compat import range_type, text_type, PY2
-
 from . import err
 
 
@@ -116,12 +115,12 @@ class Cursor(object):
         if isinstance(args, (tuple, list)):
             if PY2:
                 args = tuple(map(ensure_bytes, args))
-            return tuple(conn.escape(arg) for arg in args)
+            return tuple(conn.literal(arg) for arg in args)
         elif isinstance(args, dict):
             if PY2:
                 args = dict((ensure_bytes(key), ensure_bytes(val)) for
                             (key, val) in args.items())
-            return dict((key, conn.escape(val)) for (key, val) in args.items())
+            return dict((key, conn.literal(val)) for (key, val) in args.items())
         else:
             # If it's not a dictionary let's try escaping it anyways.
             # Worst case it will throw a Value error
