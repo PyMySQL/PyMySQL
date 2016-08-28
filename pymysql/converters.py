@@ -80,6 +80,8 @@ if PY2:
 
         Value should be bytes or unicode.
         """
+        if type(value) is str:
+            return _escape_unicode(value.decode('utf8'))
         if isinstance(value, unicode):
             return _escape_unicode(value)
         assert isinstance(value, (bytes, bytearray))
