@@ -68,9 +68,11 @@ class NotSupportedError(DatabaseError):
 
 error_map = {}
 
+
 def _map_error(exc, *errors):
     for error in errors:
         error_map[error] = exc
+
 
 _map_error(ProgrammingError, ER.DB_CREATE_EXISTS, ER.SYNTAX_ERROR,
            ER.PARSE_ERROR, ER.NO_SUCH_TABLE, ER.WRONG_DB_NAME,
