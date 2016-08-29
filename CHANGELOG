@@ -1,5 +1,13 @@
 # Changes
 
+## 0.7.7
+
+Release date: TBD
+
+* Add new unicode collation (#498)
+* Fix conv option is not used for encoding objects.
+* Experimental support for DEPRECATE_EOF protocol.
+
 ## 0.7.6
 
 Release date: 2016-07-29
