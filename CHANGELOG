@@ -2,7 +2,7 @@
 
 ## 0.7.7
 
-Release date: TBD
+Release date: 2016-08-30
 
 * Add new unicode collation (#498)
 * Fix conv option is not used for encoding objects.
