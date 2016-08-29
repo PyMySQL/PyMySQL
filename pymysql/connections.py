@@ -363,17 +363,18 @@ class MysqlPacket(object):
         return result
 
     def is_ok_packet(self):
-        return self._data[0:1] == b'\0'
-
-    def is_auth_switch_request(self):
-        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b'\xfe'
+        # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+        return self._data[0:1] == b'\0' and len(self._data) >= 7
 
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return len(self._data) < 9 and self._data[0:1] == b'\xfe'
+        return self._data[0:1] == b'\xfe' and len(self._data) < 9
+
+    def is_auth_switch_request(self):
+        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+        return self._data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
