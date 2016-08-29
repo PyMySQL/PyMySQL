@@ -1,3 +1,4 @@
+# flake8: noqa
 # errmsg.h
 CR_ERROR_FIRST  	= 2000
 CR_UNKNOWN_ERROR	= 2000
