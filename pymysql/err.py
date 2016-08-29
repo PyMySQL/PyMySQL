@@ -91,32 +91,12 @@ _map_error(OperationalError, ER.DBACCESS_DENIED_ERROR, ER.ACCESS_DENIED_ERROR,
            ER.CON_COUNT_ERROR, ER.TABLEACCESS_DENIED_ERROR,
            ER.COLUMNACCESS_DENIED_ERROR)
 
+
 del _map_error, ER
 
 
-def _get_error_info(data):
-    errno = struct.unpack('<h', data[1:3])[0]
-    is_41 = data[3:4] == b"#"
-    if is_41:
-        # version 4.1
-        sqlstate = data[4:9].decode("utf8", 'replace')
-        errorvalue = data[9:].decode("utf8", 'replace')
-        return (errno, sqlstate, errorvalue)
-    else:
-        # version 4.0
-        return (errno, None, data[3:].decode("utf8", 'replace'))
-
-
-def _check_mysql_exception(errinfo):
-    errno, sqlstate, errorvalue = errinfo
-    errorclass = error_map.get(errno, None)
-    if errorclass:
-        raise errorclass(errno, errorvalue)
-
-    # couldn't find the right error number
-    raise InternalError(errno, errorvalue)
-
-
 def raise_mysql_exception(data):
-    errinfo = _get_error_info(data)
-    _check_mysql_exception(errinfo)
+    errno = struct.unpack('<h', data[1:3])[0]
+    errval = data[4:].decode('utf-8', 'replace')
+    errorclass = error_map.get(errno, InternalError)
+    raise errorclass(errno, errval)

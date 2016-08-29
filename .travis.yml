@@ -4,6 +4,7 @@ python: "3.5"
 cache:
     directories:
         - $HOME/.cache/pip
+        - $HOME/mysql
 
 env:
     matrix:
@@ -23,6 +24,7 @@ matrix:
              - TOX_ENV=py27
              - EXTRAPKG=mariadb-test
           sudo: required
+
         - addons:
              mariadb: 10.0
           env:
@@ -30,34 +32,34 @@ matrix:
              - EXTRAPKG=mariadb-test
              - PAMCLEAR=1
           sudo: required
+
         - addons:
              mariadb: 10.1
           env:
              - TOX_ENV=py34
              - EXTRAPKG=mariadb-test
           sudo: required
+
         - env:
              - TOX_ENV=py34
-             - DB=5.6.28
+             - DB=5.6.32
           addons:
               apt:
                  packages:
                      - libaio-dev
           python: 3.3
-          cache:
-              directories:
-                  - ${HOME}/mysql
+
         - env:
              - TOX_ENV=py34
-             - DB=5.7.10
+             - DB=5.7.14
           addons:
               apt:
                  packages:
                      - libaio-dev
           python: 3.4
-          cache:
-              directories:
-                  - ${HOME}/mysql
+
+    allow_failures:
+        - env: DB=5.7.14
 
 # different py version from 5.6 and 5.7 as cache seems to be based on py version
 
