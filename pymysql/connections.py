@@ -363,17 +363,18 @@ class MysqlPacket(object):
         return result
 
     def is_ok_packet(self):
-        return self._data[0:1] == b'\0'
-
-    def is_auth_switch_request(self):
-        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b'\xfe'
+        # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+        return self._data[0:1] == b'\0' and len(self._data) >= 7
 
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return len(self._data) < 9 and self._data[0:1] == b'\xfe'
+        return self._data[0:1] == b'\xfe' and len(self._data) < 9
+
+    def is_auth_switch_request(self):
+        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+        return self._data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
@@ -1357,11 +1358,14 @@ class MySQLResult(object):
 
     def _check_packet_is_eof(self, packet):
         if packet.is_eof_packet():
-            eof_packet = EOFPacketWrapper(packet)
-            self.warning_count = eof_packet.warning_count
-            self.has_next = eof_packet.has_next
-            return True
-        return False
+            wp = EOFPacketWrapper(packet)
+        elif packet.is_ok_packet():
+            wp = OKPacketWrapper(packet)
+        else:
+            return False
+        self.warning_count = wp.warning_count
+        self.has_next = wp.has_next
+        return True
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()
@@ -1466,7 +1470,7 @@ class MySQLResult(object):
             self.converters.append((encoding, converter))
 
         eof_packet = self.connection._read_packet()
-        assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
+        assert eof_packet.is_eof_packet() or eof_packet.is_ok_packet, 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
 
