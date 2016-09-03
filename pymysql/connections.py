@@ -117,20 +117,18 @@ def dump_packet(data): # pragma: no cover
 
     try:
         print("packet length:", len(data))
-        print("method call[1]:", sys._getframe(1).f_code.co_name)
-        print("method call[2]:", sys._getframe(2).f_code.co_name)
-        print("method call[3]:", sys._getframe(3).f_code.co_name)
-        print("method call[4]:", sys._getframe(4).f_code.co_name)
-        print("method call[5]:", sys._getframe(5).f_code.co_name)
-        print("-" * 88)
+        for i in range(1, 6):
+            f = sys._getframe(i)
+            print("call[%d]: %s (line %d)" % (i, f.f_code.co_name, f.f_lineno))
+        print("-" * 66)
     except ValueError:
         pass
     dump_data = [data[i:i+16] for i in range_type(0, min(len(data), 256), 16)]
     for d in dump_data:
         print(' '.join(map(lambda x: "{:02X}".format(byte2int(x)), d)) +
               '   ' * (16 - len(d)) + ' ' * 2 +
-              ' '.join(map(lambda x: "{}".format(is_ascii(x)), d)))
-    print("-" * 88)
+              ''.join(map(lambda x: "{}".format(is_ascii(x)), d)))
+    print("-" * 66)
     print()
 
 
