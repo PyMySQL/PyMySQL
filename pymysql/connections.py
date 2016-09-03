@@ -658,7 +658,7 @@ class Connection(object):
 
         self.encoding = charset_by_name(self.charset).encoding
 
-        client_flag |= CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
+        client_flag |= CLIENT.CAPABILITIES
         if self.db:
             client_flag |= CLIENT.CONNECT_WITH_DB
         self.client_flag = client_flag
@@ -1355,12 +1355,13 @@ class MySQLResult(object):
         self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
-        if packet.is_eof_packet():
-            wp = EOFPacketWrapper(packet)
-        elif packet.is_ok_packet():
-            wp = OKPacketWrapper(packet)
-        else:
+        if not packet.is_eof_packet():
             return False
+        #TODO: Support CLIENT.DEPRECATE_EOF
+        # 1) Add DEPRECATE_EOF to CAPABILITIES
+        # 2) Mask CAPABILITIES with server_capabilities
+        # 3) if server_capabilities & CLIENT.DEPRECATE_EOF: use OKPacketWrapper instead of EOFPacketWrapper
+        wp = EOFPacketWrapper(packet)
         self.warning_count = wp.warning_count
         self.has_next = wp.has_next
         return True
@@ -1468,7 +1469,7 @@ class MySQLResult(object):
             self.converters.append((encoding, converter))
 
         eof_packet = self.connection._read_packet()
-        assert eof_packet.is_eof_packet() or eof_packet.is_ok_packet, 'Protocol error, expecting EOF'
+        assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
 
