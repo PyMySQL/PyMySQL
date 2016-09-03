@@ -1,5 +1,12 @@
 # Changes
 
+## 0.7.9
+
+Release date: 2016-09-03
+
+* Fix PyMySQL stop reading rows when first column is empty string (#513)
+  Reverts DEPRECATE_EOF introduced in 0.7.7.
+
 ## 0.7.8
 
 Release date: 2016-09-01
