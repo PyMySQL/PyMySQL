@@ -80,7 +80,9 @@ class TestLoadLocal(base.PyMySQLTestCase):
                      "test_load_local FIELDS TERMINATED BY ','").format(filename)
                 )
                 self.assertEqual(w[0].category, Warning)
-                self.assertTrue("Incorrect integer value" in str(w[-1].message))
+                expected_message = "Incorrect integer value"
+                if expected_message not in str(w[-1].message):
+                    self.fail("%r not in %r" % (expected_message, w[-1].message))
         finally:
             c.execute("DROP TABLE test_load_local")
             c.close()

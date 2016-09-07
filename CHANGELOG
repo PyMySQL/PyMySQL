@@ -1,5 +1,27 @@
 # Changes
 
+## 0.7.9
+
+Release date: 2016-09-03
+
+* Fix PyMySQL stop reading rows when first column is empty string (#513)
+  Reverts DEPRECATE_EOF introduced in 0.7.7.
+
+## 0.7.8
+
+Release date: 2016-09-01
+
+* Revert error message change in 0.7.7.
+  (SQLAlchemy parses error message, #507)
+
+## 0.7.7
+
+Release date: 2016-08-30
+
+* Add new unicode collation (#498)
+* Fix conv option is not used for encoding objects.
+* Experimental support for DEPRECATE_EOF protocol.
+
 ## 0.7.6
 
 Release date: 2016-07-29

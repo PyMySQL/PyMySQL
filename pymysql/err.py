@@ -68,9 +68,11 @@ class NotSupportedError(DatabaseError):
 
 error_map = {}
 
+
 def _map_error(exc, *errors):
     for error in errors:
         error_map[error] = exc
+
 
 _map_error(ProgrammingError, ER.DB_CREATE_EXISTS, ER.SYNTAX_ERROR,
            ER.PARSE_ERROR, ER.NO_SUCH_TABLE, ER.WRONG_DB_NAME,
@@ -89,32 +91,17 @@ _map_error(OperationalError, ER.DBACCESS_DENIED_ERROR, ER.ACCESS_DENIED_ERROR,
            ER.CON_COUNT_ERROR, ER.TABLEACCESS_DENIED_ERROR,
            ER.COLUMNACCESS_DENIED_ERROR)
 
+
 del _map_error, ER
 
 
-def _get_error_info(data):
+def raise_mysql_exception(data):
     errno = struct.unpack('<h', data[1:3])[0]
     is_41 = data[3:4] == b"#"
     if is_41:
-        # version 4.1
-        sqlstate = data[4:9].decode("utf8", 'replace')
-        errorvalue = data[9:].decode("utf8", 'replace')
-        return (errno, sqlstate, errorvalue)
+        # client protocol 4.1
+        errval = data[9:].decode('utf-8', 'replace')
     else:
-        # version 4.0
-        return (errno, None, data[3:].decode("utf8", 'replace'))
-
-
-def _check_mysql_exception(errinfo):
-    errno, sqlstate, errorvalue = errinfo
-    errorclass = error_map.get(errno, None)
-    if errorclass:
-        raise errorclass(errno, errorvalue)
-
-    # couldn't find the right error number
-    raise InternalError(errno, errorvalue)
-
-
-def raise_mysql_exception(data):
-    errinfo = _get_error_info(data)
-    _check_mysql_exception(errinfo)
+        errval = data[3:].decode('utf-8', 'replace')
+    errorclass = error_map.get(errno, InternalError)
+    raise errorclass(errno, errval)

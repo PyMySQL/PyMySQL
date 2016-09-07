@@ -5,7 +5,6 @@ import re
 import warnings
 
 from ._compat import range_type, text_type, PY2
-
 from . import err
 
 
@@ -20,9 +19,9 @@ RE_INSERT_VALUES = re.compile(
 
 
 class Cursor(object):
-    '''
+    """
     This is the object you use to interact with the database.
-    '''
+    """
 
     #: Max stetement size which :meth:`executemany` generates.
     #:
@@ -33,10 +32,10 @@ class Cursor(object):
     _defer_warnings = False
 
     def __init__(self, connection):
-        '''
+        """
         Do not create an instance of a Cursor yourself. Call
         connections.Connection.cursor().
-        '''
+        """
         self.connection = connection
         self.description = None
         self.rownumber = 0
@@ -48,9 +47,9 @@ class Cursor(object):
         self._warnings_handled = False
 
     def close(self):
-        '''
+        """
         Closing a cursor just exhausts all remaining data.
-        '''
+        """
         conn = self.connection
         if conn is None:
             return
@@ -116,12 +115,12 @@ class Cursor(object):
         if isinstance(args, (tuple, list)):
             if PY2:
                 args = tuple(map(ensure_bytes, args))
-            return tuple(conn.escape(arg) for arg in args)
+            return tuple(conn.literal(arg) for arg in args)
         elif isinstance(args, dict):
             if PY2:
                 args = dict((ensure_bytes(key), ensure_bytes(val)) for
                             (key, val) in args.items())
-            return dict((key, conn.escape(val)) for (key, val) in args.items())
+            return dict((key, conn.literal(val)) for (key, val) in args.items())
         else:
             # If it's not a dictionary let's try escaping it anyways.
             # Worst case it will throw a Value error
@@ -274,7 +273,7 @@ class Cursor(object):
         return args
 
     def fetchone(self):
-        ''' Fetch the next row '''
+        """Fetch the next row"""
         self._check_executed()
         if self._rows is None or self.rownumber >= len(self._rows):
             return None
@@ -283,7 +282,7 @@ class Cursor(object):
         return result
 
     def fetchmany(self, size=None):
-        ''' Fetch several rows '''
+        """Fetch several rows"""
         self._check_executed()
         if self._rows is None:
             return ()
@@ -293,7 +292,7 @@ class Cursor(object):
         return result
 
     def fetchall(self):
-        ''' Fetch all the rows '''
+        """Fetch all the rows"""
         self._check_executed()
         if self._rows is None:
             return ()
@@ -444,11 +443,11 @@ class SSCursor(Cursor):
         return self._nextset(unbuffered=True)
 
     def read_next(self):
-        """ Read next row """
+        """Read next row"""
         return self._conv_row(self._result._read_rowdata_packet_unbuffered())
 
     def fetchone(self):
-        """ Fetch next row """
+        """Fetch next row"""
         self._check_executed()
         row = self.read_next()
         if row is None:
@@ -477,7 +476,7 @@ class SSCursor(Cursor):
         return self.fetchall_unbuffered()
 
     def fetchmany(self, size=None):
-        """ Fetch many """
+        """Fetch many"""
         self._check_executed()
         if size is None:
             size = self.arraysize
@@ -517,4 +516,4 @@ class SSCursor(Cursor):
 
 
 class SSDictCursor(DictCursorMixin, SSCursor):
-    """ An unbuffered cursor, which returns results as a dictionary """
+    """An unbuffered cursor, which returns results as a dictionary"""

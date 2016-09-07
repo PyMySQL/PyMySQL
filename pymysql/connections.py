@@ -117,20 +117,18 @@ def dump_packet(data): # pragma: no cover
 
     try:
         print("packet length:", len(data))
-        print("method call[1]:", sys._getframe(1).f_code.co_name)
-        print("method call[2]:", sys._getframe(2).f_code.co_name)
-        print("method call[3]:", sys._getframe(3).f_code.co_name)
-        print("method call[4]:", sys._getframe(4).f_code.co_name)
-        print("method call[5]:", sys._getframe(5).f_code.co_name)
-        print("-" * 88)
+        for i in range(1, 6):
+            f = sys._getframe(i)
+            print("call[%d]: %s (line %d)" % (i, f.f_code.co_name, f.f_lineno))
+        print("-" * 66)
     except ValueError:
         pass
     dump_data = [data[i:i+16] for i in range_type(0, min(len(data), 256), 16)]
     for d in dump_data:
         print(' '.join(map(lambda x: "{:02X}".format(byte2int(x)), d)) +
               '   ' * (16 - len(d)) + ' ' * 2 +
-              ' '.join(map(lambda x: "{}".format(is_ascii(x)), d)))
-    print("-" * 88)
+              ''.join(map(lambda x: "{}".format(is_ascii(x)), d)))
+    print("-" * 66)
     print()
 
 
@@ -363,17 +361,18 @@ class MysqlPacket(object):
         return result
 
     def is_ok_packet(self):
-        return self._data[0:1] == b'\0'
-
-    def is_auth_switch_request(self):
-        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b'\xfe'
+        # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+        return self._data[0:1] == b'\0' and len(self._data) >= 7
 
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return len(self._data) < 9 and self._data[0:1] == b'\xfe'
+        return self._data[0:1] == b'\xfe' and len(self._data) < 9
+
+    def is_auth_switch_request(self):
+        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+        return self._data[0:1] == b'\xfe'
 
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
@@ -659,7 +658,7 @@ class Connection(object):
 
         self.encoding = charset_by_name(self.charset).encoding
 
-        client_flag |= CLIENT.CAPABILITIES | CLIENT.MULTI_STATEMENTS
+        client_flag |= CLIENT.CAPABILITIES
         if self.db:
             client_flag |= CLIENT.CONNECT_WITH_DB
         self.client_flag = client_flag
@@ -1356,12 +1355,16 @@ class MySQLResult(object):
         self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
-        if packet.is_eof_packet():
-            eof_packet = EOFPacketWrapper(packet)
-            self.warning_count = eof_packet.warning_count
-            self.has_next = eof_packet.has_next
-            return True
-        return False
+        if not packet.is_eof_packet():
+            return False
+        #TODO: Support CLIENT.DEPRECATE_EOF
+        # 1) Add DEPRECATE_EOF to CAPABILITIES
+        # 2) Mask CAPABILITIES with server_capabilities
+        # 3) if server_capabilities & CLIENT.DEPRECATE_EOF: use OKPacketWrapper instead of EOFPacketWrapper
+        wp = EOFPacketWrapper(packet)
+        self.warning_count = wp.warning_count
+        self.has_next = wp.has_next
+        return True
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()

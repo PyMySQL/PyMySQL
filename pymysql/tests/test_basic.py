@@ -375,4 +375,5 @@ age = values(age)"""))
             cur.execute("drop table if exists no_exists_table")
         self.assertEqual(len(ws), 1)
         self.assertEqual(ws[0].category, pymysql.Warning)
-        self.assertTrue(u"no_exists_table" in str(ws[0].message))
+        if u"no_exists_table" not in str(ws[0].message):
+            self.fail("'no_exists_table' not in %s" % (str(ws[0].message),))
