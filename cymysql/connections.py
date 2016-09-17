@@ -468,7 +468,6 @@ class Connection(object):
             self.socket.sendall(data)
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
-                                          ssl_version=ssl.PROTOCOL_TLSv1,
                                           cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
 
