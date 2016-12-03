@@ -17,7 +17,7 @@ Go to the ``docs`` directory and run ``make html``.
 Test Suite
 -----------
 
-If you would like to run the test suite, create database for test like this::
+If you would like to run the test suite, create a database for testing like this::
 
     mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
     mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
