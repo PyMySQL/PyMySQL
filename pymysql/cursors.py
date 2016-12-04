@@ -23,7 +23,7 @@ class Cursor(object):
     This is the object you use to interact with the database.
     """
 
-    #: Max stetement size which :meth:`executemany` generates.
+    #: Max statement size which :meth:`executemany` generates.
     #:
     #: Max size of allowed statement is max_allowed_packet - packet_header_size.
     #: Default value of max_allowed_packet is 1048576.
@@ -403,8 +403,8 @@ class SSCursor(Cursor):
     or for connections to remote servers over a slow network.
 
     Instead of copying every row of data into a buffer, this will fetch
-    rows as needed. The upside of this, is the client uses much less memory,
-    and rows are returned much faster when traveling over a slow network,
+    rows as needed. The upside of this is the client uses much less memory,
+    and rows are returned much faster when traveling over a slow network
     or if the result set is very big.
 
     There are limitations, though. The MySQL protocol doesn't support
