@@ -670,7 +670,7 @@ class Connection(object):
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
-        self.connect_timeout = connect_timeout
+        self.connect_timeout = connect_timeout or None
 
         self._result = None
         self._affected_rows = 0
