@@ -79,6 +79,7 @@ install:
     - export PASSWORD=travis;
     - export PAMSERVICE=chfn;
     - pip install -U tox coveralls
+    - pip install -U pytest pytest-cov
 
 before_script:
     - ./.travis/initializedb.sh
