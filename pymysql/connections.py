@@ -530,7 +530,7 @@ class Connection(object):
                  charset='', sql_mode=None,
                  read_default_file=None, conv=None, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
-                 connect_timeout=None, ssl=None, read_default_group=None,
+                 connect_timeout=10, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
@@ -564,6 +564,7 @@ class Connection(object):
         cursorclass: Custom cursor class to use.
         init_command: Initial SQL statement to run when connection is established.
         connect_timeout: Timeout before throwing an exception when connecting.
+            (default: 10, min: 1, max: 31536000)
         ssl:
             A dict of arguments similar to mysql_ssl_set()'s parameters.
             For now the capath and cipher arguments are not supported.
@@ -646,6 +647,9 @@ class Connection(object):
         self.db = database
         self.unix_socket = unix_socket
         self.bind_address = bind_address
+        if not (0 < connect_timeout <= 31536000):
+            raise ValueError("connect_timeout should be >0 and <=31536000")
+        self.connect_timeout = connect_timeout or None
         if read_timeout is not None and read_timeout <= 0:
             raise ValueError("read_timeout should be >= 0")
         self._read_timeout = read_timeout
@@ -670,7 +674,6 @@ class Connection(object):
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
-        self.connect_timeout = connect_timeout or None
 
         self._result = None
         self._affected_rows = 0
