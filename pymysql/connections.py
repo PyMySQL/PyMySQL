@@ -716,7 +716,7 @@ class Connection(object):
     def close(self):
         """Send the quit message and close the socket"""
         if self._sock is None:
-            raise err.Error("Already closed")
+            return
         send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
         try:
             self._write_bytes(send_data)
