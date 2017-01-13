@@ -17,7 +17,7 @@ import traceback
 import warnings
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
-from .constants import CLIENT, COMMAND, FIELD_TYPE, SERVER_STATUS
+from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
 from .converters import escape_item, escape_string, through, conversions as _conv
 from .cursors import Cursor
 from .optionfile import Parser
@@ -524,6 +524,7 @@ class Connection(object):
 
     _sock = None
     _auth_plugin_name = ''
+    _closed = False
 
     def __init__(self, host=None, user=None, password="",
                  database=None, port=0, unix_socket=None,
@@ -715,8 +716,11 @@ class Connection(object):
 
     def close(self):
         """Send the quit message and close the socket"""
-        if self._sock is None:
+        if self._closed:
             raise err.Error("Already closed")
+        self._closed = True
+        if self._sock is None:
+            return
         send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
         try:
             self._write_bytes(send_data)
@@ -732,7 +736,8 @@ class Connection(object):
     def open(self):
         return self._sock is not None
 
-    def __del__(self):
+    def _force_close(self):
+        """Close connection without QUIT message"""
         if self._sock:
             try:
                 self._sock.close()
@@ -740,6 +745,8 @@ class Connection(object):
                 pass
         self._sock = None
         self._rfile = None
+
+    __del__ = _force_close
 
     def autocommit(self, value):
         self.autocommit_mode = bool(value)
@@ -884,6 +891,7 @@ class Connection(object):
         self.encoding = encoding
 
     def connect(self, sock=None):
+        self._closed = False
         try:
             if sock is None:
                 if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
@@ -977,8 +985,15 @@ class Connection(object):
             btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
             bytes_to_read = btrl + (btrh << 16)
             if packet_number != self._next_seq_id:
-                raise err.InternalError("Packet sequence number wrong - got %d expected %d" %
-                    (packet_number, self._next_seq_id))
+                self._force_close()
+                if packet_number == 0:
+                    # MariaDB sends error packet with seqno==0 when shutdown
+                    raise err.OperationalError(
+                        CR.CR_SERVER_LOST,
+                        "Lost connection to MySQL server during query")
+                raise err.InternalError(
+                    "Packet sequence number wrong - got %d expected %d"
+                    % (packet_number, self._next_seq_id))
             self._next_seq_id = (self._next_seq_id + 1) % 256
 
             recv_data = self._read_bytes(bytes_to_read)
@@ -1003,12 +1018,14 @@ class Connection(object):
             except (IOError, OSError) as e:
                 if e.errno == errno.EINTR:
                     continue
+                self._force_close()
                 raise err.OperationalError(
-                    2013,
+                    CR.CR_SERVER_LOST,
                     "Lost connection to MySQL server during query (%s)" % (e,))
         if len(data) < num_bytes:
+            self._force_close()
             raise err.OperationalError(
-                2013, "Lost connection to MySQL server during query")
+                CR.CR_SERVER_LOST, "Lost connection to MySQL server during query")
         return data
 
     def _write_bytes(self, data):
@@ -1016,7 +1033,10 @@ class Connection(object):
         try:
             self._sock.sendall(data)
         except IOError as e:
-            raise err.OperationalError(2006, "MySQL server has gone away (%r)" % (e,))
+            self._force_close()
+            raise err.OperationalError(
+                CR.CR_SERVER_GONE_ERROR,
+                "MySQL server has gone away (%r)" % (e,))
 
     def _read_query_result(self, unbuffered=False):
         if unbuffered:
