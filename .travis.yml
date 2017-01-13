@@ -14,21 +14,14 @@ matrix:
   include:
     - addons:
        mariadb: 5.5
-       #env:
-       #e- EXTRAPKG=mariadb-test
       python: "3.5"
 
     - addons:
        mariadb: 10.0
-      env:
-       #- EXTRAPKG=mariadb-test
-       - PAMCLEAR=1
       python: "pypy"
 
     - addons:
        mariadb: 10.1
-      env:
-        #- EXTRAPKG=mariadb-test
       python: "2.7"
 
     - env:
@@ -59,13 +52,7 @@ install:
     - if [ -n "${EXTRAPKG}" ]; then
           sudo apt-get install ${EXTRAPKG};
       fi
-    - if [ -n "${PAMCLEAR}" ]; then
-          echo -e '[mysqld]\n\npam-use-cleartext-plugin' | sudo tee -a /etc/mysql/conf.d/pam-cleartext.cnf;
-          mysql -u root -e "install plugin pam soname 'auth_pam.so'";
-          sudo service mysql restart;
-      fi
     - export PASSWORD=travis;
-    - export PAMSERVICE=chfn;
     - pip install -U coveralls unittest2 coverage
 
 before_script:
@@ -84,14 +71,8 @@ script:
 after_success:
     - coveralls
     - cat /tmp/mysql.err
-    - if [ -n "${PAMCLEAR}" ]; then
-         sudo cat /var/log/syslog;
-      fi
 
 after_failure:
     - cat /tmp/mysql.err
-    - if [ -n "${PAMCLEAR}" ]; then
-        sudo cat /var/log/syslog;
-      fi
 
 # vim: sw=2 ts=2 sts=2 expandtab
