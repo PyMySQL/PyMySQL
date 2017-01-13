@@ -14,21 +14,21 @@ matrix:
   include:
     - addons:
        mariadb: 5.5
-      env:
-       - EXTRAPKG=mariadb-test
+       #env:
+       #e- EXTRAPKG=mariadb-test
       python: "3.5"
 
     - addons:
        mariadb: 10.0
       env:
-       - EXTRAPKG=mariadb-test
+       #- EXTRAPKG=mariadb-test
        - PAMCLEAR=1
       python: "pypy"
 
     - addons:
        mariadb: 10.1
       env:
-       - EXTRAPKG=mariadb-test
+        #- EXTRAPKG=mariadb-test
       python: "2.7"
 
     - env:
