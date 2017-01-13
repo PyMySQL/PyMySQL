@@ -891,6 +891,7 @@ class Connection(object):
         self.encoding = encoding
 
     def connect(self, sock=None):
+        self._closed = False
         try:
             if sock is None:
                 if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
