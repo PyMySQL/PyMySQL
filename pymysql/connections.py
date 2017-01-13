@@ -524,6 +524,7 @@ class Connection(object):
 
     _sock = None
     _auth_plugin_name = ''
+    _closed = False
 
     def __init__(self, host=None, user=None, password="",
                  database=None, port=0, unix_socket=None,
@@ -715,6 +716,9 @@ class Connection(object):
 
     def close(self):
         """Send the quit message and close the socket"""
+        if self._closed:
+            raise err.Error("Already closed")
+        self._closed = True
         if self._sock is None:
             return
         send_data = struct.pack('<iB', 1, COMMAND.COM_QUIT)
