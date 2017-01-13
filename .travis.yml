@@ -1,65 +1,56 @@
 sudo: false
 language: python
-python: "3.5"
+python:
+  - "3.6"
+  - "3.3"
+  - "2.6"
+  - "pypy"
+  - "pypy3.3-5.2-alpha1"
+
 cache:
     directories:
         - $HOME/.cache/pip
         - $HOME/mysql
 
-env:
-    matrix:
-        - TOX_ENV=py26
-        - TOX_ENV=py27
-        - TOX_ENV=py33
-        - TOX_ENV=py34
-        - TOX_ENV=py35
-        - TOX_ENV=pypy
-
 matrix:
-    include:
-        - addons:
-             mariadb: 5.5
-          env:
-             - TOX_ENV=py27
-             - EXTRAPKG=mariadb-test
-          sudo: required
+  include:
+    - addons:
+       mariadb: 5.5
+      env:
+       - EXTRAPKG=mariadb-test
+      sudo: required
+      python: "3.5"
 
-        - addons:
-             mariadb: 10.0
-          env:
-             - TOX_ENV=py33
-             - EXTRAPKG=mariadb-test
-             - PAMCLEAR=1
-          sudo: required
+    - addons:
+       mariadb: 10.0
+      env:
+       - EXTRAPKG=mariadb-test
+       - PAMCLEAR=1
+      sudo: required
+      python: "pypy"
 
-        - addons:
-             mariadb: 10.1
-          env:
-             - TOX_ENV=py34
-             - EXTRAPKG=mariadb-test
-          sudo: required
+    - addons:
+       mariadb: 10.1
+      env:
+       - EXTRAPKG=mariadb-test
+      sudo: required
+      python: "2.7"
 
-        - env:
-             - TOX_ENV=py34
-             - DB=5.6.35
-          addons:
-              apt:
-                 packages:
-                     - libaio-dev
-          python: 3.3
+    - env:
+       - DB=5.6.35
+      addons:
+        apt:
+          packages:
+            - libaio-dev
+      python: "3.3"
 
-        - env:
-             - TOX_ENV=py34
-             - DB=5.7.17
-          addons:
-              apt:
-                 packages:
-                     - libaio-dev
-          python: 3.4
-
-        - python: pypy3.3-5.2-alpha1
-          env:
-            - TOX_ENV=pypy3
+    - env:
+       - DB=5.7.17
+      addons:
+        apt:
+          packages:
+            - libaio-dev
+      python: "3.4"
 
 
 
@@ -80,7 +71,7 @@ install:
       fi
     - export PASSWORD=travis;
     - export PAMSERVICE=chfn;
-    - pip install -U tox coveralls
+    - pip install -U coveralls unittest2 coverage
 
 before_script:
     - ./.travis/initializedb.sh
@@ -93,7 +84,7 @@ before_script:
     - export COVERALLS_PARALLEL=true
 
 script:
-    - tox -e $TOX_ENV
+  - coverage run ./runtests.py
 
 after_success:
     - coveralls
@@ -107,3 +98,5 @@ after_failure:
     - if [ -n "${PAMCLEAR}" ]; then
          sudo cat /var/log/syslog;
       fi
+
+# vim: sw=2 ts=2 sts=2 expandtab
