@@ -86,14 +86,14 @@ script:
 after_success:
     - coveralls
     - cat /tmp/mysql.err
-    - if [ -n "${PAMCLEAR}" ]; then
-         sudo cat /var/log/syslog;
-      fi
+    #- if [ -n "${PAMCLEAR}" ]; then
+    #     sudo cat /var/log/syslog;
+    #  fi
 
 after_failure:
     - cat /tmp/mysql.err
-    - if [ -n "${PAMCLEAR}" ]; then
-         sudo cat /var/log/syslog;
-      fi
+    #- if [ -n "${PAMCLEAR}" ]; then
+    #-    sudo cat /var/log/syslog;
+    #- fi
 
 # vim: sw=2 ts=2 sts=2 expandtab
