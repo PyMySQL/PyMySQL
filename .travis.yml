@@ -1,4 +1,5 @@
-sudo: false
+sudo: required
+dist: trusty
 language: python
 python:
   - "3.6"
@@ -15,7 +16,6 @@ matrix:
        mariadb: 5.5
       env:
        - EXTRAPKG=mariadb-test
-      sudo: required
       python: "3.5"
 
     - addons:
@@ -23,14 +23,12 @@ matrix:
       env:
        - EXTRAPKG=mariadb-test
        - PAMCLEAR=1
-      sudo: required
       python: "pypy"
 
     - addons:
        mariadb: 10.1
       env:
        - EXTRAPKG=mariadb-test
-      sudo: required
       python: "2.7"
 
     - env:
@@ -86,14 +84,14 @@ script:
 after_success:
     - coveralls
     - cat /tmp/mysql.err
-    #- if [ -n "${PAMCLEAR}" ]; then
-    #     sudo cat /var/log/syslog;
-    #  fi
+    - if [ -n "${PAMCLEAR}" ]; then
+         sudo cat /var/log/syslog;
+      fi
 
 after_failure:
     - cat /tmp/mysql.err
-    #- if [ -n "${PAMCLEAR}" ]; then
-    #-    sudo cat /var/log/syslog;
-    #- fi
+    - if [ -n "${PAMCLEAR}" ]; then
+        sudo cat /var/log/syslog;
+      fi
 
 # vim: sw=2 ts=2 sts=2 expandtab
