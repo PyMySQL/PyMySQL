@@ -58,6 +58,7 @@ before_script:
     - mysql -u root -e "create user travis_pymysql2 identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2;"
     - mysql -u root -e "create user travis_pymysql2@localhost identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2@localhost;"
     - mysql -e 'select VERSION()'
+    - python -VV
     - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
     - export COVERALLS_PARALLEL=true
 
