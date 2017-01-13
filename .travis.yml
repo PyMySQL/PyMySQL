@@ -59,7 +59,7 @@ matrix:
 
         - python: pypy3.3-5.2-alpha1
           env:
-            - TOX_ENV=pypy33
+            - TOX_ENV=pypy3
 
 
 
