@@ -2,6 +2,7 @@ sudo: required
 dist: trusty
 language: python
 python:
+  - "3.7-dev"
   - "3.6"
   - "2.6"
   - "pypy3.3-5.2-alpha1"
