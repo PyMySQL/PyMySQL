@@ -14,7 +14,7 @@ from . import err
 RE_INSERT_VALUES = re.compile(
     r"\s*((?:INSERT|REPLACE)\s.+\sVALUES?\s+)" +
     r"(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))" +
-    r"(\s*(?:ON DUPLICATE.*)?)(;\s*)\Z",
+    r"(\s*(?:ON DUPLICATE.*)?)(;*\s*)\Z",
     re.IGNORECASE | re.DOTALL)
 
 
