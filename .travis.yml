@@ -97,6 +97,7 @@ script:
 
 after_success:
     - coveralls
+    - sudo service mysql stop
     - cat /tmp/mysql.err
     - if [ -n "${PAMCLEAR}" ]; then
          sudo cat /var/log/syslog;
@@ -104,6 +105,7 @@ after_success:
 
 after_failure:
     - cat /tmp/mysql.err
+    - sudo service mysql stop
     - if [ -n "${PAMCLEAR}" ]; then
          sudo cat /var/log/syslog;
       fi
