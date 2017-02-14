@@ -5,7 +5,7 @@
 Release date: 2017-02-14
 
 * **SECURITY FIX**: Raise RuntimeError when received LOAD_LOCAL packet while
-  ``loacal_infile=False``.
+  ``loacal_infile=False``.  (Thanks to Bryan Helmig)
 
 * Raise SERVER_LOST error for MariaDB's shutdown packet (#540)
 
