@@ -600,7 +600,8 @@ class Connection(object):
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        if local_infile:
+        self._local_infile = bool(local_infile)
+        if self._local_infile:
             client_flag |= CLIENT.LOCAL_FILES
 
         self.ssl = False
@@ -1374,6 +1375,9 @@ class MySQLResult(object):
         self.has_next = ok_packet.has_next
 
     def _read_load_local_packet(self, first_packet):
+        if not self.connection._local_infile:
+            raise RuntimeError(
+                "**WARN**: Received LOAD_LOCAL packet but local_infile option is false.")
         load_packet = LoadLocalPacketWrapper(first_packet)
         sender = LoadLocalFile(load_packet.filename, self.connection)
         try:
