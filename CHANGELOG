@@ -4,6 +4,9 @@
 
 Release date: 2017-02-14
 
+* **SECURITY FIX**: Raise RuntimeError when received LOAD_LOCAL packet while
+  ``loacal_infile=False``.
+
 * Raise SERVER_LOST error for MariaDB's shutdown packet (#540)
 
 * Change default connect_timeout to 10.
