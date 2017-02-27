@@ -604,14 +604,6 @@ class Connection(object):
         if self._local_infile:
             client_flag |= CLIENT.LOCAL_FILES
 
-        self.ssl = False
-        if ssl:
-            if not SSL_ENABLED:
-                raise NotImplementedError("ssl module not found")
-            self.ssl = True
-            client_flag |= CLIENT.SSL
-            self.ctx = self._create_ssl_ctx(ssl)
-
         if read_default_group and not read_default_file:
             if sys.platform.startswith("win"):
                 read_default_file = "c:\\my.ini"
@@ -641,6 +633,21 @@ class Connection(object):
             port = int(_config("port", port))
             bind_address = _config("bind-address", bind_address)
             charset = _config("default-character-set", charset)
+            if not ssl:
+                ssl = {}
+            if isinstance(ssl, dict):
+                for key in ["ca", "capath", "cert", "key", "cipher"]:
+                    value = _config("ssl-" + key, ssl.get(key))
+                    if value:
+                        ssl[key] = value
+
+        self.ssl = False
+        if ssl:
+            if not SSL_ENABLED:
+                raise NotImplementedError("ssl module not found")
+            self.ssl = True
+            client_flag |= CLIENT.SSL
+            self.ctx = self._create_ssl_ctx(ssl)
 
         self.host = host or "localhost"
         self.port = port or 3306
