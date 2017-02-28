@@ -735,11 +735,7 @@ class Connection(object):
         except Exception:
             pass
         finally:
-            sock = self._sock
-            self._sock = None
-            self._rfile = None
-            if hasattr(sock, 'close'):
-                sock.close()
+            self._force_close()
 
     @property
     def open(self):
