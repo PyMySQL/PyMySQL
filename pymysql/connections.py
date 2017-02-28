@@ -738,7 +738,8 @@ class Connection(object):
             sock = self._sock
             self._sock = None
             self._rfile = None
-            sock.close()
+            if hasattr(sock, 'close'):
+                sock.close()
 
     @property
     def open(self):
