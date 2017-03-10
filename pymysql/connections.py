@@ -647,6 +647,7 @@ class Connection(object):
                 raise NotImplementedError("ssl module not found")
             self.ssl = True
             client_flag |= CLIENT.SSL
+            self.cert_hosts = ssl.get('cert_hosts')
             self.ctx = self._create_ssl_ctx(ssl)
 
         self.host = host or "localhost"
@@ -712,7 +713,7 @@ class Connection(object):
         capath = sslp.get('capath')
         hasnoca = ca is None and capath is None
         ctx = ssl.create_default_context(cafile=ca, capath=capath)
-        ctx.check_hostname = not hasnoca and sslp.get('check_hostname', True)
+        ctx.check_hostname = not hasnoca and not self.cert_hosts and sslp.get('check_hostname', True)
         ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if 'cert' in sslp:
             ctx.load_cert_chain(sslp['cert'], keyfile=sslp.get('key'))
@@ -1122,6 +1123,20 @@ class Connection(object):
             self.write_packet(data_init)
 
             self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
+
+            if self.cert_hosts:
+                cert = self._sock.getpeercert()
+                host_ok = False
+                for host in self.cert_hosts:
+                    try:
+                        ssl.match_hostname(cert, host)
+                        host_ok = True
+                        break
+                    except ssl.CertificateError:
+                        pass
+                if not host_ok:
+                    raise ssl.CertificateError('certificate doesn\'t match cert_hosts')
+
             self._rfile = _makefile(self._sock, 'rb')
 
         data = data_init + self.user + b'\0'
