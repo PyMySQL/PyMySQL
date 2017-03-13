@@ -10,5 +10,6 @@ the library as a developer.
 
   installation
   examples
+  conversion
   resources
   development
