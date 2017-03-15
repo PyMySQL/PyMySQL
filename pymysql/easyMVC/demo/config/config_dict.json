@@ -1,0 +1,10 @@
+{
+"int":["id"],
+"datetime":["date"],
+"double":["money"],
+"float":["gpa"],
+"text":["text"],
+"integer":["time","total"],
+"varchar(40)":["name","number"],
+"tinyint":["access","level"]
+}

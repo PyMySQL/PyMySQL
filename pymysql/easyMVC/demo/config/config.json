@@ -1,0 +1,10 @@
+[
+    {
+        "class":"user",
+        "attrs":["id","username","password","access","info"]
+    },
+    {
+        "class":"course",
+        "attrs":["id","name","time","finalexamdate"]
+    }
+]
