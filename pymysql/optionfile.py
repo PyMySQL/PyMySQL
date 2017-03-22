@@ -15,7 +15,7 @@ class Parser(configparser.RawConfigParser):
                 return value[1:-1]
         return value
 
-    def get(self, section, option, var):
+    def get(self, section, option, var=None):
         """Get *option* from *section* if *var* is not supplied."""
         if var:
             return var
