@@ -19,6 +19,9 @@ setup(
     description='Pure Python MySQL Driver',
     license="MIT",
     packages=find_packages(),
+    extras_require={
+        'loginpath':  ["cryptography>=1.0.0"]
+    },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python :: 2',
