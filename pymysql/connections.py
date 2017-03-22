@@ -613,7 +613,7 @@ class Connection(object):
             from .login_path import open_login_path_file
             login_path_file = open_login_path_file()
 
-            if (login_path_file is None):
+            if login_path_file is None:
                 raise RuntimeError('Error reading login path file.')
 
             lp_cfg = Parser()
