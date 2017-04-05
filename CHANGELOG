@@ -1,5 +1,14 @@
 # Changes
 
+## 0.7.11
+
+Release date: 2017-04-06
+
+* Fixed Connection.close() failed when failed to send COM_CLOSE packet.
+* Cursor.executemany() accepts query ends with semicolon.
+* ssl parameters can be read from my.cnf.
+
+
 ## 0.7.10
 
 Release date: 2017-02-14
