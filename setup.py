@@ -24,6 +24,9 @@ setup(
     long_description=readme,
     license="MIT",
     packages=find_packages(),
+    extras_require={
+        'loginpath':  ["cryptography>=1.0.0"]
+    },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python :: 2',

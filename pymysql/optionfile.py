@@ -15,6 +15,13 @@ class Parser(configparser.RawConfigParser):
                 return value[1:-1]
         return value
 
-    def get(self, section, option):
-        value = configparser.RawConfigParser.get(self, section, option)
-        return self.__remove_quotes(value)
+    def get(self, section, option, var=None):
+        """Get *option* from *section* if *var* is not supplied."""
+        if var:
+            return var
+        try:
+            value = configparser.RawConfigParser.get(self, section, option)
+        except configparser.Error:
+            return var
+        else:
+            return self.__remove_quotes(value)

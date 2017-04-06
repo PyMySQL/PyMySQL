@@ -536,7 +536,7 @@ class Connection(object):
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 bind_address=None):
+                 bind_address=None, login_path=None):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -583,6 +583,8 @@ class Connection(object):
             The class needs an authenticate method taking an authentication packet as
             an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
             (if no authenticate method) for returning a string from the user. (experimental)
+        login_path: A login path group to read from the encrypted login path
+            file. Or, `True` to read the default "client" group.
         db: Alias for database. (for compatibility to MySQLdb)
         passwd: Alias for password. (for compatibility to MySQLdb)
         """
@@ -604,6 +606,28 @@ class Connection(object):
         if self._local_infile:
             client_flag |= CLIENT.LOCAL_FILES
 
+        if login_path:
+            if login_path is True:
+                login_path = 'client'
+
+            from .login_path import open_login_path_file
+            login_path_file = open_login_path_file()
+
+            if login_path_file is None:
+                raise RuntimeError('Error reading login path file.')
+
+            lp_cfg = Parser()
+            if PY2:
+                lp_cfg.readfp(login_path_file)
+            else:
+                lp_cfg.read_file(login_path_file)
+
+            user = lp_cfg.get(login_path, 'user', user)
+            password = lp_cfg.get(login_path, 'password', password)
+            host = lp_cfg.get(login_path, 'host', host)
+            unix_socket = lp_cfg.get(login_path, 'socket', unix_socket)
+            port = int(lp_cfg.get(login_path, 'port', port))
+
         if read_default_group and not read_default_file:
             if sys.platform.startswith("win"):
                 read_default_file = "c:\\my.ini"
@@ -617,27 +641,19 @@ class Connection(object):
             cfg = Parser()
             cfg.read(os.path.expanduser(read_default_file))
 
-            def _config(key, arg):
-                if arg:
-                    return arg
-                try:
-                    return cfg.get(read_default_group, key)
-                except Exception:
-                    return arg
-
-            user = _config("user", user)
-            password = _config("password", password)
-            host = _config("host", host)
-            database = _config("database", database)
-            unix_socket = _config("socket", unix_socket)
-            port = int(_config("port", port))
-            bind_address = _config("bind-address", bind_address)
-            charset = _config("default-character-set", charset)
+            user = cfg.get(read_default_group, "user", user)
+            password = cfg.get(read_default_group, "password", password)
+            host = cfg.get(read_default_group, "host", host)
+            database = cfg.get(read_default_group, "database", database)
+            unix_socket = cfg.get(read_default_group, "socket", unix_socket)
+            port = int(cfg.get(read_default_group, "port", port))
+            bind_address = cfg.get(read_default_group, "bind-address", bind_address)
+            charset = cfg.get(read_default_group, "default-character-set", charset)
             if not ssl:
                 ssl = {}
             if isinstance(ssl, dict):
                 for key in ["ca", "capath", "cert", "key", "cipher"]:
-                    value = _config("ssl-" + key, ssl.get(key))
+                    value = cfg.get(read_default_group, "ssl-" + key, ssl.get(key))
                     if value:
                         ssl[key] = value
 
@@ -806,7 +822,7 @@ class Connection(object):
 
     def escape(self, obj, mapping=None):
         """Escape whatever value you pass to it.
-        
+
         Non-standard, for internal use; do not use this in your applications.
         """
         if isinstance(obj, str_type):
@@ -815,7 +831,7 @@ class Connection(object):
 
     def literal(self, obj):
         """Alias for escape()
-        
+
         Non-standard, for internal use; do not use this in your applications.
         """
         return self.escape(obj, self.encoders)
@@ -1491,7 +1507,7 @@ class MySQLResult(object):
                     # This behavior is different from TEXT / BLOB.
                     # We should decode result by connection encoding regardless charsetnr.
                     # See https://github.com/PyMySQL/PyMySQL/issues/488
-                    encoding = conn_encoding  # SELECT CAST(... AS JSON) 
+                    encoding = conn_encoding  # SELECT CAST(... AS JSON)
                 elif field_type in TEXT_TYPES:
                     if field.charsetnr == 63:  # binary
                         # TEXTs with charset=binary means BINARY types.
