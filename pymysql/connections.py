@@ -15,6 +15,7 @@ import struct
 import sys
 import traceback
 import warnings
+import re
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
@@ -1251,6 +1252,11 @@ class Connection(object):
 
         server_end = data.find(b'\0', i)
         self.server_version = data[i:server_end].decode('latin1')
+        self.server_version_tuple = tuple(
+            (int(dig) if dig is not None else 0)
+            for dig in
+            re.match(r'(\d+)\.(\d+)\.(\d+)', self.server_version).group(1, 2, 3)
+        )
         i = server_end + 1
 
         self.server_thread_id = struct.unpack('<I', data[i:i+4])
@@ -1300,6 +1306,9 @@ class Connection(object):
 
     def get_server_info(self):
         return self.server_version
+
+    def get_server_version(self):
+        return self.server_version_tuple
 
     Warning = err.Warning
     Error = err.Error
