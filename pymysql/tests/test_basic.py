@@ -15,6 +15,7 @@ from pymysql.err import ProgrammingError
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
 
 
+
 class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
         """ test every data type """
@@ -102,6 +103,20 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("insert into test_blob (b) values (%s)", (data,))
             c.execute("select b from test_blob")
             self.assertEqual(data, c.fetchone()[0])
+
+    def test_binary(self):
+        """Test mixing unicode and binary data."""
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("create table test_binary (bin binary(16), txt varchar(32))")
+        try:
+            data = bytes(bytearray(range(16)))
+            other = u"Unicode String."
+            c.execute("insert into test_binary (bin, txt) values (%s, %s)", (data, other))
+            c.execute("select bin from test_binary")
+            self.assertEqual(c.fetchone()[0], data)
+        finally:
+            c.execute("drop table test_binary")
 
     def test_untyped(self):
         """ test conversion of null, empty string """
