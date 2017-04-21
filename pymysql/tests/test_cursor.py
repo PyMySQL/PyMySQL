@@ -79,6 +79,12 @@ class CursorTest(base.PyMySQLTestCase):
         self.assertIsNotNone(m, 'error parse %(id_name)s')
         self.assertEqual(m.group(3), ' ON duplicate update', 'group 3 not ON duplicate update, bug in RE_INSERT_VALUES?')
 
+        m = pymysql.cursors.RE_INSERT_VALUES.match("INSERT INTO TEST (ID, NAME) VALUES (%s, %s)    /* this is a simple comment */ ")
+        self.assertIsNotNone(m, 'error parse comments')
+
+        m = pymysql.cursors.RE_INSERT_VALUES.match("INSERT INTO TEST (ID, NAME) VALUES (%s, %s) /* tricky tricky */; DROP TABLE test; /* another comment */")
+        self.assertIsNone(m, 'expected no match for multiple comments')
+
         # cursor._executed must bee "insert into test (data) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)"
         # list args
         data = range(10)
