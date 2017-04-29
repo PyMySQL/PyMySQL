@@ -1,5 +1,5 @@
 # Python implementation of the MySQL client-server protocol
-#   http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol
+#   https://dev.mysql.com/doc/dev/mysql-server/latest/PAGE_PROTOCOL.html
 
 import hashlib
 sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
