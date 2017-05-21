@@ -21,6 +21,9 @@ RE_INSERT_VALUES = re.compile(
 class Cursor(object):
     """
     This is the object you use to interact with the database.
+
+    Do not create an instance of a Cursor yourself. Call
+    connections.Connection.cursor().
     """
 
     #: Max statement size which :meth:`executemany` generates.
@@ -32,10 +35,6 @@ class Cursor(object):
     _defer_warnings = False
 
     def __init__(self, connection):
-        """
-        Do not create an instance of a Cursor yourself. Call
-        connections.Connection.cursor().
-        """
         self.connection = connection
         self.description = None
         self.rownumber = 0
