@@ -96,7 +96,10 @@ del _orig_conn
 
 
 def get_client_info():  # for MySQLdb compatibility
-    return '.'.join(map(str, VERSION))
+    version = VERSION
+    if VERSION[3] is None:
+        version = VERSION[:3]
+    return '.'.join(map(str, version))
 
 connect = Connection = Connect
 
