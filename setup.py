@@ -9,7 +9,7 @@ if version_tuple[3] is not None:
 else:
     version = "%d.%d.%d" % version_tuple[:3]
 
-with open('./README.rst', encoding='utf-8') as f:
+with io.open('./README.rst', encoding='utf-8') as f:
     readme = f.read()
 
 setup(
