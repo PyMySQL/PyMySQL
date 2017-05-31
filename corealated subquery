@@ -1,0 +1,8 @@
+A corealated subquery is a subquery that is excuted once far each row in the main query.
+In contrast an uncorelated subquery is excuted only once.
+a corealted subquery refers to a value that is provided by a column in the main query.
+for each differnt value that is returned by the main query for that column the subquery returns a different result.
+to refer to a column in the main query you can qualify the column with a table name as alias.
+if a colrealted subquery uses the same table as the main query you can use table alias to remove ambiguity.
+since corealted subqueries can be different to code. 
+you may have to test a subquery seperately before using it within another select statement.
