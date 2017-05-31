@@ -14,7 +14,11 @@ from . import err
 RE_INSERT_VALUES = re.compile(
     r"\s*((?:INSERT|REPLACE)\s.+\sVALUES?\s+)" +
     r"(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))" +
-    r"(\s*(?:ON DUPLICATE.*)?);?\s*\Z",
+    r"(\s*(?:ON DUPLICATE.*)?);?\s*"
+    # Matches /* ... */ comments.
+    # False positives are eliminated (does not match /* foo */ /* bar */) by
+    # preventing a `*` followed by a `/` from being inside the comment.
+    r"(?:/\*(?:[^*]|(?:\*+([^*/])))*\*+/)?\s*\Z",
     re.IGNORECASE | re.DOTALL)
 
 
