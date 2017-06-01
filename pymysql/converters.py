@@ -1,6 +1,7 @@
 from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON, unichr
 
 import datetime
+import json
 from decimal import Decimal
 import re
 import time
@@ -337,6 +338,13 @@ def through(x):
     return x
 
 
+def convert_json(s):
+    try:
+        return json.loads(s)
+    except ValueError:
+        return {}
+
+
 #def convert_bit(b):
 #    b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
 #    return struct.unpack(">Q", b)[0]
@@ -408,6 +416,7 @@ decoders = {
     FIELD_TYPE.STRING: through,
     FIELD_TYPE.VAR_STRING: through,
     FIELD_TYPE.VARCHAR: through,
+    FIELD_TYPE.JSON: convert_json,
     FIELD_TYPE.DECIMAL: Decimal,
     FIELD_TYPE.NEWDECIMAL: Decimal,
 }
