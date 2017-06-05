@@ -70,6 +70,8 @@ def _escape_unicode(value, mapping=None):
 
     Value should be unicode
     """
+    if PY2:
+        value = unicode(value)
     return value.translate(_escape_table)
 
 if PY2:
@@ -80,6 +82,8 @@ if PY2:
         """
         if isinstance(value, unicode):
             return _escape_unicode(value)
+        elif type(value) is str:
+            return _escape_unicode(value.decode('utf8'))
         assert isinstance(value, (bytes, bytearray))
         value = value.replace('\\', '\\\\')
         value = value.replace('\0', '\\0')
