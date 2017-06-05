@@ -82,7 +82,7 @@ The following examples make use of a simple table
 
 
 .. code:: python
-
+    import pymysql
     import pymysql.cursors
 
     # Connect to the database
