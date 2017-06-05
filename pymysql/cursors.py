@@ -356,6 +356,14 @@ class Cursor(object):
     def __iter__(self):
         return iter(self.fetchone, None)
 
+    @property
+    def column_names(self):
+        ''' Return a tuple of column names returned from the query '''
+        if not self.description:
+            return ()
+        else:
+            return tuple(i[0] for i in self.description)
+
     Warning = err.Warning
     Error = err.Error
     InterfaceError = err.InterfaceError
