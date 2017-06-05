@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 import sys
 
-from ._compat import PY2
+from ._compat import PY2, range_type, text_type, long_type, str_type, unichr
 from .constants import FIELD_TYPE
 from .converters import escape_dict, escape_sequence, escape_string
 from .err import (
