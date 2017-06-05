@@ -12,7 +12,12 @@ from .charset import charset_by_id, charset_to_encoding
 def escape_item(val, charset, mapping=None):
     if mapping is None:
         mapping = encoders
-    encoder = mapping.get(type(val))
+    for cls in mapping:
+        if isinstance(val, cls):
+            encoder = mapping[cls]
+            break
+    else:
+        encoder = None
 
     # Fallback to default when no encoder found
     if not encoder:
