@@ -23,8 +23,7 @@ http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 Requirements
 -------------
 
-- Python 2.6 or higher
-- Cython 0.22 or higher
+- Python 2.6, 2.7, 3.3+
 - MySQL 4.1 or higher
     
 Installation & Example
