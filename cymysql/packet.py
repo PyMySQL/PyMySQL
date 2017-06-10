@@ -78,18 +78,21 @@ class MysqlPacket(object):
 
     def __recv_packet(self):
         """Parse the packet header and read entire packet payload into buffer."""
-        packet_header = self.__recv_from_socket(4)
-        if len(packet_header) < 4:
-            raise OperationalError(2013, "Lost connection to MySQL server during query")
+        recv_data = b''
+        while True:
+            packet_header = self.__recv_from_socket(4)
+            if len(packet_header) < 4:
+                raise OperationalError(2013, "Lost connection to MySQL server during query")
 
-        bytes_to_read = unpack_uint24(packet_header)
-        # TODO: check packet_num is correct (+1 from last packet)
-        # self.packet_number = ord(packet_header[3:])
-  
-        recv_data = self.__recv_from_socket(bytes_to_read)
-        if len(recv_data) < bytes_to_read:
-            raise OperationalError(2013, "Lost connection to MySQL server during query")
+            bytes_to_read = unpack_uint24(packet_header)
+            # TODO: check packet_num is correct (+1 from last packet)
+            # self.packet_number = ord(packet_header[3:])
 
+            recv_data += self.__recv_from_socket(bytes_to_read)
+            if len(recv_data) < bytes_to_read:
+                raise OperationalError(2013, "Lost connection to MySQL server during query")
+            if recv_data[:3] != b'\xff\xff\xff':
+                break
         self.__data = recv_data
 
     def get_all_data(self): return self.__data
