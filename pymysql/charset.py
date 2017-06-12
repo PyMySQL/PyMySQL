@@ -257,6 +257,7 @@ _charsets.add(Charset(244, 'utf8mb4', 'utf8mb4_german2_ci', ''))
 _charsets.add(Charset(245, 'utf8mb4', 'utf8mb4_croatian_ci', ''))
 _charsets.add(Charset(246, 'utf8mb4', 'utf8mb4_unicode_520_ci', ''))
 _charsets.add(Charset(247, 'utf8mb4', 'utf8mb4_vietnamese_ci', ''))
+_charsets.add(Charset(255, 'utf8', 'utf8_unicode_ci', ''))
 
 
 charset_by_name = _charsets.by_name
