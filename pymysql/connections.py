@@ -1186,7 +1186,7 @@ class Connection(object):
             data = _scramble(self.password.encode('latin1'), auth_packet.read_all())
         elif plugin_name == b"mysql_old_password":
             # https://dev.mysql.com/doc/internals/en/old-password-authentication.html
-            data = _scramble_323(self.password.encode('latin1'), auth_packet.read_all())
+            data = _scramble_323(self.password.encode('latin1'), auth_packet.read_all()) + b'\0'
         elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
             data = self.password.encode('latin1') + b'\0'
