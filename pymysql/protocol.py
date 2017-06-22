@@ -196,6 +196,10 @@ class MysqlPacket(object):
         # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
         return self._data[0:1] == b'\xfe'
 
+    def is_extra_auth_data(self):
+        # https://dev.mysql.com/doc/internals/en/successful-authentication.html
+        return self._data[0:1] == b'\x01'
+
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
         return 1 <= field_count <= 250
