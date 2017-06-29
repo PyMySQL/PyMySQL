@@ -132,6 +132,8 @@ def dump_packet(data): # pragma: no cover
     print()
 
 
+SCRAMBLE_LENGTH = 20
+
 def _scramble(password, message):
     if not password:
         return b''
@@ -139,7 +141,7 @@ def _scramble(password, message):
     stage1 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
-    s.update(message)
+    s.update(message[:SCRAMBLE_LENGTH]) 
     s.update(stage2)
     result = s.digest()
     return _my_crypt(result, stage1)
