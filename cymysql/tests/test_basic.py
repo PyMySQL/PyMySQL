@@ -132,6 +132,16 @@ class TestConversion(base.PyMySQLTestCase):
                           datetime.timedelta(0, 83579, 51000)),
                          c.fetchone())
 
+    def test_callproc(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("drop procedure if exists test_proc")
+        c.execute("create procedure test_proc(IN s varchar(20)) begin select lower(s); end")
+        c.callproc('test_proc', ('Foo', ))
+        r = c.fetchall()
+        self.assertEqual(len(r), 1)
+        self.assertEqual(r[0], (u'foo', ))
+
 
 class TestCursor(base.PyMySQLTestCase):
     # this test case does not work quite right yet, however,
