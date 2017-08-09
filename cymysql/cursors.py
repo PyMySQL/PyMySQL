@@ -178,7 +178,9 @@ class Cursor(object):
         conn = self._get_db()
         for index, arg in enumerate(args):
             q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
-            if isinstance(q, unicode):
+            if PYTHON3 and (not isinstance(q, str)):
+                q = q.decode(conn.charset)
+            if (not PYTHON3) and isinstance(q, unicode):
                 q = q.encode(conn.charset)
             self._query(q)
             self.nextset()
@@ -186,7 +188,9 @@ class Cursor(object):
         q = "CALL %s(%s)" % (procname,
                              ','.join(['@_%s_%d' % (procname, i)
                                        for i in range(len(args))]))
-        if isinstance(q, unicode):
+        if PYTHON3 and (not isinstance(q, str)):
+            q = q.decode(conn.charset)
+        if (not PYTHON3) and isinstance(q, unicode):
             q = q.encode(conn.charset)
         self._query(q)
         self._executed = q
