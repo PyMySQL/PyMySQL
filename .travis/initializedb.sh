@@ -9,7 +9,7 @@ if [ ! -z "${DB}" ]; then
     # disable existing database server in case of accidential connection
     mysql -u root -e 'drop user travis@localhost; drop user root@localhost; drop user travis; create user super@localhost; grant all on *.* to super@localhost with grant option'
     mysql -u super -e 'drop user root'
-    F=mysql-${DB}-linux-glibc2.5-x86_64
+    F=mysql-${DB}-linux-glibc2.12-x86_64
     mkdir -p ${HOME}/mysql
     P=${HOME}/mysql/${F} 
     if [ ! -d "${P}" ]; then
