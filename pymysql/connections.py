@@ -1266,8 +1266,14 @@ class Connection(object):
         if len(data) >= i + 6:
             lang, stat, cap_h, salt_len = struct.unpack('<BHHB', data[i:i+6])
             i += 6
+            # TODO: deprecate server_language and server_charset.
+            # mysqlclient-python doesn't provide it.
             self.server_language = lang
-            self.server_charset = charset_by_id(lang).name
+            try:
+                self.server_charset = charset_by_id(lang).name
+            except KeyError:
+                # unknown collation
+                self.server_charset = None
 
             self.server_status = stat
             if DEBUG: print("server_status: %x" % stat)
