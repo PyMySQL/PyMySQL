@@ -9,11 +9,12 @@ if [ ! -z "${DB}" ]; then
     # disable existing database server in case of accidential connection
     mysql -u root -e 'drop user travis@localhost; drop user root@localhost; drop user travis; create user super@localhost; grant all on *.* to super@localhost with grant option'
     mysql -u super -e 'drop user root'
+
     F=mysql-${DB}-linux-glibc2.5-x86_64
     mkdir -p ${HOME}/mysql
     P=${HOME}/mysql/${F} 
     if [ ! -d "${P}" ]; then
-        wget http://cdn.mysql.com/Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql 
+        wget https://dev.mysql.com/get/Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql 
     fi
     if [ -f "${P}"/my.cnf ]; then
         O="--defaults-file=${P}/my.cnf" 
