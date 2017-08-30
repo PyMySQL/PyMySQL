@@ -7,6 +7,9 @@ else:
 
 
 class Parser(configparser.RawConfigParser):
+    def __init__(self, **kwargs):
+        kwargs['allow_no_value'] = True
+        configparser.RawConfigParser.__init__(self, **kwargs)
 
     def __remove_quotes(self, value):
         quotes = ["'", "\""]
