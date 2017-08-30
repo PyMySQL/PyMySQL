@@ -27,6 +27,7 @@ matrix:
         apt:
           packages:
             - libaio-dev
+            - libnuma-dev
 
     - env:
         - DB=5.7.19
@@ -35,6 +36,7 @@ matrix:
         apt:
           packages:
             - libaio-dev
+            - libnuma-dev
 
 
 
