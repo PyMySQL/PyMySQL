@@ -258,11 +258,11 @@ create table test_json (
         cur.execute("INSERT INTO test_json (id, `json`) values (42, %s)", (json_str,))
         cur.execute("SELECT `json` from `test_json` WHERE `id`=42")
         res = cur.fetchone()[0]
-        self.assertEqual(json.loads(res), json.loads(json_str))
+        self.assertEqual(res, json.loads(json_str))
 
         cur.execute("SELECT CAST(%s AS JSON) AS x", (json_str,))
         res = cur.fetchone()[0]
-        self.assertEqual(json.loads(res), json.loads(json_str))
+        self.assertEqual(res, json.loads(json_str))
 
 
 class TestBulkInserts(base.PyMySQLTestCase):
