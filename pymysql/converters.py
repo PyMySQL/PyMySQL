@@ -4,6 +4,7 @@ import datetime
 from decimal import Decimal
 import re
 import time
+import json
 
 from .constants import FIELD_TYPE, FLAG
 from .charset import charset_by_id, charset_to_encoding
@@ -410,6 +411,7 @@ decoders = {
     FIELD_TYPE.VARCHAR: through,
     FIELD_TYPE.DECIMAL: Decimal,
     FIELD_TYPE.NEWDECIMAL: Decimal,
+    FIELD_TYPE.JSON: json.loads,
 }
 
 
