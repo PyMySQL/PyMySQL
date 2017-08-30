@@ -9,11 +9,12 @@ if [ ! -z "${DB}" ]; then
     # disable existing database server in case of accidential connection
     mysql -u root -e 'drop user travis@localhost; drop user root@localhost; drop user travis; create user super@localhost; grant all on *.* to super@localhost with grant option'
     mysql -u super -e 'drop user root'
-    F=mysql-${DB}-linux-glibc2.5-x86_64
+
+    F=mysql-${DB}-linux-glibc2.12-x86_64
     mkdir -p ${HOME}/mysql
     P=${HOME}/mysql/${F} 
     if [ ! -d "${P}" ]; then
-        wget http://cdn.mysql.com/Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql 
+        wget https://cdn.mysql.com//Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql
     fi
     if [ -f "${P}"/my.cnf ]; then
         O="--defaults-file=${P}/my.cnf" 
@@ -37,9 +38,10 @@ if [ ! -z "${DB}" ]; then
      openssl rsa -in "${P}"/private_key.pem -pubout -out "${P}"/public_key.pem
     ${P}/bin/mysqld_safe ${O} --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
     while [ ! -S /tmp/mysql.sock  ]; do
-       sleep 2
+       sleep 3
+       tail /tmp/mysql.err
     done
-    cat /tmp/mysql.err
+    tail /tmp/mysql.err
     if [ ! -z "${PASSWD}" ]; then
         ${P}/bin/mysql -S /tmp/mysql.sock -u root -p"${PASSWD}" --connect-expired-password -e "SET PASSWORD = PASSWORD('')"
     fi

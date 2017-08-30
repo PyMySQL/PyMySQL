@@ -1,43 +1,42 @@
 sudo: required
-dist: trusty
 language: python
 python:
   - "3.7-dev"
   - "3.6"
-  - "2.6"
-  - "pypy3.3-5.2-alpha1"
 
 cache: pip
 
 matrix:
   include:
     - addons:
-       mariadb: 5.5
+        mariadb: 5.5
       python: "3.5"
 
     - addons:
-       mariadb: 10.0
+        mariadb: 10.1
       python: "pypy"
 
     - addons:
-       mariadb: 10.1
+        mariadb: 10.2
       python: "2.7"
 
     - env:
-       - DB=5.6.35
+        - DB=5.6.37
+      python: "3.3"
       addons:
         apt:
           packages:
             - libaio-dev
-      python: "3.3"
+            - libnuma-dev
 
     - env:
-       - DB=5.7.17
+        - DB=5.7.19
+      python: "3.4"
       addons:
         apt:
           packages:
             - libaio-dev
-      python: "3.4"
+            - libnuma-dev
 
 
 
@@ -45,9 +44,6 @@ matrix:
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
 # really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 install:
-    - if [ -n "${EXTRAPKG}" ]; then
-          sudo apt-get install ${EXTRAPKG};
-      fi
     - export PASSWORD=travis;
     - pip install -U coveralls unittest2 coverage
 
