@@ -1,5 +1,4 @@
 sudo: required
-dist: trusty
 language: python
 python:
   - "3.7-dev"
@@ -23,7 +22,7 @@ matrix:
       python: "2.7"
 
     - env:
-        - DB=5.6.35
+        - DB=5.6.37
       addons:
         apt:
           packages:
@@ -31,7 +30,7 @@ matrix:
       python: "3.3"
 
     - env:
-        - DB=5.7.17
+        - DB=5.7.19
       addons:
         apt:
           packages:
