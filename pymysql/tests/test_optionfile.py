@@ -16,6 +16,7 @@ _cfg_file = (r"""
 string = foo
 quoted = "bar"
 single_quoted = 'foobar'
+skip-slave-start
 """)
 
 
