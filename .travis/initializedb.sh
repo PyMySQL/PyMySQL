@@ -38,9 +38,10 @@ if [ ! -z "${DB}" ]; then
      openssl rsa -in "${P}"/private_key.pem -pubout -out "${P}"/public_key.pem
     ${P}/bin/mysqld_safe ${O} --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
     while [ ! -S /tmp/mysql.sock  ]; do
-       sleep 2
+       sleep 3
+       tail /tmp/mysql.err
     done
-    cat /tmp/mysql.err
+    tail /tmp/mysql.err
     if [ ! -z "${PASSWD}" ]; then
         ${P}/bin/mysql -S /tmp/mysql.sock -u root -p"${PASSWD}" --connect-expired-password -e "SET PASSWORD = PASSWORD('')"
     fi
