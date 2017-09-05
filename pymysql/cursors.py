@@ -12,7 +12,7 @@ from . import err
 #: executemany only suports simple bulk insert.
 #: You can use it to load large dataset.
 RE_INSERT_VALUES = re.compile(
-    r"\s*((?:INSERT|REPLACE)\s.+\sVALUES?\s*)" +
+    r"\s*((?:INSERT|REPLACE)\b.+\bVALUES?\s*)" +
     r"(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))" +
     r"(\s*(?:ON DUPLICATE.*)?);?\s*\Z",
     re.IGNORECASE | re.DOTALL)
