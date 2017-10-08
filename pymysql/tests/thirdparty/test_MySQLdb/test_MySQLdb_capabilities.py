@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from . import capabilities
 try:
     import unittest2 as unittest
@@ -99,11 +98,3 @@ class test_MySQLdb(capabilities.DatabaseTest):
 
     def test_literal_string(self):
         self.assertTrue("'foo'" == self.connection.literal("foo"))
-
-
-if __name__ == '__main__':
-    if test_MySQLdb.leak_test:
-        import gc
-        gc.enable()
-        gc.set_debug(gc.DEBUG_LEAK)
-    unittest.main()
