@@ -1,4 +1,3 @@
-#!/usr/bin/env python -O
 """ Script to test database capabilities and the DB-API interface
     for functionality and memory leaks.
 
