@@ -652,9 +652,9 @@ class Connection(object):
 
         self.host = host or "localhost"
         self.port = port or 3306
-        self.user = user or DEFAULT_USER
-        self.password = password or ""
-        self.db = database
+        self.user = str(user) or DEFAULT_USER
+        self.password = str(password) or ""
+        self.db = str(database)
         self.unix_socket = unix_socket
         self.bind_address = bind_address
         if not (0 < connect_timeout <= 31536000):
