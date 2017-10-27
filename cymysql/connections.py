@@ -393,7 +393,7 @@ class Connection(object):
         try:
             if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                v = sock.gettimeout()
+                t = sock.gettimeout()
                 sock.settimeout(self.connect_timeout)
                 sock.connect(self.unix_socket)
                 sock.settimeout(t)
