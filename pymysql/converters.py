@@ -2,6 +2,7 @@ from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON, unichr
 
 import datetime
 from decimal import Decimal
+import math
 import re
 import time
 
@@ -54,7 +55,10 @@ def escape_int(value, mapping=None):
     return str(value)
 
 def escape_float(value, mapping=None):
-    return ('%.15g' % value)
+    if math.isnan(value):
+        return 'NULL'
+    else:
+        return ('%.15g' % value)
 
 _escape_table = [unichr(x) for x in range(128)]
 _escape_table[0] = u'\\0'
