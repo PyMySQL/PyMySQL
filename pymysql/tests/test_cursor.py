@@ -79,6 +79,10 @@ class CursorTest(base.PyMySQLTestCase):
         self.assertIsNotNone(m, 'error parse %(id_name)s')
         self.assertEqual(m.group(3), ' ON duplicate update', 'group 3 not ON duplicate update, bug in RE_INSERT_VALUES?')
 
+        # https://github.com/PyMySQL/PyMySQL/pull/597
+        m = pymysql.cursors.RE_INSERT_VALUES.match("INSERT INTO bloup(foo, bar)VALUES(%s, %s)")
+        assert m is not None
+
         # cursor._executed must bee "insert into test (data) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)"
         # list args
         data = range(10)
