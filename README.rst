@@ -7,7 +7,7 @@ What's CyMySQL
 
 This package contains a python MySQL client library.
 
-It is a fork project from PyMySQL https://pymysql.readthedocs.io.
+It is a fork project from PyMySQL https://pymysql.readthedocs.io/en/latest/.
 
 PyMySQL is written by Yutaka Matsubara <yutaka.matsubara@gmail.com>
 as a pure python database driver.
