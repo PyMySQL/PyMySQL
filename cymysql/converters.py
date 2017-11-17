@@ -324,5 +324,8 @@ def escape_item(val, charset, encoders=encoders):
         return escape_sequence(val, charset)
     if type(val) is dict:
         return escape_dict(val, charset)
-    return encoders[type(val)](val)
-
+    f = encoders.get(type(val))
+    if f is None:
+        val = str(val)
+        f = escape_string
+    return f(val)
