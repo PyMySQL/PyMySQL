@@ -161,7 +161,7 @@ class Connection(object):
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
-        self.sock = None
+        self.socket = None
         self.ssl = False
         if ssl:
             self.ssl = True
@@ -332,7 +332,7 @@ class Connection(object):
             self.socket = None
 
     def _is_connect(self):
-        return bool(self.sock)
+        return bool(self.socket)
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql):
