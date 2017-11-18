@@ -65,6 +65,7 @@ setup(
     maintainer = 'Hajime Nakagami',
     maintainer_email = 'nakagami@gmail.com',
     description = 'Python MySQL Driver using Cython',
+    long_description=open('README.rst').read(),
     license = "MIT",
     packages = ['cymysql', 'cymysql.constants', 'cymysql.tests'],
     cmdclass = cmdclass,
