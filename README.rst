@@ -33,6 +33,10 @@ Install cython (optional) ::
 
    # pip install cython
 
+Install cymysql ::
+
+   # pip install cymysql
+
 Example ::
 
    import cymysql
