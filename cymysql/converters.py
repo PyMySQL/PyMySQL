@@ -5,7 +5,6 @@ import sys
 import decimal
 
 from cymysql.constants import FIELD_TYPE
-from cymysql.charset import charset_by_id
 
 PYTHON3 = sys.version_info[0] > 2
 
