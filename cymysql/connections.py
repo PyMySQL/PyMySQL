@@ -275,9 +275,12 @@ class Connection(object):
 
     def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
+        if value:
+            q = "SET AUTOCOMMIT = 1"
+        else:
+            q = "SET AUTOCOMMIT = 0"
         try:
-            self._execute_command(COM_QUERY, "SET AUTOCOMMIT = %s" % \
-                                      self.escape(value))
+            self._execute_command(COM_QUERY, q)
             self.read_packet()
         except:
             exc,value,tb = sys.exc_info()
