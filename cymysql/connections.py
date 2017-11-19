@@ -24,7 +24,7 @@ from cymysql.cursors import Cursor
 from cymysql.constants.CLIENT import *
 from cymysql.constants.COMMAND import *
 from cymysql.converters import decoders, encoders, escape_item
-from cymysql.err import raise_mysql_exception, Warning, Error, \
+from cymysql.err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
 from cymysql.packet import MysqlPacket, MySQLResult

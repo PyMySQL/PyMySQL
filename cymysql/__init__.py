@@ -22,11 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 '''
-
-import sys
-
-VERSION = (0, 9, 4)
-
 from cymysql import converters
 from cymysql.converters import escape_dict, escape_sequence, escape_string
 from cymysql.err import Warning, Error, InterfaceError, DataError, \
@@ -35,6 +30,7 @@ from cymysql.err import Warning, Error, InterfaceError, DataError, \
 from cymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
+VERSION = (0, 9, 4)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"

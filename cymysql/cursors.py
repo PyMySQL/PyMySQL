@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import weakref
-import struct
 import sys
 
 from cymysql.err import Warning, Error, InterfaceError, DataError, \
