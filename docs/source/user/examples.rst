@@ -24,7 +24,7 @@ The following examples make use of a simple table
 
 .. code:: python
 
-    import pymysql.cursors
+    import pymysql
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
