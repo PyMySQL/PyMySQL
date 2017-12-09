@@ -986,7 +986,7 @@ class Connection(object):
         buff = b''
         while True:
             packet_header = self._read_bytes(4)
-            if DEBUG: dump_packet(packet_header)
+            #if DEBUG: dump_packet(packet_header)
 
             btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
             bytes_to_read = btrl + (btrh << 16)
