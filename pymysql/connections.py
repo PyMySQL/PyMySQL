@@ -1246,7 +1246,6 @@ class Connection(object):
         packet = self._read_packet()
         data = packet.get_all_data()
 
-        if DEBUG: dump_packet(data)
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
 
