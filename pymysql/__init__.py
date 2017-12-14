@@ -130,7 +130,7 @@ __all__ = [
     'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel', 'connect',
     'connections', 'constants', 'converters', 'cursors',
     'escape_dict', 'escape_sequence', 'escape_string', 'get_client_info',
-    'paramstyle', 'threadsafety', 'version_info',
+    'paramstyle', 'threadsafety', 'version_info', 'pools',
 
     "install_as_MySQLdb",
     "NULL", "__version__",
