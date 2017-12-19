@@ -93,10 +93,10 @@ class TestConversion(base.PyMySQLTestCase):
 
     def test_binary(self):
         """test binary data"""
-        data = bytes(bytearray(range(256)) * 2)
+        data = bytes(bytearray(range(255)))
         conn = self.connections[0]
         self.safe_create_table(
-            conn, "test_binary", "create table test_binary (b binary(512))")
+            conn, "test_binary", "create table test_binary (b binary(255))")
 
         with conn.cursor() as c:
             c.execute("insert into test_binary (b) values (%s)", (data,))
