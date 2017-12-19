@@ -211,7 +211,7 @@ def convert_timedelta(obj):
 
     m = TIMEDELTA_RE.match(obj)
     if not m:
-        return None
+        return obj
 
     try:
         groups = list(m.groups())
@@ -227,7 +227,7 @@ def convert_timedelta(obj):
             ) * negate
         return tdelta
     except ValueError:
-        return None
+        return obj
 
 TIME_RE = re.compile(r"(\d{1,2}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?")
 
@@ -259,7 +259,7 @@ def convert_time(obj):
 
     m = TIME_RE.match(obj)
     if not m:
-        return None
+        return obj
 
     try:
         groups = list(m.groups())
@@ -268,7 +268,7 @@ def convert_time(obj):
         return datetime.time(hour=int(hours), minute=int(minutes),
                              second=int(seconds), microsecond=int(microseconds))
     except ValueError:
-        return None
+        return obj
 
 
 def convert_date(obj):
@@ -290,7 +290,7 @@ def convert_date(obj):
     try:
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
     except ValueError:
-        return None
+        return obj
 
 
 def convert_mysql_timestamp(timestamp):
@@ -325,7 +325,7 @@ def convert_mysql_timestamp(timestamp):
     try:
         return datetime.datetime(year, month, day, hour, minute, second)
     except ValueError:
-        return None
+        return timestamp
 
 def convert_set(s):
     if isinstance(s, (bytes, bytearray)):
