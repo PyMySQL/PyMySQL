@@ -141,7 +141,7 @@ def _scramble(password, message):
     stage1 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
-    s.update(message[:SCRAMBLE_LENGTH]) 
+    s.update(message[:SCRAMBLE_LENGTH])
     s.update(stage2)
     result = s.digest()
     return _my_crypt(result, stage1)
@@ -807,7 +807,7 @@ class Connection(object):
 
     def escape(self, obj, mapping=None):
         """Escape whatever value you pass to it.
-        
+
         Non-standard, for internal use; do not use this in your applications.
         """
         if isinstance(obj, str_type):
@@ -816,7 +816,7 @@ class Connection(object):
 
     def literal(self, obj):
         """Alias for escape()
-        
+
         Non-standard, for internal use; do not use this in your applications.
         """
         return self.escape(obj, self.encoders)
@@ -1486,6 +1486,7 @@ class MySQLResult(object):
         description = []
 
         for i in range_type(self.field_count):
+            isbinary = False
             field = self.connection._read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())
@@ -1497,19 +1498,24 @@ class MySQLResult(object):
                     # This behavior is different from TEXT / BLOB.
                     # We should decode result by connection encoding regardless charsetnr.
                     # See https://github.com/PyMySQL/PyMySQL/issues/488
-                    encoding = conn_encoding  # SELECT CAST(... AS JSON) 
-                elif field_type in TEXT_TYPES:
-                    if field.charsetnr == 63:  # binary
-                        # TEXTs with charset=binary means BINARY types.
-                        encoding = None
-                    else:
-                        encoding = conn_encoding
+                    encoding = conn_encoding  # SELECT CAST(... AS JSON)
+                elif field_type in TEXT_TYPES and field.charsetnr != 63:  # binary
+                    encoding = conn_encoding
                 else:
                     # Integers, Dates and Times, and other basic data is encoded in ascii
                     encoding = 'ascii'
             else:
                 encoding = None
-            converter = self.connection.decoders.get(field_type)
+
+            if field_type in TEXT_TYPES and field.charsetnr == 63:  # binary
+                # TEXTs with charset=binary means BINARY types.
+                encoding = None
+                isbinary = True
+
+            if not isbinary:
+                converter = self.connection.decoders.get(field_type)
+            else:
+                converter = None
             if converter is through:
                 converter = None
             if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
