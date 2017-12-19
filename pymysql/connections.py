@@ -879,11 +879,11 @@ class Connection(object):
                 raise err.Error("Already closed")
         try:
             self._execute_command(COMMAND.COM_PING, "")
-            return self._read_ok_packet()
+            self._read_ok_packet()
         except Exception:
             if reconnect:
                 self.connect()
-                return self.ping(False)
+                self.ping(False)
             else:
                 raise
 
