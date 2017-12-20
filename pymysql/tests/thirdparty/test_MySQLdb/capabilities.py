@@ -17,7 +17,7 @@ class DatabaseTest(unittest.TestCase):
 
     db_module = None
     connect_args = ()
-    connect_kwargs = dict(use_unicode=True, charset="utf8")
+    connect_kwargs = dict(use_unicode=True, charset="utf8", binary_prefix=True)
     create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8"
     rows = 10
     debug = False
