@@ -15,7 +15,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
     connect_args = ()
     connect_kwargs = base.PyMySQLTestCase.databases[0].copy()
     connect_kwargs.update(dict(read_default_file='~/.my.cnf',
-                          use_unicode=True,
+                          use_unicode=True, binary_prefix=True,
                           charset='utf8', sql_mode="ANSI,STRICT_TRANS_TABLES,TRADITIONAL"))
 
     create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8"
