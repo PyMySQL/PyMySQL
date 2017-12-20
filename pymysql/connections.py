@@ -18,7 +18,7 @@ import warnings
 
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
-from .converters import escape_item, escape_string, through, conversions as _conv
+from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
@@ -44,39 +44,28 @@ DEBUG = False
 
 _py_version = sys.version_info[:2]
 
+if PY2:
+    pass
+elif _py_version < (3, 6):
+    # See http://bugs.python.org/issue24870
+    _surrogateescape_table = [chr(i) if i < 0x80 else chr(i + 0xdc00) for i in range(256)]
+
+    def _fast_surrogateescape(s):
+        return s.decode('latin1').translate(_surrogateescape_table)
+else:
+    def _fast_surrogateescape(s):
+        return s.decode('ascii', 'surrogateescape')
 
 # socket.makefile() in Python 2 is not usable because very inefficient and
 # bad behavior about timeout.
 # XXX: ._socketio doesn't work under IronPython.
-if _py_version == (2, 7) and not IRONPYTHON:
+if PY2 and not IRONPYTHON:
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
 
     def _makefile(sock, mode):
         return io.BufferedReader(SocketIO(sock, mode))
-elif _py_version == (2, 6):
-    # Python 2.6 doesn't have fast io module.
-    # So we make original one.
-    class SockFile(object):
-        def __init__(self, sock):
-            self._sock = sock
-
-        def read(self, n):
-            read = self._sock.recv(n)
-            if len(read) == n:
-                return read
-            while True:
-                data = self._sock.recv(n-len(read))
-                if not data:
-                    return read
-                read += data
-                if len(read) == n:
-                    return read
-
-    def _makefile(sock, mode):
-        assert mode == 'rb'
-        return SockFile(sock)
 else:
     # socket.makefile in Python 3 is nice.
     def _makefile(sock, mode):
@@ -570,6 +559,7 @@ class Connection(object):
         (if no authenticate method) for returning a string from the user. (experimental)
     :param db: Alias for database. (for compatibility to MySQLdb)
     :param passwd: Alias for password. (for compatibility to MySQLdb)
+    :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
     """
 
     _sock = None
@@ -586,7 +576,7 @@ class Connection(object):
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 bind_address=None):
+                 bind_address=None, binary_prefix=False):
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
 
@@ -693,7 +683,8 @@ class Connection(object):
         self.autocommit_mode = autocommit
 
         if conv is None:
-            conv = _conv
+            conv = converters.conversions
+
         # Need for MySQLdb compatibility.
         self.encoders = dict([(k, v) for (k, v) in conv.items() if type(k) is not int])
         self.decoders = dict([(k, v) for (k, v) in conv.items() if type(k) is int])
@@ -701,6 +692,7 @@ class Connection(object):
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map
+        self._binary_prefix = binary_prefix
         if defer_connect:
             self._sock = None
         else:
@@ -812,7 +804,12 @@ class Connection(object):
         """
         if isinstance(obj, str_type):
             return "'" + self.escape_string(obj) + "'"
-        return escape_item(obj, self.charset, mapping=mapping)
+        if isinstance(obj, (bytes, bytearray)):
+            ret = self._quote_bytes(obj)
+            if self._binary_prefix:
+                ret = "_binary" + ret
+            return ret
+        return converters.escape_item(obj, self.charset, mapping=mapping)
 
     def literal(self, obj):
         """Alias for escape()
@@ -825,7 +822,13 @@ class Connection(object):
         if (self.server_status &
                 SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES):
             return s.replace("'", "''")
-        return escape_string(s)
+        return converters.escape_string(s)
+
+    def _quote_bytes(self, s):
+        if (self.server_status &
+                SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES):
+            return "'%s'" % (_fast_surrogateescape(s.replace(b"'", b"''")),)
+        return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
         """Create a new cursor to execute queries with"""
@@ -1510,7 +1513,7 @@ class MySQLResult(object):
             else:
                 encoding = None
             converter = self.connection.decoders.get(field_type)
-            if converter is through:
+            if converter is converters.through:
                 converter = None
             if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
             self.converters.append((encoding, converter))
