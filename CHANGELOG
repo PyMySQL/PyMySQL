@@ -1,5 +1,25 @@
 # Changes
 
+## 0.8
+
+Release date: 2017-12-20
+
+* **BACKWARD INCOMPATIBLE** ``binary_prefix`` option is added and off
+  by default because of compatibility with mysqlclient.
+  When you need PyMySQL 0.7 behavior, you have to pass ``binary_prefix=True``.
+  (#549)
+
+* Fixed AuthSwitch packet handling.
+
+* Raise OperationalError for MariaDB's constraint error. (#607)
+
+* executemany() accepts query without space between ``VALUES`` and ``(``.  (#597)
+
+* Support config file containing option without value. (#588)
+
+* Fixed Connection.ping() returned unintended value.
+
+
 ## 0.7.11
 
 Release date: 2017-04-06
