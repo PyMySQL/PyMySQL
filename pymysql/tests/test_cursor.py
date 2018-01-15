@@ -106,3 +106,29 @@ class CursorTest(base.PyMySQLTestCase):
             self.assertTrue(cursor._executed.endswith(b"(3, 4),(5, 6)"), "executemany with %% not in one query")
         finally:
             cursor.execute("DROP TABLE IF EXISTS percent_test")
+
+    def test_fetch_result_type(self):
+        conn = self.test_connection
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute("select 1 as t1")
+        self.assertEqual(cursor.fetchone(), {"t1": 1})
+
+        cursor.execute(
+            "insert into test (data) values "
+            "('row1'), ('row2'), ('row3'), ('row4'), ('row5')")
+        cursor.execute("select * from test")
+        self.assertIsInstance(cursor.fetchall()[0], dict)
+        cursor.close()
+
+        cursor = conn.cursor(pymysql.cursors.AttrDictCursor)
+        cursor.execute("select 1 as t1")
+        row = cursor.fetchone()
+        self.assertEqual(row, {"t1": 1})
+        self.assertEqual(row.t1, 1)
+
+        cursor.execute(
+            "insert into test (data) values "
+            "('row1'), ('row2'), ('row3'), ('row4'), ('row5')")
+        cursor.execute("select * from test")
+        self.assertIsInstance(cursor.fetchall()[0], dict)
+        cursor.close()
