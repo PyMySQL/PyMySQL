@@ -396,6 +396,24 @@ class DictCursor(DictCursorMixin, Cursor):
     """A cursor which returns results as a dictionary"""
 
 
+class AttrDict(dict):
+    """A dictionary that can get/set attribute by dot"""
+
+    def __getattr__(self, name):
+        return self[name]
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
+class AttrDictCursor(DictCursor):
+    """
+    A cursor which returns results as a dictionary,
+    and the dictionary can get/set attribute by dot
+    """
+    dict_type = AttrDict
+
+
 class SSCursor(Cursor):
     """
     Unbuffered Cursor, mainly useful for queries that return a lot of data,
