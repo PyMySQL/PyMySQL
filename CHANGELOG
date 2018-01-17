@@ -9,10 +9,10 @@ Release date: 2017-12-20
   When you need PyMySQL 0.7 behavior, you have to pass ``binary_prefix=True``.
   (#549)
 
-* **BACKWARD INCOMPATIBLE** MULTI_STATEMENT client flag is not set by
-  default while it was set by default on PyMySQL 0.7.  You need to
-  pass ``client_flag=CLIENT.MULTI_STATEMENT`` explicitly when you
-  want to use multi statement.  (#590)
+* **BACKWARD INCOMPATIBLE** ``MULTI_STATEMENTS`` client flag is no longer
+  set by default, while it was on PyMySQL 0.7.  You need to pass
+  ``client_flag=CLIENT.MULTI_STATEMENTS`` when you connect to explicitly
+  enable multi-statement mode. (#590)
 
 * Fixed AuthSwitch packet handling.
 
