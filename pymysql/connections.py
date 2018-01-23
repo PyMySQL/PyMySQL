@@ -23,7 +23,6 @@ from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
-from .parser import MysqlPacket
 from . import parser
 
 try:
@@ -72,18 +71,6 @@ else:
     # socket.makefile in Python 3 is nice.
     def _makefile(sock, mode):
         return sock.makefile(mode)
-
-
-TEXT_TYPES = set([
-    FIELD_TYPE.BIT,
-    FIELD_TYPE.BLOB,
-    FIELD_TYPE.LONG_BLOB,
-    FIELD_TYPE.MEDIUM_BLOB,
-    FIELD_TYPE.STRING,
-    FIELD_TYPE.TINY_BLOB,
-    FIELD_TYPE.VAR_STRING,
-    FIELD_TYPE.VARCHAR,
-    FIELD_TYPE.GEOMETRY])
 
 sha_new = partial(hashlib.new, 'sha1')
 
@@ -215,26 +202,6 @@ def lenenc_int(i):
         return b'\xfe' + struct.pack('<Q', i)
     else:
         raise ValueError("Encoding %x is larger than %x - no representation in LengthEncodedInteger" % (i, (1 << 64)))
-
-class LoadLocalPacketWrapper(object):
-    """
-    Load Local Packet Wrapper. It uses an existing packet object, and wraps
-    around it, exposing useful variables while still providing access
-    to the original packet objects variables and methods.
-    """
-
-    def __init__(self, from_packet):
-        if not from_packet.is_load_local_packet():
-            raise ValueError(
-                "Cannot create '{0}' object from invalid packet type".format(
-                    self.__class__))
-
-        self.packet = from_packet
-        self.filename = self.packet.get_all_data()[1:]
-        if DEBUG: print("filename=", self.filename)
-
-    def __getattr__(self, key):
-        return getattr(self.packet, key)
 
 
 class Connection(object):
@@ -490,9 +457,9 @@ class Connection(object):
 
     def _read_ok_packet(self):
         pkt = self._read_packet()
-        if not parser.is_ok_packet(pkt._packet):
+        if not parser.is_ok_packet(pkt):
             raise err.OperationalError(2014, "Command Out of Sync")
-        ok = parser.parse_ok_packet(pkt._packet)
+        ok = parser.parse_ok_packet(pkt)
         self.server_status = ok['server_status']
         return ok
 
@@ -714,7 +681,7 @@ class Connection(object):
         self._write_bytes(data)
         self._next_seq_id = (self._next_seq_id + 1) % 256
 
-    def _read_packet(self, packet_type=MysqlPacket):
+    def _read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results.
         """
@@ -744,12 +711,10 @@ class Connection(object):
                 break
 
         data = bytes.join(b'', buff)
-        if packet_type is parser.Packet:
-            packet = packet_type(len(data), packet_number, data)
-            parser.check_error(packet)
-        else:
-            packet = packet_type(bytes.join(b'', buff), self.encoding)
-            packet.check_error()
+        packet = parser.Packet(len(data), packet_number, data)
+        parser.check_error(packet)
+        #packet = packet_type(bytes.join(b'', buff), self.encoding)
+        #packet.check_error()
         return packet
 
     def _read_bytes(self, num_bytes):
@@ -788,6 +753,7 @@ class Connection(object):
                 result.init_unbuffered_query()
             except:
                 result.unbuffered_active = False
+                result._result_stream = None
                 result.connection = None
                 raise
         else:
@@ -887,7 +853,7 @@ class Connection(object):
             data += name + b'\0'
 
         self.write_packet(data)
-        auth_packet = self._read_packet(parser.Packet)
+        auth_packet = self._read_packet()
 
         # if authentication method isn't accepted the first byte
         # will have the octet 254
@@ -980,7 +946,7 @@ class Connection(object):
 
     def _get_server_information(self):
         i = 0
-        packet = self._read_packet(parser.Packet)
+        packet = self._read_packet()
         data = packet.payload
 
         self.protocol_version = byte2int(data[i:i+1])
@@ -1073,6 +1039,7 @@ class MySQLResult(object):
         self.rows = None
         self.has_next = None
         self.unbuffered_active = False
+        self._result_stream = None
 
     def __del__(self):
         if self.unbuffered_active:
@@ -1082,9 +1049,9 @@ class MySQLResult(object):
         try:
             first_packet = self.connection._read_packet()
 
-            if first_packet.is_ok_packet():
+            if parser.is_ok_packet(first_packet):
                 self._read_ok_packet(first_packet)
-            elif first_packet.is_load_local_packet():
+            elif parser.is_load_local(first_packet):
                 self._read_load_local_packet(first_packet)
             else:
                 self._read_result_packet(first_packet)
@@ -1095,17 +1062,18 @@ class MySQLResult(object):
         self.unbuffered_active = True
         first_packet = self.connection._read_packet()
 
-        if first_packet.is_ok_packet():
+        if parser.is_ok_packet(first_packet):
             self._read_ok_packet(first_packet)
             self.unbuffered_active = False
             self.connection = None
-        elif first_packet.is_load_local_packet():
+            self._result_stream = None
+        elif parser.is_load_local(first_packet):
             self._read_load_local_packet(first_packet)
             self.unbuffered_active = False
             self.connection = None
+            self._result_stream = None
         else:
-            self.field_count = first_packet.read_length_encoded_integer()
-            self._get_descriptions()
+            self._read_result_packet(first_packet)
 
             # Apparently, MySQLdb picks this number because it's the maximum
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
@@ -1113,7 +1081,7 @@ class MySQLResult(object):
             self.affected_rows = 18446744073709551615
 
     def _read_ok_packet(self, first_packet):
-        ok_packet = parser.parse_ok_packet(first_packet._packet)
+        ok_packet = parser.parse_ok_packet(first_packet)
         self.affected_rows = ok_packet['affected_rows']
         self.insert_id = ok_packet['insert_id']
         self.server_status = ok_packet['server_status']
@@ -1125,8 +1093,8 @@ class MySQLResult(object):
         if not self.connection._local_infile:
             raise RuntimeError(
                 "**WARN**: Received LOAD_LOCAL packet but local_infile option is false.")
-        load_packet = LoadLocalPacketWrapper(first_packet)
-        sender = LoadLocalFile(load_packet.filename, self.connection)
+        load_packet = parser.parse_load_local_packet(first_packet)
+        sender = LoadLocalFile(load_packet['filename'], self.connection)
         try:
             sender.send_data()
         except:
@@ -1134,7 +1102,7 @@ class MySQLResult(object):
             raise
 
         ok_packet = self.connection._read_packet()
-        if not ok_packet.is_ok_packet(): # pragma: no cover - upstream induced protocol error
+        if not parser.is_ok_packet(ok_packet): # pragma: no cover - upstream induced protocol error
             raise err.OperationalError(2014, "Commands Out of Sync")
         self._read_ok_packet(ok_packet)
 
@@ -1144,45 +1112,93 @@ class MySQLResult(object):
         # 2) Mask CAPABILITIES with server_capabilities
         # 3) if server_capabilities & CLIENT.DEPRECATE_EOF: use OKPacketWrapper instead of EOFPacketWrapper
         try:
-            wp = parser.parse_eof_packet(packet._packet)
+            wp = parser.parse_eof_packet(packet)
             self.warning_count = wp['warning_count']
             self.has_next = wp['has_next']
             return True
         except parser.InvalidPacketError:
             return False
 
+    def _iter_result_packets(self, first_packet):
+        # Field count
+        yield first_packet
+
+        # Field packets
+        packet = self.connection._read_packet()
+        while not parser.is_eof_packet(packet):
+            yield packet
+            packet = self.connection._read_packet()
+
+        # EOF Packet
+        self._check_packet_is_eof(packet)
+
+        # Row data packets
+        packet = self.connection._read_packet()
+        while not parser.is_eof_packet(packet):
+            yield packet
+            packet = self.connection._read_packet()
+
+        # EOF Packet
+        self._check_packet_is_eof(packet)
+
     def _read_result_packet(self, first_packet):
-        self.field_count = first_packet.read_length_encoded_integer()
+        # Set up the iterator (and save it)
+        self._result_stream = parser.parse_result_stream(self._iter_result_packets(first_packet),
+                                                         use_unicode=self.connection.use_unicode,
+                                                         encoding=self.connection.encoding)
+
+        self.fields = next(self._result_stream)
+        self.field_count = len(self.fields)
         self._get_descriptions()
-        self._read_rowdata_packet()
+        if not self.unbuffered_active:
+            self._buffer_rows()
+
+    def _buffer_rows(self):
+        self.rows = tuple(r for r in self._result_stream)
+        self.affected_rows = len(self.rows)
+        self._result_stream = None
+
 
     def _read_rowdata_packet_unbuffered(self):
         # Check if in an active query
         if not self.unbuffered_active:
             return
 
-        # EOF
-        packet = self.connection._read_packet()
-        if self._check_packet_is_eof(packet):
+        try:
+            row = next(self._result_stream)
+            self.affected_rows = 1
+            self.rows = (row,)  # rows should tuple of row for MySQL-python compatibility.
+            return row
+        except StopIteration:
             self.unbuffered_active = False
             self.connection = None
             self.rows = None
-            return
+            self._result_stream = None
 
-        row = self._read_row_from_packet(packet)
-        self.affected_rows = 1
-        self.rows = (row,)  # rows should tuple of row for MySQL-python compatibility.
-        return row
+
+        # EOF
+        #packet = self.connection._read_packet()
+        #if self._check_packet_is_eof(packet):
+        #    self.unbuffered_active = False
+        #    self.connection = None
+        #    self.rows = None
+        #    return
+
+        #row = self._read_row_from_packet(packet)
+        #self.affected_rows = 1
+        #self.rows = (row,)  # rows should tuple of row for MySQL-python compatibility.
+        #return row
 
     def _finish_unbuffered_query(self):
         # After much reading on the MySQL protocol, it appears that there is,
         # in fact, no way to stop MySQL from sending all the data after
         # executing a query, so we just spin, and wait for an EOF packet.
-        while self.unbuffered_active:
-            packet = self.connection._read_packet()
-            if self._check_packet_is_eof(packet):
-                self.unbuffered_active = False
-                self.connection = None  # release reference to kill cyclic reference.
+        if self._result_stream:
+            for _ in self._result_stream:
+                pass
+            self.unbuffered_active = False
+            self.connection = None   # release reference to kill cyclic reference
+            self._result_stream = None
 
     def _read_rowdata_packet(self):
         """Read a rowdata packet for each data row in the result set."""
@@ -1217,46 +1233,8 @@ class MySQLResult(object):
 
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
-        self.fields = []
-        self.converters = []
-        use_unicode = self.connection.use_unicode
-        conn_encoding = self.connection.encoding
-        description = []
-
-        for i in range_type(self.field_count):
-            field = parser.parse_field_descriptor_packet(self.connection._read_packet(parser.Packet))
-            self.fields.append(field)
-            description.append(field['description'])
-            field_type = field['type_code']
-            if use_unicode:
-                if field_type == FIELD_TYPE.JSON:
-                    # When SELECT from JSON column: charset = binary
-                    # When SELECT CAST(... AS JSON): charset = connection encoding
-                    # This behavior is different from TEXT / BLOB.
-                    # We should decode result by connection encoding regardless charsetnr.
-                    # See https://github.com/PyMySQL/PyMySQL/issues/488
-                    encoding = conn_encoding  # SELECT CAST(... AS JSON) 
-                elif field_type in TEXT_TYPES:
-                    if field['charsetnr'] == 63:  # binary
-                        # TEXTs with charset=binary means BINARY types.
-                        encoding = None
-                    else:
-                        encoding = conn_encoding
-                else:
-                    # Integers, Dates and Times, and other basic data is encoded in ascii
-                    encoding = 'ascii'
-            else:
-                encoding = None
-            converter = self.connection.decoders.get(field_type)
-            if converter is converters.through:
-                converter = None
-            if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
-            self.converters.append((encoding, converter))
-
-        eof_packet = self.connection._read_packet(parser.Packet)
-        assert parser.is_eof_packet(eof_packet), 'Protocol error, expecting EOF'
-        self.description = tuple(description)
-
+        if hasattr(self, 'fields'):
+            self.description = tuple(f['description'] for f in self.fields)
 
 class LoadLocalFile(object):
     def __init__(self, filename, connection):
@@ -1282,3 +1260,4 @@ class LoadLocalFile(object):
         finally:
             # send the empty packet to signify we are done sending data
             conn.write_packet(b'')
+
