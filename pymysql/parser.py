@@ -309,6 +309,13 @@ class MysqlPacket(object):
     def dump(self):
         dump_packet(self._data)
 
+def parse_load_local_packet(packet):
+    data = packet.payload
+
+    filename = read(data, None, offset=1)
+    if DEBUG: print("filename=", filename)
+
+    return {'filename': filename}
 
 def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
     pos = 0
