@@ -120,7 +120,7 @@ def read_length_coded_string(data, offset=0):
     size, length = read_length_encoded_integer(data, offset=offset)
     if length is None:
         return size, None
-    _s, _d = read(data, length, offset=offset+length)
+    _s, _d = read(data, length, offset=offset+size)
     return size + _s, _d
 
 def read_string(data, offset=0):
@@ -320,8 +320,7 @@ def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
     size, org_name = read_length_coded_string(data, offset=pos)
     pos += size
 
-    pos += 1
-    charsetnr, length, type_code, flags, scale = unpack_from('<HIBHB', data, offset=pos)
+    charsetnr, length, type_code, flags, scale = unpack_from('<xHIBHBxx', data, offset=pos)
 
     if encoding:
         table_name = table_name.decode(encoding)
@@ -347,9 +346,9 @@ def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
 
     result['description'] = (result['name'],
                              type_code,
-                             None,
-                             column_length,
-                             column_length,
+                             None,           # TODO: display length. should this be length.
+                             column_length,  # internal size
+                             column_length,  # precision
                              scale,
                              flags % 2 == 0)
     return result
@@ -381,23 +380,11 @@ class FieldDescriptorPacket(MysqlPacket):
             '<xHIBHBxx', self._data, self._position)
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
+        self._field = parse_field_descriptor_packet(self._packet, encoding=encoding)
 
     def description(self):
         """Provides a 7-item tuple compatible with the Python PEP249 DB Spec."""
-        return (
-            self.name,
-            self.type_code,
-            None,  # TODO: display_length; should this be self.length?
-            self.get_column_length(),  # 'internal_size'
-            self.get_column_length(),  # 'precision'  # TODO: why!?!?
-            self.scale,
-            self.flags % 2 == 0)
-
-    def get_column_length(self):
-        if self.type_code == FIELD_TYPE.VAR_STRING:
-            mblen = MBLENGTH.get(self.charsetnr, 1)
-            return self.length // mblen
-        return self.length
+        return self._field['description']
 
     def __str__(self):
         return ('%s %r.%r.%r, type=%s, flags=%x'
