@@ -23,7 +23,7 @@ from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
-from .parser import MysqlPacket, FieldDescriptorPacket
+from .parser import MysqlPacket
 from . import parser
 
 try:
@@ -791,8 +791,13 @@ class Connection(object):
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
-        packet = packet_type(bytes.join(b'', buff), self.encoding)
-        packet.check_error()
+        data = bytes.join(b'', buff)
+        if packet_type is parser.Packet:
+            packet = packet_type(len(data), packet_number, data)
+            parser.check_error(packet)
+        else:
+            packet = packet_type(bytes.join(b'', buff), self.encoding)
+            packet.check_error()
         return packet
 
     def _read_bytes(self, num_bytes):
@@ -1266,10 +1271,10 @@ class MySQLResult(object):
         description = []
 
         for i in range_type(self.field_count):
-            field = self.connection._read_packet(FieldDescriptorPacket)
+            field = parser.parse_field_descriptor_packet(self.connection._read_packet(parser.Packet))
             self.fields.append(field)
-            description.append(field.description())
-            field_type = field.type_code
+            description.append(field['description'])
+            field_type = field['type_code']
             if use_unicode:
                 if field_type == FIELD_TYPE.JSON:
                     # When SELECT from JSON column: charset = binary
@@ -1279,7 +1284,7 @@ class MySQLResult(object):
                     # See https://github.com/PyMySQL/PyMySQL/issues/488
                     encoding = conn_encoding  # SELECT CAST(... AS JSON) 
                 elif field_type in TEXT_TYPES:
-                    if field.charsetnr == 63:  # binary
+                    if field['charsetnr'] == 63:  # binary
                         # TEXTs with charset=binary means BINARY types.
                         encoding = None
                     else:
@@ -1295,8 +1300,8 @@ class MySQLResult(object):
             if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
             self.converters.append((encoding, converter))
 
-        eof_packet = self.connection._read_packet()
-        assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
+        eof_packet = self.connection._read_packet(parser.Packet)
+        assert parser.is_eof_packet(eof_packet), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
 
