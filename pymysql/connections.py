@@ -216,54 +216,6 @@ def lenenc_int(i):
     else:
         raise ValueError("Encoding %x is larger than %x - no representation in LengthEncodedInteger" % (i, (1 << 64)))
 
-
-class OKPacketWrapper(object):
-    """
-    OK Packet Wrapper. It uses an existing packet object, and wraps
-    around it, exposing useful variables while still providing access
-    to the original packet objects variables and methods.
-    """
-
-    def __init__(self, from_packet):
-        if not from_packet.is_ok_packet():
-            raise ValueError('Cannot create ' + str(self.__class__.__name__) +
-                             ' object from invalid packet type')
-
-        self.packet = from_packet
-        self.packet.advance(1)
-
-        self.affected_rows = self.packet.read_length_encoded_integer()
-        self.insert_id = self.packet.read_length_encoded_integer()
-        self.server_status, self.warning_count = self.read_struct('<HH')
-        self.message = self.packet.read_all()
-        self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
-
-    def __getattr__(self, key):
-        return getattr(self.packet, key)
-
-
-class EOFPacketWrapper(object):
-    """
-    EOF Packet Wrapper. It uses an existing packet object, and wraps
-    around it, exposing useful variables while still providing access
-    to the original packet objects variables and methods.
-    """
-
-    def __init__(self, from_packet):
-        if not from_packet.is_eof_packet():
-            raise ValueError(
-                "Cannot create '{0}' object from invalid packet type".format(
-                    self.__class__))
-
-        self.packet = from_packet
-        self.warning_count, self.server_status = self.packet.read_struct('<xhh')
-        if DEBUG: print("server_status=", self.server_status)
-        self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
-
-    def __getattr__(self, key):
-        return getattr(self.packet, key)
-
-
 class LoadLocalPacketWrapper(object):
     """
     Load Local Packet Wrapper. It uses an existing packet object, and wraps
@@ -540,8 +492,8 @@ class Connection(object):
         pkt = self._read_packet()
         if not parser.is_ok_packet(pkt._packet):
             raise err.OperationalError(2014, "Command Out of Sync")
-        ok = OKPacketWrapper(pkt)
-        self.server_status = ok.server_status
+        ok = parser.parse_ok_packet(pkt._packet)
+        self.server_status = ok['server_status']
         return ok
 
     def _send_autocommit_mode(self):
@@ -1161,13 +1113,13 @@ class MySQLResult(object):
             self.affected_rows = 18446744073709551615
 
     def _read_ok_packet(self, first_packet):
-        ok_packet = OKPacketWrapper(first_packet)
-        self.affected_rows = ok_packet.affected_rows
-        self.insert_id = ok_packet.insert_id
-        self.server_status = ok_packet.server_status
-        self.warning_count = ok_packet.warning_count
-        self.message = ok_packet.message
-        self.has_next = ok_packet.has_next
+        ok_packet = parser.parse_ok_packet(first_packet._packet)
+        self.affected_rows = ok_packet['affected_rows']
+        self.insert_id = ok_packet['insert_id']
+        self.server_status = ok_packet['server_status']
+        self.warning_count = ok_packet['warning_count']
+        self.message = ok_packet['message']
+        self.has_next = ok_packet['has_next']
 
     def _read_load_local_packet(self, first_packet):
         if not self.connection._local_infile:
@@ -1187,16 +1139,17 @@ class MySQLResult(object):
         self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
-        if not packet.is_eof_packet():
-            return False
         #TODO: Support CLIENT.DEPRECATE_EOF
         # 1) Add DEPRECATE_EOF to CAPABILITIES
         # 2) Mask CAPABILITIES with server_capabilities
         # 3) if server_capabilities & CLIENT.DEPRECATE_EOF: use OKPacketWrapper instead of EOFPacketWrapper
-        wp = EOFPacketWrapper(packet)
-        self.warning_count = wp.warning_count
-        self.has_next = wp.has_next
-        return True
+        try:
+            wp = parser.parse_eof_packet(packet._packet)
+            self.warning_count = wp['warning_count']
+            self.has_next = wp['has_next']
+            return True
+        except parser.InvalidPacketError:
+            return False
 
     def _read_result_packet(self, first_packet):
         self.field_count = first_packet.read_length_encoded_integer()

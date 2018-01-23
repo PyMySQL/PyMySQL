@@ -5,7 +5,7 @@ from collections import namedtuple
 from struct import unpack_from, Struct
 
 from .charset import MBLENGTH
-from .constants import FIELD_TYPE
+from .constants import FIELD_TYPE, SERVER_STATUS
 from . import err
 from .util import byte2int
 
@@ -352,3 +352,45 @@ def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
                              scale,
                              flags % 2 == 0)
     return result
+
+def parse_ok_packet(packet):
+    if not is_ok_packet(packet):
+        raise InvalidPacketError()
+
+    pos = 1
+    data = packet.payload
+
+    size, affected_rows = read_length_encoded_integer(data, offset=pos)
+    pos += size
+
+    size, insert_id = read_length_encoded_integer(data, offset=pos)
+    pos += size
+
+    server_status, warning_count = unpack_from('<HH', data, offset=pos)
+    pos += 4
+
+    # Read the rest of the packet
+    message = read(data, None, offset=pos)
+    #pos += len(message)
+
+    return {'affected_rows': affected_rows,
+            'insert_id': insert_id,
+            'server_status': server_status,
+            'warning_count': warning_count,
+            'message': message,
+            'has_next': server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS}
+
+def parse_eof_packet(packet):
+    if not is_eof_packet(packet):
+        raise InvalidPacketError()
+
+    pos = 1
+    data = packet.payload
+
+    warning_count, server_status = unpack_from('<hh', data, offset=pos)
+    pos += 4
+
+    if DEBUG: print("server_status=", server_status)
+    return {'warning_count': warning_count,
+            'server_status': server_status,
+            'has_next': server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS}
