@@ -1,6 +1,7 @@
 from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type
 
+from collections import namedtuple
 from struct import unpack_from, Struct
 
 from .charset import MBLENGTH
@@ -9,6 +10,8 @@ from . import err
 from .util import byte2int
 
 DEBUG = False
+
+Packet = namedtuple('Packet', ['size', 'seq_id', 'payload'])
 
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
@@ -126,16 +129,43 @@ def read_string(data, offset=0):
         sl = data[offset:end]
         return len(sl), sl
 
+def is_ok_packet(packet):
+    # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+    return read_uint8(packet.payload)[1] == 0 and packet.size >= 7
+
+def is_eof_packet(packet):
+    # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
+    # Caution: \xFE may be LengthEncodedInteger.
+    # If \xFE is LengthEncodedInteger header, 8bytes followed.
+    return read_uint8(packet.payload)[1] == 254 and packet.size < 9
+
+def is_auth_switch_request(packet):
+    # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+    return read_uint8(packet.payload)[1] == 254
+
+def is_load_local(packet):
+    return read_uint8(packet.payload)[1] == 251
+
+def is_resultset_packet(packet):
+    return 1 <= read_uint8(packet.payload)[1] <= 250
+
+def check_error(packet):
+    if read_uint8(packet.payload)[1] == 255:
+        errno = read_uint16(packet.payload, offset=1)[1]
+        if DEBUG: print("errno = ", errno)
+        err.raise_mysql_exception(packet.payload)
+
 class MysqlPacket(object):
     """Representation of a MySQL response packet.
 
     Provides an interface for reading/parsing the packet results.
     """
-    __slots__ = ('_position', '_data')
+    __slots__ = ('_position', '_data', '_packet')
 
     def __init__(self, data, encoding):
         self._position = 0
         self._data = data
+        self._packet = Packet(len(data), None, payload=data)
 
     def get_all_data(self):
         return self._data
@@ -247,38 +277,82 @@ class MysqlPacket(object):
         return result
 
     def is_ok_packet(self):
-        # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
-        return read_uint8(self._data)[1] == 0 and len(self._data) >= 7
+        return is_ok_packet(self._packet)
 
     def is_eof_packet(self):
-        # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
-        # Caution: \xFE may be LengthEncodedInteger.
-        # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return read_uint8(self._data)[1] == 254 and len(self._data) < 9
+        return is_eof_packet(self._packet)
 
     def is_auth_switch_request(self):
-        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return read_uint8(self._data)[1] == 254
+        return is_auth_switch_request(self._packet)
 
     def is_resultset_packet(self):
-        return 1 <= read_uint8(self._data)[1] <= 250
+        return is_resultset_packet(self._packet)
 
     def is_load_local_packet(self):
-        return read_uint8(self._data)[1] == 251
-
-    def is_error_packet(self):
-        return read_uint8(self._data)[1] == 255
+        return is_load_local(self._packet)
 
     def check_error(self):
-        _s, _d = read_uint8(self._data)
-        if _d == 255:
-            self._position = 1
-            _s, errno = read_uint16(self._data, offset=self._position)
-            if DEBUG: print("errno =", errno)
-            err.raise_mysql_exception(self._data)
+        check_error(self._packet)
 
     def dump(self):
         dump_packet(self._data)
+
+
+def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
+    pos = 0
+    data = packet.payload
+
+    size, catalog = read_length_coded_string(data, offset=pos)
+    pos += size
+
+    size, db = read_length_coded_string(data, offset=pos)
+    pos += size
+
+    size, table_name = read_length_coded_string(data, offset=pos)
+    pos += size
+
+    size, org_table = read_length_coded_string(data, offset=pos)
+    pos += size
+
+    size, name = read_length_coded_string(data, offset=pos)
+    pos += size
+
+    size, org_name = read_length_coded_string(data, offset=pos)
+    pos += size
+
+    pos += 1
+    charsetnr, length, type_code, flags, scale = unpack_from('<HIBHB', data, offset=pos)
+
+    if encoding:
+        table_name = table_name.decode(encoding)
+        org_table = org_table.decode(encoding)
+        name = name.decode(encoding)
+        org_name = org_name.decode(encoding)
+
+    result = {'catalog': catalog,
+            'db': db,
+            'table_name': table_name,
+            'org_table': org_table,
+            'name': name,
+            'org_name': org_name,
+            'charsetnr': charsetnr,
+            'length': length,
+            'type_code': type_code,
+            'flags': flags,
+            'scale': scale}
+
+    column_length = length
+    if type_code == FIELD_TYPE.VAR_STRING:
+        column_length //=  MBLENGTH.get(charsetnr, 1)
+
+    result['description'] = (result['name'],
+                             type_code,
+                             None,
+                             column_length,
+                             column_length,
+                             scale,
+                             flags % 2 == 0)
+    return result
 
 
 class FieldDescriptorPacket(MysqlPacket):
