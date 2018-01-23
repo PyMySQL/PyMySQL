@@ -6,12 +6,24 @@ from struct import unpack_from, Struct
 
 from .charset import MBLENGTH
 from .constants import FIELD_TYPE, SERVER_STATUS
+from . import converters as _converters
 from . import err
 from .util import byte2int
 
 DEBUG = False
 
 Packet = namedtuple('Packet', ['size', 'seq_id', 'payload'])
+
+TEXT_TYPES = set([
+    FIELD_TYPE.BIT,
+    FIELD_TYPE.BLOB,
+    FIELD_TYPE.LONG_BLOB,
+    FIELD_TYPE.MEDIUM_BLOB,
+    FIELD_TYPE.STRING,
+    FIELD_TYPE.TINY_BLOB,
+    FIELD_TYPE.VAR_STRING,
+    FIELD_TYPE.VARCHAR,
+    FIELD_TYPE.GEOMETRY])
 
 NULL_COLUMN = 251
 UNSIGNED_CHAR_COLUMN = 251
@@ -107,11 +119,11 @@ def read_length_encoded_integer(data, offset=0):
     if col < UNSIGNED_CHAR_COLUMN:
         return size, col
     elif col == UNSIGNED_SHORT_COLUMN:
-        _s, _d = read_uint16(data, offset=offset)
+        _s, _d = read_uint16(data, offset=offset+size)
     elif col == UNSIGNED_INT24_COLUMN:
-        _s, _d = read_uint24(data, offset=offset)
+        _s, _d = read_uint24(data, offset=offset+size)
     elif col == UNSIGNED_INT64_COLUMN:
-        _s, _d = read_uint64(data, offset=offset)
+        _s, _d = read_uint64(data, offset=offset+size)
     else:
         raise ValueError
     return (size + _s, _d)
@@ -394,3 +406,71 @@ def parse_eof_packet(packet):
     return {'warning_count': warning_count,
             'server_status': server_status,
             'has_next': server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS}
+
+
+def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
+                        converters=None):
+    """
+    Parse stream of packets in a result stream.
+    Args:
+        stream:
+        encoding:
+
+    Returns:
+        (iterator):
+            0: Field descriptions
+            1: Groups of rows (each packet)
+    """
+    curr_packet = next(stream)
+    _, field_count = read_length_encoded_integer(curr_packet.payload)
+
+    # the next field_count packets are field descriptor packets.
+    if converters is None:
+        converters = _converters.decoders
+    fields = [None] * field_count
+    f_encodings = [None] * field_count
+    f_converters = [None] * field_count
+    for i in range_type(field_count):
+        curr_packet = next(stream)
+        fields[i] = field = parse_field_descriptor_packet(curr_packet, encoding=encoding)
+        field_type = field['type_code']
+        _field_encoding = None
+        if use_unicode:
+            if field_type == FIELD_TYPE.JSON or field_type in TEXT_TYPES:
+                if field['charsetnr'] != 63:
+                    _field_encoding = encoding
+            elif field['charsetnr'] == 63:
+                _field_encoding = encoding
+            else:
+                _field_encoding = 'ascii'
+        field['encoding'] = f_encodings[i] = _field_encoding
+
+        converter = converters.get(field_type)
+        if converter is _converters.through:
+            converter = None
+        field['converter'] = f_converters[i] = converter
+        if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+
+    # Yield the descriptions
+    yield tuple(fields)
+
+    # Rest of the packets contain rows (1 packet == 1 row)
+    # Parsing of packets
+    row = [None] * field_count
+    for curr_packet in stream:
+        position = 0
+        i = 0
+        while i < field_count:
+            size, data = read_length_coded_string(curr_packet.payload, offset=position)
+            position += size
+
+            if data is not None:
+                if f_encodings[i]:
+                    data = data.decode(f_encodings[i])
+                if DEBUG: print("DEBUG: DATA = ", data)
+                if f_converters[i]:
+                    data = f_converters[i](data)
+            row[i] = data
+            i += 1
+        assert len(row) == field_count
+        yield tuple(row)
