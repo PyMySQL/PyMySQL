@@ -935,11 +935,11 @@ class Connection(object):
             data += name + b'\0'
 
         self.write_packet(data)
-        auth_packet = self._read_packet()
+        auth_packet = self._read_packet(parser.Packet)
 
         # if authentication method isn't accepted the first byte
         # will have the octet 254
-        if parser.is_auth_switch_request(auth_packet._packet):
+        if parser.is_auth_switch_request(auth_packet):
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             auth_packet.read_uint8() # 0xfe packet identifier
             plugin_name = auth_packet.read_string()
@@ -1000,8 +1000,8 @@ class Connection(object):
                                   " %r didn't respond with string. Returned '%r' to prompt %r" % (plugin_name, handler, resp, prompt))
                 else:
                     raise err.OperationalError(2059, "Authentication plugin '%s' (%r) not configured" % (plugin_name, handler))
-                pkt = self._read_packet()
-                parser.check_error(pkg)
+                pkt = self._read_packet(parser.Packet)
+                parser.check_error(pkt)
                 if parser.is_ok_packet(pkt) or last:
                     break
             return pkt
@@ -1028,8 +1028,8 @@ class Connection(object):
 
     def _get_server_information(self):
         i = 0
-        packet = self._read_packet()
-        data = packet._packet.payload
+        packet = self._read_packet(parser.Packet)
+        data = packet.payload
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
