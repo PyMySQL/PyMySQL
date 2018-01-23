@@ -23,7 +23,8 @@ from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
-from .parser import MysqlPacket, FieldDescriptorPacket, Packet
+from .parser import MysqlPacket, FieldDescriptorPacket
+from . import parser
 
 try:
     import ssl
@@ -537,7 +538,7 @@ class Connection(object):
 
     def _read_ok_packet(self):
         pkt = self._read_packet()
-        if not pkt.is_ok_packet():
+        if not parser.is_ok_packet(pkt._packet):
             raise err.OperationalError(2014, "Command Out of Sync")
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
@@ -933,7 +934,7 @@ class Connection(object):
 
         # if authentication method isn't accepted the first byte
         # will have the octet 254
-        if auth_packet.is_auth_switch_request():
+        if parser.is_auth_switch_request(auth_packet._packet):
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             auth_packet.read_uint8() # 0xfe packet identifier
             plugin_name = auth_packet.read_string()
@@ -995,8 +996,8 @@ class Connection(object):
                 else:
                     raise err.OperationalError(2059, "Authentication plugin '%s' (%r) not configured" % (plugin_name, handler))
                 pkt = self._read_packet()
-                pkt.check_error()
-                if pkt.is_ok_packet() or last:
+                parser.check_error(pkg)
+                if parser.is_ok_packet(pkt) or last:
                     break
             return pkt
         else:
@@ -1004,7 +1005,7 @@ class Connection(object):
 
         self.write_packet(data)
         pkt = self._read_packet()
-        pkt.check_error()
+        parser.check_error(pkt)
         return pkt
 
     # _mysql support
@@ -1023,7 +1024,7 @@ class Connection(object):
     def _get_server_information(self):
         i = 0
         packet = self._read_packet()
-        data = packet.get_all_data()
+        data = packet._packet.payload
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
