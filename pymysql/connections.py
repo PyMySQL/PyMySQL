@@ -23,7 +23,7 @@ from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
-from .parser import MysqlPacket, FieldDescriptorPacket
+from .parser import MysqlPacket, FieldDescriptorPacket, Packet
 
 try:
     import ssl
@@ -765,10 +765,9 @@ class Connection(object):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results.
         """
-        buff = b''
+        buff = []
         while True:
             packet_header = self._read_bytes(4)
-            #if DEBUG: dump_packet(packet_header)
 
             btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
             bytes_to_read = btrl + (btrh << 16)
@@ -786,14 +785,12 @@ class Connection(object):
 
             recv_data = self._read_bytes(bytes_to_read)
             if DEBUG: dump_packet(recv_data)
-            buff += recv_data
+            buff.append(recv_data)
             # https://dev.mysql.com/doc/internals/en/sending-more-than-16mbyte.html
-            if bytes_to_read == 0xffffff:
-                continue
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
-        packet = packet_type(buff, self.encoding)
+        packet = packet_type(bytes.join(b'', buff), self.encoding)
         packet.check_error()
         return packet
 
