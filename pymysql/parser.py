@@ -29,12 +29,6 @@ TEXT_TYPES = set([
     FIELD_TYPE.VARCHAR,
     FIELD_TYPE.GEOMETRY])
 
-NULL_COLUMN = 251
-UNSIGNED_CHAR_COLUMN = 251
-UNSIGNED_SHORT_COLUMN = 252
-UNSIGNED_INT24_COLUMN = 253
-UNSIGNED_INT64_COLUMN = 254
-
 DEFAULT_CHARSET = 'latin1'
 
 MAX_PACKET_LEN = 2**24-1
@@ -117,16 +111,21 @@ def read_length_encoded_integer(data, offset=0):
         (size, int):
     """
     size, col = read_uint8(data, offset=offset)
-    if col == NULL_COLUMN:
+    if col == 251:
+        # NULL_COLUMN
         return size, None
 
-    if col < UNSIGNED_CHAR_COLUMN:
+    if col < 251:
+        # UNSIGNED_CHAR_COLUMN
         return size, col
-    elif col == UNSIGNED_SHORT_COLUMN:
+    elif col == 252:
+        # UNSIGNED_SHORT_COLUMN
         _s, _d = read_uint16(data, offset=offset+size)
-    elif col == UNSIGNED_INT24_COLUMN:
+    elif col == 253:
+        # UNSIGNED_INT24_COLUMN
         _s, _d = read_uint24(data, offset=offset+size)
-    elif col == UNSIGNED_INT64_COLUMN:
+    elif col == 254:
+        # UNSIGNED_INT64_COLUMN
         _s, _d = read_uint64(data, offset=offset+size)
     else:
         raise ValueError
@@ -285,7 +284,8 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
             1: Groups of rows (each packet)
     """
     curr_packet = next(stream)
-    _, field_count = read_length_encoded_integer(payload(curr_packet))
+    _payload = payload
+    _, field_count = read_length_encoded_integer(_payload(curr_packet))
 
     # the next field_count packets are field descriptor packets.
     if converters is None:
@@ -311,7 +311,6 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
 
         converter = converters.get(field_type, _converters.through)
         field['converter'] = f_converters[i] = converter
-        if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
         i += 1
 
     # Yield the descriptions
@@ -320,17 +319,17 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
     # Rest of the packets contain rows (1 packet == 1 row)
     # Parsing of packets
     row = [None] * field_count
+    _length_coded_str = read_length_coded_string
     for curr_packet in stream:
         position = 0
         i = 0
         while i < field_count:
-            size, data = read_length_coded_string(payload(curr_packet), offset=position)
+            size, data = _length_coded_str(_payload(curr_packet), offset=position)
             position += size
 
             if data is not None:
                 if f_encodings[i]:
                     data = data.decode(f_encodings[i])
-                if DEBUG: print("DEBUG: DATA = ", data)
                 data = f_converters[i](data)
             row[i] = data
             i += 1
