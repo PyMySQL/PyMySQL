@@ -1176,20 +1176,6 @@ class MySQLResult(object):
             self.rows = None
             self._result_stream = None
 
-
-        # EOF
-        #packet = self.connection._read_packet()
-        #if self._check_packet_is_eof(packet):
-        #    self.unbuffered_active = False
-        #    self.connection = None
-        #    self.rows = None
-        #    return
-
-        #row = self._read_row_from_packet(packet)
-        #self.affected_rows = 1
-        #self.rows = (row,)  # rows should tuple of row for MySQL-python compatibility.
-        #return row
-
     def _finish_unbuffered_query(self):
         # After much reading on the MySQL protocol, it appears that there is,
         # in fact, no way to stop MySQL from sending all the data after
