@@ -296,7 +296,8 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
     fields = [None] * field_count
     f_encodings = [None] * field_count
     f_converters = [None] * field_count
-    for i in range_type(field_count):
+    i = 0
+    while i < field_count:
         curr_packet = next(stream)
         fields[i] = field = parse_field_descriptor_packet(curr_packet, encoding=encoding)
         field_type = field['type_code']
@@ -314,6 +315,7 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
         converter = converters.get(field_type)
         field['converter'] = f_converters[i] = converter
         if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
+        i += 1
 
     # Yield the descriptions
     yield tuple(fields)
