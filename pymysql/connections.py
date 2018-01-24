@@ -1187,37 +1187,6 @@ class MySQLResult(object):
             self.connection = None   # release reference to kill cyclic reference
             self._result_stream = None
 
-    def _read_rowdata_packet(self):
-        """Read a rowdata packet for each data row in the result set."""
-        rows = []
-        while True:
-            packet = self.connection._read_packet()
-            if self._check_packet_is_eof(packet):
-                self.connection = None  # release reference to kill cyclic reference.
-                break
-            rows.append(self._read_row_from_packet(packet))
-
-        self.affected_rows = len(rows)
-        self.rows = tuple(rows)
-
-    def _read_row_from_packet(self, packet):
-        row = []
-        for encoding, converter in self.converters:
-            try:
-                data = packet.read_length_coded_string()
-            except IndexError:
-                # No more columns in this row
-                # See https://github.com/PyMySQL/PyMySQL/pull/434
-                break
-            if data is not None:
-                if encoding is not None:
-                    data = data.decode(encoding)
-                if DEBUG: print("DEBUG: DATA = ", data)
-                if converter is not None:
-                    data = converter(data)
-            row.append(data)
-        return tuple(row)
-
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
         if hasattr(self, 'fields'):
