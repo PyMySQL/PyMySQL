@@ -711,7 +711,8 @@ class Connection(object):
                 break
 
         data = bytes.join(b'', buff)
-        packet = parser.Packet(len(data), packet_number, data)
+        packet = (len(data), packet_number, data)
+        #packet = parser.Packet(len(data), packet_number, data)
         parser.check_error(packet)
         #packet = packet_type(bytes.join(b'', buff), self.encoding)
         #packet.check_error()
@@ -947,7 +948,7 @@ class Connection(object):
     def _get_server_information(self):
         i = 0
         packet = self._read_packet()
-        data = packet.payload
+        data = parser.payload(packet)
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1

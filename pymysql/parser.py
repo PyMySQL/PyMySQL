@@ -3,6 +3,7 @@ from ._compat import PY2, range_type, text_type, str_type
 
 from collections import namedtuple
 from struct import unpack_from, Struct
+from operator import itemgetter
 
 from .charset import MBLENGTH
 from .constants import FIELD_TYPE, SERVER_STATUS
@@ -13,6 +14,9 @@ from .util import byte2int
 DEBUG = False
 
 Packet = namedtuple('Packet', ['size', 'seq_id', 'payload'])
+psize = itemgetter(0)
+pseq = itemgetter(1)
+payload = itemgetter(2)
 
 TEXT_TYPES = set([
     FIELD_TYPE.BIT,
@@ -143,32 +147,32 @@ def read_string(data, offset=0):
 
 def is_ok_packet(packet):
     # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
-    return read_uint8(packet.payload)[1] == 0 and packet.size >= 7
+    return read_uint8(payload(packet))[1] == 0 and psize(packet) >= 7
 
 def is_eof_packet(packet):
     # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
     # Caution: \xFE may be LengthEncodedInteger.
     # If \xFE is LengthEncodedInteger header, 8bytes followed.
-    return read_uint8(packet.payload)[1] == 254 and packet.size < 9
+    return read_uint8(payload(packet))[1] == 254 and psize(packet) < 9
 
 def is_auth_switch_request(packet):
     # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-    return read_uint8(packet.payload)[1] == 254
+    return read_uint8(payload(packet))[1] == 254
 
 def is_load_local(packet):
-    return read_uint8(packet.payload)[1] == 251
+    return read_uint8(payload(packet))[1] == 251
 
 def is_resultset_packet(packet):
-    return 1 <= read_uint8(packet.payload)[1] <= 250
+    return 1 <= read_uint8(payload(packet))[1] <= 250
 
 def check_error(packet):
-    if read_uint8(packet.payload)[1] == 255:
-        errno = read_uint16(packet.payload, offset=1)[1]
+    if read_uint8(payload(packet))[1] == 255:
+        errno = read_uint16(payload(packet), offset=1)[1]
         if DEBUG: print("errno = ", errno)
-        err.raise_mysql_exception(packet.payload)
+        err.raise_mysql_exception(payload(packet))
 
 def parse_load_local_packet(packet):
-    data = packet.payload
+    data = payload(packet)
 
     filename = read(data, None, offset=1)
     if DEBUG: print("filename=", filename)
@@ -177,7 +181,7 @@ def parse_load_local_packet(packet):
 
 def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
     pos = 0
-    data = packet.payload
+    data = payload(packet)
 
     size, catalog = read_length_coded_string(data, offset=pos)
     pos += size
@@ -235,7 +239,7 @@ def parse_ok_packet(packet):
         raise InvalidPacketError()
 
     pos = 1
-    data = packet.payload
+    data = payload(packet)
 
     size, affected_rows = read_length_encoded_integer(data, offset=pos)
     pos += size
@@ -261,11 +265,8 @@ def parse_eof_packet(packet):
     if not is_eof_packet(packet):
         raise InvalidPacketError()
 
-    pos = 1
-    data = packet.payload
-
-    warning_count, server_status = unpack_from('<hh', data, offset=pos)
-    pos += 4
+    data = payload(packet)
+    warning_count, server_status = unpack_from('<hh', data, offset=1)
 
     if DEBUG: print("server_status=", server_status)
     return {'warning_count': warning_count,
@@ -287,7 +288,7 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
             1: Groups of rows (each packet)
     """
     curr_packet = next(stream)
-    _, field_count = read_length_encoded_integer(curr_packet.payload)
+    _, field_count = read_length_encoded_integer(payload(curr_packet))
 
     # the next field_count packets are field descriptor packets.
     if converters is None:
@@ -311,8 +312,6 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
         field['encoding'] = f_encodings[i] = _field_encoding
 
         converter = converters.get(field_type)
-        if converter is _converters.through:
-            converter = None
         field['converter'] = f_converters[i] = converter
         if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
 
@@ -326,16 +325,14 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
         position = 0
         i = 0
         while i < field_count:
-            size, data = read_length_coded_string(curr_packet.payload, offset=position)
+            size, data = read_length_coded_string(payload(curr_packet), offset=position)
             position += size
 
             if data is not None:
                 if f_encodings[i]:
                     data = data.decode(f_encodings[i])
                 if DEBUG: print("DEBUG: DATA = ", data)
-                if f_converters[i]:
-                    data = f_converters[i](data)
+                data = f_converters[i](data)
             row[i] = data
             i += 1
-        assert len(row) == field_count
         yield tuple(row)
