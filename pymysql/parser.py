@@ -297,9 +297,9 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
     while i < field_count:
         curr_packet = next(stream)
         fields[i] = field = parse_field_descriptor_packet(curr_packet, encoding=encoding)
-        field_type = field['type_code']
         _field_encoding = None
         if use_unicode:
+            field_type = field['type_code']
             if field_type == FIELD_TYPE.JSON or field_type in TEXT_TYPES:
                 if field['charsetnr'] != 63:
                     _field_encoding = encoding
