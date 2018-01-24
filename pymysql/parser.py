@@ -235,9 +235,6 @@ def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
     return result
 
 def parse_ok_packet(packet):
-    if not is_ok_packet(packet):
-        raise InvalidPacketError()
-
     pos = 1
     data = payload(packet)
 
