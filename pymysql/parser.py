@@ -312,7 +312,7 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
                 _field_encoding = 'ascii'
         field['encoding'] = f_encodings[i] = _field_encoding
 
-        converter = converters.get(field_type)
+        converter = converters.get(field_type, _converters.through)
         field['converter'] = f_converters[i] = converter
         if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
         i += 1
