@@ -68,8 +68,6 @@ class Cursor(object):
     def _get_db(self):
         if not self.connection:
             raise err.ProgrammingError("Cursor closed")
-        if self.connection.auto_ping:
-            self.connection.ping()
         return self.connection
 
     def _check_executed(self):
