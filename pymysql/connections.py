@@ -576,7 +576,7 @@ class Connection(object):
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 bind_address=None, binary_prefix=False):
+                 bind_address=None, binary_prefix=False, auto_ping=False):
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
 
@@ -681,6 +681,8 @@ class Connection(object):
 
         #: specified autocommit mode. None means use server default.
         self.autocommit_mode = autocommit
+
+        self.auto_ping = auto_ping
 
         if conv is None:
             conv = converters.conversions
