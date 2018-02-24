@@ -24,6 +24,9 @@ class Cursor(object):
 
     Do not create an instance of a Cursor yourself. Call
     connections.Connection.cursor().
+
+    See `Cursor <https://www.python.org/dev/peps/pep-0249/#cursor-objects>`_ in
+    the specification.
     """
 
     #: Max statement size which :meth:`executemany` generates.

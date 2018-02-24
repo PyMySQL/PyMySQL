@@ -560,6 +560,9 @@ class Connection(object):
     :param db: Alias for database. (for compatibility to MySQLdb)
     :param passwd: Alias for password. (for compatibility to MySQLdb)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
+
+    See `Connection <https://www.python.org/dev/peps/pep-0249/#connection-objects>`_ in the
+    specification.
     """
 
     _sock = None
@@ -716,7 +719,14 @@ class Connection(object):
         return ctx
 
     def close(self):
-        """Send the quit message and close the socket"""
+        """
+        Send the quit message and close the socket.
+
+        See `Connection.close() <https://www.python.org/dev/peps/pep-0249/#Connection.close>`_
+        in the specification.
+        
+        :raise Error: If the connection is already closed.
+        """
         if self._closed:
             raise err.Error("Already closed")
         self._closed = True
@@ -732,6 +742,7 @@ class Connection(object):
 
     @property
     def open(self):
+        """Return True if the connection is open"""
         return self._sock is not None
 
     def _force_close(self):
@@ -776,24 +787,38 @@ class Connection(object):
         self._read_ok_packet()
 
     def commit(self):
-        """Commit changes to stable storage"""
+        """
+        Commit changes to stable storage.
+        
+        See `Connection.commit() <https://www.python.org/dev/peps/pep-0249/#commit>`_
+        in the specification.
+        """
         self._execute_command(COMMAND.COM_QUERY, "COMMIT")
         self._read_ok_packet()
 
     def rollback(self):
-        """Roll back the current transaction"""
+        """
+        Roll back the current transaction.
+        
+        See `Connection.rollback() <https://www.python.org/dev/peps/pep-0249/#rollback>`_
+        in the specification.
+        """
         self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
 
     def show_warnings(self):
-        """SHOW WARNINGS"""
+        """Send the "SHOW WARNINGS" SQL command."""
         self._execute_command(COMMAND.COM_QUERY, "SHOW WARNINGS")
         result = MySQLResult(self)
         result.read()
         return result.rows
 
     def select_db(self, db):
-        """Set current db"""
+        """
+        Set current db.
+        
+        :param db: The name of the db.
+        """
         self._execute_command(COMMAND.COM_INIT_DB, db)
         self._read_ok_packet()
 
@@ -831,7 +856,13 @@ class Connection(object):
         return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
-        """Create a new cursor to execute queries with"""
+        """
+        Create a new cursor to execute queries with.
+        
+        :param cursor: The type of cursor to create; one of :py:class:`Cursor`,
+            :py:class:`SSCursor`, :py:class:`DictCursor`, or :py:class:`SSDictCursor`.
+            None means use Cursor.
+        """
         if cursor:
             return cursor(self)
         return self.cursorclass(self)
@@ -873,7 +904,12 @@ class Connection(object):
         return self._read_ok_packet()
 
     def ping(self, reconnect=True):
-        """Check if the server is alive"""
+        """
+        Check if the server is alive.
+        
+        :param reconnect: If the connection is closed, reconnect.
+        :raise Error: If the connection is closed and reconnect=False.
+        """
         if self._sock is None:
             if reconnect:
                 self.connect()
@@ -985,6 +1021,9 @@ class Connection(object):
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results.
+
+        :raise OperationalError: If the connection to the MySQL server is lost.
+        :raise InternalError: If the packet sequence number is wrong.
         """
         buff = b''
         while True:
@@ -1071,6 +1110,11 @@ class Connection(object):
             return 0
 
     def _execute_command(self, command, sql):
+        """
+        :raise InterfaceError: If the connection is closed.
+        :raise ValueError: If no username was specified.
+        """
+        
         if not self._sock:
             raise err.InterfaceError("(0, '')")
 
@@ -1358,6 +1402,10 @@ class MySQLResult(object):
             self.connection = None
 
     def init_unbuffered_query(self):
+        """
+        :raise OperationalError: If the connection to the MySQL server is lost.
+        :raise InternalError:
+        """
         self.unbuffered_active = True
         first_packet = self.connection._read_packet()
 
