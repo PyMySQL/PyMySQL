@@ -60,19 +60,17 @@ else:
 # socket.makefile() in Python 2 is not usable because very inefficient and
 # bad behavior about timeout.
 # XXX: ._socketio doesn't work under IronPython.
-BUFFERSIZE = 2**20   # 1MB
-#BUFFERSIZE = io.DEFAULT_BUFFER_SIZE
 if PY2 and not IRONPYTHON:
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
 
     def _makefile(sock, mode):
-        return io.BufferedReader(SocketIO(sock, mode), buffer_size=BUFFERSIZE)
+        return io.BufferedReader(SocketIO(sock, mode))
 else:
     # socket.makefile in Python 3 is nice.
     def _makefile(sock, mode):
-        return sock.makefile(mode, buffering=BUFFERSIZE)
+        return sock.makefile(mode)
 
 sha_new = partial(hashlib.new, 'sha1')
 
@@ -715,7 +713,7 @@ class Connection(object):
         data = bytes.join(b'', buff)
         packet = (len(data), packet_number, data)
         #packet = parser.Packet(len(data), packet_number, data)
-        #parser.check_error(packet)
+        parser.check_error(packet)
         #packet = packet_type(bytes.join(b'', buff), self.encoding)
         #packet.check_error()
         return packet
