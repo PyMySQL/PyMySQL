@@ -31,6 +31,9 @@ TEXT_TYPES = set([
 
 DEFAULT_CHARSET = 'latin1'
 
+def identity(x):
+    return x
+
 MAX_PACKET_LEN = 2**24-1
 
 def dump_packet(data): # pragma: no cover
@@ -138,6 +141,56 @@ def read_length_coded_string(data, offset=0):
     _s, _d = read(data, length, offset=offset+size)
     return size + _s, _d
 
+def read_length_coded_strings(data, offset=0, n=1, encodings=None, converters=None):
+    """
+    Read n length coded strings.
+
+    This method is to avoid repeated function calls to read_length_coded_string
+    Also includes inlined code for reading strings.
+
+    encodings and converters are sequences of length n that define how specific 
+    row fields are to be decoded and casted.    
+    Args:
+        data:
+        offset:
+        n:
+
+    Returns:
+        (tuple): strings
+    """
+    if encodings is None:
+        encodings = [DEFAULT_CHARSET] * n
+    if converters is None:
+        converters = [identity] * n
+    if encodings is not None and len(encodings) != n:
+        raise ValueError("List of encodings must be the same length of the number of fields")
+    if converters is not None and len(converters) != n:
+        raise ValueError("List of converters must be the same length of the number of fields")
+
+    strings = [None] * n
+    _n = 0
+    while _n < n:
+        size, length = read_length_encoded_integer(data, offset=offset)
+        offset += size
+        if length is None:
+            # None is already in strings[_n] position because of allocation
+            _n += 1
+            continue
+
+        result = data[offset:offset+length]
+        if len(result) == length:
+            result = result.decode(encodings[_n])
+            result = converters[_n](result)
+            strings[_n] = result
+            offset += length
+        else:
+            error = ('Result length not requested length:\n'
+                 'Expected=%s  Actual=%s  Position: %s  Data Length: %s\n%s'
+                 % (length, len(result), offset, len(data), data))
+            raise AssertionError(error)
+        _n += 1
+    return offset, strings
+
 def read_string(data, offset=0):
     end = data.find(b'\0', offset)
     if end >= 0:
@@ -181,6 +234,9 @@ def parse_load_local_packet(packet):
 def parse_field_descriptor_packet(packet, encoding=DEFAULT_CHARSET):
     pos = 0
     data = payload(packet)
+
+    #pos, names = read_length_coded_strings(data, n=6)
+    #catalog, db, table_name, org_table, name, org_name = names
 
     size, catalog = read_length_coded_string(data, offset=pos)
     pos += size
@@ -285,7 +341,11 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
     """
     curr_packet = next(stream)
     _payload = payload
-    _, field_count = read_length_encoded_integer(_payload(curr_packet))
+    try:
+        _, field_count = read_length_encoded_integer(_payload(curr_packet))
+    except ValueError:
+        print(_payload(curr_packet))
+        raise
 
     # the next field_count packets are field descriptor packets.
     if converters is None:
@@ -323,14 +383,27 @@ def parse_result_stream(stream, encoding=DEFAULT_CHARSET, use_unicode=False,
     for curr_packet in stream:
         position = 0
         i = 0
-        while i < field_count:
-            size, data = _length_coded_str(_payload(curr_packet), offset=position)
-            position += size
 
-            if data is not None:
-                if f_encodings[i]:
-                    data = data.decode(f_encodings[i])
-                data = f_converters[i](data)
-            row[i] = data
-            i += 1
+        pos, row = read_length_coded_strings(_payload(curr_packet), n=field_count, encodings=f_encodings,
+                                                converters=f_converters)
+        assert len(row) == field_count, "{} != {}\n{}".format(row, field_count, _payload(curr_packet))
+        #while i < field_count:
+        #    data = row[i]
+        #    if data:
+        #        if f_encodings[i]:
+        #            data = data.decode(f_encodings[i])
+        #        data = f_converters[i](data)
+        #    row[i] = data
+        #    i += 1
+
+        # while i < field_count:
+        #     size, data = _length_coded_str(_payload(curr_packet), offset=position)
+        #     position += size
+        #
+        #     if data is not None:
+        #         if f_encodings[i]:
+        #             data = data.decode(f_encodings[i])
+        #         data = f_converters[i](data)
+        #     row[i] = data
+        #     i += 1
         yield tuple(row)
