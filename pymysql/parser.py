@@ -159,7 +159,7 @@ def read_length_coded_strings(data, offset=0, n=1, encodings=None, converters=No
         (tuple): strings
     """
     if encodings is None:
-        encodings = [DEFAULT_CHARSET] * n
+        encodings = [None] * n
     if converters is None:
         converters = [identity] * n
     if encodings is not None and len(encodings) != n:
@@ -179,9 +179,9 @@ def read_length_coded_strings(data, offset=0, n=1, encodings=None, converters=No
 
         result = data[offset:offset+length]
         if len(result) == length:
-            result = result.decode(encodings[_n])
-            result = converters[_n](result)
-            strings[_n] = result
+            if encodings[_n]:
+                result = result.decode(encodings[_n])
+            strings[_n] = converters[_n](result)
             offset += length
         else:
             error = ('Result length not requested length:\n'
