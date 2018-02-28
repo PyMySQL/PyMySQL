@@ -5,6 +5,7 @@ import unittest2
 import pymysql
 from pymysql.tests import base
 from pymysql._compat import text_type
+from pymysql.constants import CLIENT
 
 
 class TempUser:
@@ -424,8 +425,8 @@ class TestConnection(base.PyMySQLTestCase):
     def test_init_command(self):
         conn = pymysql.connect(
             init_command='SELECT "bar"; SELECT "baz"',
-            **self.databases[0]
-        )
+            client_flag=CLIENT.MULTI_STATEMENTS,
+            **self.databases[0])
         c = conn.cursor()
         c.execute('select "foobar";')
         self.assertEqual(('foobar',), c.fetchone())
@@ -568,7 +569,7 @@ class TestEscape(base.PyMySQLTestCase):
         self.assertEqual(cur2.fetchone()[0], 3)
 
     def test_commit_during_multi_result(self):
-        con = self.connections[0]
+        con = self.connect(client_flag=CLIENT.MULTI_STATEMENTS)
         cur = con.cursor()
         cur.execute("SELECT 1; SELECT 2")
         con.commit()
