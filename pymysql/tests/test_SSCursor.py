@@ -3,17 +3,19 @@ import sys
 try:
     from pymysql.tests import base
     import pymysql.cursors
+    from pymysql.constants import CLIENT
 except Exception:
     # For local testing from top-level directory, without installing
     sys.path.append('../pymysql')
     from pymysql.tests import base
     import pymysql.cursors
+    from pymysql.constants import CLIENT
 
 class TestSSCursor(base.PyMySQLTestCase):
     def test_SSCursor(self):
         affected_rows = 18446744073709551615
 
-        conn = self.connections[0]
+        conn = self.connect(client_flag=CLIENT.MULTI_STATEMENTS)
         data = [
             ('America', '', 'America/Jamaica'),
             ('America', '', 'America/Los_Angeles'),
@@ -30,10 +32,10 @@ class TestSSCursor(base.PyMySQLTestCase):
             cursor = conn.cursor(pymysql.cursors.SSCursor)
 
             # Create table
-            cursor.execute(('CREATE TABLE tz_data ('
+            cursor.execute('CREATE TABLE tz_data ('
                 'region VARCHAR(64),'
                 'zone VARCHAR(64),'
-                'name VARCHAR(64))'))
+                'name VARCHAR(64))')
 
             conn.begin()
             # Test INSERT
@@ -100,7 +102,7 @@ class TestSSCursor(base.PyMySQLTestCase):
             self.assertFalse(cursor.nextset())
 
         finally:
-            cursor.execute('DROP TABLE tz_data')
+            cursor.execute('DROP TABLE IF EXISTS tz_data')
             cursor.close()
 
 __all__ = ["TestSSCursor"]

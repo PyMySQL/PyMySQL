@@ -2,16 +2,16 @@ import unittest2
 
 from pymysql.tests import base
 from pymysql import util
+from pymysql.constants import CLIENT
 
 
 class TestNextset(base.PyMySQLTestCase):
 
-    def setUp(self):
-        super(TestNextset, self).setUp()
-        self.con = self.connections[0]
-
     def test_nextset(self):
-        cur = self.con.cursor()
+        con = self.connect(
+            init_command='SELECT "bar"; SELECT "baz"',
+            client_flag=CLIENT.MULTI_STATEMENTS)
+        cur = con.cursor()
         cur.execute("SELECT 1; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
 
@@ -22,7 +22,7 @@ class TestNextset(base.PyMySQLTestCase):
         self.assertIsNone(cur.nextset())
 
     def test_skip_nextset(self):
-        cur = self.con.cursor()
+        cur = self.connect(client_flag=CLIENT.MULTI_STATEMENTS).cursor()
         cur.execute("SELECT 1; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
 
@@ -30,7 +30,7 @@ class TestNextset(base.PyMySQLTestCase):
         self.assertEqual([(42,)], list(cur))
 
     def test_ok_and_next(self):
-        cur = self.con.cursor()
+        cur = self.connect(client_flag=CLIENT.MULTI_STATEMENTS).cursor()
         cur.execute("SELECT 1; commit; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
         self.assertTrue(cur.nextset())
@@ -40,8 +40,9 @@ class TestNextset(base.PyMySQLTestCase):
 
     @unittest2.expectedFailure
     def test_multi_cursor(self):
-        cur1 = self.con.cursor()
-        cur2 = self.con.cursor()
+        con = self.connect(client_flag=CLIENT.MULTI_STATEMENTS)
+        cur1 = con.cursor()
+        cur2 = con.cursor()
 
         cur1.execute("SELECT 1; SELECT 2;")
         cur2.execute("SELECT 42")
@@ -56,7 +57,10 @@ class TestNextset(base.PyMySQLTestCase):
         self.assertIsNone(cur1.nextset())
 
     def test_multi_statement_warnings(self):
-        cursor = self.con.cursor()
+        con = self.connect(
+            init_command='SELECT "bar"; SELECT "baz"',
+            client_flag=CLIENT.MULTI_STATEMENTS)
+        cursor = con.cursor()
 
         try:
             cursor.execute('DROP TABLE IF EXISTS a; '
