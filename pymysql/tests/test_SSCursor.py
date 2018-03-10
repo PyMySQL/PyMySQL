@@ -32,10 +32,10 @@ class TestSSCursor(base.PyMySQLTestCase):
             cursor = conn.cursor(pymysql.cursors.SSCursor)
 
             # Create table
-            cursor.execute(('CREATE TABLE tz_data ('
+            cursor.execute('CREATE TABLE tz_data ('
                 'region VARCHAR(64),'
                 'zone VARCHAR(64),'
-                'name VARCHAR(64))'))
+                'name VARCHAR(64))')
 
             conn.begin()
             # Test INSERT
@@ -102,7 +102,7 @@ class TestSSCursor(base.PyMySQLTestCase):
             self.assertFalse(cursor.nextset())
 
         finally:
-            cursor.execute('DROP TABLE tz_data')
+            cursor.execute('DROP TABLE IF EXISTS tz_data')
             cursor.close()
 
 __all__ = ["TestSSCursor"]

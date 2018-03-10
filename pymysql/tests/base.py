@@ -55,13 +55,17 @@ class PyMySQLTestCase(unittest2.TestCase):
         p = self.databases[0].copy()
         p.update(params)
         conn = pymysql.connect(**p)
-        self.addCleanup(conn.close)
+        @self.addCleanup
+        def teardown():
+            if conn.open:
+                conn.close()
         return conn
 
     def _teardown_connections(self):
         if self._connections:
             for connection in self._connections:
-                connection.close()
+                if connection.open:
+                    connection.close()
             self._connections = None
 
     def safe_create_table(self, connection, tablename, ddl, cleanup=True):
