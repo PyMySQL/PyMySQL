@@ -260,8 +260,8 @@ class Cursor(object):
         """
         conn = self._get_db()
         if args:
-            argFmt = '@_{0}_%d=%s'.format(procname)
-            self._query('SET %s' % ','.join(argFmt % (index, conn.escape(arg))
+            fmt = '@_{0}_%d=%s'.format(procname)
+            self._query('SET %s' % ','.join(fmt % (index, conn.escape(arg))
                                             for index, arg in enumerate(args)))
             self.nextset()
 
