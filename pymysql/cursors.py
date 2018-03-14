@@ -262,9 +262,10 @@ class Cursor(object):
         disconnected.
         """
         conn = self._get_db()
-        for index, arg in enumerate(args):
-            q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
-            self._query(q)
+        if args:
+            fmt = '@_{0}_%d=%s'.format(procname)
+            self._query('SET %s' % ','.join(fmt % (index, conn.escape(arg))
+                                            for index, arg in enumerate(args)))
             self.nextset()
 
         q = "CALL %s(%s)" % (procname,
