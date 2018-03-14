@@ -1,3 +1,5 @@
+# vim: sw=2 ts=2 sts=2 expandtab
+
 sudo: required
 language: python
 python:
@@ -21,51 +23,29 @@ matrix:
       python: "2.7"
 
     - env:
-        - DB=5.6.37
-      python: "3.3"
-      addons:
-        apt:
-          packages:
-            - libaio-dev
-            - libnuma-dev
-
-    - env:
-        - DB=5.7.19
+        - DB=5.7
       python: "3.4"
-      addons:
-        apt:
-          packages:
-            - libaio-dev
-            - libnuma-dev
-
+      services:
+        - docker
 
 
 # different py version from 5.6 and 5.7 as cache seems to be based on py version
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
 # really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 install:
-    - export PASSWORD=travis;
-    - pip install -U coveralls unittest2 coverage
+  - pip install -U coveralls unittest2 coverage
 
 before_script:
-    - ./.travis/initializedb.sh
-    - mysql -e 'create database test_pymysql  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
-    - mysql -e 'create database test_pymysql2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
-    - mysql -u root -e "create user travis_pymysql2 identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2;"
-    - mysql -u root -e "create user travis_pymysql2@localhost identified by 'some password'; grant all on test_pymysql2.* to travis_pymysql2@localhost;"
-    - mysql -e 'select VERSION()'
-    - python -VV
-    - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
-    - export COVERALLS_PARALLEL=true
+  - ./.travis/initializedb.sh
+  - python -VV
+  - rm -f ~/.my.cnf # set in .travis.initialize.db.sh for the above commands - we should be using database.json however
+  - export COVERALLS_PARALLEL=true
 
 script:
   - coverage run ./runtests.py
+  - if [ ! -z "${DB}" ];
+    then docker logs mysqld;
+    fi
 
 after_success:
-    - coveralls
-    - cat /tmp/mysql.err
-
-after_failure:
-    - cat /tmp/mysql.err
-
-# vim: sw=2 ts=2 sts=2 expandtab
+  - coveralls
