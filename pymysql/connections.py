@@ -752,6 +752,8 @@ class Connection(object):
                 self._sock.close()
             except:
                 pass
+        if self._rfile:
+            self._rfile.close()
         self._sock = None
         self._rfile = None
 
