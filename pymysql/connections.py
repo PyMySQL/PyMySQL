@@ -1065,6 +1065,8 @@ class Connection(object):
                 break
             except (IOError, OSError) as e:
                 if e.errno == errno.EINTR:
+                    if self._closed:
+                        return
                     continue
                 self._force_close()
                 raise err.OperationalError(
