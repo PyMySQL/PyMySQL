@@ -749,6 +749,7 @@ class Connection(object):
         """Close connection without QUIT message"""
         if self._sock:
             try:
+                self._sock.shutdown(socket.SHUT_RDWR)
                 self._sock.close()
             except:
                 pass
