@@ -97,6 +97,8 @@ class Cursor(object):
             return None
         if not current_result.has_next:
             return None
+        self._result = None
+        self._clear_result()
         conn.next_result(unbuffered=unbuffered)
         self._do_get_result()
         return True
@@ -322,14 +324,23 @@ class Cursor(object):
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
+        self._clear_result()
         conn.query(q)
         self._do_get_result()
         return self.rowcount
 
+    def _clear_result(self):
+        self.rownumber = 0
+        self._result = result = None
+
+        self.rowcount = 0
+        self.description = None
+        self.lastrowid = None
+        self._rows = None
+
     def _do_get_result(self):
         conn = self._get_db()
 
-        self.rownumber = 0
         self._result = result = conn._result
 
         self.rowcount = result.affected_rows
@@ -438,6 +449,7 @@ class SSCursor(Cursor):
     def _query(self, q):
         conn = self._get_db()
         self._last_executed = q
+        self._clear_result()
         conn.query(q, unbuffered=True)
         self._do_get_result()
         return self.rowcount
