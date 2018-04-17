@@ -1087,6 +1087,7 @@ class Connection(object):
                 "MySQL server has gone away (%r)" % (e,))
 
     def _read_query_result(self, unbuffered=False):
+        self._result = None
         if unbuffered:
             try:
                 result = MySQLResult(self)
