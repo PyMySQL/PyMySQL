@@ -447,7 +447,7 @@ class Connection(object):
 
     def _send_authentication(self):
         self.client_flag |= CAPABILITIES
-        if self.server_version.startswith('5'):
+        if int(self.server_version.split('.')[0]) >= 5:
             self.client_flag |= MULTI_RESULTS
 
         if self.user is None:
@@ -520,8 +520,7 @@ class Connection(object):
 
         i += 1
         server_end = data.find(int2byte(0), i)
-        # TODO: is this the correct charset? should it be default_charset?
-        self.server_version = data[i:server_end].decode(self.charset)
+        self.server_version = data[i:server_end].decode('utf-8')
 
         i = server_end + 1
         self.server_thread_id = struct.unpack('<h', data[i:i+2])
