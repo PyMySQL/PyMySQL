@@ -506,13 +506,11 @@ class Connection(object):
         return self.protocol_version
 
     def _get_server_information(self):
+        # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         i = 0
         packet = MysqlPacket(self)
         data = packet.get_all_data()
 
-        if DEBUG: dump_packet(data)
-        #packet_len = byte2int(data[i:i+1])
-        #i += 4
         self.protocol_version = byte2int(data[i:i+1])
 
         i += 1
@@ -535,7 +533,6 @@ class Connection(object):
 
         # Drop server_language and server_charset now.
         # character_set(1) only the lower 8 bits
-        # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         # self.server_language = byte2int(data[i:i+1])
         # self.server_charset = charset_by_id(self.server_language).name
 
