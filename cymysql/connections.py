@@ -21,8 +21,7 @@ DEFAULT_USER = getpass.getuser()
 
 from cymysql.charset import charset_by_name, charset_by_id
 from cymysql.cursors import Cursor
-from cymysql.constants.CLIENT import *
-from cymysql.constants.COMMAND import *
+from cymysql.constants import CLIENT, COMMAND
 from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
@@ -164,7 +163,7 @@ class Connection(object):
         self.ssl = False
         if ssl:
             self.ssl = True
-            client_flag |= SSL
+            client_flag |= CLIENT.SSL
             for k in ('key', 'cert', 'ca'):
                 v = None
                 if k in ssl:
@@ -231,11 +230,11 @@ class Connection(object):
         if use_unicode is not None:
             self.use_unicode = use_unicode
 
-        client_flag |= CAPABILITIES
-        client_flag |= MULTI_STATEMENTS
+        client_flag |= CLIENT.CAPABILITIES
+        client_flag |= CLIENT.MULTI_STATEMENTS
         if self.db:
-            client_flag |= CONNECT_WITH_DB
-        # self.client_flag |= CLIENT_DEPRECATE_EOF
+            client_flag |= CLIENT.CONNECT_WITH_DB
+        # self.client_flag |= CLIENT.CLIENT_DEPRECATE_EOF
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -267,7 +266,7 @@ class Connection(object):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
             raise Error("Already closed")
-        send_data = struct.pack('<i',1) + int2byte(COM_QUIT)
+        send_data = struct.pack('<i',1) + int2byte(COMMAND.COM_QUIT)
         self.socket.sendall(send_data)
         self.socket.close()
         self.socket = None
@@ -279,7 +278,7 @@ class Connection(object):
         else:
             q = "SET AUTOCOMMIT = 0"
         try:
-            self._execute_command(COM_QUERY, q)
+            self._execute_command(COMMAND.COM_QUERY, q)
             self.read_packet()
         except:
             exc,value,tb = sys.exc_info()
@@ -288,7 +287,7 @@ class Connection(object):
     def commit(self):
         ''' Commit changes to stable storage '''
         try:
-            self._execute_command(COM_QUERY, "COMMIT")
+            self._execute_command(COMMAND.COM_QUERY, "COMMIT")
             self.read_packet()
         except:
             exc,value,tb = sys.exc_info()
@@ -297,7 +296,7 @@ class Connection(object):
     def rollback(self):
         ''' Roll back the current transaction '''
         try:
-            self._execute_command(COM_QUERY, "ROLLBACK")
+            self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
             self.read_packet()
         except:
             exc,value,tb = sys.exc_info()
@@ -340,7 +339,7 @@ class Connection(object):
     def query(self, sql):
         if DEBUG:
             print("sending query: %s" % sql)
-        self._execute_command(COM_QUERY, sql)
+        self._execute_command(COMMAND.COM_QUERY, sql)
         self._result = MySQLResult(self)
 
     def next_result(self):
@@ -355,7 +354,7 @@ class Connection(object):
     def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
         try:
-            self._execute_command(COM_PROCESS_KILL, arg)
+            self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
             pkt = self.read_packet()
             return pkt.is_ok_packet()
         except:
@@ -366,7 +365,7 @@ class Connection(object):
     def ping(self, reconnect=True):
         ''' Check if the server is alive '''
         try:
-            self._execute_command(COM_PING, "")
+            self._execute_command(COMMAND.COM_PING, "")
         except:
             if reconnect:
                 self._connect()
@@ -382,7 +381,7 @@ class Connection(object):
     def set_charset(self, charset):
         try:
             if charset:
-                self._execute_command(COM_QUERY, "SET NAMES %s" %
+                self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" %
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
@@ -443,7 +442,7 @@ class Connection(object):
         
     def _request_authentication(self):
         if int(self.server_version.split('.')[0]) >= 5:
-            self.client_flag |= MULTI_RESULTS
+            self.client_flag |= CLIENT.MULTI_RESULTS
 
         if self.user is None:
             raise ValueError("Did not specify a username")
