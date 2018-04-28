@@ -443,7 +443,6 @@ class Connection(object):
         self._send_command(command, sql)
         
     def _request_authentication(self):
-        self.client_flag |= CAPABILITIES
         if int(self.server_version.split('.')[0]) >= 5:
             self.client_flag |= MULTI_RESULTS
 
