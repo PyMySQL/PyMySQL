@@ -74,19 +74,17 @@ def dump_packet(data):
     print("-" * 88)
     print("")
 
-def _scramble(password, message):
+
+def _mysql_native_password_scramble(password, message):
     if password == None or len(password) == 0:
         return int2byte(0)
-    if DEBUG: print('password=' + password)
-    stage1 = sha_new(password).digest()
+    message2 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
     s.update(message)
     s.update(stage2)
-    result = s.digest()
-    return _my_crypt(result, stage1)
+    message1 = s.digest()
 
-def _my_crypt(message1, message2):
     length = len(message1)
     result = struct.pack('B', length)
     for i in range(length):
@@ -94,6 +92,7 @@ def _my_crypt(message1, message2):
              struct.unpack('B', message2[i:i+1])[0])
         result += struct.pack('B', x)
     return result
+
 
 class Connection(object):
     """
@@ -469,7 +468,9 @@ class Connection(object):
                                           cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
 
-        data = data_init + user+int2byte(0) + _scramble(self.password.encode(self.charset), self.salt)
+        data = data_init + user+int2byte(0) + _mysql_native_password_scramble(
+            self.password.encode(self.charset), self.salt
+        )
 
         if self.db:
             data += self.db.encode(self.charset) + int2byte(0)
