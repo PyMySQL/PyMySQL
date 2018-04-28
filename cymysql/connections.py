@@ -78,7 +78,7 @@ def _mysql_native_password_scramble(password, message):
     if password == None or len(password) == 0:
         return int2byte(0)
     message2 = sha_new(password).digest()
-    stage2 = sha_new(stage1).digest()
+    stage2 = sha_new(message2).digest()
     s = sha_new()
     s.update(message)
     s.update(stage2)
