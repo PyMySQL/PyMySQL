@@ -535,8 +535,12 @@ class Connection(object):
         self.server_capabilities = struct.unpack('<h', data[i:i+2])[0]
 
         i += 1
-        self.server_language = byte2int(data[i:i+1])
-        self.server_charset = charset_by_id(self.server_language).name
+
+        # Drop server_language and server_charset now.
+        # character_set(1) only the lower 8 bits
+        # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
+        # self.server_language = byte2int(data[i:i+1])
+        # self.server_charset = charset_by_id(self.server_language).name
 
         i += 16
         if len(data) >= i+12-1:
