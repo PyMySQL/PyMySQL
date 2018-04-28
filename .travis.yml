@@ -5,43 +5,41 @@ language: python
 python:
   - "3.7-dev"
   - "3.6"
+services:
+  - docker
 
 cache: pip
 
 matrix:
   include:
-    - addons:
-        mariadb: 5.5
-      python: "3.5"
-
-    - addons:
-        mariadb: 10.1
-      python: "pypy"
-
-    - addons:
-        mariadb: 10.2
-      python: "2.7"
-
     - env:
         - DB=mtirsel/mysql-5.1
       python: "2.7"
-      services:
-        - docker
     - env:
         - DB=mysql:5.5
       python: "3.5"
-      services:
-        - docker
     - env:
         - DB=mysql:5.6
       python: "3.6"
-      services:
-        - docker
     - env:
         - DB=mysql:5.7
       python: "3.4"
-      services:
-        - docker
+    - env:
+        - DB=mysql:8.0
+      python: "3.7-dev"
+    - env:
+        - DB=mariadb:5.5
+      python: "3.5"
+    - env:
+        - DB=mariadb:10.1
+      python: "pypy"
+    - env:
+        - DB=mariadb:10.2
+      python: "2.7"
+    - env:
+        - DB=mariadb:10.3
+      python: "3.6"
+
 
 # different py version from 5.6 and 5.7 as cache seems to be based on py version
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
