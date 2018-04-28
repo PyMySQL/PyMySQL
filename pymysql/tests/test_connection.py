@@ -96,8 +96,12 @@ class TestAuthentication(base.PyMySQLTestCase):
         #    print("plugin: %r" % r[0])
 
     def test_plugin(self):
-        # Bit of an assumption that the current user is a native password
-        self.assertEqual('mysql_native_password', self.connections[0]._auth_plugin_name)
+        if not self.mysql_server_is(self.connections[0], (5, 5, 0)):
+            raise unittest2.SkipTest("MySQL-5.5 required for plugins")
+        cur = self.connections[0].cursor()
+        cur.execute("select plugin from mysql.user where concat(user, '@', host)=current_user()")
+        for r in cur:
+            self.assertIn(self.connections[0]._auth_plugin_name, (r[0], 'mysql_native_password'))
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipIf(socket_found, "socket plugin already installed")
