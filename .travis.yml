@@ -2,6 +2,9 @@
 
 sudo: required
 language: python
+services:
+  - docker
+
 python:
   - "3.7-dev"
   - "3.6"
@@ -13,21 +16,21 @@ matrix:
     - addons:
         mariadb: 5.5
       python: "3.5"
-
     - addons:
         mariadb: 10.1
       python: "pypy"
-
     - addons:
         mariadb: 10.2
       python: "2.7"
-
     - env:
-        - DB=5.7
+        - DB=mysql:5.5
+      python: "3.5"
+    - env:
+        - DB=mysql:5.6
+      python: "3.6"
+    - env:
+        - DB=mysql:5.7
       python: "3.4"
-      services:
-        - docker
-
 
 # different py version from 5.6 and 5.7 as cache seems to be based on py version
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
