@@ -443,7 +443,7 @@ class TestConnection(base.PyMySQLTestCase):
         with self.assertRaises(ValueError):
             c = self.connect()
             with c as cur:
-                cur.execute('create table test ( a int )')
+                cur.execute('create table test ( a int ) ENGINE=InnoDB')
                 c.begin()
                 cur.execute('insert into test values ((1))')
                 raise ValueError('pseudo abort')
