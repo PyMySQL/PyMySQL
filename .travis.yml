@@ -5,23 +5,25 @@ language: python
 services:
   - docker
 
-python:
-  - "3.7-dev"
-  - "3.6"
-
 cache: pip
 
 matrix:
   include:
-    - addons:
-        mariadb: 5.5
+    - env:
+        - DB=mariadb:5.5
       python: "3.5"
-    - addons:
-        mariadb: 10.1
+    - env:
+        - DB=mariadb:10.0
+      python: "3.6"
+    - env:
+        - DB=mariadb:10.1
       python: "pypy"
-    - addons:
-        mariadb: 10.2
+    - env:
+        - DB=mariadb:10.2
       python: "2.7"
+    - env:
+        - DB=mariadb:10.3
+      python: "3.7-dev"
     - env:
         - DB=mysql:5.5
       python: "3.5"
