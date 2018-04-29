@@ -32,6 +32,11 @@ if [ ! -z "${DB}" ]; then
     if [ $DB == 'mysql:8.0' ]; then
         WITH_PLUGIN='with mysql_native_password'
         mysql -e 'SET GLOBAL local_infile=on'
+        docker cp mysqld:/var/lib/mysql/public_key.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/ca.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/server-cert.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/client-key.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/client-cert.pem "${HOME}"
     else
         WITH_PLUGIN=''
     fi
