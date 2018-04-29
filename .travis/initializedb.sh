@@ -19,15 +19,13 @@ if [ ! -z "${DB}" ]; then
     while :
     do
         sleep 5
-        mysql -uroot -h 127.0.0.1 -P 3306 -e 'select version()'
+        mysql -e 'select version()'
         if [ $? = 0 ]; then
             break
         fi
         echo "server logs"
         docker logs --tail 5 mysqld
     done
-
-    echo -e "[client]\nhost = 127.0.0.1\n" > "${HOME}"/.my.cnf
 
     mysql -e 'select VERSION()'
     mysql -uroot -e 'create database test1 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
