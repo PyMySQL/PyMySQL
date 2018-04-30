@@ -443,7 +443,7 @@ class TestConnection(base.PyMySQLTestCase):
         with self.assertRaises(ValueError):
             c = self.connect()
             with c as cur:
-                cur.execute('create table test ( a int )')
+                cur.execute('create table test ( a int ) ENGINE=InnoDB')
                 c.begin()
                 cur.execute('insert into test values ((1))')
                 raise ValueError('pseudo abort')
@@ -471,6 +471,7 @@ class TestConnection(base.PyMySQLTestCase):
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(d['unix_socket'])
         except KeyError:
+            sock.close()
             sock = socket.create_connection(
                             (d.get('host', 'localhost'), d.get('port', 3306)))
         for k in ['unix_socket', 'host', 'port']:
