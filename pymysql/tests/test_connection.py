@@ -510,7 +510,11 @@ class TestEscape(base.PyMySQLTestCase):
 
         self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
         # added NO_AUTO_CREATE_USER as not including it in 5.7 generates warnings
-        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES,NO_AUTO_CREATE_USER'")
+        # mysql-8.0 removes the option however
+        if self.mysql_server_is(con, (8, 0, 0)):
+            cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        else:
+            cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES,NO_AUTO_CREATE_USER'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
     def test_escape_builtin_encoders(self):
