@@ -465,7 +465,8 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         else:
             cur.execute(query)
         row = cur.fetchone()
-        self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)", ))
+        self.assertIn(row, ( ("LINESTRING(1.1 1.1,2.2 2.2)", ),
+                             (b"LINESTRING(1.1 1.1,2.2 2.2)", ) ))
 
         # select WKB
         query = "SELECT AsBinary(geom) FROM issue363"
