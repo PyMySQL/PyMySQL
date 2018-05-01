@@ -460,9 +460,8 @@ class Connection(object):
         auth_packet = MysqlPacket(self)
 
         if auth_packet.is_eof_packet():
-            raise NotImplementedError(
-                "Authentication with method '%s' is failed" % (self.auth_plugin_name)
-            )
+            #  https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+            raise NotImplementedError("AuthSwitchRequest is not implemented")
 
     # _mysql support
     def thread_id(self):
