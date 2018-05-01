@@ -30,8 +30,6 @@ from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
 
-DEBUG = False
-
 DEFAULT_CHARSET = 'utf8'
 
 def byte2int(b):
@@ -40,11 +38,13 @@ def byte2int(b):
     else:
         return ord(b)
 
+
 def int2byte(i):
     if PYTHON3:
         return bytes([i])
     else:
         return chr(i)
+
 
 def pack_int24(n):
     if PYTHON3:
@@ -52,31 +52,10 @@ def pack_int24(n):
     else:
         return chr(n&0xFF) + chr((n>>8)&0xFF) + chr((n>>16)&0xFF)
 
-def dump_packet(data):
-    
-    def is_ascii(data):
-        if byte2int(data) >= 65 and byte2int(data) <= 122: #data.isalnum():
-            return data
-        return '.'
-    print("packet length %d" % len(data))
-    print("method call[1]: %s" % sys._getframe(1).f_code.co_name)
-    print("method call[2]: %s" % sys._getframe(2).f_code.co_name)
-    print("method call[3]: %s" % sys._getframe(3).f_code.co_name)
-    print("method call[4]: %s" % sys._getframe(4).f_code.co_name)
-    print("method call[5]: %s" % sys._getframe(5).f_code.co_name)
-    print("-" * 88)
-    dump_data = [data[i:i+16] for i in range(len(data)) if i%16 == 0]
-    for d in dump_data:
-        print(' '.join(map(lambda x:"%02X" % byte2int(x), d)) + \
-                '   ' * (16 - len(d)) + ' ' * 2 + \
-                ' '.join(map(lambda x:"%s" % is_ascii(x), d)))
-    print("-" * 88)
-    print("")
-
 
 def _mysql_native_password_scramble(password, message):
     if password == None or len(password) == 0:
-        return int2byte(0)
+        return b''
     message2 = sha_new(password).digest()
     stage2 = sha_new(message2).digest()
     s = sha_new()
@@ -337,8 +316,6 @@ class Connection(object):
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql):
-        if DEBUG:
-            print("sending query: %s" % sql)
         self._execute_command(COMMAND.COM_QUERY, sql)
         self._result = MySQLResult(self)
 
@@ -399,11 +376,9 @@ class Connection(object):
                 sock.connect(self.unix_socket)
                 sock.settimeout(t)
                 self.host_info = "Localhost via UNIX socket"
-                if DEBUG: print('connected using unix_socket')
             else:
                 sock = socket.create_connection((self.host, self.port), self.connect_timeout)
                 self.host_info = "socket %s:%d" % (self.host, self.port)
-                if DEBUG: print('connected using socket')
         except socket.error as e:
             if sock:
                 sock.close()
@@ -423,9 +398,7 @@ class Connection(object):
         else:
             return 0
 
-    def _send_command(self, command, sql):
-        #send_data = struct.pack('<i', len(sql) + 1) + command + sql
-        # could probably be more efficient, at least it's correct
+    def _execute_command(self, command, sql):
         if not self.socket:
             self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
@@ -435,15 +408,8 @@ class Connection(object):
 
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self.socket.sendall(prelude + sql)
-        if DEBUG: dump_packet(prelude + sql)
 
-    def _execute_command(self, command, sql):
-        self._send_command(command, sql)
-        
     def _request_authentication(self):
-        if int(self.server_version.split('.')[0]) >= 5:
-            self.client_flag |= CLIENT.MULTI_RESULTS
-
         if self.user is None:
             raise ValueError("Did not specify a username")
 
@@ -455,41 +421,44 @@ class Connection(object):
 
         next_packet = 1
 
-        if self.ssl:
+        if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
-            next_packet += 1
-
-            if DEBUG: dump_packet(data)
-
             self.socket.sendall(data)
+            next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
                                           cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
 
-        data = data_init + user+int2byte(0) + _mysql_native_password_scramble(
-            self.password.encode(self.charset), self.salt
-        )
+        data = data_init + user + int2byte(0)
 
-        if self.db:
+        authresp = b''
+        if self.auth_plugin_name in ('', 'mysql_native_password'):
+            authresp = _mysql_native_password_scramble(
+                self.password.encode(self.charset), self.salt
+            )
+
+        if self.server_capabilities & CLIENT.SECURE_CONNECTION:
+            data += struct.pack('B', len(authresp)) + authresp
+        else:
+            data += authresp + int2byte(0)
+
+        if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
             data += self.db.encode(self.charset) + int2byte(0)
+
+        if self.server_capabilities & CLIENT.PLUGIN_AUTH:
+            data += self.auth_plugin_name.encode(self.charset) + int2byte(0)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
-        if DEBUG: dump_packet(data)
-
         self.socket.sendall(data)
         auth_packet = MysqlPacket(self)
 
-        if DEBUG: dump_packet(auth_packet.get_all_data())
-
-        # if old_passwords is enabled the packet will be 1 byte long and
-        # have the octet 254
-
         if auth_packet.is_eof_packet():
-            # send legacy handshake
-            raise NotImplementedError("old_passwords are not supported. Check to see if mysqld was started with --old-passwords, if old-passwords=1 in a my.cnf file, or if there are some short hashes in your mysql.user table.")
+            raise NotImplementedError(
+                "Authentication method '%s' is not implemented" % (self.auth_plugin_name)
+            )
 
     # _mysql support
     def thread_id(self):
@@ -511,30 +480,39 @@ class Connection(object):
         data = packet.get_all_data()
 
         self.protocol_version = byte2int(data[i:i+1])
-
         i += 1
-        server_end = data.find(int2byte(0), i)
-        self.server_version = data[i:server_end].decode('utf-8')
-
-        i = server_end + 1
+        str_end = data.find(int2byte(0), i)
+        self.server_version = data[i:str_end].decode('utf-8')
+        i = str_end + 1
         self.server_thread_id = struct.unpack('<I', data[i:i+4])
-
         i += 4
         self.salt = data[i:i+8]
-
         i += 9
         self.server_capabilities = struct.unpack('<H', data[i:i+2])[0]
         i += 2
 
-        # Drop server_language and server_charset now.
-        # character_set(1) only the lower 8 bits
-        # self.server_language = byte2int(data[i:i+1])
-        # self.server_charset = charset_by_id(self.server_language).name
+        self.server_status = None
+        self.auth_plugin_name = ''
+        if len(data) > i:
+            # Drop server_language and server_charset now.
+            # character_set(1) only the lower 8 bits
+            # self.server_language = byte2int(data[i:i+1])
+            # self.server_charset = charset_by_id(self.server_language).name
+            i += 1
+            self.server_status = struct.unpack('<H', data[i:i+2])[0]
+            i += 2
+            self.server_capabilities |= (struct.unpack('<H', data[i:i+2])[0]) << 16
+            i += 2
 
-        i += 16
-        if len(data) >= i+12-1:
-            rest_salt = data[i:i+12]
-            self.salt += rest_salt
+            salt_len = byte2int(data[i:i+1])
+            i += 1
+
+            i += 10     # reserverd
+            if salt_len:
+                rest_salt_len = max(13, salt_len-8)
+                self.salt += data[i:i+rest_salt_len]
+                i += rest_salt_len
+            self.auth_plugin_name = data[i:data.find(int2byte(0), i)].decode('utf-8')
 
     def get_server_info(self):
         return self.server_version
