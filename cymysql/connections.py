@@ -437,6 +437,10 @@ class Connection(object):
             authresp = _mysql_native_password_scramble(
                 self.password.encode(self.charset), self.salt
             )
+        else:
+            raise NotImplementedError(
+                "Authentication method '%s' is not implemented" % (self.auth_plugin_name)
+            )
 
         if self.server_capabilities & CLIENT.SECURE_CONNECTION:
             data += struct.pack('B', len(authresp)) + authresp
@@ -457,7 +461,7 @@ class Connection(object):
 
         if auth_packet.is_eof_packet():
             raise NotImplementedError(
-                "Authentication method '%s' is not implemented" % (self.auth_plugin_name)
+                "Authentication with method '%s' is failed" % (self.auth_plugin_name)
             )
 
     # _mysql support
