@@ -524,6 +524,8 @@ class Connection(object):
         the interface from which to connect to the host. Argument can be
         a hostname or an IP address.
     :param unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
+    :param read_timeout: The timeout for reading from the connection in seconds (default: None - no timeout)
+    :param write_timeout: The timeout for writing to the connection in seconds (default: None - no timeout)
     :param charset: Charset you want to use.
     :param sql_mode: Default SQL_MODE to use.
     :param read_default_file:
