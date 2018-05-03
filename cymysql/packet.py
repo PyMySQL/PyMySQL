@@ -178,6 +178,12 @@ class MysqlPacket(object):
                 None if insert_id < 0 else insert_id,
                 server_status, warning_count, message)
 
+    def read_auth_switch_request(self):
+        data = self.get_all_data()
+        i = data.find(b'\0', 1)
+        plugin_name = data[1:i].decode('utf-8')
+        return plugin_name, data[i+1:]
+
 
 class FieldDescriptorPacket(MysqlPacket):
     """A MysqlPacket that represents a specific column's metadata in the result.

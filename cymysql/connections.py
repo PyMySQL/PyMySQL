@@ -3,6 +3,7 @@
 
 import hashlib
 sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
+sha256_new = lambda *args, **kwargs: hashlib.new("sha256", *args, **kwargs)
 
 import socket
 import ssl
@@ -53,9 +54,10 @@ def pack_int24(n):
         return chr(n&0xFF) + chr((n>>8)&0xFF) + chr((n>>16)&0xFF)
 
 
-def _mysql_native_password_scramble(password, message):
-    SCRAMBLE_LENGTH = 20
+SCRAMBLE_LENGTH = 20
 
+
+def _mysql_native_password_scramble(password, message):
     if password == None or len(password) == 0:
         return b''
     message2 = sha_new(password).digest()
@@ -64,6 +66,22 @@ def _mysql_native_password_scramble(password, message):
     s.update(message[:SCRAMBLE_LENGTH])
     s.update(stage2)
     message1 = s.digest()
+
+    length = len(message1)
+    result = b''
+    for i in range(length):
+        x = (struct.unpack('B', message1[i:i+1])[0] ^ \
+             struct.unpack('B', message2[i:i+1])[0])
+        result += struct.pack('B', x)
+    return result
+
+
+def _caching_sha2_password_scramble(password, nonce):
+    message1 = sha256_new(password).digest()
+    s = sha256_new()
+    s.update(sha256_new(sha256_new(password).digest()).digest())
+    s.update(nonce[:SCRAMBLE_LENGTH])
+    message2 = s.digest()
 
     length = len(message1)
     result = b''
@@ -434,15 +452,16 @@ class Connection(object):
 
         data = data_init + user + int2byte(0)
 
-        authresp = b''
         if self.auth_plugin_name in ('', 'mysql_native_password'):
             authresp = _mysql_native_password_scramble(
                 self.password.encode(self.charset), self.salt
             )
+        # elif self.auth_plugin_name == 'caching_sha2_password':
+        #     authresp = _caching_sha2_password_scramble(
+        #         self.password.encode(self.charset), self.salt
+        #     )
         else:
-            raise NotImplementedError(
-                "Authentication method '%s' is not implemented" % (self.auth_plugin_name)
-            )
+            authresp = b''
 
         if self.server_capabilities & CLIENT.SECURE_CONNECTION:
             data += struct.pack('B', len(authresp)) + authresp
@@ -462,8 +481,22 @@ class Connection(object):
         auth_packet = MysqlPacket(self)
 
         if auth_packet.is_eof_packet():
-            #  https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-            raise NotImplementedError("AuthSwitchRequest is not implemented")
+            # AuthSwitchRequest
+            # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+            self.auth_plugin_name, self.salt = auth_packet.read_auth_switch_request()
+            if self.auth_plugin_name == 'mysql_native_password':
+                data = _mysql_native_password_scramble(
+                    self.password.encode(self.charset), self.salt
+                )
+            else:
+                raise NotImplementedError(
+                    "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
+                )
+
+            data = pack_int24(len(data)) + int2byte(next_packet) + data
+            next_packet += 2
+            self.socket.sendall(data)
+            auth_switch_response = MysqlPacket(self)
 
     # _mysql support
     def thread_id(self):

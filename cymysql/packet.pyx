@@ -183,6 +183,14 @@ cdef class MysqlPacket(object):
                 None if insert_id < 0 else insert_id,
                 server_status, warning_count, message)
 
+    cdef read_auth_switch_request(self):
+        cdef int i
+        cdef data, plugin_name
+        data = self.get_all_data()
+        i = data.find(b'\0', 1)
+        plugin_name = data[1:i].decode('utf-8')
+        return plugin_name, data[i+1:]
+
 
 cdef class FieldDescriptorPacket(MysqlPacket):
     """A MysqlPacket that represents a specific column's metadata in the result.
