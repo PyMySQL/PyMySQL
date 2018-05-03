@@ -54,17 +54,19 @@ def pack_int24(n):
 
 
 def _mysql_native_password_scramble(password, message):
+    SCRAMBLE_LENGTH = 20
+
     if password == None or len(password) == 0:
         return b''
     message2 = sha_new(password).digest()
     stage2 = sha_new(message2).digest()
     s = sha_new()
-    s.update(message)
+    s.update(message[:SCRAMBLE_LENGTH])
     s.update(stage2)
     message1 = s.digest()
 
     length = len(message1)
-    result = struct.pack('B', length)
+    result = b''
     for i in range(length):
         x = (struct.unpack('B', message1[i:i+1])[0] ^ \
              struct.unpack('B', message2[i:i+1])[0])
