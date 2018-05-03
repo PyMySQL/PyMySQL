@@ -456,10 +456,10 @@ class Connection(object):
             authresp = _mysql_native_password_scramble(
                 self.password.encode(self.charset), self.salt
             )
-        # elif self.auth_plugin_name == 'caching_sha2_password':
-        #     authresp = _caching_sha2_password_scramble(
-        #         self.password.encode(self.charset), self.salt
-        #     )
+        elif self.auth_plugin_name == 'caching_sha2_password':
+            authresp = _caching_sha2_password_scramble(
+                self.password.encode(self.charset), self.salt
+            )
         else:
             authresp = b''
 
@@ -497,6 +497,9 @@ class Connection(object):
             next_packet += 2
             self.socket.sendall(data)
             auth_switch_response = MysqlPacket(self)
+        elif self.auth_plugin_name == 'caching_sha2_password':
+            assert auth_packet.get_all_data() == b'\x01\x03'    # fast_auth_success
+            MysqlPacket(self)
 
     # _mysql support
     def thread_id(self):
