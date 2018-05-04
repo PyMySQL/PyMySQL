@@ -526,7 +526,6 @@ class Connection(object):
                     data = pack_int24(len(data)) + int2byte(next_packet) + data
                     next_packet += 2
                     self.socket.sendall(data)
-                    MysqlPacket(self)
             else:
                 assert auth_packet.get_all_data() == b'\x01\x03'    # fast_auth_success
             MysqlPacket(self)
