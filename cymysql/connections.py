@@ -497,7 +497,18 @@ class Connection(object):
             self.socket.sendall(data)
             auth_switch_response = MysqlPacket(self)
         elif self.auth_plugin_name == 'caching_sha2_password':
-            assert auth_packet.get_all_data() == b'\x01\x03'    # fast_auth_success
+            # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
+            if auth_packet.get_all_data() == b'\x01\x04':   # perform_full_authentication
+                if not self.ssl:
+                    raise NotImplementedError(
+                        "caching_sha2_password full authentication sequence need ssl connection."
+                    )
+                data = self.password.encode(self.charset) + b'\x00'
+                data = pack_int24(len(data)) + int2byte(next_packet) + data
+                next_packet += 2
+                self.socket.sendall(data)
+            else:
+                assert auth_packet.get_all_data() == b'\x01\x03'    # fast_auth_success
             MysqlPacket(self)
 
     # _mysql support
