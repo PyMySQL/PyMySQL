@@ -499,14 +499,34 @@ class Connection(object):
         elif self.auth_plugin_name == 'caching_sha2_password':
             # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
             if auth_packet.get_all_data() == b'\x01\x04':   # perform_full_authentication
-                if not self.ssl:
+                if self.ssl:
+                    data = self.password.encode(self.charset) + b'\x00'
+                    data = pack_int24(len(data)) + int2byte(next_packet) + data
+                    next_packet += 2
+                    self.socket.sendall(data)
+                else:
                     raise NotImplementedError(
                         "caching_sha2_password full authentication sequence need ssl connection."
                     )
-                data = self.password.encode(self.charset) + b'\x00'
-                data = pack_int24(len(data)) + int2byte(next_packet) + data
-                next_packet += 2
-                self.socket.sendall(data)
+
+                    # request_public_key
+                    data = b'\x02'
+                    data = pack_int24(len(data)) + int2byte(next_packet) + data
+                    next_packet += 2
+                    self.socket.sendall(data)
+                    response = MysqlPacket(self)
+                    public_pem = response.get_all_data()[1:]
+
+                    # TODO: something wrong
+                    from Crypto.PublicKey import RSA
+                    from Crypto.Cipher import PKCS1_OAEP
+                    key = RSA.importKey(public_pem)
+                    cipher = PKCS1_OAEP.new(key)
+                    data = cipher.encrypt(self.password.encode(self.charset) + b'\x00')
+                    data = pack_int24(len(data)) + int2byte(next_packet) + data
+                    next_packet += 2
+                    self.socket.sendall(data)
+                    MysqlPacket(self)
             else:
                 assert auth_packet.get_all_data() == b'\x01\x03'    # fast_auth_success
             MysqlPacket(self)
