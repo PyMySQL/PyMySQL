@@ -505,10 +505,6 @@ class Connection(object):
                     next_packet += 2
                     self.socket.sendall(data)
                 else:
-                    raise NotImplementedError(
-                        "caching_sha2_password full authentication sequence need ssl connection."
-                    )
-
                     # request_public_key
                     data = b'\x02'
                     data = pack_int24(len(data)) + int2byte(next_packet) + data
@@ -517,12 +513,17 @@ class Connection(object):
                     response = MysqlPacket(self)
                     public_pem = response.get_all_data()[1:]
 
-                    # TODO: something wrong
                     from Crypto.PublicKey import RSA
                     from Crypto.Cipher import PKCS1_OAEP
                     key = RSA.importKey(public_pem)
                     cipher = PKCS1_OAEP.new(key)
-                    data = cipher.encrypt(self.password.encode(self.charset) + b'\x00')
+                    password = (self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH)[:SCRAMBLE_LENGTH]
+                    data = b''
+                    for i in range(SCRAMBLE_LENGTH):
+                        x = (struct.unpack('B', password[i:i+1])[0] ^ \
+                             struct.unpack('B', self.salt[i:i+1])[0])
+                        data += struct.pack('B', x)
+                    data = cipher.encrypt(data)
                     data = pack_int24(len(data)) + int2byte(next_packet) + data
                     next_packet += 2
                     self.socket.sendall(data)
