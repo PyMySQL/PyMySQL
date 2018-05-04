@@ -129,6 +129,8 @@ MySQL Reference Manuals: http://dev.mysql.com/doc/
 MySQL client/server protocol:
 http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
+"Connector" channel in MySQL Community Slack: http://lefred.be/mysql-community-on-slack/
+
 PyMySQL mailing list: https://groups.google.com/forum/#!forum/pymysql-users
 
 License

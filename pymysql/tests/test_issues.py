@@ -36,7 +36,7 @@ class TestOldIssues(base.PyMySQLTestCase):
             c.execute("select dt from issue3")
             self.assertEqual(None, c.fetchone()[0])
             c.execute("select ts from issue3")
-            self.assertTrue(isinstance(c.fetchone()[0], datetime.datetime))
+            self.assertIn(type(c.fetchone()[0]), (type(None), datetime.datetime), 'expected Python type None or datetime from SQL timestamp')
         finally:
             c.execute("drop table issue3")
 
@@ -409,11 +409,11 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
     def test_issue_364(self):
         """ Test mixed unicode/binary arguments in executemany. """
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = pymysql.connect(charset="utf8mb4", **self.databases[0])
         self.safe_create_table(
             conn, "issue364",
             "create table issue364 (value_1 binary(3), value_2 varchar(3)) "
-            "engine=InnoDB default charset=utf8")
+            "engine=InnoDB default charset=utf8mb4")
 
         sql = "insert into issue364 (value_1, value_2) values (_binary %s, %s)"
         usql = u"insert into issue364 (value_1, value_2) values (_binary %s, %s)"
@@ -443,37 +443,33 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.safe_create_table(
             conn, "issue363",
             "CREATE TABLE issue363 ( "
-            "id INTEGER PRIMARY KEY, geom LINESTRING NOT NULL, "
+            "id INTEGER PRIMARY KEY, geom LINESTRING NOT NULL /*!80003 SRID 0 */, "
             "SPATIAL KEY geom (geom)) "
-            "ENGINE=MyISAM default charset=utf8")
+            "ENGINE=MyISAM")
 
         cur = conn.cursor()
-        query = ("INSERT INTO issue363 (id, geom) VALUES"
-                 "(1998, GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))")
         # From MySQL 5.7, ST_GeomFromText is added and GeomFromText is deprecated.
         if self.mysql_server_is(conn, (5, 7, 0)):
-            with self.assertWarns(pymysql.err.Warning) as cm:
-                cur.execute(query)
+            geom_from_text = "ST_GeomFromText"
+            geom_as_text = "ST_AsText"
+            geom_as_bin = "ST_AsBinary"
         else:
-            cur.execute(query)
+            geom_from_text = "GeomFromText"
+            geom_as_text = "AsText"
+            geom_as_bin = "AsBinary"
+        query = ("INSERT INTO issue363 (id, geom) VALUES"
+                 "(1998, %s('LINESTRING(1.1 1.1,2.2 2.2)'))" % geom_from_text)
+        cur.execute(query)
 
         # select WKT
-        query = "SELECT AsText(geom) FROM issue363"
-        if self.mysql_server_is(conn, (5, 7, 0)):
-            with self.assertWarns(pymysql.err.Warning) as cm:
-                cur.execute(query)
-        else:
-            cur.execute(query)
+        query = "SELECT %s(geom) FROM issue363" % geom_as_text
+        cur.execute(query)
         row = cur.fetchone()
         self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)", ))
 
         # select WKB
-        query = "SELECT AsBinary(geom) FROM issue363"
-        if self.mysql_server_is(conn, (5, 7, 0)):
-            with self.assertWarns(pymysql.err.Warning) as cm:
-                cur.execute(query)
-        else:
-            cur.execute(query)
+        query = "SELECT %s(geom) FROM issue363" % geom_as_bin
+        cur.execute(query)
         row = cur.fetchone()
         self.assertEqual(row,
                          (b"\x01\x02\x00\x00\x00\x02\x00\x00\x00"
