@@ -447,7 +447,6 @@ class Connection(object):
             next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
-                                          cert_reqs=ssl.CERT_REQUIRED,
                                           ca_certs=self.ca)
 
         data = data_init + user + int2byte(0)
