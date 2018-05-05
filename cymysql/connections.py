@@ -77,6 +77,8 @@ def _mysql_native_password_scramble(password, message):
 
 
 def _caching_sha2_password_scramble(password, nonce):
+    if password == None or len(password) == 0:
+        return b''
     message1 = sha256_new(password).digest()
     s = sha256_new()
     s.update(sha256_new(sha256_new(password).digest()).digest())
