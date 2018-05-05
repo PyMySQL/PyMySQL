@@ -30,7 +30,7 @@ from cymysql.err import Warning, Error, InterfaceError, DataError, \
 from cymysql.times import Date, Time, Timestamp, \
     DateFromTicks, TimeFromTicks, TimestampFromTicks
 
-VERSION = (0, 9, 5)
+VERSION = (0, 9, 6)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
