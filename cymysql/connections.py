@@ -460,7 +460,9 @@ class Connection(object):
                 self.password.encode(self.charset), self.salt
             )
         else:
-            authresp = b''
+            raise NotImplementedError(
+                "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
+            )
 
         if self.server_capabilities & CLIENT.SECURE_CONNECTION:
             data += struct.pack('B', len(authresp)) + authresp
