@@ -436,6 +436,22 @@ class Connection(object):
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self.socket.sendall(prelude + sql)
 
+    def _scramble(self):
+        if self.auth_plugin_name in ('', 'mysql_native_password'):
+            data = _mysql_native_password_scramble(
+                self.password.encode(self.charset), self.salt
+            )
+        elif self.auth_plugin_name == 'caching_sha2_password':
+            data = _caching_sha2_password_scramble(
+                self.password.encode(self.charset), self.salt
+            )
+        else:
+            raise NotImplementedError(
+                "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
+            )
+        return data
+
+
     def _request_authentication(self):
         if self.user is None:
             raise ValueError("Did not specify a username")
@@ -460,19 +476,7 @@ class Connection(object):
                                           ca_certs=self.ca)
 
         data = data_init + user + int2byte(0)
-
-        if self.auth_plugin_name in ('', 'mysql_native_password'):
-            authresp = _mysql_native_password_scramble(
-                self.password.encode(self.charset), self.salt
-            )
-        elif self.auth_plugin_name == 'caching_sha2_password':
-            authresp = _caching_sha2_password_scramble(
-                self.password.encode(self.charset), self.salt
-            )
-        else:
-            raise NotImplementedError(
-                "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
-            )
+        authresp = self._scramble()
 
         if self.server_capabilities & CLIENT.SECURE_CONNECTION:
             data += int2byte(len(authresp)) + authresp
@@ -495,18 +499,7 @@ class Connection(object):
             # AuthSwitchRequest
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             self.auth_plugin_name, self.salt = auth_packet.read_auth_switch_request()
-            if self.auth_plugin_name == 'mysql_native_password':
-                data = _mysql_native_password_scramble(
-                    self.password.encode(self.charset), self.salt
-                )
-            elif self.auth_plugin_name == 'caching_sha2_password':
-                data = _caching_sha2_password_scramble(
-                    self.password.encode(self.charset), self.salt
-                )
-            else:
-                raise NotImplementedError(
-                    "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
-                )
+            data = self._scramble()
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
             self.socket.sendall(data)
