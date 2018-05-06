@@ -57,6 +57,13 @@ def pack_int24(n):
 SCRAMBLE_LENGTH = 20
 
 
+def _xor(data1, data2):
+    assert len(data1) == len(data2)
+    return bytes(
+        [byte2int(data1[i:i+1]) ^ byte2int(data2[i:i+1]) for i in range(len(data1))]
+    )
+
+
 def _mysql_native_password_scramble(password, message):
     if password == None or len(password) == 0:
         return b''
@@ -66,14 +73,7 @@ def _mysql_native_password_scramble(password, message):
     s.update(message[:SCRAMBLE_LENGTH])
     s.update(stage2)
     message1 = s.digest()
-
-    length = len(message1)
-    result = b''
-    for i in range(length):
-        x = (struct.unpack('B', message1[i:i+1])[0] ^ \
-             struct.unpack('B', message2[i:i+1])[0])
-        result += struct.pack('B', x)
-    return result
+    return _xor(message1, message2)
 
 
 def _caching_sha2_password_scramble(password, nonce):
@@ -84,14 +84,7 @@ def _caching_sha2_password_scramble(password, nonce):
     s.update(sha256_new(sha256_new(password).digest()).digest())
     s.update(nonce[:SCRAMBLE_LENGTH])
     message2 = s.digest()
-
-    length = len(message1)
-    result = b''
-    for i in range(length):
-        x = (struct.unpack('B', message1[i:i+1])[0] ^ \
-             struct.unpack('B', message2[i:i+1])[0])
-        result += struct.pack('B', x)
-    return result
+    return _xor(message1, message2)
 
 
 class Connection(object):
@@ -532,12 +525,7 @@ class Connection(object):
             key = RSA.importKey(public_pem)
             cipher = PKCS1_OAEP.new(key)
             password = (self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH)[:SCRAMBLE_LENGTH]
-            data = b''
-            for i in range(SCRAMBLE_LENGTH):
-                x = (struct.unpack('B', password[i:i+1])[0] ^ \
-                     struct.unpack('B', self.salt[i:i+1])[0])
-                data += struct.pack('B', x)
-            data = cipher.encrypt(data)
+            data = cipher.encrypt(_xor(password, self.salt))
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
@@ -595,7 +583,7 @@ class Connection(object):
             i += 10     # reserverd
             if salt_len:
                 rest_salt_len = max(13, salt_len-8)
-                self.salt += data[i:i+rest_salt_len]
+                self.salt += data[i:i+rest_salt_len-1]
                 i += rest_salt_len
             self.auth_plugin_name = data[i:data.find(int2byte(0), i)].decode('utf-8')
 
