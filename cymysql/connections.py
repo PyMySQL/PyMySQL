@@ -431,7 +431,7 @@ class Connection(object):
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self.socket.sendall(prelude + sql)
 
-    def _request_authentication2(self, next_packet):
+    def _request_authentication2(self, auth_packet, next_packet):
         # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
         if auth_packet.get_all_data() == b'\x01\x04':   # perform_full_authentication
             if self.ssl:
