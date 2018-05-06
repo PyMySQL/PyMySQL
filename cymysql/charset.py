@@ -3,6 +3,7 @@ class Charset(object):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'
 
+
 class Charsets(object):
     def __init__(self):
         self._by_id = {}
@@ -17,6 +18,7 @@ class Charsets(object):
 
     def by_id(self, id):
         return self._by_id[id]
+
 
 _charsets = Charsets()
 charset_by_name = _charsets.by_name

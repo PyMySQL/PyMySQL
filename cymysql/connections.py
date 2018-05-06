@@ -453,7 +453,6 @@ class Connection(object):
             )
         return data
 
-
     def _request_authentication(self):
         if self.user is None:
             raise ValueError("Did not specify a username")
@@ -534,7 +533,9 @@ class Connection(object):
             from Crypto.Cipher import PKCS1_OAEP
             key = RSA.importKey(public_pem)
             cipher = PKCS1_OAEP.new(key)
-            password = (self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH)[:SCRAMBLE_LENGTH]
+            password = (
+                self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH
+            )[:SCRAMBLE_LENGTH]
             data = cipher.encrypt(_xor(password, self.salt))
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
