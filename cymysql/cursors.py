@@ -2,11 +2,14 @@
 import weakref
 import sys
 
-from cymysql.err import Warning, Error, InterfaceError, DataError, \
-             DatabaseError, OperationalError, IntegrityError, InternalError, \
-            NotSupportedError, ProgrammingError
+from cymysql.err import (
+    Warning, Error, InterfaceError, DataError,
+    DatabaseError, OperationalError, IntegrityError, InternalError,
+    NotSupportedError, ProgrammingError
+)
 
 PYTHON3 = sys.version_info[0] > 2
+
 
 class Cursor(object):
     '''
@@ -117,8 +120,8 @@ class Cursor(object):
             elif isinstance(args, dict):
                 escaped_args = dict((key, conn.escape(val)) for (key, val) in args.items())
             else:
-                #If it's not a dictionary let's try escaping it anyways.
-                #Worst case it will throw a Value error
+                # If it's not a dictionary let's try escaping it anyways.
+                # Worst case it will throw a Value error
                 escaped_args = conn.escape(args)
 
             query = query % escaped_args
@@ -128,7 +131,7 @@ class Cursor(object):
         except:
             exc, value, tb = exc_info()
             del tb
-            self.messages.append((exc,value))
+            self.messages.append((exc, value))
             self.errorhandler(exc, value)
 
         self._executed = query
@@ -255,13 +258,14 @@ class Cursor(object):
     ProgrammingError = ProgrammingError
     NotSupportedError = NotSupportedError
 
+
 class DictCursor(Cursor):
     """A cursor which returns results as a dictionary"""
 
     def execute(self, query, args=None):
         result = super(DictCursor, self).execute(query, args)
         if self.description:
-            self._fields = [ field[0] for field in self.description ]
+            self._fields = [field[0] for field in self.description]
         return result
 
     def fetchone(self):
@@ -272,14 +276,14 @@ class DictCursor(Cursor):
         r = super(DictCursor, self).fetchone()
         if not r:
             return None
-        return  dict(zip(self._fields, r))
+        return dict(zip(self._fields, r))
 
     def fetchmany(self, size=None):
         ''' Fetch several rows '''
         self._check_executed()
         if self._result is None:
             return None
-        result = [ dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchmany(size)]
+        result = [dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchmany(size)]
         return tuple(result)
 
     def fetchall(self):
@@ -287,6 +291,6 @@ class DictCursor(Cursor):
         self._check_executed()
         if self._result is None:
             return None
-        result = [ dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchall() ]
-        return tuple(result)
-
+        return tuple([
+            dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchall()
+        ])

@@ -16,34 +16,44 @@ ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
 def escape_dict(val, charset):
     return dict([(k, escape_item(v, charset)) for k, v in val.items()])
 
+
 def escape_sequence(val, charset):
     return "(" + ",".join([escape_item(v, charset) for v in val]) + ")"
+
 
 def escape_set(val, charset):
     return ",".join([escape_item(v, charset) for v in val])
 
+
 def escape_bool(value):
     return str(int(value))
+
 
 def escape_object(value):
     return str(value)
 
+
 escape_int = escape_long = escape_object
+
 
 def escape_float(value):
     return ('%.15g' % value)
+
 
 def escape_string(value):
     return ("'%s'" % ESCAPE_REGEX.sub(
             lambda match: ESCAPE_MAP.get(match.group(0)), value))
 
+
 def escape_bytes(value):
-    if len(value)==0:
+    if len(value) == 0:
         return "''"
     return '0x' + ''.join([('0'+hex(c)[2:])[-2:] for c in value])
 
+
 def escape_None(value):
     return 'NULL'
+
 
 def escape_timedelta(obj):
     return "'%02d:%02d:%02d'" % (
@@ -51,6 +61,7 @@ def escape_timedelta(obj):
         (obj.seconds // 60) % 60,                       # minutes
         obj.seconds % 60                                # seconds
     )
+
 
 def escape_time(obj):
     if obj.microsecond:
@@ -64,14 +75,18 @@ def escape_datetime(obj):
     return "'%04d-%02d-%02d %02d:%02d:%02d'" % (
             obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second)
 
+
 def escape_date(obj):
     return "'%04d-%02d-%02d'" % (obj.year, obj.month, obj.day)
+
 
 def escape_struct_time(obj):
     return escape_datetime(datetime.datetime(*obj[:6]))
 
+
 def escape_decimal(obj):
     return str(obj)
+
 
 def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
@@ -103,10 +118,11 @@ def convert_datetime(obj):
         if '.' in hms:
             hms, usecs = hms.split('.')
             return datetime.datetime(
-                *[ int(x) for x in ymd.split('-')+hms.split(':')+[float('0.' + usecs) * 1e6] ])
-        return datetime.datetime(*[ int(x) for x in ymd.split('-')+hms.split(':') ])
+                *[int(x) for x in ymd.split('-')+hms.split(':')+[float('0.' + usecs) * 1e6]])
+        return datetime.datetime(*[int(x) for x in ymd.split('-')+hms.split(':')])
     except ValueError:
         return convert_date(obj)
+
 
 def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
@@ -133,15 +149,15 @@ def convert_timedelta(obj):
             (obj, tail) = obj.split('.')
             microseconds = int(tail)
         hours, minutes, seconds = obj.split(':')
-        tdelta = datetime.timedelta(
-            hours = int(hours),
-            minutes = int(minutes),
-            seconds = int(seconds),
-            microseconds = microseconds
-            )
-        return tdelta
+        return datetime.timedelta(
+            hours=int(hours),
+            minutes=int(minutes),
+            seconds=int(seconds),
+            microseconds=microseconds
+        )
     except ValueError:
         return None
+
 
 def convert_time(obj):
     """Returns a TIME column as a time object:
@@ -176,6 +192,7 @@ def convert_time(obj):
     except ValueError:
         return None
 
+
 def convert_date(obj):
     """Returns a DATE column as a date object:
 
@@ -193,9 +210,10 @@ def convert_date(obj):
     if PYTHON3 and not isinstance(obj, str):
         obj = obj.decode('ascii')
     try:
-        return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
+        return datetime.date(*[int(x) for x in obj.split('-', 2)])
     except ValueError:
         return None
+
 
 def convert_mysql_timestamp(obj):
     """Convert a MySQL TIMESTAMP to a Timestamp object.
@@ -235,13 +253,16 @@ def convert_mysql_timestamp(obj):
     except ValueError:
         return None
 
+
 def convert_set(s):
     return set(s.split(","))
+
 
 def convert_bit(b):
     # the snippet above is right, but MySQLdb doesn't process bits,
     # so we shouldn't either
     return b
+
 
 def convert_characters(data, charset=None, field=None, use_unicode=None):
     if field.is_set:
@@ -257,6 +278,7 @@ def convert_characters(data, charset=None, field=None, use_unicode=None):
     elif charset != field.charset:
         return data.decode(field.charset).encode(charset)
     return data
+
 
 def convert_decimal(obj):
     if PYTHON3 and not isinstance(obj, str):
@@ -291,7 +313,7 @@ decoders = {
         FIELD_TYPE.VAR_STRING: convert_characters,
         FIELD_TYPE.VARCHAR: convert_characters,
         FIELD_TYPE.JSON: convert_characters,
-        }
+}
 
 encoders = {
         bool: escape_bool,
@@ -300,16 +322,16 @@ encoders = {
         decimal.Decimal: escape_decimal,
         str: escape_string,
         tuple: escape_sequence,
-        list:escape_sequence,
-        set:escape_sequence,
-        dict:escape_dict,
-        type(None):escape_None,
+        list: escape_sequence,
+        set: escape_sequence,
+        dict: escape_dict,
+        type(None): escape_None,
         datetime.date: escape_date,
-        datetime.datetime : escape_datetime,
-        datetime.timedelta : escape_timedelta,
-        datetime.time : escape_time,
-        time.struct_time : escape_struct_time,
-        }
+        datetime.datetime: escape_datetime,
+        datetime.timedelta: escape_timedelta,
+        datetime.time: escape_time,
+        time.struct_time: escape_struct_time,
+}
 
 if PYTHON3:
     encoders[bytes] = escape_bytes
