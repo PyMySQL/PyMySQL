@@ -2,25 +2,19 @@
 #   https://dev.mysql.com/doc/dev/mysql-server/latest/PAGE_PROTOCOL.html
 
 import hashlib
-sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
-sha256_new = lambda *args, **kwargs: hashlib.new("sha256", *args, **kwargs)
-
 import socket
 import ssl
 import struct
 import sys
 import os
 import stat
-
+import getpass
 try:
     from ConfigParser import RawConfigParser
 except ImportError:
     from configparser import RawConfigParser
 
-import getpass
-DEFAULT_USER = getpass.getuser()
-
-from cymysql.charset import charset_by_name, charset_by_id
+from cymysql.charset import charset_by_name
 from cymysql.cursors import Cursor
 from cymysql.constants import CLIENT, COMMAND
 from cymysql.converters import decoders, encoders, escape_item
@@ -31,7 +25,17 @@ from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
 
+DEFAULT_USER = getpass.getuser()
 DEFAULT_CHARSET = 'utf8'
+
+
+def sha_new(*args, **kwargs):
+    return hashlib.new("sha1", *args, **kwargs)
+
+
+def sha256_new(*args, **kwargs):
+    return hashlib.new("sha256", *args, **kwargs)
+
 
 def byte2int(b):
     if isinstance(b, int):
@@ -49,9 +53,9 @@ def int2byte(i):
 
 def pack_int24(n):
     if PYTHON3:
-        return bytes([n&0xFF, (n>>8)&0xFF,(n>>16)&0xFF])
+        return bytes([n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF])
     else:
-        return chr(n&0xFF) + chr((n>>8)&0xFF) + chr((n>>16)&0xFF)
+        return chr(n & 0xFF) + chr((n >> 8) & 0xFF) + chr((n >> 16) & 0xFF)
 
 
 SCRAMBLE_LENGTH = 20
@@ -65,7 +69,7 @@ def _xor(data1, data2):
 
 
 def _mysql_native_password_scramble(password, message):
-    if password == None or len(password) == 0:
+    if password is None or len(password) == 0:
         return b''
     message2 = sha_new(password).digest()
     stage2 = sha_new(message2).digest()
@@ -77,7 +81,7 @@ def _mysql_native_password_scramble(password, message):
 
 
 def _caching_sha2_password_scramble(password, nonce):
-    if password == None or len(password) == 0:
+    if password is None or len(password) == 0:
         return b''
     message1 = sha256_new(password).digest()
     s = sha256_new()
@@ -182,25 +186,29 @@ class Connection(object):
 
             def _config(key, default):
                 try:
-                    return cfg.get(read_default_group,key)
+                    return cfg.get(read_default_group, key)
                 except:
                     return default
 
-            user = _config("user",user)
-            passwd = _config("password",passwd)
+            user = _config("user", user)
+            passwd = _config("password", passwd)
             host = _config("host", host)
-            db = _config("db",db)
-            unix_socket = _config("socket",unix_socket)
+            db = _config("db", db)
+            unix_socket = _config("socket", unix_socket)
             port = _config("port", port)
             charset = _config("default-character-set", charset)
 
-        if (host == 'localhost' and port == 3306
+        if (
+            host == 'localhost' and port == 3306
             and not sys.platform.startswith('win')
-            and (unix_socket is None or not os.path.exists(unix_socket))):
-            for f in ('/var/lib/mysql/mysql.sock',
+            and (unix_socket is None or not os.path.exists(unix_socket))
+        ):
+            for f in (
+                    '/var/lib/mysql/mysql.sock',
                     '/var/run/mysql/mysql.sock',
                     '/var/run/mysql.sock',
-                    '/var/mysql/mysql.sock'):
+                    '/var/mysql/mysql.sock'
+            ):
                 if os.path.exists(f) and stat.S_ISSOCK(os.stat(f).st_mode):
                     unix_socket = f
                     break
@@ -275,7 +283,7 @@ class Connection(object):
             self._execute_command(COMMAND.COM_QUERY, q)
             self.read_packet()
         except:
-            exc,value,tb = sys.exc_info()
+            exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
     def commit(self):
@@ -284,7 +292,7 @@ class Connection(object):
             self._execute_command(COMMAND.COM_QUERY, "COMMIT")
             self.read_packet()
         except:
-            exc,value,tb = sys.exc_info()
+            exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
     def rollback(self):
@@ -293,7 +301,7 @@ class Connection(object):
             self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
             self.read_packet()
         except:
-            exc,value,tb = sys.exc_info()
+            exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
     def escape(self, obj):
@@ -350,7 +358,7 @@ class Connection(object):
             pkt = self.read_packet()
             return pkt.is_ok_packet()
         except:
-            exc,value,tb = sys.exc_info()
+            exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
         return False
 
@@ -363,7 +371,7 @@ class Connection(object):
                 self._connect()
                 return self.ping(False)
             else:
-                exc,value,tb = sys.exc_info()
+                exc, value, tb = sys.exc_info()
                 self.errorhandler(None, exc, value)
                 return
 
@@ -378,7 +386,7 @@ class Connection(object):
                 self.read_packet()
                 self.charset = charset
         except:
-            exc,value,tb = sys.exc_info()
+            exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
     def _connect(self):
@@ -397,15 +405,17 @@ class Connection(object):
         except socket.error as e:
             if sock:
                 sock.close()
-            raise OperationalError(2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0]))
+            raise OperationalError(
+                2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0])
+            )
         self.socket = sock
         self._get_server_information()
         self._request_authentication()
 
     def read_packet(self):
-      """Read an entire "mysql packet" in its entirety from the network
-      and return a MysqlPacket type that represents the results."""
-      return MysqlPacket(self)
+        """Read an entire "mysql packet" in its entirety from the network
+        and return a MysqlPacket type that represents the results."""
+        return MysqlPacket(self)
 
     def insert_id(self):
         if self._result:
@@ -417,8 +427,10 @@ class Connection(object):
         if not self.socket:
             self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
-        if ((PYTHON3 and isinstance(sql, str)) or 
-            (not PYTHON3 and  isinstance(sql, unicode))):
+        if (
+            (PYTHON3 and isinstance(sql, str)) or
+            (not PYTHON3 and isinstance(sql, unicode))
+        ):
             sql = sql.encode(self.charset)
 
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
@@ -433,8 +445,11 @@ class Connection(object):
         charset_id = charset_by_name(self.charset).id
         user = self.user.encode(self.charset)
 
-        data_init = struct.pack('<i', self.client_flag) + struct.pack("<I", 1) + \
-                     int2byte(charset_id) + int2byte(0)*23
+        data_init = (
+            struct.pack('<i', self.client_flag) +
+            struct.pack("<I", 1) +
+            int2byte(charset_id) + int2byte(0)*23
+        )
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
@@ -474,7 +489,7 @@ class Connection(object):
         next_packet += 2
 
         self.socket.sendall(data)
-        auth_packet = MysqlPacket(self)
+        auth_packet = self.read_packet()
 
         if auth_packet.is_eof_packet():
             # AuthSwitchRequest
@@ -495,7 +510,7 @@ class Connection(object):
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
             self.socket.sendall(data)
-            auth_packet = MysqlPacket(self)
+            auth_packet = self.read_packet()
 
         if self.auth_plugin_name == 'caching_sha2_password':
             self._caching_sha2_authentication2(auth_packet, next_packet)
@@ -503,7 +518,7 @@ class Connection(object):
     def _caching_sha2_authentication2(self, auth_packet, next_packet):
         # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
         if auth_packet.get_all_data() == b'\x01\x03':   # fast_auth_success
-            MysqlPacket(self)
+            self.read_packet()
             return
 
         # perform_full_authentication
@@ -517,7 +532,7 @@ class Connection(object):
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
             self.socket.sendall(data)
-            response = MysqlPacket(self)
+            response = self.read_packet()
             public_pem = response.get_all_data()[1:]
 
             from Crypto.PublicKey import RSA
@@ -531,7 +546,7 @@ class Connection(object):
         next_packet += 2
         self.socket.sendall(data)
 
-        MysqlPacket(self)
+        self.read_packet()
 
     # _mysql support
     def thread_id(self):
@@ -549,7 +564,7 @@ class Connection(object):
     def _get_server_information(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         i = 0
-        packet = MysqlPacket(self)
+        packet = self.read_packet()
         data = packet.get_all_data()
 
         self.protocol_version = byte2int(data[i:i+1])
