@@ -260,7 +260,7 @@ class Connection(object):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
             raise Error("Already closed")
-        send_data = struct.pack('<i',1) + int2byte(COMMAND.COM_QUIT)
+        send_data = b'\x01\x00\x00\x00' + int2byte(COMMAND.COM_QUIT)
         self.socket.sendall(send_data)
         self.socket.close()
         self.socket = None
@@ -460,7 +460,7 @@ class Connection(object):
             )
 
         if self.server_capabilities & CLIENT.SECURE_CONNECTION:
-            data += struct.pack('B', len(authresp)) + authresp
+            data += int2byte(len(authresp)) + authresp
         else:
             data += authresp + int2byte(0)
 
