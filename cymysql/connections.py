@@ -431,46 +431,6 @@ class Connection(object):
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self.socket.sendall(prelude + sql)
 
-    def _request_authentication2(self, auth_packet, next_packet):
-        # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
-        if auth_packet.get_all_data() == b'\x01\x03':   # fast_auth_success
-            MysqlPacket(self)
-            return
-
-        # perform_full_authentication
-        assert auth_packet.get_all_data() == b'\x01\x04'
-
-        if self.ssl:
-            data = self.password.encode(self.charset) + b'\x00'
-            data = pack_int24(len(data)) + int2byte(next_packet) + data
-            next_packet += 2
-            self.socket.sendall(data)
-        else:
-            # request_public_key
-            data = b'\x02'
-            data = pack_int24(len(data)) + int2byte(next_packet) + data
-            next_packet += 2
-            self.socket.sendall(data)
-            response = MysqlPacket(self)
-            public_pem = response.get_all_data()[1:]
-
-            from Crypto.PublicKey import RSA
-            from Crypto.Cipher import PKCS1_OAEP
-            key = RSA.importKey(public_pem)
-            cipher = PKCS1_OAEP.new(key)
-            password = (self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH)[:SCRAMBLE_LENGTH]
-            data = b''
-            for i in range(SCRAMBLE_LENGTH):
-                x = (struct.unpack('B', password[i:i+1])[0] ^ \
-                     struct.unpack('B', self.salt[i:i+1])[0])
-                data += struct.pack('B', x)
-            data = cipher.encrypt(data)
-            data = pack_int24(len(data)) + int2byte(next_packet) + data
-            next_packet += 2
-            self.socket.sendall(data)
-
-        MysqlPacket(self)
-
     def _request_authentication(self):
         if self.user is None:
             raise ValueError("Did not specify a username")
@@ -545,7 +505,47 @@ class Connection(object):
             auth_packet = MysqlPacket(self)
 
         if self.auth_plugin_name == 'caching_sha2_password':
-            self._request_authentication2(auth_packet, next_packet)
+            self._caching_sha2_authentication2(auth_packet, next_packet)
+
+    def _caching_sha2_authentication2(self, auth_packet, next_packet):
+        # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
+        if auth_packet.get_all_data() == b'\x01\x03':   # fast_auth_success
+            MysqlPacket(self)
+            return
+
+        # perform_full_authentication
+        assert auth_packet.get_all_data() == b'\x01\x04'
+
+        if self.ssl:
+            data = self.password.encode(self.charset) + b'\x00'
+            data = pack_int24(len(data)) + int2byte(next_packet) + data
+            next_packet += 2
+            self.socket.sendall(data)
+        else:
+            # request_public_key
+            data = b'\x02'
+            data = pack_int24(len(data)) + int2byte(next_packet) + data
+            next_packet += 2
+            self.socket.sendall(data)
+            response = MysqlPacket(self)
+            public_pem = response.get_all_data()[1:]
+
+            from Crypto.PublicKey import RSA
+            from Crypto.Cipher import PKCS1_OAEP
+            key = RSA.importKey(public_pem)
+            cipher = PKCS1_OAEP.new(key)
+            password = (self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH)[:SCRAMBLE_LENGTH]
+            data = b''
+            for i in range(SCRAMBLE_LENGTH):
+                x = (struct.unpack('B', password[i:i+1])[0] ^ \
+                     struct.unpack('B', self.salt[i:i+1])[0])
+                data += struct.pack('B', x)
+            data = cipher.encrypt(data)
+            data = pack_int24(len(data)) + int2byte(next_packet) + data
+            next_packet += 2
+            self.socket.sendall(data)
+
+        MysqlPacket(self)
 
     # _mysql support
     def thread_id(self):
