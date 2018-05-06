@@ -434,7 +434,7 @@ class Connection(object):
             sql = sql.encode(self.charset)
 
         if len(sql) + 1 > 0xffffff:
-            raise ValueError('Query packet is too large')
+            raise ValueError('Sending query packet is too large')
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
         self.socket.sendall(prelude + sql)
 
