@@ -11,14 +11,8 @@ from cymysql.charset import charset_by_id
 from libc.stdint cimport uint16_t, uint32_t
 cdef int PYTHON3 = sys.version_info[0] > 2
 
-MBLENGTH = {
-        8:1,
-        33:3,
-        88:2,
-        91:2
-        }
 
-cdef int FIELD_TYPE_VAR_STRING=253
+cdef int FIELD_TYPE_VAR_STRING = 253
 
 cdef int UNSIGNED_CHAR_COLUMN = 251
 cdef int UNSIGNED_SHORT_COLUMN = 252
@@ -27,20 +21,25 @@ cdef int UNSIGNED_INT64_COLUMN = 254
 
 cdef int SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
+
 cdef uint16_t unpack_uint16(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8)
+
 
 cdef uint32_t unpack_uint24(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8) + (n[2] << 16)
 
+
 cdef uint32_t unpack_uint32(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8) + (n[2] << 16) + (n[3] << 24)
 
+
 cdef long long unpack_uint64(bytes n):
     return struct.unpack('<Q', n)[0]
+
 
 cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
@@ -119,7 +118,7 @@ cdef class MysqlPacket(object):
         """
         self.__position = -1  # ensure no subsequent read() or peek()
         return self.__data[self.__position:]
-  
+
     cdef int read_length_coded_binary(self):
         """Read a 'Length Coded Binary' number from the data buffer.
 
@@ -137,7 +136,7 @@ cdef class MysqlPacket(object):
             return unpack_uint64(self._read(8))
         else:
             return c
-  
+
     cdef bytes _read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
 
@@ -155,9 +154,12 @@ cdef class MysqlPacket(object):
         return tuple([
             None if value is None
             else decoder(value, self._charset, field, self._use_unicode)
-                if decoder is convert_characters
-                else decoder(value)
-            for value, field, decoder in [(self._read_length_coded_string(), f, decoders.get(f.type_code)) for f in fields]
+            if decoder is convert_characters
+            else decoder(value)
+            for value, field, decoder in [
+                (self._read_length_coded_string(), f, decoders.get(f.type_code))
+                for f in fields
+            ]
         ])
 
     cpdef is_ok_packet(self):
@@ -209,7 +211,6 @@ cdef class FieldDescriptorPacket(MysqlPacket):
 
     def __parse_field_descriptor(self):
         """Parse the 'Field Descriptor' (Metadata) packet.
-    
         This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
         """
         self.catalog = self._read_length_coded_string()
@@ -228,7 +229,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         self.is_binary = self.flags & FLAG.BINARY
         self.scale = ord(self._read(1))  # "decimals"
         self._skip(2)  # filler (always 0x00)
-    
+
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
 
@@ -247,14 +248,14 @@ cdef class FieldDescriptorPacket(MysqlPacket):
     def get_column_length(self):
         cdef int mblen
         if self.type_code == FIELD_TYPE_VAR_STRING:
-            mblen = MBLENGTH.get(self.charsetnr, 1)
+            mblen = {8: 1, 33: 3, 88: 2, 91: 2}.get(self.charsetnr, 1)
             return self.length // mblen
         return self.length
 
     def __str__(self):
-        return ('%s %s.%s.%s, type=%s'
-            % (self.__class__, self.db, self.table_name, self.name,
-               self.type_code))
+        return ('%s %s.%s.%s, type=%s' % (
+            self.__class__, self.db, self.table_name, self.name, self.type_code)
+        )
 
 
 # TODO: move OK and EOF packet parsing/logic into a proper subclass
