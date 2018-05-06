@@ -49,6 +49,7 @@ cdef class MysqlPacket(object):
     cdef object connection, _socket, _charset, _use_unicode
     cdef bytes __data
     cdef int __position
+    cdef int errno
 
     def __init__(self, connection):
         cdef int is_error
@@ -62,7 +63,7 @@ cdef class MysqlPacket(object):
         is_error = (<unsigned char>(self.__data[0])) == 0xff
         if is_error:
             self.__position += 1  # field_count == error (we already know that)
-            errno = unpack_uint16(self._read(2))
+            self.errno = unpack_uint16(self._read(2))
             raise_mysql_exception(self.__data)
 
     cdef bytes __recv_from_socket(self, int size):
