@@ -518,9 +518,6 @@ class Connection(object):
 
         if self.ssl:
             data = self.password.encode(self.charset) + b'\x00'
-            data = pack_int24(len(data)) + int2byte(next_packet) + data
-            next_packet += 2
-            self.socket.sendall(data)
         else:
             # request_public_key
             data = b'\x02'
@@ -541,9 +538,10 @@ class Connection(object):
                      struct.unpack('B', self.salt[i:i+1])[0])
                 data += struct.pack('B', x)
             data = cipher.encrypt(data)
-            data = pack_int24(len(data)) + int2byte(next_packet) + data
-            next_packet += 2
-            self.socket.sendall(data)
+
+        data = pack_int24(len(data)) + int2byte(next_packet) + data
+        next_packet += 2
+        self.socket.sendall(data)
 
         MysqlPacket(self)
 
