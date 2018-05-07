@@ -347,36 +347,22 @@ class MysqlPacket(object):
         return result
 
     def is_ok_packet(self):
-        # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
-        return self._data[0:1] == b'\0' and len(self._data) >= 7
+        return protocol.is_ok_packet(self._data)
 
     def is_eof_packet(self):
-        # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
-        # Caution: \xFE may be LengthEncodedInteger.
-        # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return self._data[0:1] == b'\xfe' and len(self._data) < 9
+        return protocol.is_eof_packet(self._data)
 
     def is_auth_switch_request(self):
-        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b'\xfe'
+        return protocol.is_auth_switch_request(self._data)
 
     def is_resultset_packet(self):
-        field_count = ord(self._data[0:1])
-        return 1 <= field_count <= 250
+        return protocol.is_resultset_packet(self._data)
 
     def is_load_local_packet(self):
         return self._data[0:1] == b'\xfb'
 
-    def is_error_packet(self):
-        return self._data[0:1] == b'\xff'
-
     def check_error(self):
-        if self.is_error_packet():
-            self.rewind()
-            self.advance(1)  # field_count == error (we already know that)
-            errno = self.read_uint16()
-            if DEBUG: print("errno =", errno)
-            err.raise_mysql_exception(self._data)
+        protocol.check_error(self._data)
 
     def dump(self):
         dump_packet(self._data)
