@@ -392,9 +392,9 @@ class DictCursorMixin(object):
         fields = []
         if self.description:
             for f in self._result.fields:
-                name = f.name
+                name = f['name']
                 if name in fields:
-                    name = f.table_name + '.' + name
+                    name = '.'.join((f['table_name'], name))
                 fields.append(name)
             self._fields = fields
 
