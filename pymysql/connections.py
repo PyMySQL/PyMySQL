@@ -23,6 +23,7 @@ from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
+from . import protocol
 
 try:
     import ssl
@@ -276,34 +277,28 @@ class MysqlPacket(object):
         """
         return self._data[position:(position+length)]
 
-    if PY2:
-        def read_uint8(self):
-            result = ord(self._data[self._position])
-            self._position += 1
-            return result
-    else:
-        def read_uint8(self):
-            result = self._data[self._position]
-            self._position += 1
-            return result
+    def read_uint8(self):
+        result = protocol.read_uint8(self._data, offset=self._position)
+        self._position += 1
+        return result
 
     def read_uint16(self):
-        result = struct.unpack_from('<H', self._data, self._position)[0]
+        result = protocol.read_uint16(self._data, offset=self._position)
         self._position += 2
         return result
 
     def read_uint24(self):
-        low, high = struct.unpack_from('<HB', self._data, self._position)
+        result = protocol.read_uint24(self._data, offset=self._position)
         self._position += 3
-        return low + (high << 16)
+        return result
 
     def read_uint32(self):
-        result = struct.unpack_from('<I', self._data, self._position)[0]
+        result = protocol.read_uint32(self._data, offset=self._position)
         self._position += 4
         return result
 
     def read_uint64(self):
-        result = struct.unpack_from('<Q', self._data, self._position)[0]
+        result = protocol.read_uint64(self._data, offset=self._position)
         self._position += 8
         return result
 
