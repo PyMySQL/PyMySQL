@@ -33,37 +33,37 @@ Requirements
 
 * Python -- one of the following:
 
-  - CPython_ >= 2.6 or >= 3.3
-  - PyPy_ >= 4.0
-  - IronPython_ 2.7
+  - CPython_ : 2.7 and >= 3.4
+  - PyPy_ : Latest version
 
 * MySQL Server -- one of the following:
 
-  - MySQL_ >= 4.1  (tested with only 5.5~)
-  - MariaDB_ >= 5.1
+  - MySQL_ >= 5.5
+  - MariaDB_ >= 5.5
 
-.. _CPython: http://www.python.org/
-.. _PyPy: http://pypy.org/
-.. _IronPython: http://ironpython.net/
-.. _MySQL: http://www.mysql.com/
+.. _CPython: https://www.python.org/
+.. _PyPy: https://pypy.org/
+.. _MySQL: https://www.mysql.com/
 .. _MariaDB: https://mariadb.org/
 
 
 Installation
 ------------
 
-The last stable release is available on PyPI and can be installed with ``pip``::
+Package is uploaded on `PyPI <https://pypi.org/project/PyMySQL>`_.
 
-    $ pip install PyMySQL
+You can install it with pip::
+
+    $ pip3 install PyMySQL
 
 
 Documentation
 -------------
 
-Documentation is available online: http://pymysql.readthedocs.io/
+Documentation is available online: https://pymysql.readthedocs.io/
 
 For support, please refer to the `StackOverflow
-<http://stackoverflow.com/questions/tagged/pymysql>`_.
+<https://stackoverflow.com/questions/tagged/pymysql>`_.
 
 Example
 -------
@@ -122,16 +122,17 @@ This example will print:
 Resources
 ---------
 
-DB-API 2.0: http://www.python.org/dev/peps/pep-0249
+* DB-API 2.0: http://www.python.org/dev/peps/pep-0249
 
-MySQL Reference Manuals: http://dev.mysql.com/doc/
+* MySQL Reference Manuals: http://dev.mysql.com/doc/
 
-MySQL client/server protocol:
-http://dev.mysql.com/doc/internals/en/client-server-protocol.html
+* MySQL client/server protocol:
+  http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
-"Connector" channel in MySQL Community Slack: http://lefred.be/mysql-community-on-slack/
+* "Connector" channel in MySQL Community Slack:
+  http://lefred.be/mysql-community-on-slack/
 
-PyMySQL mailing list: https://groups.google.com/forum/#!forum/pymysql-users
+* PyMySQL mailing list: https://groups.google.com/forum/#!forum/pymysql-users
 
 License
 -------
