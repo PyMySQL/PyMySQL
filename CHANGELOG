@@ -1,5 +1,21 @@
 # Changes
 
+## 0.8.1
+
+Release date: 2018-05-07
+
+* Reduce `cursor.callproc()` roundtrip time. (#636)
+
+* Fixed `cursor.query()` is hunged after multi statement failed. (#647)
+
+* WRONG_DB_NAME and WRONG_COLUMN_NAME is ProgrammingError for now. (#629)
+
+* Many test suite improvements, especially adding MySQL 8.0 and using Docker.
+  Thanks to Daniel Black.
+
+* Droppped support for old Python and MySQL whih is not tested long time.
+
+
 ## 0.8
 
 Release date: 2017-12-20
