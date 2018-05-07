@@ -35,7 +35,7 @@ from .times import (
     DateFromTicks, TimeFromTicks, TimestampFromTicks)
 
 
-VERSION = (0, 8, 0, None)
+VERSION = (0, 8, 1, None)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"

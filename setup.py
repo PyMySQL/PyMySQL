@@ -16,6 +16,9 @@ setup(
     name="PyMySQL",
     version=version,
     url='https://github.com/PyMySQL/PyMySQL/',
+    project_urls={
+        "Documentation": "https://pymysql.readthedocs.io/",
+    },
     author='yutaka.matsubara',
     author_email='yutaka.matsubara@gmail.com',
     maintainer='INADA Naoki',
@@ -32,10 +35,12 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Topic :: Database',
     ],
+    keywords="MySQL",
 )
