@@ -62,3 +62,11 @@ def check_error(packet):
         errno = read_uint16(packet, offset=1)
         if DEBUG: print("errno = ", errno)
         err.raise_mysql_exception(packet)
+
+
+def read_string(data, offset=0):
+    end = data.find(b'\0', offset)
+    if end >= 0:
+        result = data[offset:end]
+        # Add one to length to account for the null byte
+        return len(result) + 1, result

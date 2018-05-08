@@ -303,11 +303,9 @@ class MysqlPacket(object):
         return result
 
     def read_string(self):
-        end_pos = self._data.find(b'\0', self._position)
-        if end_pos < 0:
-            return None
-        result = self._data[self._position:end_pos]
-        self._position = end_pos + 1
+        pos, result = protocol.read_string(self._data, offset=self._position)
+        # We need to add one to account for the null terminating character.
+        self._position += pos
         return result
 
     def read_length_encoded_integer(self):
