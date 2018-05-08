@@ -100,3 +100,19 @@ def read_length_encoded_integer(data, offset=0):
     else:
         raise ValueError
 
+
+def read_bytes(data, nbytes, offset=0):
+    if nbytes is None:
+        result = data[offset:]
+        return len(result), result
+    else:
+        result = data[offset:offset+nbytes]
+        if len(result) == nbytes:
+            return nbytes, result
+
+        error = ('Result length not requested length:\n'
+                 'Expected=%s  Actual=%s  Position: %s  Data Length: %s'
+                 % (nbytes, len(result), offset, len(data)))
+        if DEBUG:
+            print(error)
+        raise AssertionError(error)

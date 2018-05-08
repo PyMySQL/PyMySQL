@@ -231,16 +231,8 @@ class MysqlPacket(object):
 
     def read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self._data[self._position:(self._position+size)]
-        if len(result) != size:
-            error = ('Result length not requested length:\n'
-                     'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                     % (size, len(result), self._position, len(self._data)))
-            if DEBUG:
-                print(error)
-                self.dump()
-            raise AssertionError(error)
-        self._position += size
+        bytes_read, result = protocol.read_bytes(self._data, size, offset=self._position)
+        self._position += bytes_read
         return result
 
     def read_all(self):
@@ -248,7 +240,7 @@ class MysqlPacket(object):
 
         (Subsequent read() will return errors.)
         """
-        result = self._data[self._position:]
+        bytes_read, result = protocol.read_bytes(self._data, None, offset=self._position)
         self._position = None  # ensure no subsequent read()
         return result
 
