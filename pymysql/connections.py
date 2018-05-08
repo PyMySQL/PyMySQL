@@ -296,7 +296,6 @@ class MysqlPacket(object):
 
     def read_string(self):
         pos, result = protocol.read_string(self._data, offset=self._position)
-        # We need to add one to account for the null terminating character.
         self._position += pos
         return result
 
