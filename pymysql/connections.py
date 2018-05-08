@@ -317,10 +317,9 @@ class MysqlPacket(object):
         (unsigned, positive) integer represented in 1-9 bytes followed by
         that many bytes of binary data.  (For example "cat" would be "3cat".)
         """
-        length = self.read_length_encoded_integer()
-        if length is None:
-            return None
-        return self.read(length)
+        bytes_read, result = protocol.read_length_coded_string(self._data, offset=self._position)
+        self._position += bytes_read
+        return result
 
     def read_struct(self, fmt):
         s = struct.Struct(fmt)

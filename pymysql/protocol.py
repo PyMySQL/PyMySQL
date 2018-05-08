@@ -118,3 +118,13 @@ def read_bytes(data, nbytes, offset=0):
         if DEBUG:
             print(error)
         raise AssertionError(error)
+
+
+def read_length_coded_string(data, offset=0):
+    bytes_read, length = read_length_encoded_integer(data, offset=offset)
+    if length is not None:
+        _br, result = read_bytes(data, length, offset=offset+bytes_read)
+        return bytes_read + _br, result
+    else:
+        # Null column
+        return bytes_read, None
