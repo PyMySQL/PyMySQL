@@ -314,17 +314,9 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = self.read_uint8()
-        if c == NULL_COLUMN:
-            return None
-        if c < UNSIGNED_CHAR_COLUMN:
-            return c
-        elif c == UNSIGNED_SHORT_COLUMN:
-            return self.read_uint16()
-        elif c == UNSIGNED_INT24_COLUMN:
-            return self.read_uint24()
-        elif c == UNSIGNED_INT64_COLUMN:
-            return self.read_uint64()
+        bytes_read, result = protocol.read_length_encoded_integer(self._data, self._position)
+        self._position += bytes_read
+        return result
 
     def read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.

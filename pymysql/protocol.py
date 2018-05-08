@@ -9,26 +9,32 @@ DEBUG = False
 
 if PY2:
     def read_uint8(data, offset=0):
+        """Read 1 byte of data"""
         return ord(data[offset])
 else:
     def read_uint8(data, offset=0):
+        """Read 1 byte of data"""
         return data[offset]
 
 
 def read_uint16(data, offset=0):
+    """Read 2 bytes of data beginning at offset"""
     return unpack_from('<H', data, offset=offset)[0]
 
 
 def read_uint24(data, offset=0):
+    """Read 3 bytes of data beginning at offset"""
     low, high = unpack_from('<HB', data, offset=offset)
     return low + (high << 16)
 
 
 def read_uint32(data, offset=0):
+    """Read 4 bytes of data beginning at offset"""
     return unpack_from('<I', data, offset=offset)[0]
 
 
 def read_uint64(data, offset=0):
+    """Read 8 bytes of data beginning at offset"""
     return unpack_from('<Q', data, offset=offset)[0]
 
 
@@ -70,3 +76,27 @@ def read_string(data, offset=0):
         result = data[offset:end]
         # Add one to length to account for the null byte
         return len(result) + 1, result
+
+
+def read_length_encoded_integer(data, offset=0):
+    col = read_uint8(data, offset=offset)
+    bytes_read = 1
+
+    if col == 251:
+        return bytes_read, None
+
+    # Unsigned char column
+    if col < 251:
+        return bytes_read, col
+    # Unsigned short column
+    elif col == 252:
+        return bytes_read + 2, read_uint16(data, offset=offset+bytes_read)
+    # Unsigned int24 column
+    elif col == 253:
+        return bytes_read + 3, read_uint24(data, offset=offset+bytes_read)
+    # Unsigned int64 column
+    elif col == 254:
+        return bytes_read + 8, read_uint64(data, offset=offset+bytes_read)
+    else:
+        raise ValueError
+
