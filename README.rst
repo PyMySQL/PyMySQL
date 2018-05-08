@@ -18,8 +18,9 @@ PyMySQL
 .. contents:: Table of Contents
    :local:
 
-This package contains a pure-Python MySQL client library. The goal of PyMySQL
-is to be a drop-in replacement for MySQLdb and work on CPython, PyPy and IronPython.
+This package contains a pure-Python MySQL client library, based on `PEP 249`_.
+
+Most public APIs are compatible with mysqlclient and MySQLdb.
 
 NOTE: PyMySQL doesn't support low level APIs `_mysql` provides like `data_seek`,
 `store_result`, and `use_result`. You should use high level APIs defined in `PEP 249`_.
@@ -27,6 +28,7 @@ But some APIs like `autocommit` and `ping` are supported because `PEP 249`_ does
 their usecase.
 
 .. _`PEP 249`: https://www.python.org/dev/peps/pep-0249/
+
 
 Requirements
 -------------
