@@ -76,6 +76,8 @@ def read_string(data, offset=0):
         result = data[offset:end]
         # Add one to length to account for the null byte
         return len(result) + 1, result
+    else:
+        raise ValueError("Invalid read on non-null terminated string")
 
 
 def read_length_encoded_integer(data, offset=0):
