@@ -751,9 +751,12 @@ class Connection(object):
         """Close connection without QUIT message"""
         if self._sock:
             try:
+                self._sock.shutdown(socket.SHUT_RDWR)
                 self._sock.close()
             except:
                 pass
+        if self._rfile:
+            self._rfile.close()
         self._sock = None
         self._rfile = None
 
@@ -1067,6 +1070,8 @@ class Connection(object):
                 break
             except (IOError, OSError) as e:
                 if e.errno == errno.EINTR:
+                    if self._closed:
+                        return
                     continue
                 self._force_close()
                 raise err.OperationalError(
