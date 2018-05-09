@@ -23,6 +23,7 @@ from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
 from . import err
+from . import protocol
 
 try:
     import ssl
@@ -230,16 +231,8 @@ class MysqlPacket(object):
 
     def read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self._data[self._position:(self._position+size)]
-        if len(result) != size:
-            error = ('Result length not requested length:\n'
-                     'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                     % (size, len(result), self._position, len(self._data)))
-            if DEBUG:
-                print(error)
-                self.dump()
-            raise AssertionError(error)
-        self._position += size
+        bytes_read, result = protocol.read_bytes(self._data, size, offset=self._position)
+        self._position += bytes_read
         return result
 
     def read_all(self):
@@ -247,7 +240,7 @@ class MysqlPacket(object):
 
         (Subsequent read() will return errors.)
         """
-        result = self._data[self._position:]
+        bytes_read, result = protocol.read_bytes(self._data, None, offset=self._position)
         self._position = None  # ensure no subsequent read()
         return result
 
@@ -276,43 +269,34 @@ class MysqlPacket(object):
         """
         return self._data[position:(position+length)]
 
-    if PY2:
-        def read_uint8(self):
-            result = ord(self._data[self._position])
-            self._position += 1
-            return result
-    else:
-        def read_uint8(self):
-            result = self._data[self._position]
-            self._position += 1
-            return result
+    def read_uint8(self):
+        result = protocol.read_uint8(self._data, offset=self._position)
+        self._position += 1
+        return result
 
     def read_uint16(self):
-        result = struct.unpack_from('<H', self._data, self._position)[0]
+        result = protocol.read_uint16(self._data, offset=self._position)
         self._position += 2
         return result
 
     def read_uint24(self):
-        low, high = struct.unpack_from('<HB', self._data, self._position)
+        result = protocol.read_uint24(self._data, offset=self._position)
         self._position += 3
-        return low + (high << 16)
+        return result
 
     def read_uint32(self):
-        result = struct.unpack_from('<I', self._data, self._position)[0]
+        result = protocol.read_uint32(self._data, offset=self._position)
         self._position += 4
         return result
 
     def read_uint64(self):
-        result = struct.unpack_from('<Q', self._data, self._position)[0]
+        result = protocol.read_uint64(self._data, offset=self._position)
         self._position += 8
         return result
 
     def read_string(self):
-        end_pos = self._data.find(b'\0', self._position)
-        if end_pos < 0:
-            return None
-        result = self._data[self._position:end_pos]
-        self._position = end_pos + 1
+        pos, result = protocol.read_string(self._data, offset=self._position)
+        self._position += pos
         return result
 
     def read_length_encoded_integer(self):
@@ -321,17 +305,9 @@ class MysqlPacket(object):
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = self.read_uint8()
-        if c == NULL_COLUMN:
-            return None
-        if c < UNSIGNED_CHAR_COLUMN:
-            return c
-        elif c == UNSIGNED_SHORT_COLUMN:
-            return self.read_uint16()
-        elif c == UNSIGNED_INT24_COLUMN:
-            return self.read_uint24()
-        elif c == UNSIGNED_INT64_COLUMN:
-            return self.read_uint64()
+        bytes_read, result = protocol.read_length_encoded_integer(self._data, self._position)
+        self._position += bytes_read
+        return result
 
     def read_length_coded_string(self):
         """Read a 'Length Coded String' from the data buffer.
@@ -340,10 +316,9 @@ class MysqlPacket(object):
         (unsigned, positive) integer represented in 1-9 bytes followed by
         that many bytes of binary data.  (For example "cat" would be "3cat".)
         """
-        length = self.read_length_encoded_integer()
-        if length is None:
-            return None
-        return self.read(length)
+        bytes_read, result = protocol.read_length_coded_string(self._data, offset=self._position)
+        self._position += bytes_read
+        return result
 
     def read_struct(self, fmt):
         s = struct.Struct(fmt)
@@ -352,36 +327,22 @@ class MysqlPacket(object):
         return result
 
     def is_ok_packet(self):
-        # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
-        return self._data[0:1] == b'\0' and len(self._data) >= 7
+        return protocol.is_ok_packet(self._data)
 
     def is_eof_packet(self):
-        # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
-        # Caution: \xFE may be LengthEncodedInteger.
-        # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return self._data[0:1] == b'\xfe' and len(self._data) < 9
+        return protocol.is_eof_packet(self._data)
 
     def is_auth_switch_request(self):
-        # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b'\xfe'
+        return protocol.is_auth_switch_request(self._data)
 
     def is_resultset_packet(self):
-        field_count = ord(self._data[0:1])
-        return 1 <= field_count <= 250
+        return protocol.is_resultset_packet(self._data)
 
     def is_load_local_packet(self):
         return self._data[0:1] == b'\xfb'
 
-    def is_error_packet(self):
-        return self._data[0:1] == b'\xff'
-
     def check_error(self):
-        if self.is_error_packet():
-            self.rewind()
-            self.advance(1)  # field_count == error (we already know that)
-            errno = self.read_uint16()
-            if DEBUG: print("errno =", errno)
-            err.raise_mysql_exception(self._data)
+        protocol.check_error(self._data)
 
     def dump(self):
         dump_packet(self._data)
