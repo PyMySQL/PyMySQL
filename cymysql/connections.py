@@ -85,7 +85,7 @@ def _caching_sha2_password_scramble(password, nonce):
         return b''
     message1 = sha256_new(password).digest()
     s = sha256_new()
-    s.update(sha256_new(sha256_new(password).digest()).digest())
+    s.update(sha256_new(message1).digest())
     s.update(nonce[:SCRAMBLE_LENGTH])
     message2 = s.digest()
     return _xor(message1, message2)
