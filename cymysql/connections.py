@@ -518,7 +518,7 @@ class Connection(object):
         # perform_full_authentication
         assert auth_packet.get_all_data() == b'\x01\x04'
 
-        if self.ssl:
+        if self.ssl or self.unix_socket:
             data = self.password.encode(self.charset) + b'\x00'
         else:
             # request_public_key
