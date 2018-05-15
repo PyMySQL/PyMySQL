@@ -63,9 +63,13 @@ SCRAMBLE_LENGTH = 20
 
 def _xor(data1, data2):
     assert len(data1) == len(data2)
-    return bytes(
-        [byte2int(data1[i:i+1]) ^ byte2int(data2[i:i+1]) for i in range(len(data1))]
-    )
+
+    result = b''
+    for i in range(len(data1)):
+        x = (struct.unpack('B', data1[i:i+1])[0] ^ \
+             struct.unpack('B', data2[i:i+1])[0])
+        result += struct.pack('B', x)
+    return result
 
 
 def _mysql_native_password_scramble(password, message):
