@@ -62,12 +62,11 @@ SCRAMBLE_LENGTH = 20
 
 
 def _xor(data1, data2):
-    assert len(data1) == len(data2)
-
     result = b''
     for i in range(len(data1)):
+        j = i % len(data2)
         x = (struct.unpack('B', data1[i:i+1])[0] ^ \
-             struct.unpack('B', data2[i:i+1])[0])
+             struct.unpack('B', data2[j:j+1])[0])
         result += struct.pack('B', x)
     return result
 
@@ -537,9 +536,7 @@ class Connection(object):
             from Crypto.Cipher import PKCS1_OAEP
             key = RSA.importKey(public_pem)
             cipher = PKCS1_OAEP.new(key)
-            password = (
-                self.password.encode(self.charset) + b'\x00' * SCRAMBLE_LENGTH
-            )[:SCRAMBLE_LENGTH]
+            password = self.password.encode(self.charset) + b'\x00'
             data = cipher.encrypt(_xor(password, self.salt))
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
