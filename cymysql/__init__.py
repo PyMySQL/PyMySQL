@@ -32,7 +32,7 @@ from cymysql.times import Date, Time, Timestamp, \
 from cymysql.connections import Connection
 from cymysql.constants import FIELD_TYPE
 
-VERSION = (0, 9, 9)
+VERSION = (0, 9, 10)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
