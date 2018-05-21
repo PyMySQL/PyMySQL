@@ -61,7 +61,7 @@ class MysqlPacket(object):
         is_error = self.__data[0] == (0xff if PYTHON3 else b'\xff')
         if is_error:
             self.__position += 1  # field_count == error (we already know that)
-            self.errno = unpack_uint16(self._read(2))
+            unpack_uint16(self._read(2))
             raise_mysql_exception(self.__data)
 
     def __recv_from_socket(self, size):
