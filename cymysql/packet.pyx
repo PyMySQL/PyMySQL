@@ -48,7 +48,6 @@ cdef class MysqlPacket(object):
     cdef object connection, _socket, _charset, _use_unicode
     cdef bytes __data
     cdef int __position
-    cdef int errno
 
     def __init__(self, connection):
         cdef int is_error
