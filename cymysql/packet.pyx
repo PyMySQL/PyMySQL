@@ -52,7 +52,6 @@ cdef class MysqlPacket(object):
 
     def __init__(self, connection):
         cdef int is_error
-        cdef int errno
         self.connection = connection
         self._socket = connection.socket
         self._charset = connection.charset
