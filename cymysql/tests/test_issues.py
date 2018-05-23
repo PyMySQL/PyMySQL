@@ -45,7 +45,10 @@ class TestOldIssues(base.PyMySQLTestCase):
             c.execute("select dt from issue3")
             self.assertEqual(None, c.fetchone()[0])
             c.execute("select ts from issue3")
-            self.assertTrue(isinstance(c.fetchone()[0], datetime.datetime))
+            if int(conn.server_version.split('.')[0]) > 5:
+                self.assertEqual(None, c.fetchone()[0])
+            else:
+                self.assertTrue(isinstance(c.fetchone()[0], datetime.datetime))
         finally:
             c.execute("drop table issue3")
 
