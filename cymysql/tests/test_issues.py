@@ -69,7 +69,7 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_6(self):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
-        conn = cymysql.connect(host="localhost",user="root",passwd="",db="mysql")
+        conn = cymysql.connect(host="localhost",user="root",passwd=self.test_passwd,db="mysql")
         c = conn.cursor()
         c.execute("select * from user")
         conn.close()
@@ -193,7 +193,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
 
     def test_issue_33(self):
-        conn = cymysql.connect(host="localhost", user="root", db=self.databases[0]["db"], charset="utf8")
+        conn = cymysql.connect(host="localhost", user="root", passwd=self.test_passwd, db=self.databases[0]["db"], charset="utf8")
         c = conn.cursor()
         try:
             c.execute(_uni("create table hei\xc3\x9fe (name varchar(32))", "utf8"))
