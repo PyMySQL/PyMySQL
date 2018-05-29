@@ -1214,7 +1214,6 @@ class MySQLResult(object):
 
     def _get_descriptions(self):
         """Read a column descriptor packet for each column in the result."""
-        self.fields = []
         self.converters = []
         use_unicode = self.connection.use_unicode
         conn_encoding = self.connection.encoding
@@ -1222,7 +1221,6 @@ class MySQLResult(object):
 
         for i in range_type(self.field_count):
             field = self.connection._read_packet(FieldDescriptorPacket)
-            self.fields.append(field)
             description.append(field.description())
             field_type = field.type_code
             if use_unicode:
