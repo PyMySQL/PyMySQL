@@ -99,7 +99,27 @@ def proxy_wire(server_name, server_port, listen_host, listen_port):
 
     # http://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
     # payload first byte eq 0.
-    assert server_data[4] == 0
+    if server_data[4:6] == b'\x01\x03':
+        print("fast auth")
+        server_data = recv_mysql_packet(server_sock)
+        client_sock.send(server_data)
+        print('S->C auth result', binascii.b2a_hex(server_data).decode('ascii'))
+    if server_data[4:6] == b'\x01\x04':
+        print("full auth")
+        client_data = recv_mysql_packet(client_sock)
+        server_sock.send(client_data)
+        print('C->S', binascii.b2a_hex(client_data).decode('ascii'))
+        server_data = recv_mysql_packet(server_sock)
+        client_sock.send(server_data)
+        print('S->C', binascii.b2a_hex(server_data).decode('ascii'))
+        client_data = recv_mysql_packet(client_sock)
+        server_sock.send(client_data)
+        print('C->S', binascii.b2a_hex(client_data).decode('ascii'))
+        server_data = recv_mysql_packet(server_sock)
+        client_sock.send(server_data)
+        print('S->C auth result', binascii.b2a_hex(server_data).decode('ascii'))
+    else:
+        assert server_data[4] == 0
 
     while True:
         client_data = recv_mysql_packet(client_sock)
