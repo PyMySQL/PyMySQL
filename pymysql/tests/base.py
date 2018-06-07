@@ -20,8 +20,8 @@ class PyMySQLTestCase(unittest2.TestCase):
     else:
         databases = [
             {"host":"localhost","user":"root",
-             "passwd":"","db":"test_pymysql", "use_unicode": True, 'local_infile': True},
-            {"host":"localhost","user":"root","passwd":"","db":"test_pymysql2"}]
+             "passwd":"","db":"test1", "use_unicode": True, 'local_infile': True},
+            {"host":"localhost","user":"root","passwd":"","db":"test2"}]
 
     def mysql_server_is(self, conn, version_tuple):
         """Return True if the given connection is on the version given or
@@ -40,15 +40,33 @@ class PyMySQLTestCase(unittest2.TestCase):
         )
         return server_version_tuple >= version_tuple
 
-    def setUp(self):
-        self.connections = []
-        for params in self.databases:
-            self.connections.append(pymysql.connect(**params))
-        self.addCleanup(self._teardown_connections)
+    _connections = None
+
+    @property
+    def connections(self):
+        if self._connections is None:
+            self._connections = []
+            for params in self.databases:
+                self._connections.append(pymysql.connect(**params))
+            self.addCleanup(self._teardown_connections)
+        return self._connections
+
+    def connect(self, **params):
+        p = self.databases[0].copy()
+        p.update(params)
+        conn = pymysql.connect(**p)
+        @self.addCleanup
+        def teardown():
+            if conn.open:
+                conn.close()
+        return conn
 
     def _teardown_connections(self):
-        for connection in self.connections:
-            connection.close()
+        if self._connections:
+            for connection in self._connections:
+                if connection.open:
+                    connection.close()
+            self._connections = None
 
     def safe_create_table(self, connection, tablename, ddl, cleanup=True):
         """create a table.

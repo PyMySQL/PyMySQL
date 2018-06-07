@@ -5,6 +5,7 @@ import unittest2
 import pymysql
 from pymysql.tests import base
 from pymysql._compat import text_type
+from pymysql.constants import CLIENT
 
 
 class TempUser:
@@ -95,8 +96,12 @@ class TestAuthentication(base.PyMySQLTestCase):
         #    print("plugin: %r" % r[0])
 
     def test_plugin(self):
-        # Bit of an assumption that the current user is a native password
-        self.assertEqual('mysql_native_password', self.connections[0]._auth_plugin_name)
+        if not self.mysql_server_is(self.connections[0], (5, 5, 0)):
+            raise unittest2.SkipTest("MySQL-5.5 required for plugins")
+        cur = self.connections[0].cursor()
+        cur.execute("select plugin from mysql.user where concat(user, '@', host)=current_user()")
+        for r in cur:
+            self.assertIn(self.connections[0]._auth_plugin_name, (r[0], 'mysql_native_password'))
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipIf(socket_found, "socket plugin already installed")
@@ -412,7 +417,7 @@ class TestConnection(base.PyMySQLTestCase):
         http://dev.mysql.com/doc/refman/5.0/en/gone-away.html
         http://dev.mysql.com/doc/refman/5.0/en/error-messages-client.html#error_cr_server_gone_error
         """
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
         cur.execute("SET wait_timeout=1")
         time.sleep(2)
@@ -423,10 +428,9 @@ class TestConnection(base.PyMySQLTestCase):
         self.assertIn(cm.exception.args[0], (2006, 2013))
 
     def test_init_command(self):
-        conn = pymysql.connect(
+        conn = self.connect(
             init_command='SELECT "bar"; SELECT "baz"',
-            **self.databases[0]
-        )
+            client_flag=CLIENT.MULTI_STATEMENTS)
         c = conn.cursor()
         c.execute('select "foobar";')
         self.assertEqual(('foobar',), c.fetchone())
@@ -435,22 +439,21 @@ class TestConnection(base.PyMySQLTestCase):
             conn.ping(reconnect=False)
 
     def test_read_default_group(self):
-        conn = pymysql.connect(
+        conn = self.connect(
             read_default_group='client',
-            **self.databases[0]
         )
         self.assertTrue(conn.open)
 
     def test_context(self):
         with self.assertRaises(ValueError):
-            c = pymysql.connect(**self.databases[0])
+            c = self.connect()
             with c as cur:
-                cur.execute('create table test ( a int )')
+                cur.execute('create table test ( a int ) ENGINE=InnoDB')
                 c.begin()
                 cur.execute('insert into test values ((1))')
                 raise ValueError('pseudo abort')
                 c.commit()
-        c = pymysql.connect(**self.databases[0])
+        c = self.connect()
         with c as cur:
             cur.execute('select count(*) from test')
             self.assertEqual(0, cur.fetchone()[0])
@@ -461,31 +464,32 @@ class TestConnection(base.PyMySQLTestCase):
             cur.execute('drop table test')
 
     def test_set_charset(self):
-        c = pymysql.connect(**self.databases[0])
-        c.set_charset('utf8')
+        c = self.connect()
+        c.set_charset('utf8mb4')
         # TODO validate setting here
 
     def test_defer_connect(self):
         import socket
-        for db in self.databases:
-            d = db.copy()
-            try:
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.connect(d['unix_socket'])
-            except KeyError:
-                sock = socket.create_connection(
-                                (d.get('host', 'localhost'), d.get('port', 3306)))
-            for k in ['unix_socket', 'host', 'port']:
-                try:
-                    del d[k]
-                except KeyError:
-                    pass
 
-            c = pymysql.connect(defer_connect=True, **d)
-            self.assertFalse(c.open)
-            c.connect(sock)
-            c.close()
+        d = self.databases[0].copy()
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(d['unix_socket'])
+        except KeyError:
             sock.close()
+            sock = socket.create_connection(
+                            (d.get('host', 'localhost'), d.get('port', 3306)))
+        for k in ['unix_socket', 'host', 'port']:
+            try:
+                del d[k]
+            except KeyError:
+                pass
+
+        c = pymysql.connect(defer_connect=True, **d)
+        self.assertFalse(c.open)
+        c.connect(sock)
+        c.close()
+        sock.close()
 
     @unittest2.skipUnless(sys.version_info[0:2] >= (3,2), "required py-3.2")
     def test_no_delay_warning(self):
@@ -511,7 +515,11 @@ class TestEscape(base.PyMySQLTestCase):
 
         self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
         # added NO_AUTO_CREATE_USER as not including it in 5.7 generates warnings
-        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES,NO_AUTO_CREATE_USER'")
+        # mysql-8.0 removes the option however
+        if self.mysql_server_is(con, (8, 0, 0)):
+            cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        else:
+            cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES,NO_AUTO_CREATE_USER'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
     def test_escape_builtin_encoders(self):
@@ -561,7 +569,9 @@ class TestEscape(base.PyMySQLTestCase):
         self.assertEqual(con.escape([Foo()], mapping), "(bar)")
 
     def test_previous_cursor_not_closed(self):
-        con = self.connections[0]
+        con = self.connect(
+            init_command='SELECT "bar"; SELECT "baz"',
+            client_flag=CLIENT.MULTI_STATEMENTS)
         cur1 = con.cursor()
         cur1.execute("SELECT 1; SELECT 2")
         cur2 = con.cursor()
@@ -569,7 +579,7 @@ class TestEscape(base.PyMySQLTestCase):
         self.assertEqual(cur2.fetchone()[0], 3)
 
     def test_commit_during_multi_result(self):
-        con = self.connections[0]
+        con = self.connect(client_flag=CLIENT.MULTI_STATEMENTS)
         cur = con.cursor()
         cur.execute("SELECT 1; SELECT 2")
         con.commit()

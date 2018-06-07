@@ -7,45 +7,56 @@ set -v
 
 if [ ! -z "${DB}" ]; then
     # disable existing database server in case of accidential connection
-    mysql -u root -e 'drop user travis@localhost; drop user root@localhost; drop user travis; create user super@localhost; grant all on *.* to super@localhost with grant option'
-    mysql -u super -e 'drop user root'
-    F=mysql-${DB}-linux-glibc2.12-x86_64
-    mkdir -p ${HOME}/mysql
-    P=${HOME}/mysql/${F} 
-    if [ ! -d "${P}" ]; then
-        wget http://cdn.mysql.com/Downloads/MySQL-${DB%.*}/${F}.tar.gz -O - | tar -zxf - --directory=${HOME}/mysql 
-    fi
-    if [ -f "${P}"/my.cnf ]; then
-        O="--defaults-file=${P}/my.cnf" 
-    fi
-    if [ -x "${P}"/scripts/mysql_install_db ]; then
-        I=${P}/scripts/mysql_install_db 
-        O="--defaults-file=${P}/my.cnf" 
-    else
-        I=${P}/bin/mysqld
-        IO=" --initialize " 
-        O="--no-defaults " 
-    fi
-    ${I} ${O} ${IO} --basedir=${P} --datadir=${HOME}/db-"${DB}" --log-error=/tmp/mysql.err
-    PWLINE=$(grep 'A temporary password is generated for root@localhost:' /tmp/mysql.err)
-    PASSWD=${PWLINE##* }
-    if [ -x ${P}/bin/mysql_ssl_rsa_setup ]; then
-        ${P}/bin/mysql_ssl_rsa_setup --datadir=${HOME}/db-"${DB}"
-    fi
-     # sha256 password auth keys:
-     openssl genrsa -out "${P}"/private_key.pem 2048
-     openssl rsa -in "${P}"/private_key.pem -pubout -out "${P}"/public_key.pem
-    ${P}/bin/mysqld_safe ${O} --ledir=/ --mysqld=${P}/bin/mysqld  --datadir=${HOME}/db-${DB} --socket=/tmp/mysql.sock --port 3307 --innodb-buffer-pool-size=200M  --lc-messages-dir=${P}/share --plugin-dir=${P}/lib/plugin/ --log-error=/tmp/mysql.err &
-    while [ ! -S /tmp/mysql.sock  ]; do
-       sleep 2
+    sudo service mysql stop
+
+    docker pull ${DB}
+    docker run -it --name=mysqld -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 ${DB}
+    sleep 10
+
+    mysql() {
+        docker exec mysqld mysql "${@}"
+    }
+    while :
+    do
+        sleep 5
+        mysql -e 'select version()'
+        if [ $? = 0 ]; then
+            break
+        fi
+        echo "server logs"
+        docker logs --tail 5 mysqld
     done
-    cat /tmp/mysql.err
-    if [ ! -z "${PASSWD}" ]; then
-        ${P}/bin/mysql -S /tmp/mysql.sock -u root -p"${PASSWD}" --connect-expired-password -e "SET PASSWORD = PASSWORD('')"
+
+    mysql -e 'select VERSION()'
+
+    if [ $DB == 'mysql:8.0' ]; then
+        WITH_PLUGIN='with mysql_native_password'
+        mysql -e 'SET GLOBAL local_infile=on'
+        docker cp mysqld:/var/lib/mysql/public_key.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/ca.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/server-cert.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/client-key.pem "${HOME}"
+        docker cp mysqld:/var/lib/mysql/client-cert.pem "${HOME}"
+    else
+        WITH_PLUGIN=''
     fi
-    mysql -S /tmp/mysql.sock -u root -e "create user ${USER}@localhost; create user ${USER}@'%'; grant all on *.* to  ${USER}@localhost WITH GRANT OPTION;grant all on *.* to  ${USER}@'%' WITH GRANT OPTION;"
-    sed -e 's/3306/3307/g' -e 's:/var/run/mysqld/mysqld.sock:/tmp/mysql.sock:g' .travis/database.json > pymysql/tests/databases.json
-    echo -e "[client]\nsocket = /tmp/mysql.sock\n" > "${HOME}"/.my.cnf
+
+    mysql -uroot -e 'create database test1 DEFAULT CHARACTER SET utf8mb4'
+    mysql -uroot -e 'create database test2 DEFAULT CHARACTER SET utf8mb4'
+
+    mysql -u root -e "create user test2           identified ${WITH_PLUGIN} by 'some password'; grant all on test2.* to test2;"
+    mysql -u root -e "create user test2@localhost identified ${WITH_PLUGIN} by 'some password'; grant all on test2.* to test2@localhost;"
+
+    cp .travis/docker.json pymysql/tests/databases.json
 else
+    cat ~/.my.cnf
+
+    mysql -e 'select VERSION()'
+    mysql -e 'create database test1 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
+    mysql -e 'create database test2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;'
+
+    mysql -u root -e "create user test2           identified by 'some password'; grant all on test2.* to test2;"
+    mysql -u root -e "create user test2@localhost identified by 'some password'; grant all on test2.* to test2@localhost;"
+
     cp .travis/database.json pymysql/tests/databases.json
 fi

@@ -35,7 +35,7 @@ from .times import (
     DateFromTicks, TimeFromTicks, TimestampFromTicks)
 
 
-VERSION = (0, 7, 11, None)
+VERSION = (0, 8, 1, None)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
@@ -104,7 +104,7 @@ def get_client_info():  # for MySQLdb compatibility
 connect = Connection = Connect
 
 # we include a doctored version_info here for MySQLdb compatibility
-version_info = (1,2,6,"final",0)
+version_info = (1, 3, 12, "final", 0)
 
 NULL = "NULL"
 

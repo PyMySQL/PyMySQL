@@ -1,4 +1,3 @@
-#!/usr/bin/env python -O
 """ Script to test database capabilities and the DB-API interface
     for functionality and memory leaks.
 
@@ -18,8 +17,8 @@ class DatabaseTest(unittest.TestCase):
 
     db_module = None
     connect_args = ()
-    connect_kwargs = dict(use_unicode=True, charset="utf8")
-    create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8"
+    connect_kwargs = dict(use_unicode=True, charset="utf8mb4", binary_prefix=True)
+    create_table_extra = "ENGINE=INNODB CHARACTER SET UTF8MB4"
     rows = 10
     debug = False
 

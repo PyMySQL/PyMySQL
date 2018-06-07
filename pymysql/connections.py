@@ -19,7 +19,7 @@ import warnings
 from .auth import sha256_password_plugin as _auth
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
-from .converters import escape_item, escape_string, through, conversions as _conv
+from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
 from .util import byte2int, int2byte
@@ -44,39 +44,28 @@ DEBUG = False
 
 _py_version = sys.version_info[:2]
 
+if PY2:
+    pass
+elif _py_version < (3, 6):
+    # See http://bugs.python.org/issue24870
+    _surrogateescape_table = [chr(i) if i < 0x80 else chr(i + 0xdc00) for i in range(256)]
+
+    def _fast_surrogateescape(s):
+        return s.decode('latin1').translate(_surrogateescape_table)
+else:
+    def _fast_surrogateescape(s):
+        return s.decode('ascii', 'surrogateescape')
 
 # socket.makefile() in Python 2 is not usable because very inefficient and
 # bad behavior about timeout.
 # XXX: ._socketio doesn't work under IronPython.
-if _py_version == (2, 7) and not IRONPYTHON:
+if PY2 and not IRONPYTHON:
     # read method of file-like returned by sock.makefile() is very slow.
     # So we copy io-based one from Python 3.
     from ._socketio import SocketIO
 
     def _makefile(sock, mode):
         return io.BufferedReader(SocketIO(sock, mode))
-elif _py_version == (2, 6):
-    # Python 2.6 doesn't have fast io module.
-    # So we make original one.
-    class SockFile(object):
-        def __init__(self, sock):
-            self._sock = sock
-
-        def read(self, n):
-            read = self._sock.recv(n)
-            if len(read) == n:
-                return read
-            while True:
-                data = self._sock.recv(n-len(read))
-                if not data:
-                    return read
-                read += data
-                if len(read) == n:
-                    return read
-
-    def _makefile(sock, mode):
-        assert mode == 'rb'
-        return SockFile(sock)
 else:
     # socket.makefile in Python 3 is nice.
     def _makefile(sock, mode):
@@ -132,6 +121,8 @@ def dump_packet(data): # pragma: no cover
     print()
 
 
+SCRAMBLE_LENGTH = 20
+
 def _scramble(password, message):
     if not password:
         return b''
@@ -139,7 +130,7 @@ def _scramble(password, message):
     stage1 = sha_new(password).digest()
     stage2 = sha_new(stage1).digest()
     s = sha_new()
-    s.update(message)
+    s.update(message[:SCRAMBLE_LENGTH]) 
     s.update(stage2)
     result = s.digest()
     return _my_crypt(result, stage1)
@@ -536,6 +527,8 @@ class Connection(object):
         the interface from which to connect to the host. Argument can be
         a hostname or an IP address.
     :param unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
+    :param read_timeout: The timeout for reading from the connection in seconds (default: None - no timeout)
+    :param write_timeout: The timeout for writing to the connection in seconds (default: None - no timeout)
     :param charset: Charset you want to use.
     :param sql_mode: Default SQL_MODE to use.
     :param read_default_file:
@@ -572,6 +565,10 @@ class Connection(object):
     :param server_public_key: SHA256 authenticaiton plugin public key value. (default: '')
     :param db: Alias for database. (for compatibility to MySQLdb)
     :param passwd: Alias for password. (for compatibility to MySQLdb)
+    :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
+
+    See `Connection <https://www.python.org/dev/peps/pep-0249/#connection-objects>`_ in the
+    specification.
     """
 
     _sock = None
@@ -588,7 +585,7 @@ class Connection(object):
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 server_public_key='', bind_address=None):
+                 bind_address=None, binary_prefix=False, server_public_key=''):
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
 
@@ -695,7 +692,8 @@ class Connection(object):
         self.autocommit_mode = autocommit
 
         if conv is None:
-            conv = _conv
+            conv = converters.conversions
+
         # Need for MySQLdb compatibility.
         self.encoders = dict([(k, v) for (k, v) in conv.items() if type(k) is not int])
         self.decoders = dict([(k, v) for (k, v) in conv.items() if type(k) is int])
@@ -706,6 +704,7 @@ class Connection(object):
         if b"sha256_password" not in self._auth_plugin_map:
             self._auth_plugin_map[b"sha256_password"] = _auth.SHA256PasswordPlugin
         self.server_public_key = server_public_key
+        self._binary_prefix = binary_prefix
         if defer_connect:
             self._sock = None
         else:
@@ -729,7 +728,14 @@ class Connection(object):
         return ctx
 
     def close(self):
-        """Send the quit message and close the socket"""
+        """
+        Send the quit message and close the socket.
+
+        See `Connection.close() <https://www.python.org/dev/peps/pep-0249/#Connection.close>`_
+        in the specification.
+        
+        :raise Error: If the connection is already closed.
+        """
         if self._closed:
             raise err.Error("Already closed")
         self._closed = True
@@ -745,6 +751,7 @@ class Connection(object):
 
     @property
     def open(self):
+        """Return True if the connection is open"""
         return self._sock is not None
 
     def _force_close(self):
@@ -789,24 +796,38 @@ class Connection(object):
         self._read_ok_packet()
 
     def commit(self):
-        """Commit changes to stable storage"""
+        """
+        Commit changes to stable storage.
+        
+        See `Connection.commit() <https://www.python.org/dev/peps/pep-0249/#commit>`_
+        in the specification.
+        """
         self._execute_command(COMMAND.COM_QUERY, "COMMIT")
         self._read_ok_packet()
 
     def rollback(self):
-        """Roll back the current transaction"""
+        """
+        Roll back the current transaction.
+        
+        See `Connection.rollback() <https://www.python.org/dev/peps/pep-0249/#rollback>`_
+        in the specification.
+        """
         self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
 
     def show_warnings(self):
-        """SHOW WARNINGS"""
+        """Send the "SHOW WARNINGS" SQL command."""
         self._execute_command(COMMAND.COM_QUERY, "SHOW WARNINGS")
         result = MySQLResult(self)
         result.read()
         return result.rows
 
     def select_db(self, db):
-        """Set current db"""
+        """
+        Set current db.
+        
+        :param db: The name of the db.
+        """
         self._execute_command(COMMAND.COM_INIT_DB, db)
         self._read_ok_packet()
 
@@ -817,7 +838,12 @@ class Connection(object):
         """
         if isinstance(obj, str_type):
             return "'" + self.escape_string(obj) + "'"
-        return escape_item(obj, self.charset, mapping=mapping)
+        if isinstance(obj, (bytes, bytearray)):
+            ret = self._quote_bytes(obj)
+            if self._binary_prefix:
+                ret = "_binary" + ret
+            return ret
+        return converters.escape_item(obj, self.charset, mapping=mapping)
 
     def literal(self, obj):
         """Alias for escape()
@@ -830,10 +856,22 @@ class Connection(object):
         if (self.server_status &
                 SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES):
             return s.replace("'", "''")
-        return escape_string(s)
+        return converters.escape_string(s)
+
+    def _quote_bytes(self, s):
+        if (self.server_status &
+                SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES):
+            return "'%s'" % (_fast_surrogateescape(s.replace(b"'", b"''")),)
+        return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
-        """Create a new cursor to execute queries with"""
+        """
+        Create a new cursor to execute queries with.
+        
+        :param cursor: The type of cursor to create; one of :py:class:`Cursor`,
+            :py:class:`SSCursor`, :py:class:`DictCursor`, or :py:class:`SSDictCursor`.
+            None means use Cursor.
+        """
         if cursor:
             return cursor(self)
         return self.cursorclass(self)
@@ -875,7 +913,12 @@ class Connection(object):
         return self._read_ok_packet()
 
     def ping(self, reconnect=True):
-        """Check if the server is alive"""
+        """
+        Check if the server is alive.
+        
+        :param reconnect: If the connection is closed, reconnect.
+        :raise Error: If the connection is closed and reconnect=False.
+        """
         if self._sock is None:
             if reconnect:
                 self.connect()
@@ -884,11 +927,11 @@ class Connection(object):
                 raise err.Error("Already closed")
         try:
             self._execute_command(COMMAND.COM_PING, "")
-            return self._read_ok_packet()
+            self._read_ok_packet()
         except Exception:
             if reconnect:
                 self.connect()
-                return self.ping(False)
+                self.ping(False)
             else:
                 raise
 
@@ -987,11 +1030,14 @@ class Connection(object):
     def _read_packet(self, packet_type=MysqlPacket):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results.
+
+        :raise OperationalError: If the connection to the MySQL server is lost.
+        :raise InternalError: If the packet sequence number is wrong.
         """
         buff = b''
         while True:
             packet_header = self._read_bytes(4)
-            if DEBUG: dump_packet(packet_header)
+            #if DEBUG: dump_packet(packet_header)
 
             btrl, btrh, packet_number = struct.unpack('<HBB', packet_header)
             bytes_to_read = btrl + (btrh << 16)
@@ -1050,6 +1096,7 @@ class Connection(object):
                 "MySQL server has gone away (%r)" % (e,))
 
     def _read_query_result(self, unbuffered=False):
+        self._result = None
         if unbuffered:
             try:
                 result = MySQLResult(self)
@@ -1073,6 +1120,11 @@ class Connection(object):
             return 0
 
     def _execute_command(self, command, sql):
+        """
+        :raise InterfaceError: If the connection is closed.
+        :raise ValueError: If no username was specified.
+        """
+        
         if not self._sock:
             raise err.InterfaceError("(0, '')")
 
@@ -1269,7 +1321,6 @@ class Connection(object):
         packet = self._read_packet()
         data = packet.get_all_data()
 
-        if DEBUG: dump_packet(data)
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
 
@@ -1289,8 +1340,14 @@ class Connection(object):
         if len(data) >= i + 6:
             lang, stat, cap_h, salt_len = struct.unpack('<BHHB', data[i:i+6])
             i += 6
+            # TODO: deprecate server_language and server_charset.
+            # mysqlclient-python doesn't provide it.
             self.server_language = lang
-            self.server_charset = charset_by_id(lang).name
+            try:
+                self.server_charset = charset_by_id(lang).name
+            except KeyError:
+                # unknown collation
+                self.server_charset = None
 
             self.server_status = stat
             if DEBUG: print("server_status: %x" % stat)
@@ -1373,6 +1430,10 @@ class MySQLResult(object):
             self.connection = None
 
     def init_unbuffered_query(self):
+        """
+        :raise OperationalError: If the connection to the MySQL server is lost.
+        :raise InternalError:
+        """
         self.unbuffered_active = True
         first_packet = self.connection._read_packet()
 
@@ -1528,7 +1589,7 @@ class MySQLResult(object):
             else:
                 encoding = None
             converter = self.connection.decoders.get(field_type)
-            if converter is through:
+            if converter is converters.through:
                 converter = None
             if DEBUG: print("DEBUG: field={}, converter={}".format(field, converter))
             self.converters.append((encoding, converter))

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from . import dbapi20
 import pymysql
 from pymysql.tests import base
@@ -204,7 +203,3 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
 
         finally:
             con.close()
-
-
-if __name__ == '__main__':
-    unittest.main()

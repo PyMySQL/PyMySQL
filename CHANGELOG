@@ -1,5 +1,46 @@
 # Changes
 
+## 0.8.1
+
+Release date: 2018-05-07
+
+* Reduce `cursor.callproc()` roundtrip time. (#636)
+
+* Fixed `cursor.query()` is hunged after multi statement failed. (#647)
+
+* WRONG_DB_NAME and WRONG_COLUMN_NAME is ProgrammingError for now. (#629)
+
+* Many test suite improvements, especially adding MySQL 8.0 and using Docker.
+  Thanks to Daniel Black.
+
+* Droppped support for old Python and MySQL whih is not tested long time.
+
+
+## 0.8
+
+Release date: 2017-12-20
+
+* **BACKWARD INCOMPATIBLE** ``binary_prefix`` option is added and off
+  by default because of compatibility with mysqlclient.
+  When you need PyMySQL 0.7 behavior, you have to pass ``binary_prefix=True``.
+  (#549)
+
+* **BACKWARD INCOMPATIBLE** ``MULTI_STATEMENTS`` client flag is no longer
+  set by default, while it was on PyMySQL 0.7.  You need to pass
+  ``client_flag=CLIENT.MULTI_STATEMENTS`` when you connect to explicitly
+  enable multi-statement mode. (#590)
+
+* Fixed AuthSwitch packet handling.
+
+* Raise OperationalError for MariaDB's constraint error. (#607)
+
+* executemany() accepts query without space between ``VALUES`` and ``(``.  (#597)
+
+* Support config file containing option without value. (#588)
+
+* Fixed Connection.ping() returned unintended value.
+
+
 ## 0.7.11
 
 Release date: 2017-04-06
