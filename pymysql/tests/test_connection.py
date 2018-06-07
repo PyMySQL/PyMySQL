@@ -360,11 +360,12 @@ class TestAuthentication(base.PyMySQLTestCase):
             else:
                 c.execute('SET old_passwords = 2')
                 c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' = PASSWORD('Sh@256Pa33')")
+            c.execute("FLUSH PRIVILEGES")
             db = self.db.copy()
             db['password'] = "Sh@256Pa33"
-            # not implemented yet so thows error
+            # Although SHA256 is supported, need the configuration of public key of the mysql server. Currently will get error by this test. 
             with self.assertRaises(pymysql.err.OperationalError):
-                pymysql.connect(user='pymysql_256', **db)
+                pymysql.connect(user='pymysql_sha256', **db)
 
 class TestConnection(base.PyMySQLTestCase):
 

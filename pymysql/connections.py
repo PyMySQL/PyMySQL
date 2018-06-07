@@ -16,6 +16,7 @@ import sys
 import traceback
 import warnings
 
+from .auth import sha256_password_plugin as _auth
 from .charset import MBLENGTH, charset_by_name, charset_by_id
 from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
 from . import converters
@@ -38,7 +39,6 @@ try:
 except (ImportError, KeyError):
     # KeyError occurs when there's no entry in OS database for a current user.
     DEFAULT_USER = None
-
 
 DEBUG = False
 
@@ -134,7 +134,6 @@ def _scramble(password, message):
     s.update(stage2)
     result = s.digest()
     return _my_crypt(result, stage1)
-
 
 def _my_crypt(message1, message2):
     length = len(message1)
@@ -365,6 +364,10 @@ class MysqlPacket(object):
         # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
         return self._data[0:1] == b'\xfe'
 
+    def is_extra_auth_data(self):
+        # https://dev.mysql.com/doc/internals/en/successful-authentication.html
+        return self._data[0:1] == b'\x01'
+
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
         return 1 <= field_count <= 250
@@ -559,6 +562,7 @@ class Connection(object):
         The class needs an authenticate method taking an authentication packet as
         an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
         (if no authenticate method) for returning a string from the user. (experimental)
+    :param server_public_key: SHA256 authenticaiton plugin public key value. (default: '')
     :param db: Alias for database. (for compatibility to MySQLdb)
     :param passwd: Alias for password. (for compatibility to MySQLdb)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
@@ -581,7 +585,7 @@ class Connection(object):
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 bind_address=None, binary_prefix=False):
+                 bind_address=None, binary_prefix=False, server_public_key=''):
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
 
@@ -697,6 +701,9 @@ class Connection(object):
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map
+        if b"sha256_password" not in self._auth_plugin_map:
+            self._auth_plugin_map[b"sha256_password"] = _auth.SHA256PasswordPlugin
+        self.server_public_key = server_public_key
         self._binary_prefix = binary_prefix
         if defer_connect:
             self._sock = None
@@ -826,7 +833,7 @@ class Connection(object):
 
     def escape(self, obj, mapping=None):
         """Escape whatever value you pass to it.
-        
+
         Non-standard, for internal use; do not use this in your applications.
         """
         if isinstance(obj, str_type):
@@ -840,7 +847,7 @@ class Connection(object):
 
     def literal(self, obj):
         """Alias for escape()
-        
+
         Non-standard, for internal use; do not use this in your applications.
         """
         return self.escape(obj, self.encoders)
@@ -1180,6 +1187,14 @@ class Connection(object):
         authresp = b''
         if self._auth_plugin_name in ('', 'mysql_native_password'):
             authresp = _scramble(self.password.encode('latin1'), self.salt)
+        elif self._auth_plugin_name == 'sha256_password':
+            if self.ssl and self.server_capabilities & CLIENT.SSL:
+                authresp = self.password.encode('latin1') + b'\0'
+            else:
+                if self.password is not None:
+                    authresp = b'\1'
+                else:
+                    authresp = b'\0'
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
             data += lenenc_int(len(authresp)) + authresp
@@ -1215,24 +1230,20 @@ class Connection(object):
                 data = _scramble_323(self.password.encode('latin1'), self.salt) + b'\0'
                 self.write_packet(data)
                 auth_packet = self._read_packet()
+        elif auth_packet.is_extra_auth_data():
+            # https://dev.mysql.com/doc/internals/en/successful-authentication.html
+            handler = self._get_auth_plugin_handler(self._auth_plugin_name)
+            handler.authenticate(auth_packet)
 
     def _process_auth(self, plugin_name, auth_packet):
-        plugin_class = self._auth_plugin_map.get(plugin_name)
-        if not plugin_class:
-            plugin_class = self._auth_plugin_map.get(plugin_name.decode('ascii'))
-        if plugin_class:
+        handler = self._get_auth_plugin_handler(plugin_name)
+        if handler != None:
             try:
-                handler = plugin_class(self)
                 return handler.authenticate(auth_packet)
             except AttributeError:
                 if plugin_name != b'dialog':
                     raise err.OperationalError(2059, "Authentication plugin '%s'" \
                               " not loaded: - %r missing authenticate method" % (plugin_name, plugin_class))
-            except TypeError:
-                raise err.OperationalError(2059, "Authentication plugin '%s'" \
-                    " not loaded: - %r cannot be constructed with connection object" % (plugin_name, plugin_class))
-        else:
-            handler = None
         if plugin_name == b"mysql_native_password":
             # https://dev.mysql.com/doc/internals/en/secure-password-authentication.html#packet-Authentication::Native41
             data = _scramble(self.password.encode('latin1'), auth_packet.read_all())
@@ -1277,6 +1288,20 @@ class Connection(object):
         pkt = self._read_packet()
         pkt.check_error()
         return pkt
+    
+    def _get_auth_plugin_handler(self, plugin_name):
+        plugin_class = self._auth_plugin_map.get(plugin_name)
+        if not plugin_class:
+            plugin_class = self._auth_plugin_map.get(plugin_name.decode('ascii'))
+        if plugin_class:
+            try:
+                handler = plugin_class(self)
+            except TypeError:
+                raise err.OperationalError(2059, "Authentication plugin '%s'" \
+                    " not loaded: - %r cannot be constructed with connection object" % (plugin_name, plugin_class))
+        else:
+            handler = None
+        return handler
 
     # _mysql support
     def thread_id(self):
@@ -1551,7 +1576,7 @@ class MySQLResult(object):
                     # This behavior is different from TEXT / BLOB.
                     # We should decode result by connection encoding regardless charsetnr.
                     # See https://github.com/PyMySQL/PyMySQL/issues/488
-                    encoding = conn_encoding  # SELECT CAST(... AS JSON) 
+                    encoding = conn_encoding  # SELECT CAST(... AS JSON)
                 elif field_type in TEXT_TYPES:
                     if field.charsetnr == 63:  # binary
                         # TEXTs with charset=binary means BINARY types.
