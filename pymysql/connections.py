@@ -331,6 +331,8 @@ class Connection(object):
         self.port = port or 3306
         self.user = user or DEFAULT_USER
         self.password = password or ""
+        if isinstance(self.password, text_type):
+            self.password = self.password.encode('ascii')
         self.db = database
         self.unix_socket = unix_socket
         self.bind_address = bind_address

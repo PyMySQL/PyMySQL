@@ -1,3 +1,4 @@
+from .._compat import text_type
 from ..constants import CLIENT
 from ..err import OperationalError
 
@@ -7,10 +8,11 @@ from cryptography.hazmat.primitives.asymmetric import padding
 
 
 def _xor_password(password, salt):
-    password_bytes = bytearray(password, 'ascii')
+    password_bytes = bytearray(password)
+    salt = bytearray(salt)  # for PY2 compat.
     salt_len = len(salt)
     for i in range(len(password_bytes)):
-        password_bytes[i] ^= ord(salt[i % salt_len])
+        password_bytes[i] ^= salt[i % salt_len]
     return password_bytes
 
 
@@ -30,7 +32,7 @@ class SHA256PasswordPlugin(object):
 
     def authenticate(self, pkt):
         if self.con.ssl and self.con.server_capabilities & CLIENT.SSL:
-            data = self.con.password.encode('latin1') + b'\0'
+            data = self.con.password + b'\0'
         else:
             if pkt.is_auth_switch_request():
                 self.con.salt = pkt.read_all()
