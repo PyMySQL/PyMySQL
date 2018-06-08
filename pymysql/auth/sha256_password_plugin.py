@@ -1,15 +1,9 @@
 from ..constants import CLIENT
 from ..err import OperationalError
 
-# Import cryptography for RSA_PKCS1_OAEP_PADDING algorithm
-# which is needed when use sha256_password_plugin with no SSL
-try:
-    from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import serialization, hashes
-    from cryptography.hazmat.primitives.asymmetric import padding
-    HAVE_CRYPTOGRAPHY = True
-except ImportError:
-    HAVE_CRYPTOGRAPHY = False
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import padding
 
 
 def _xor_password(password, salt):
@@ -21,8 +15,6 @@ def _xor_password(password, salt):
 
 
 def _sha256_rsa_crypt(password, salt, public_key):
-    if not HAVE_CRYPTOGRAPHY:
-        raise OperationalError("cryptography module not found for sha256_password_plugin")
     message = _xor_password(password + b'\0', salt)
     rsa_key = serialization.load_pem_public_key(public_key, default_backend())
     return rsa_key.encrypt(
