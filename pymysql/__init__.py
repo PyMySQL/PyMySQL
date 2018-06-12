@@ -44,13 +44,13 @@ paramstyle = "pyformat"
 class DBAPISet(frozenset):
 
     def __ne__(self, other):
-        if isinstance(other, set):
+        if isinstance(other, (set, frozenset)):
             return frozenset.__ne__(self, other)
         else:
             return other not in self
 
     def __eq__(self, other):
-        if isinstance(other, frozenset):
+        if isinstance(other, (set, frozenset)):
             return frozenset.__eq__(self, other)
         else:
             return other in self
