@@ -240,7 +240,7 @@ class Connection(object):
         The class needs an authenticate method taking an authentication packet as
         an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
         (if no authenticate method) for returning a string from the user. (experimental)
-    :param server_public_key: SHA256 authenticaiton plugin public key value. (default: '')
+    :param server_public_key: SHA256 authenticaiton plugin public key value. (default: None)
     :param db: Alias for database. (for compatibility to MySQLdb)
     :param passwd: Alias for password. (for compatibility to MySQLdb)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
@@ -262,8 +262,8 @@ class Connection(object):
                  compress=None, named_pipe=None, no_delay=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
-                 auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 bind_address=None, binary_prefix=False, server_public_key=''):
+                 auth_plugin_map=None, read_timeout=None, write_timeout=None,
+                 bind_address=None, binary_prefix=False, server_public_key=None):
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
 
@@ -330,9 +330,9 @@ class Connection(object):
         self.host = host or "localhost"
         self.port = port or 3306
         self.user = user or DEFAULT_USER
-        self.password = password or ""
+        self.password = password or b""
         if isinstance(self.password, text_type):
-            self.password = self.password.encode('ascii')
+            self.password = self.password.encode('latin1')
         self.db = database
         self.unix_socket = unix_socket
         self.bind_address = bind_address
@@ -380,10 +380,12 @@ class Connection(object):
         self.sql_mode = sql_mode
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
-        self._auth_plugin_map = auth_plugin_map
+        self._auth_plugin_map = auth_plugin_map or {}
         self._binary_prefix = binary_prefix
-        if b"sha256_password" not in self._auth_plugin_map:
-            self._auth_plugin_map[b"sha256_password"] = _auth.SHA256PasswordPlugin
+        if "caching_sha2_password" not in self._auth_plugin_map:
+            self._auth_plugin_map["caching_sha2_password"] = _auth.CachingSHA2Password
+        if "sha256_password" not in self._auth_plugin_map:
+            self._auth_plugin_map["sha256_password"] = _auth.SHA256Password
         self.server_public_key = server_public_key
         if defer_connect:
             self._sock = None
@@ -854,7 +856,7 @@ class Connection(object):
         if isinstance(self.user, text_type):
             self.user = self.user.encode(self.encoding)
 
-        data_init = struct.pack('<iIB23s', self.client_flag, 1, charset_id, b'')
+        data_init = struct.pack('<iIB23s', self.client_flag, MAX_PACKET_LEN, charset_id, b'')
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             self.write_packet(data_init)
@@ -865,16 +867,25 @@ class Connection(object):
         data = data_init + self.user + b'\0'
 
         authresp = b''
+        plugin_name = None
+
         if self._auth_plugin_name in ('', 'mysql_native_password'):
-            authresp = _scramble(self.password.encode('latin1'), self.salt)
-        elif self._auth_plugin_name == 'sha256_password':
-            if self.ssl and self.server_capabilities & CLIENT.SSL:
-                authresp = self.password.encode('latin1') + b'\0'
+            authresp = _scramble(self.password, self.salt)
+        elif self._auth_plugin_name == 'caching_sha2_password':
+            plugin_name = b'caching_sha2_password'
+            if self.password:
+                print("caching_sha2: trying fast path")
+                authresp = _auth._scramble_sha256_password(self.password, self.salt)
             else:
-                if self.password is not None:
-                    authresp = b'\1'
-                else:
-                    authresp = b'\0'
+                print("caching_sha2: without password")
+        elif self._auth_plugin_name == 'sha256_password':
+            plugin_name = b'sha256_password'
+            if self.ssl and self.server_capabilities & CLIENT.SSL:
+                authresp = self.password + b'\0'
+            elif self.password:
+                authresp = b'\1'  # request public key
+            else:
+                authresp = b'\0'  # skip
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
             data += lenenc_int(len(authresp)) + authresp
@@ -889,17 +900,16 @@ class Connection(object):
             data += self.db + b'\0'
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH:
-            name = self._auth_plugin_name
-            if isinstance(name, text_type):
-                name = name.encode('ascii')
-            data += name + b'\0'
+            data += plugin_name + b'\0'
 
+        print("authresp", authresp)
         self.write_packet(data)
         auth_packet = self._read_packet()
 
         # if authentication method isn't accepted the first byte
         # will have the octet 254
         if auth_packet.is_auth_switch_request():
+            if DEBUG: print("received auth switch")
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             auth_packet.read_uint8() # 0xfe packet identifier
             plugin_name = auth_packet.read_string()
@@ -907,17 +917,20 @@ class Connection(object):
                 auth_packet = self._process_auth(plugin_name, auth_packet)
             else:
                 # send legacy handshake
-                data = _scramble_323(self.password.encode('latin1'), self.salt) + b'\0'
+                data = _scramble_323(self.password, self.salt) + b'\0'
                 self.write_packet(data)
                 auth_packet = self._read_packet()
         elif auth_packet.is_extra_auth_data():
+            print("received extra data")
             # https://dev.mysql.com/doc/internals/en/successful-authentication.html
             handler = self._get_auth_plugin_handler(self._auth_plugin_name)
             handler.authenticate(auth_packet)
 
+        if DEBUG: print("Succeed to auth")
+
     def _process_auth(self, plugin_name, auth_packet):
         handler = self._get_auth_plugin_handler(plugin_name)
-        if handler != None:
+        if handler:
             try:
                 return handler.authenticate(auth_packet)
             except AttributeError:
@@ -926,13 +939,13 @@ class Connection(object):
                               " not loaded: - %r missing authenticate method" % (plugin_name, plugin_class))
         if plugin_name == b"mysql_native_password":
             # https://dev.mysql.com/doc/internals/en/secure-password-authentication.html#packet-Authentication::Native41
-            data = _scramble(self.password.encode('latin1'), auth_packet.read_all())
+            data = _scramble(self.password, auth_packet.read_all())
         elif plugin_name == b"mysql_old_password":
             # https://dev.mysql.com/doc/internals/en/old-password-authentication.html
-            data = _scramble_323(self.password.encode('latin1'), auth_packet.read_all()) + b'\0'
+            data = _scramble_323(self.password, auth_packet.read_all()) + b'\0'
         elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
-            data = self.password.encode('latin1') + b'\0'
+            data = self.password + b'\0'
         elif plugin_name == b"dialog":
             pkt = auth_packet
             while True:
@@ -942,7 +955,7 @@ class Connection(object):
                 prompt = pkt.read_all()
 
                 if prompt == b"Password: ":
-                    self.write_packet(self.password.encode('latin1') + b'\0')
+                    self.write_packet(self.password + b'\0')
                 elif handler:
                     resp = 'no response - TypeError within plugin.prompt method'
                     try:
@@ -971,7 +984,7 @@ class Connection(object):
     
     def _get_auth_plugin_handler(self, plugin_name):
         plugin_class = self._auth_plugin_map.get(plugin_name)
-        if not plugin_class:
+        if not plugin_class and isinstance(plugin_name, bytes):
             plugin_class = self._auth_plugin_map.get(plugin_name.decode('ascii'))
         if plugin_class:
             try:
