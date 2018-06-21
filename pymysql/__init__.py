@@ -36,6 +36,10 @@ from .times import (
 
 
 VERSION = (0, 8, 1, None)
+if VERSION[3] is not None:
+    VERSION_STRING = "%d.%d.%d_%s" % VERSION
+else:
+    VERSION_STRING = "%d.%d.%d" % VERSION[:3]
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"

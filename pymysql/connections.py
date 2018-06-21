@@ -26,7 +26,7 @@ from .protocol import (
     EOFPacketWrapper, LoadLocalPacketWrapper
 )
 from .util import byte2int, int2byte
-from . import err
+from . import err, VERSION_STRING
 
 try:
     import ssl
@@ -262,7 +262,7 @@ class Connection(object):
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map={}, read_timeout=None, write_timeout=None,
-                 bind_address=None, binary_prefix=False):
+                 bind_address=None, binary_prefix=False, program_name=None):
         if no_delay is not None:
             warnings.warn("no_delay option is deprecated", DeprecationWarning)
 
@@ -357,6 +357,7 @@ class Connection(object):
         client_flag |= CLIENT.CAPABILITIES
         if self.db:
             client_flag |= CLIENT.CONNECT_WITH_DB
+
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -379,6 +380,18 @@ class Connection(object):
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map
         self._binary_prefix = binary_prefix
+
+        self._connect_attrs = {
+            '_client_name': 'pymysql',
+            '_pid': str(os.getpid()),
+            '_client_version': VERSION_STRING,
+        }
+
+        if program_name:
+            self._connect_attrs["program_name"] = program_name
+        elif sys.argv:
+            self._connect_attrs["program_name"] = sys.argv[0]
+
         if defer_connect:
             self._sock = None
         else:
@@ -879,6 +892,15 @@ class Connection(object):
             if isinstance(name, text_type):
                 name = name.encode('ascii')
             data += name + b'\0'
+
+        if self.server_capabilities & CLIENT.CONNECT_ATTRS:
+            connect_attrs = b''
+            for k, v in self._connect_attrs.items():
+                k = k.encode('utf8')
+                connect_attrs += struct.pack('B', len(k)) + k
+                v = v.encode('utf8')
+                connect_attrs += struct.pack('B', len(v)) + v
+            data += struct.pack('B', len(connect_attrs)) + connect_attrs
 
         self.write_packet(data)
         auth_packet = self._read_packet()
