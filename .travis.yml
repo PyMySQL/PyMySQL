@@ -41,7 +41,7 @@ matrix:
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
 # really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 install:
-  - pip install -U coveralls unittest2 coverage
+  - pip install -U coveralls unittest2 coverage cryptography
 
 before_script:
   - ./.travis/initializedb.sh
