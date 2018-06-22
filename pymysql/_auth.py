@@ -1,9 +1,9 @@
 """
-Implements sha256_password and caching_sha2_password auth methods.
+Implements auth methods
 """
-from .._compat import text_type
-from ..constants import CLIENT
-from ..err import OperationalError
+from ._compat import text_type
+from .constants import CLIENT
+from .err import OperationalError
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes

@@ -1,7 +1,7 @@
 import pymysql
 
 pymysql.connections.DEBUG = True
-pymysql.auth.sha256_password_plugin.DEBUG = True
+pymysql._auth.DEBUG = True
 
 host="127.0.0.1"
 port=3306

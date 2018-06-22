@@ -16,7 +16,8 @@ import sys
 import traceback
 import warnings
 
-from .auth import sha256_password_plugin as _auth
+from . import _auth
+
 from .charset import charset_by_name, charset_by_id
 from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
 from . import converters
