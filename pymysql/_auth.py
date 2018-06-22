@@ -31,7 +31,11 @@ def _xor_password(password, salt):
     return password_bytes
 
 
-def _sha256_rsa_crypt(password, salt, public_key):
+def sha2_rsa_encrypt(password, salt, public_key):
+    """Encrypt password with salt and public_key.
+
+    Used for sha256_password and caching_sha2_password.
+    """
     message = _xor_password(password + b'\0', salt)
     rsa_key = serialization.load_pem_public_key(public_key, default_backend())
     return rsa_key.encrypt(
@@ -75,24 +79,25 @@ class SHA256Password(object):
             if not conn.server_public_key:
                 raise OperationalError("Couldn't receive server's public key")
 
-            data = _sha256_rsa_crypt(conn.password, conn.salt, conn.server_public_key)
+            data = sha2_rsa_encrypt(conn.password, conn.salt, conn.server_public_key)
         else:
             data = b''
 
         return _roundtrip(conn, data)
 
 
-# XOR(SHA256(password), SHA256(SHA256(SHA256(password)), scramble))
-# Used in caching_sha2_password
+def caching_sha2_scramble(password, nonce):
+    # (bytes, bytes) -> bytes
+    """Scramble algorithm used in cached_sha2_password fast path.
 
-
-def _scramble_sha256_password(password, scramble):
+    XOR(SHA256(password), SHA256(SHA256(SHA256(password)), nonce))
+    """
     if not password:
         return b''
 
     p1 = hashlib.sha256(password).digest()
     p2 = hashlib.sha256(p1).digest()
-    p3 = hashlib.sha256(p2 + scramble).digest()
+    p3 = hashlib.sha256(p2 + nonce).digest()
 
     res = bytearray(p1)
     for i in range(len(p3)):
@@ -118,7 +123,7 @@ class CachingSHA2Password(object):
             if DEBUG:
                 print("caching sha2: Trying fast path")
             conn.salt = pkt.read_all()
-            scrambled = _scramble_sha256_password(conn.password, conn.salt)
+            scrambled = caching_sha2_scramble(conn.password, conn.salt)
             pkt = _roundtrip(conn, scrambled)
         # else: fast auth is tried in initial handshake
 
@@ -164,5 +169,5 @@ class CachingSHA2Password(object):
             if DEBUG:
                 print(conn.server_public_key.decode('ascii'))
 
-        data = _sha256_rsa_crypt(conn.password, conn.salt, conn.server_public_key)
+        data = sha2_rsa_encrypt(conn.password, conn.salt, conn.server_public_key)
         pkt = _roundtrip(conn, data)
