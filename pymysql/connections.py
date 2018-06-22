@@ -6,7 +6,6 @@ from __future__ import print_function
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 
 import errno
-import hashlib
 import io
 import os
 import socket
@@ -92,8 +91,10 @@ DEFAULT_CHARSET = 'latin1'  # TODO: change to utf8mb4
 
 MAX_PACKET_LEN = 2**24-1
 
+
 def pack_int24(n):
     return struct.pack('<I', n)[:3]
+
 
 # https://dev.mysql.com/doc/internals/en/integer.html#packet-Protocol::LengthEncodedInteger
 def lenenc_int(i):
@@ -309,11 +310,6 @@ class Connection(object):
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map or {}
         self._binary_prefix = binary_prefix
-
-        if "caching_sha2_password" not in self._auth_plugin_map:
-            self._auth_plugin_map["caching_sha2_password"] = _auth.CachingSHA2Password
-        if "sha256_password" not in self._auth_plugin_map:
-            self._auth_plugin_map["sha256_password"] = _auth.SHA256Password
         self.server_public_key = server_public_key
 
         self._connect_attrs = {
@@ -354,7 +350,7 @@ class Connection(object):
 
         See `Connection.close() <https://www.python.org/dev/peps/pep-0249/#Connection.close>`_
         in the specification.
-        
+
         :raise Error: If the connection is already closed.
         """
         if self._closed:
@@ -380,7 +376,7 @@ class Connection(object):
         if self._sock:
             try:
                 self._sock.close()
-            except:
+            except:  # noqa
                 pass
         self._sock = None
         self._rfile = None
@@ -419,7 +415,7 @@ class Connection(object):
     def commit(self):
         """
         Commit changes to stable storage.
-        
+
         See `Connection.commit() <https://www.python.org/dev/peps/pep-0249/#commit>`_
         in the specification.
         """
@@ -429,7 +425,7 @@ class Connection(object):
     def rollback(self):
         """
         Roll back the current transaction.
-        
+
         See `Connection.rollback() <https://www.python.org/dev/peps/pep-0249/#rollback>`_
         in the specification.
         """
@@ -446,7 +442,7 @@ class Connection(object):
     def select_db(self, db):
         """
         Set current db.
-        
+
         :param db: The name of the db.
         """
         self._execute_command(COMMAND.COM_INIT_DB, db)
@@ -488,7 +484,7 @@ class Connection(object):
     def cursor(self, cursor=None):
         """
         Create a new cursor to execute queries with.
-        
+
         :param cursor: The type of cursor to create; one of :py:class:`Cursor`,
             :py:class:`SSCursor`, :py:class:`DictCursor`, or :py:class:`SSDictCursor`.
             None means use Cursor.
@@ -536,7 +532,7 @@ class Connection(object):
     def ping(self, reconnect=True):
         """
         Check if the server is alive.
-        
+
         :param reconnect: If the connection is closed, reconnect.
         :raise Error: If the connection is closed and reconnect=False.
         """
@@ -618,7 +614,7 @@ class Connection(object):
             if sock is not None:
                 try:
                     sock.close()
-                except:
+                except:  # noqa
                     pass
 
             if isinstance(e, (OSError, IOError, socket.error)):
@@ -745,7 +741,6 @@ class Connection(object):
         :raise InterfaceError: If the connection is closed.
         :raise ValueError: If no username was specified.
         """
-        
         if not self._sock:
             raise err.InterfaceError("(0, '')")
 
@@ -809,14 +804,16 @@ class Connection(object):
         plugin_name = None
 
         if self._auth_plugin_name in ('', 'mysql_native_password'):
-            authresp = _scramble(self.password, self.salt)
+            authresp = _auth.scramble_native_password(self.password, self.salt)
         elif self._auth_plugin_name == 'caching_sha2_password':
             plugin_name = b'caching_sha2_password'
             if self.password:
-                print("caching_sha2: trying fast path")
-                authresp = _auth._scramble_sha256_password(self.password, self.salt)
+                if DEBUG:
+                    print("caching_sha2: trying fast path")
+                authresp = _auth.scramble_caching_sha2(self.password, self.salt)
             else:
-                print("caching_sha2: without password")
+                if DEBUG:
+                    print("caching_sha2: empty password")
         elif self._auth_plugin_name == 'sha256_password':
             plugin_name = b'sha256_password'
             if self.ssl and self.server_capabilities & CLIENT.SSL:
@@ -824,7 +821,7 @@ class Connection(object):
             elif self.password:
                 authresp = b'\1'  # request public key
             else:
-                authresp = b'\0'  # skip
+                authresp = b'\0'  # empty password
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
             data += lenenc_int(len(authresp)) + authresp
@@ -875,7 +872,7 @@ class Connection(object):
             elif self._auth_plugin_name == b"sha256_password":
                 auth_packet = _auth.sha256_password_auth(self, auth_packet)
             else:
-                raise OperationalError("Received extra packet for auth method %r", self._auth_plugin_name)
+                raise err.OperationalError("Received extra packet for auth method %r", self._auth_plugin_name)
 
         if DEBUG: print("Succeed to auth")
 
@@ -886,8 +883,8 @@ class Connection(object):
                 return handler.authenticate(auth_packet)
             except AttributeError:
                 if plugin_name != b'dialog':
-                    raise err.OperationalError(2059, "Authentication plugin '%s'" \
-                              " not loaded: - %r missing authenticate method" % (plugin_name, plugin_class))
+                    raise err.OperationalError(2059, "Authentication plugin '%s'"
+                              " not loaded: - %r missing authenticate method" % (plugin_name, type(handler)))
         if plugin_name == b"caching_sha2_password":
             data = _auth.caching_sha2_password_auth(self, auth_packet)
         elif plugin_name == b"sha256_password":
@@ -934,7 +931,7 @@ class Connection(object):
         pkt = self._read_packet()
         pkt.check_error()
         return pkt
-    
+
     def _get_auth_plugin_handler(self, plugin_name):
         plugin_class = self._auth_plugin_map.get(plugin_name)
         if not plugin_class and isinstance(plugin_name, bytes):
@@ -943,7 +940,7 @@ class Connection(object):
             try:
                 handler = plugin_class(self)
             except TypeError:
-                raise err.OperationalError(2059, "Authentication plugin '%s'" \
+                raise err.OperationalError(2059, "Authentication plugin '%s'"
                     " not loaded: - %r cannot be constructed with connection object" % (plugin_name, plugin_class))
         else:
             handler = None

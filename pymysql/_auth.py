@@ -172,7 +172,7 @@ def sha256_password_auth(conn, pkt):
     return _roundtrip(conn, data)
 
 
-def caching_sha2_scramble(password, nonce):
+def scramble_caching_sha2(password, nonce):
     # (bytes, bytes) -> bytes
     """Scramble algorithm used in cached_sha2_password fast path.
 
@@ -202,7 +202,7 @@ def caching_sha2_password_auth(conn, pkt):
         if DEBUG:
             print("caching sha2: Trying fast path")
         conn.salt = pkt.read_all()
-        scrambled = caching_sha2_scramble(conn.password, conn.salt)
+        scrambled = scramble_caching_sha2(conn.password, conn.salt)
         pkt = _roundtrip(conn, scrambled)
     # else: fast auth is tried in initial handshake
 
