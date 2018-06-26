@@ -40,7 +40,7 @@ def scramble_native_password(password, message):
 def _my_crypt(message1, message2):
     length = len(message1)
     result = b''
-    for i in range_type(length):
+    for i in range(length):
         x = (
             struct.unpack('B', message1[i:i + 1])[0] ^
             struct.unpack('B', message2[i:i + 1])[0]
@@ -79,7 +79,7 @@ def scramble_old_password(password, message):
         hash_pass_n[0] ^ hash_message_n[0], hash_pass_n[1] ^ hash_message_n[1]
     )
     outbuf = io.BytesIO()
-    for _ in range_type(min(SCRAMBLE_LENGTH_323, len(message))):
+    for _ in range(min(SCRAMBLE_LENGTH_323, len(message))):
         outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
     extra = int2byte(int(rand_st.my_rnd() * 31))
     out = outbuf.getvalue()
