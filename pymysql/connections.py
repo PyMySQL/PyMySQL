@@ -887,9 +887,9 @@ class Connection(object):
                     raise err.OperationalError(2059, "Authentication plugin '%s'"
                               " not loaded: - %r missing authenticate method" % (plugin_name, type(handler)))
         if plugin_name == b"caching_sha2_password":
-            data = _auth.caching_sha2_password_auth(self, auth_packet)
+            return _auth.caching_sha2_password_auth(self, auth_packet)
         elif plugin_name == b"sha256_password":
-            data = _auth.sha256_password_auth(self, auth_packet)
+            return _auth.sha256_password_auth(self, auth_packet)
         elif plugin_name == b"mysql_native_password":
             data = _auth.scramble_native_password(self.password, auth_packet.read_all())
         elif plugin_name == b"mysql_old_password":

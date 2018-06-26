@@ -3,6 +3,10 @@ import unittest2
 
 from pymysql._compat import PYPY, JYTHON, IRONPYTHON
 
+#import pymysql
+#pymysql.connections.DEBUG = True
+#pymysql._auth.DEBUG = True
+
 if not (PYPY or JYTHON or IRONPYTHON):
     import atexit
     import gc

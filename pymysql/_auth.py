@@ -121,7 +121,7 @@ def _xor_password(password, salt):
     salt_len = len(salt)
     for i in range(len(password_bytes)):
         password_bytes[i] ^= salt[i % salt_len]
-    return password_bytes
+    return bytes(password_bytes)
 
 
 def sha2_rsa_encrypt(password, salt, public_key):
