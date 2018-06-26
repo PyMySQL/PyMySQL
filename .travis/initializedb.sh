@@ -46,6 +46,7 @@ if [ ! -z "${DB}" ]; then
                 user_caching_sha2   IDENTIFIED WITH "caching_sha2_password" BY "pass_caching_sha2",
                 nopass_caching_sha2 IDENTIFIED WITH "caching_sha2_password"
                 PASSWORD EXPIRE NEVER;'
+        mysql -e 'GRANT RELOAD ON *.* TO user_caching_sha2;'
     else
         WITH_PLUGIN=''
     fi
