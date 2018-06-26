@@ -37,6 +37,16 @@ if [ ! -z "${DB}" ]; then
         docker cp mysqld:/var/lib/mysql/server-cert.pem "${HOME}"
         docker cp mysqld:/var/lib/mysql/client-key.pem "${HOME}"
         docker cp mysqld:/var/lib/mysql/client-cert.pem "${HOME}"
+
+        # Test user for auth test
+        mysql -e '
+            CREATE USER
+                user_sha256   IDENTIFIED WITH "sha256_password" BY "pass_sha256",
+                nopass_sha256 IDENTIFIED WITH "sha256_password",
+                user_caching_sha2   IDENTIFIED WITH "caching_sha2_password" BY "pass_caching_sha2",
+                nopass_caching_sha2 IDENTIFIED WITH "caching_sha2_password"
+                PASSWORD EXPIRE NEVER;'
+        mysql -e 'GRANT RELOAD ON *.* TO user_caching_sha2;'
     else
         WITH_PLUGIN=''
     fi

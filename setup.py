@@ -22,6 +22,9 @@ setup(
     long_description=readme,
     license="MIT",
     packages=find_packages(),
+    install_requires=[
+        "cryptography",
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python :: 2',
