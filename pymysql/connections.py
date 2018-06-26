@@ -835,7 +835,7 @@ class Connection(object):
                 self.db = self.db.encode(self.encoding)
             data += self.db + b'\0'
 
-        if self.server_capabilities & CLIENT.PLUGIN_AUTH:
+        if plugin_name is not None and self.server_capabilities & CLIENT.PLUGIN_AUTH:
             data += plugin_name + b'\0'
 
         if self.server_capabilities & CLIENT.CONNECT_ATTRS:
