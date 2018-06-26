@@ -865,11 +865,12 @@ class Connection(object):
                 self.write_packet(data)
                 auth_packet = self._read_packet()
         elif auth_packet.is_extra_auth_data():
-            print("received extra data")
+            if DEBUG:
+                print("received extra data")
             # https://dev.mysql.com/doc/internals/en/successful-authentication.html
-            if self._auth_plugin_name == b"caching_sha2_password":
+            if self._auth_plugin_name == "caching_sha2_password":
                 auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
-            elif self._auth_plugin_name == b"sha256_password":
+            elif self._auth_plugin_name == "sha256_password":
                 auth_packet = _auth.sha256_password_auth(self, auth_packet)
             else:
                 raise err.OperationalError("Received extra packet for auth method %r", self._auth_plugin_name)
@@ -1018,9 +1019,9 @@ class Connection(object):
             server_end = data.find(b'\0', i)
             if server_end < 0: # pragma: no cover - very specific upstream bug
                 # not found \0 and last field so take it all
-                self._auth_plugin_name = data[i:].decode('latin1')
+                self._auth_plugin_name = data[i:].decode('utf-8')
             else:
-                self._auth_plugin_name = data[i:server_end].decode('latin1')
+                self._auth_plugin_name = data[i:server_end].decode('utf-8')
 
     def get_server_info(self):
         return self.server_version
