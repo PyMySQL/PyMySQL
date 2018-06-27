@@ -99,7 +99,7 @@ class TestConversion(base.PyMySQLTestCase):
             conn, "test_binary", "create table test_binary (b binary(255))")
 
         with conn.cursor() as c:
-            c.execute("insert into test_binary (b) values (%s)", (data,))
+            c.execute("insert into test_binary (b) values (_binary %s)", (data,))
             c.execute("select b from test_binary")
             self.assertEqual(data, c.fetchone()[0])
 
@@ -111,7 +111,7 @@ class TestConversion(base.PyMySQLTestCase):
             conn, "test_blob", "create table test_blob (b blob)")
 
         with conn.cursor() as c:
-            c.execute("insert into test_blob (b) values (%s)", (data,))
+            c.execute("insert into test_blob (b) values (_binary %s)", (data,))
             c.execute("select b from test_blob")
             self.assertEqual(data, c.fetchone()[0])
 
