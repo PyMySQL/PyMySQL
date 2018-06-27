@@ -179,6 +179,7 @@ class Connection(object):
     _sock = None
     _auth_plugin_name = ''
     _closed = False
+    _secure = False
 
     def __init__(self, host=None, user=None, password="",
                  database=None, port=0, unix_socket=None,
@@ -563,11 +564,12 @@ class Connection(object):
         self._closed = False
         try:
             if sock is None:
-                if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
+                if self.unix_socket:
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     sock.settimeout(self.connect_timeout)
                     sock.connect(self.unix_socket)
                     self.host_info = "Localhost via UNIX socket"
+                    self._secure = True
                     if DEBUG: print('connected using unix_socket')
                 else:
                     kwargs = {}
@@ -795,6 +797,7 @@ class Connection(object):
 
             self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
             self._rfile = _makefile(self._sock, 'rb')
+            self._secure = True
 
         data = data_init + self.user + b'\0'
 

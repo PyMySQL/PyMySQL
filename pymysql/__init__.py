@@ -35,7 +35,7 @@ from .times import (
     DateFromTicks, TimeFromTicks, TimestampFromTicks)
 
 
-VERSION = (0, 8, 1, None)
+VERSION = (0, 9, 0, None)
 if VERSION[3] is not None:
     VERSION_STRING = "%d.%d.%d_%s" % VERSION
 else:
