@@ -75,7 +75,7 @@ else:
         return sock.makefile(mode)
 
 
-TEXT_TYPES = set([
+TEXT_TYPES = {
     FIELD_TYPE.BIT,
     FIELD_TYPE.BLOB,
     FIELD_TYPE.LONG_BLOB,
@@ -84,10 +84,11 @@ TEXT_TYPES = set([
     FIELD_TYPE.TINY_BLOB,
     FIELD_TYPE.VAR_STRING,
     FIELD_TYPE.VARCHAR,
-    FIELD_TYPE.GEOMETRY])
+    FIELD_TYPE.GEOMETRY,
+}
 
 
-DEFAULT_CHARSET = 'latin1'  # TODO: change to utf8mb4
+DEFAULT_CHARSET = 'utf8mb4'  # TODO: change to utf8mb4
 
 MAX_PACKET_LEN = 2**24-1
 
