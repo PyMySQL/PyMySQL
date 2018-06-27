@@ -38,14 +38,13 @@ def scramble_native_password(password, message):
 
 
 def _my_crypt(message1, message2):
+    if PY2:
+        message1 = bytearray(message1)
+        message2 = bytearray(message2)
     length = len(message1)
     result = b''
     for i in range(length):
-        x = (
-            struct.unpack('B', message1[i:i + 1])[0] ^
-            struct.unpack('B', message2[i:i + 1])[0]
-        )
-        result += struct.pack('B', x)
+        result += message1[i] ^ message2[i]
     return result
 
 
