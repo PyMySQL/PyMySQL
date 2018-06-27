@@ -142,8 +142,7 @@ def sha2_rsa_encrypt(password, salt, public_key):
 
 
 def sha256_password_auth(conn, pkt):
-    if (conn.ssl and conn.server_capabilities & CLIENT.SSL
-            or conn.unix_socket):
+    if conn._secure:
         if DEBUG:
             print("sha256: Sending plain password")
         data = conn.password + b'\0'
@@ -233,10 +232,9 @@ def caching_sha2_password_auth(conn, pkt):
     if DEBUG:
         print("caching sha2: Trying full auth...")
 
-    if (conn.ssl and conn.server_capabilities & CLIENT.SSL
-            or conn.unix_socket):
+    if conn._secure:
         if DEBUG:
-            print("caching sha2: Sending plain password via SSL")
+            print("caching sha2: Sending plain password via secure connection")
         return _roundtrip(conn, conn.password + b'\0')
 
     if not conn.server_public_key:
