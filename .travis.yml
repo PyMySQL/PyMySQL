@@ -42,7 +42,7 @@ matrix:
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
 # really only need libaio1 for DB builds however libaio-dev is whitelisted for container builds and liaio1 isn't
 install:
-  - pip install -U coveralls unittest2 coverage cryptography pytest
+  - pip install -U coveralls unittest2 coverage cryptography pytest pytest-cov
 
 before_script:
   - ./.travis/initializedb.sh
@@ -53,7 +53,7 @@ before_script:
 script:
   - coverage run ./runtests.py
   - if [ "${TEST_AUTH}" = "yes" ];
-    then pytest -v tests;
+    then pytest -v --cov-config .coveragerc tests;
     fi
   - if [ ! -z "${DB}" ];
     then docker logs mysqld;
