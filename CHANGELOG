@@ -1,5 +1,13 @@
 # Changes
 
+## 0.9.0
+
+* Change default charset from latin1 to utf8mb4.  (because MySQL 8 changed) (#692)
+* Remove deprecated `no_delay` option (#694)
+* Support connection attributes (#679)
+* Support sha256_password and caching_sha2_password auth method (#682)
+* Map LOCK_DEADLOCK to OperationalError (#693)
+
 ## 0.8.1
 
 Release date: 2018-05-07
