@@ -563,7 +563,7 @@ class Connection(object):
         self._closed = False
         try:
             if sock is None:
-                if self.unix_socket and self.host in ('localhost', '127.0.0.1'):
+                if self.unix_socket:
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     sock.settimeout(self.connect_timeout)
                     sock.connect(self.unix_socket)
