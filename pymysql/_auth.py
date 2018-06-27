@@ -1,7 +1,7 @@
 """
 Implements auth methods
 """
-from ._compat import text_type
+from ._compat import text_type, PY2
 from .constants import CLIENT
 from .err import OperationalError
 
