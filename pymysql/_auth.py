@@ -42,10 +42,10 @@ def _my_crypt(message1, message2):
         message1 = bytearray(message1)
         message2 = bytearray(message2)
     length = len(message1)
-    result = b''
+    result = bytearray(length)
     for i in range(length):
-        result += message1[i] ^ message2[i]
-    return result
+        result[i] = message1[i] ^ message2[i]
+    return bytes(result)
 
 
 # old_passwords support ported from libmysql/password.c
