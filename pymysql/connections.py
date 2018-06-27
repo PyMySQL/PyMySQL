@@ -185,15 +185,12 @@ class Connection(object):
                  read_default_file=None, conv=None, use_unicode=None,
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=10, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None, no_delay=None,
+                 compress=None, named_pipe=None,
                  autocommit=False, db=None, passwd=None, local_infile=False,
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map=None, read_timeout=None, write_timeout=None,
                  bind_address=None, binary_prefix=False, program_name=None,
                  server_public_key=None):
-        if no_delay is not None:
-            warnings.warn("no_delay option is deprecated", DeprecationWarning)
-
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
 
