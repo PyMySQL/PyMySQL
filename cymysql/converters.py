@@ -65,14 +65,18 @@ def escape_timedelta(obj):
 
 def escape_time(obj):
     if obj.microsecond:
-        return "'%02d:%02d:%02d.%f'" % (
+        return "'%02d:%02d:%02d.%06d'" % (
             obj.hour, obj.minute, obj.second, obj.microsecond)
     else:
         return "'%02d:%02d:%02d'" % (obj.hour, obj.minute, obj.second)
 
 
 def escape_datetime(obj):
-    return "'%04d-%02d-%02d %02d:%02d:%02d'" % (
+    if obj.microsecond:
+        return "'%04d-%02d-%02d %02d:%02d:%02d.%06d'" % (
+            obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second, obj.microsecond)
+    else:
+        return "'%04d-%02d-%02d %02d:%02d:%02d'" % (
             obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second)
 
 
