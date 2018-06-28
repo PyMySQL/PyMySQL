@@ -24,23 +24,43 @@ Requirements
 -------------
 
 - Python 2.6, 2.7, 3.3+
-- MySQL 4.1 or higher
+- MySQL 5.5 or higher
     
-Installation & Example
------------------------
+Installation
+--------------
 
-Install cython (optional) ::
+Install cython (optional)
+++++++++++++++++++++++++++++++
+
+::
 
    # pip install cython
 
-Install cymysql ::
+Install cymysql
+++++++++++++++++++++++++++++++
+
+::
 
    # pip install cymysql
 
-Example ::
+MySQL 8.0 and insecure connection
++++++++++++++++++++++++++++++++++++
+
+If you use caching_sha2_password authentication plugin (MySQL 8.0 default)
+and connect with 'not ssl and not unix_socket' you shoud install pycryptodome
+
+::
+
+   # pip install pycryptodome
+
+
+Example
+---------------
+
+::
 
    import cymysql
-   conn = cymysql.connect(host='127.0.0.1', user='root', passwd='', db='database_name', charset='utf8')
+   conn = cymysql.connect(host='127.0.0.1', user='root', passwd='', db='database_name')
    cur = conn.cursor()
    cur.execute('select foo, bar from baz')
    for r in cur.fetchall():
