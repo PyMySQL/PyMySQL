@@ -1,6 +1,9 @@
 .. image:: https://readthedocs.org/projects/pymysql/badge/?version=latest
-    :target: http://pymysql.readthedocs.io/en/latest/?badge=latest
+    :target: https://pymysql.readthedocs.io/
     :alt: Documentation Status
+
+.. image:: https://badge.fury.io/py/PyMySQL.svg
+    :target: https://badge.fury.io/py/PyMySQL
 
 .. image:: https://travis-ci.org/PyMySQL/PyMySQL.svg?branch=master
     :target: https://travis-ci.org/PyMySQL/PyMySQL
