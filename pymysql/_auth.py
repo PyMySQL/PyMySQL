@@ -1,7 +1,7 @@
 """
 Implements auth methods
 """
-from ._compat import text_type
+from ._compat import text_type, PY2
 from .constants import CLIENT
 from .err import OperationalError
 
@@ -38,15 +38,14 @@ def scramble_native_password(password, message):
 
 
 def _my_crypt(message1, message2):
-    length = len(message1)
-    result = b''
-    for i in range(length):
-        x = (
-            struct.unpack('B', message1[i:i + 1])[0] ^
-            struct.unpack('B', message2[i:i + 1])[0]
-        )
-        result += struct.pack('B', x)
-    return result
+    result = bytearray(message1)
+    if PY2:
+        message2 = bytearray(message2)
+
+    for i in range(len(result)):
+        result[i] ^= message2[i]
+
+    return bytes(result)
 
 
 # old_passwords support ported from libmysql/password.c
@@ -186,6 +185,8 @@ def scramble_caching_sha2(password, nonce):
     p3 = hashlib.sha256(p2 + nonce).digest()
 
     res = bytearray(p1)
+    if PY2:
+        p3 = bytearray(p3)
     for i in range(len(p3)):
         res[i] ^= p3[i]
 
