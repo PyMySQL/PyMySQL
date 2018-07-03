@@ -14,7 +14,7 @@ import hashlib
 import struct
 
 
-DEBUG = True
+DEBUG = False
 SCRAMBLE_LENGTH = 20
 sha1_new = partial(hashlib.new, 'sha1')
 
