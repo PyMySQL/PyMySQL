@@ -2,7 +2,7 @@
 import io
 from setuptools import setup, find_packages
 
-version = __import__('pymysql').VERSION_STRING
+version = "0.9.1"
 
 with io.open('./README.rst', encoding='utf-8') as f:
     readme = f.read()
