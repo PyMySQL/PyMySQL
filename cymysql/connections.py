@@ -450,6 +450,8 @@ class Connection(object):
             data = _caching_sha2_password_scramble(
                 self.password.encode(self.charset), self.salt
             )
+        elif self.auth_plugin_name == 'mysql_clear_password':
+            data = self.password.encode(self.charset) + b'\x00'
         else:
             raise NotImplementedError(
                 "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
