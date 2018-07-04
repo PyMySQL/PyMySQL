@@ -2,7 +2,7 @@
 import io
 from setuptools import setup, find_packages
 
-version = __import__('pymysql').VERSION_STRING
+version = "0.9.1"
 
 with io.open('./README.rst', encoding='utf-8') as f:
     readme = f.read()
@@ -14,14 +14,9 @@ setup(
     project_urls={
         "Documentation": "https://pymysql.readthedocs.io/",
     },
-    author='yutaka.matsubara',
-    author_email='yutaka.matsubara@gmail.com',
-    maintainer='INADA Naoki',
-    maintainer_email='songofacandy@gmail.com',
     description='Pure Python MySQL Driver',
     long_description=readme,
-    license="MIT",
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests*', 'pymysql.tests*']),
     install_requires=[
         "cryptography",
     ],
