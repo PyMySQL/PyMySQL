@@ -14,14 +14,9 @@ setup(
     project_urls={
         "Documentation": "https://pymysql.readthedocs.io/",
     },
-    author='yutaka.matsubara',
-    author_email='yutaka.matsubara@gmail.com',
-    maintainer='INADA Naoki',
-    maintainer_email='songofacandy@gmail.com',
     description='Pure Python MySQL Driver',
     long_description=readme,
-    license="MIT",
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests*', 'pymysql.tests*']),
     install_requires=[
         "cryptography",
     ],
