@@ -184,7 +184,7 @@ cdef class MysqlPacket(object):
                 None if insert_id < 0 else insert_id,
                 server_status, warning_count, message)
 
-    cdef read_auth_switch_request(self):
+    cpdef read_auth_switch_request(self):
         cdef int i
         cdef data, plugin_name
         data = self.get_all_data()
