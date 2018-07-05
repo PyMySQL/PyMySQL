@@ -59,7 +59,7 @@ Package is uploaded on `PyPI <https://pypi.org/project/PyMySQL>`_.
 
 You can install it with pip::
 
-    $ pip3 install PyMySQL
+    $ python3 -m pip install PyMySQL
 
 
 Documentation
