@@ -894,7 +894,7 @@ class Connection(object):
         elif plugin_name == b"mysql_native_password":
             data = _auth.scramble_native_password(self.password, auth_packet.read_all())
         elif plugin_name == b"mysql_old_password":
-            data = _auth.scramble_old_password(self.password, auth_packet.read_all()) + b'\0'
+            data = _auth.scramble_old_password(self.password, self.salt) + b'\0'
         elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
             data = self.password + b'\0'
