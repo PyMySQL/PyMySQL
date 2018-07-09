@@ -805,6 +805,7 @@ class Connection(object):
         plugin_name = None
 
         if self._auth_plugin_name in ('', 'mysql_native_password'):
+            plugin_name = b'mysql_native_password'
             authresp = _auth.scramble_native_password(self.password, self.salt)
         elif self._auth_plugin_name == 'caching_sha2_password':
             plugin_name = b'caching_sha2_password'
