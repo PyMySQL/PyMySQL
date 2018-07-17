@@ -4,6 +4,8 @@ Implements auth methods
 from ._compat import text_type, PY2
 from .constants import CLIENT
 from .err import OperationalError
+from .util import byte2int, int2byte
+
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
@@ -13,6 +15,7 @@ from functools import partial
 import hashlib
 import struct
 
+import io
 
 DEBUG = False
 SCRAMBLE_LENGTH = 20
