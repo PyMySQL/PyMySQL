@@ -13,9 +13,9 @@ from cryptography.hazmat.primitives.asymmetric import padding
 
 from functools import partial
 import hashlib
+import io
 import struct
 
-import io
 
 DEBUG = False
 SCRAMBLE_LENGTH = 20
