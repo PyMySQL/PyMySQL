@@ -1,5 +1,13 @@
 # Changes
 
+## 0.9.2
+
+Release date: 2018-07-04
+
+* Disalbled unintentinally enabled debug log
+* Removed unintentionally installed tests
+
+
 ## 0.9.1
 
 Release date: 2018-07-03
