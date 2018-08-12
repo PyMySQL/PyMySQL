@@ -4,6 +4,8 @@ Implements auth methods
 from ._compat import text_type, PY2
 from .constants import CLIENT
 from .err import OperationalError
+from .util import byte2int, int2byte
+
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
@@ -11,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 
 from functools import partial
 import hashlib
+import io
 import struct
 
 
