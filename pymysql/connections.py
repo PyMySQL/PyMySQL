@@ -17,7 +17,7 @@ import warnings
 from . import _auth
 
 from .charset import charset_by_name, charset_by_id
-from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
+from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, FLAG, SERVER_STATUS
 from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
@@ -1232,11 +1232,15 @@ class MySQLResult(object):
                         encoding = None
                     else:
                         encoding = conn_encoding
+                    if field_type == FIELD_TYPE.STRING and field.flags & FLAG.SET:
+                        field_type = FIELD_TYPE.SET
                 else:
                     # Integers, Dates and Times, and other basic data is encoded in ascii
                     encoding = 'ascii'
             else:
                 encoding = None
+                if field_type == FIELD_TYPE.STRING and field.flags & FLAG.SET:
+                    field_type = FIELD_TYPE.SET
             converter = self.connection.decoders.get(field_type)
             if converter is converters.through:
                 converter = None
