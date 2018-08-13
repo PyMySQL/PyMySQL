@@ -494,7 +494,7 @@ class Connection(object):
 
     def __enter__(self):
         """Context manager that returns a Cursor"""
-        return self.cursor()
+        return self
 
     def __exit__(self, exc, value, traceback):
         """On successful exit, commit. On exception, rollback"""
@@ -502,6 +502,7 @@ class Connection(object):
             self.rollback()
         else:
             self.commit()
+        self.close()
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
