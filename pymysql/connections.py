@@ -494,7 +494,7 @@ class Connection(object):
 
     def __enter__(self):
         """Context manager that returns a Cursor"""
-        return self.cursor()
+        return self
 
     def __exit__(self, exc, value, traceback):
         """On successful exit, commit. On exception, rollback"""
