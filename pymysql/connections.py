@@ -502,6 +502,7 @@ class Connection(object):
             self.rollback()
         else:
             self.commit()
+        self.close()
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
