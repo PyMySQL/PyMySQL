@@ -741,6 +741,9 @@ class Connection(object):
         :raise InterfaceError: If the connection is closed.
         :raise ValueError: If no username was specified.
         """
+        if not self._sock and command != COMMAND.COM_PING:
+            self.ping(reconnect=True)
+        
         if not self._sock:
             raise err.InterfaceError("(0, '')")
 
