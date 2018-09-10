@@ -302,8 +302,8 @@ class Connection(object):
             conv = converters.conversions
 
         # Need for MySQLdb compatibility.
-        self.encoders = dict([(k, v) for (k, v) in conv.items() if type(k) is not int])
-        self.decoders = dict([(k, v) for (k, v) in conv.items() if type(k) is int])
+        self.encoders = {k: v for (k, v) in conv.items() if type(k) is not int}
+        self.decoders = {k: v for (k, v) in conv.items() if type(k) is int}
         self.sql_mode = sql_mode
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
