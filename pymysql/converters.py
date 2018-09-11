@@ -379,23 +379,27 @@ def get_encoder(val, mapping):
 
 
 encoders = {
+    text_type: escape_unicode,
+    # the order is important here: struct_time objects are also instances of tuple
+    # hence struct_time must come before tuple
+    time.struct_time: escape_struct_time,
     bool: escape_bool,
     int: escape_int,
     long_type: escape_int,
     float: escape_float,
     str: escape_str,
-    text_type: escape_unicode,
     tuple: escape_sequence,
     list: escape_sequence,
     set: escape_sequence,
     frozenset: escape_sequence,
     dict: escape_dict,
     type(None): escape_None,
-    datetime.date: escape_date,
+    # the order is important here: datetime objects are also instances of date
+    # hence datetime must come before date
     datetime.datetime: escape_datetime,
+    datetime.date: escape_date,
     datetime.timedelta: escape_timedelta,
     datetime.time: escape_time,
-    time.struct_time: escape_struct_time,
     Decimal: escape_object,
 }
 
