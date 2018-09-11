@@ -12,7 +12,7 @@ from .charset import charset_by_id, charset_to_encoding
 def escape_item(val, charset, mapping=None):
     if mapping is None:
         mapping = encoders
-    encoder = mapping.get(type(val))
+    encoder = get_encoder(val)
 
     # Fallback to default when no encoder found
     if not encoder:
@@ -368,6 +368,15 @@ def convert_characters(connection, field, data):
         data = data.decode(encoding)
         data = data.encode(connection.encoding)
     return data
+
+
+def get_encoder(val):
+    for type_, encoder in encoders.items():
+        if isinstance(val, type_):
+            return encoder
+    else:
+        return None
+
 
 encoders = {
     bool: escape_bool,
