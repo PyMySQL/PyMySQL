@@ -371,35 +371,50 @@ def convert_characters(connection, field, data):
 
 
 def get_encoder(val, mapping):
-    for type_, encoder in mapping.items():
-        if isinstance(val, type_):
-            return encoder
-    else:
+    known_types = list(mapping.keys())
+    type_ = get_relevant_type(val, known_types)
+    return mapping.get(type_)
+
+
+def get_relevant_type(val, types):
+    # Because struct_time inherit from tuple, datetime from date,
+    # and because isinstance() matches all the parent classes,
+    # we can have several matches and need to chose the closest parent class.
+    parent_types = [t for t in types if isinstance(val, t)]
+    if not parent_types:
         return None
+    elif len(parent_types) == 1:
+        return parent_types.pop()
+    else:
+        # we return the parent type that is a subclass of all the other types
+        # NB: in case of multiple inheritance, we cannot choose a type.
+        for type_ in parent_types:
+            other_types = [t for t in parent_types if t != type_]
+            if all(issubclass(type_, other_type) for other_type in other_types):
+                return type_
+        else:
+            return None
+
 
 
 encoders = {
-    text_type: escape_unicode,
-    # the order is important here: struct_time objects are also instances of tuple
-    # hence struct_time must come before tuple
-    time.struct_time: escape_struct_time,
     bool: escape_bool,
     int: escape_int,
     long_type: escape_int,
     float: escape_float,
     str: escape_str,
+    text_type: escape_unicode,
     tuple: escape_sequence,
     list: escape_sequence,
     set: escape_sequence,
     frozenset: escape_sequence,
     dict: escape_dict,
     type(None): escape_None,
-    # the order is important here: datetime objects are also instances of date
-    # hence datetime must come before date
-    datetime.datetime: escape_datetime,
     datetime.date: escape_date,
+    datetime.datetime: escape_datetime,
     datetime.timedelta: escape_timedelta,
     datetime.time: escape_time,
+    time.struct_time: escape_struct_time,
     Decimal: escape_object,
 }
 
