@@ -152,7 +152,6 @@ class Connection(object):
         (default: 10, min: 1, max: 31536000)
     :param ssl:
         A dict of arguments similar to mysql_ssl_set()'s parameters.
-        For now the capath and cipher arguments are not supported.
     :param read_default_group: Group to read from in the configuration file.
     :param compress: Not supported
     :param named_pipe: Not supported
