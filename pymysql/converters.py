@@ -12,7 +12,7 @@ from .charset import charset_by_id, charset_to_encoding
 def escape_item(val, charset, mapping=None):
     if mapping is None:
         mapping = encoders
-    encoder = mapping.get(type(val))
+    encoder = get_encoder(val, mapping)
 
     # Fallback to default when no encoder found
     if not encoder:
@@ -368,6 +368,34 @@ def convert_characters(connection, field, data):
         data = data.decode(encoding)
         data = data.encode(connection.encoding)
     return data
+
+
+def get_encoder(val, mapping):
+    known_types = list(mapping.keys())
+    type_ = get_relevant_type(val, known_types)
+    return mapping.get(type_)
+
+
+def get_relevant_type(val, types):
+    # Because struct_time inherit from tuple, datetime from date,
+    # and because isinstance() matches all the parent classes,
+    # we can have several matches and need to chose the closest parent class.
+    parent_types = [t for t in types if isinstance(val, t)]
+    if not parent_types:
+        return None
+    elif len(parent_types) == 1:
+        return parent_types.pop()
+    else:
+        # we return the parent type that is a subclass of all the other types
+        # NB: in case of multiple inheritance, we cannot choose a type.
+        for type_ in parent_types:
+            other_types = [t for t in parent_types if t != type_]
+            if all(issubclass(type_, other_type) for other_type in other_types):
+                return type_
+        else:
+            return None
+
+
 
 encoders = {
     bool: escape_bool,
