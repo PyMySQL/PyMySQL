@@ -183,7 +183,9 @@ class MysqlPacket(object):
         data = self.get_all_data()
         i = data.find(b'\0', 1)
         plugin_name = data[1:i].decode('utf-8')
-        return plugin_name, data[i+1:]
+        j = data.find(b'\0', i+1)
+        salt = data[i+1:j]
+        return plugin_name, salt
 
 
 class FieldDescriptorPacket(MysqlPacket):
