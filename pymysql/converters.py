@@ -354,6 +354,7 @@ def through(x):
 convert_bit = through
 
 
+#TODO: remove this
 def convert_characters(connection, field, data):
     field_charset = charset_by_id(field.charsetnr).name
     encoding = charset_to_encoding(field_charset)
