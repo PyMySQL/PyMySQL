@@ -315,10 +315,12 @@ class Connection(object):
             '_pid': str(os.getpid()),
             '_client_version': VERSION_STRING,
         }
+        if program_name is None:
+            argv = getattr(sys, "argv")
+            if argv:
+                program_name = argv[0]
         if program_name:
             self._connect_attrs["program_name"] = program_name
-        elif sys.argv:
-            self._connect_attrs["program_name"] = sys.argv[0]
 
         if defer_connect:
             self._sock = None
