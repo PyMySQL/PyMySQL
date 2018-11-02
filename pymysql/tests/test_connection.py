@@ -7,6 +7,8 @@ from pymysql.tests import base
 from pymysql._compat import text_type
 from pymysql.constants import CLIENT
 
+import pytest
+
 
 class TempUser:
     def __init__(self, c, user, db, auth=None, authdata=None, password=None):
@@ -451,12 +453,13 @@ class TestConnection(base.PyMySQLTestCase):
     def test_context(self):
         with self.assertRaises(ValueError):
             c = self.connect()
-            with c as cur:
-                cur.execute('create table test ( a int ) ENGINE=InnoDB')
-                c.begin()
-                cur.execute('insert into test values ((1))')
-                raise ValueError('pseudo abort')
-                c.commit()
+            with self.assertWarns(DeprecationWarning):
+                with c as cur:
+                    cur.execute('create table test ( a int ) ENGINE=InnoDB')
+                    c.begin()
+                    cur.execute('insert into test values ((1))')
+                    raise ValueError('pseudo abort')
+                    c.commit()
         c = self.connect()
         with c as cur:
             cur.execute('select count(*) from test')
