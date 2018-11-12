@@ -1,2 +1,2 @@
-cryptography
+cryptography==2.3.1
 
