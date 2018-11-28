@@ -294,7 +294,7 @@ class Connection(object):
         self._affected_rows = 0
         self.host_info = "Not connected"
 
-        #: specified autocommit mode. None means use server default.
+        # specified autocommit mode. None means use server default.
         self.autocommit_mode = autocommit
 
         if conv is None:
