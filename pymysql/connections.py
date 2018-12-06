@@ -319,6 +319,9 @@ class Connection(object):
             argv = getattr(sys, "argv")
             if argv:
                 program_name = argv[0]
+                if PY2:
+                    program_name = program_name.decode('utf-8', 'replace')
+
         if program_name:
             self._connect_attrs["program_name"] = program_name
 
@@ -847,9 +850,9 @@ class Connection(object):
         if self.server_capabilities & CLIENT.CONNECT_ATTRS:
             connect_attrs = b''
             for k, v in self._connect_attrs.items():
-                k = k.encode('utf8')
+                k = k.encode('utf-8')
                 connect_attrs += struct.pack('B', len(k)) + k
-                v = v.encode('utf8')
+                v = v.encode('utf-8')
                 connect_attrs += struct.pack('B', len(v)) + v
             data += struct.pack('B', len(connect_attrs)) + connect_attrs
 
