@@ -318,7 +318,7 @@ class Connection(object):
         if program_name is None:
             argv = getattr(sys, "argv")
             if argv:
-                program_name = argv[0]
+                program_name = os.path.basename(argv[0])
                 if PY2:
                     program_name = program_name.decode('utf-8', 'replace')
 
