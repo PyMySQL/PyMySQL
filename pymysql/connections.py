@@ -315,12 +315,16 @@ class Connection(object):
             '_pid': str(os.getpid()),
             '_client_version': VERSION_STRING,
         }
-        if program_name is None:
-            argv = getattr(sys, "argv")
-            if argv:
-                program_name = argv[0]
-                if PY2:
-                    program_name = program_name.decode('utf-8', 'replace')
+        # Safely handle not having sys.argv available
+        try:
+            if program_name is None:
+                argv = getattr(sys, "argv")
+                if argv:
+                    program_name = argv[0]
+                    if PY2:
+                        program_name = program_name.decode('utf-8', 'replace')
+        except(AttributeError):
+            pass
 
         if program_name:
             self._connect_attrs["program_name"] = program_name
