@@ -15,6 +15,7 @@ from functools import partial
 import hashlib
 import io
 import struct
+import warnings
 
 
 DEBUG = False
@@ -72,6 +73,8 @@ class RandStruct_323(object):
 
 def scramble_old_password(password, message):
     """Scramble for old_password"""
+    warnings.warn("old password (for MySQL <4.1) is used.  Upgrade your password with newer auth method.\n"
+                  "old password support will be removed in future PyMySQL version")
     hash_pass = _hash_password_323(password)
     hash_message = _hash_password_323(message[:SCRAMBLE_LENGTH_323])
     hash_pass_n = struct.unpack(">LL", hash_pass)
