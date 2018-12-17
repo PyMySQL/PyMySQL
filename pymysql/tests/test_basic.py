@@ -18,7 +18,7 @@ __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
 class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
         """ test every data type """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)")
         try:
@@ -57,7 +57,7 @@ class TestConversion(base.PyMySQLTestCase):
 
     def test_dict(self):
         """ test dict escaping """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_dict (a integer, b integer, c integer)")
         try:
@@ -68,7 +68,7 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("drop table test_dict")
 
     def test_string(self):
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_dict (a text)")
         test_value = "I am a test string"
@@ -80,7 +80,7 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("drop table test_dict")
 
     def test_integer(self):
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_dict (a integer)")
         test_value = 12345
@@ -94,7 +94,7 @@ class TestConversion(base.PyMySQLTestCase):
     def test_binary(self):
         """test binary data"""
         data = bytes(bytearray(range(255)))
-        conn = self.connections[0]
+        conn = self.connect()
         self.safe_create_table(
             conn, "test_binary", "create table test_binary (b binary(255))")
 
@@ -106,7 +106,7 @@ class TestConversion(base.PyMySQLTestCase):
     def test_blob(self):
         """test blob data"""
         data = bytes(bytearray(range(256)) * 4)
-        conn = self.connections[0]
+        conn = self.connect()
         self.safe_create_table(
             conn, "test_blob", "create table test_blob (b blob)")
 
@@ -117,7 +117,7 @@ class TestConversion(base.PyMySQLTestCase):
 
     def test_untyped(self):
         """ test conversion of null, empty string """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("select null,''")
         self.assertEqual((None,u''), c.fetchone())
@@ -126,7 +126,7 @@ class TestConversion(base.PyMySQLTestCase):
 
     def test_timedelta(self):
         """ test timedelta conversion """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("select time('12:30'), time('23:12:59'), time('23:12:59.05100'), time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')")
         self.assertEqual((datetime.timedelta(0, 45000),
@@ -141,7 +141,7 @@ class TestConversion(base.PyMySQLTestCase):
     def test_datetime_microseconds(self):
         """ test datetime conversion w microseconds"""
 
-        conn = self.connections[0]
+        conn = self.connect()
         if not self.mysql_server_is(conn, (5, 6, 4)):
             raise SkipTest("target backend does not support microseconds")
         c = conn.cursor()
@@ -206,7 +206,7 @@ class TestCursor(base.PyMySQLTestCase):
     #         ('max_updates', 3, 1, 11, 11, 0, 0),
     #         ('max_connections', 3, 1, 11, 11, 0, 0),
     #         ('max_user_connections', 3, 1, 11, 11, 0, 0))
-    #    conn = self.connections[0]
+    #    conn = self.connect()
     #    c = conn.cursor()
     #    c.execute("select * from mysql.user")
     #
@@ -214,7 +214,7 @@ class TestCursor(base.PyMySQLTestCase):
 
     def test_fetch_no_result(self):
         """ test a fetchone() with no rows """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_nr (b varchar(32))")
         try:
@@ -226,7 +226,7 @@ class TestCursor(base.PyMySQLTestCase):
 
     def test_aggregates(self):
         """ test aggregate functions """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         try:
             c.execute('create table test_aggregates (i integer)')
@@ -240,7 +240,7 @@ class TestCursor(base.PyMySQLTestCase):
 
     def test_single_tuple(self):
         """ test a single tuple """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         self.safe_create_table(
             conn, 'mystuff',
@@ -283,7 +283,7 @@ class TestBulkInserts(base.PyMySQLTestCase):
 
     def setUp(self):
         super(TestBulkInserts, self).setUp()
-        self.conn = conn = self.connections[0]
+        self.conn = conn = self.connect()
         c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
@@ -299,14 +299,14 @@ PRIMARY KEY (id)
 """)
 
     def _verify_records(self, data):
-        conn = self.connections[0]
+        conn = self.connect()
         cursor = conn.cursor()
         cursor.execute("SELECT id, name, age, height from bulkinsert")
         result = cursor.fetchall()
         self.assertEqual(sorted(data), sorted(result))
 
     def test_bulk_insert(self):
-        conn = self.connections[0]
+        conn = self.connect()
         cursor = conn.cursor()
 
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
@@ -320,7 +320,7 @@ PRIMARY KEY (id)
         self._verify_records(data)
 
     def test_bulk_insert_multiline_statement(self):
-        conn = self.connections[0]
+        conn = self.connect()
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
         cursor.executemany("""insert
@@ -344,7 +344,7 @@ values (0,
         self._verify_records(data)
 
     def test_bulk_insert_single_record(self):
-        conn = self.connections[0]
+        conn = self.connect()
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123)]
         cursor.executemany("insert into bulkinsert (id, name, age, height) "
@@ -354,7 +354,7 @@ values (0,
 
     def test_issue_288(self):
         """executemany should work with "insert ... on update" """
-        conn = self.connections[0]
+        conn = self.connect()
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
         cursor.executemany("""insert
@@ -380,7 +380,7 @@ age = values(age)"""))
         self._verify_records(data)
 
     def test_warnings(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter("always")

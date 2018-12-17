@@ -7,7 +7,7 @@ class CursorTest(base.PyMySQLTestCase):
     def setUp(self):
         super(CursorTest, self).setUp()
 
-        conn = self.connections[0]
+        conn = self.connect()
         self.safe_create_table(
             conn,
             "test", "create table test (data varchar(10))",

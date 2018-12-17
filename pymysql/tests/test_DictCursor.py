@@ -14,7 +14,7 @@ class TestDictCursor(base.PyMySQLTestCase):
 
     def setUp(self):
         super(TestDictCursor, self).setUp()
-        self.conn = conn = self.connections[0]
+        self.conn = conn = self.connect()
         c = conn.cursor(self.cursor_type)
 
         # create a table ane some data to query
