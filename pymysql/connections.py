@@ -492,6 +492,9 @@ class Connection(object):
 
     def __enter__(self):
         """Context manager that returns a Cursor"""
+        warnings.warn(
+            "Context manager API of Connection object is deprecated; Use conn.begin()",
+            DeprecationWarning)
         return self.cursor()
 
     def __exit__(self, exc, value, traceback):
