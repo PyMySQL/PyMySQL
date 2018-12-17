@@ -10,7 +10,7 @@ __all__ = ["TestLoadLocal"]
 class TestLoadLocal(base.PyMySQLTestCase):
     def test_no_file(self):
         """Test load local infile when the file does not exist"""
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
         try:
@@ -26,7 +26,7 @@ class TestLoadLocal(base.PyMySQLTestCase):
 
     def test_load_file(self):
         """Test load local infile with a valid file"""
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
         filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -44,7 +44,7 @@ class TestLoadLocal(base.PyMySQLTestCase):
 
     def test_unbuffered_load_file(self):
         """Test unbuffered load local infile with a valid file"""
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor(cursors.SSCursor)
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
         filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -66,7 +66,7 @@ class TestLoadLocal(base.PyMySQLTestCase):
 
     def test_load_warnings(self):
         """Test load local infile produces the appropriate warnings"""
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
         filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),

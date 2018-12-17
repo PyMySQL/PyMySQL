@@ -96,18 +96,19 @@ class TestAuthentication(base.PyMySQLTestCase):
         #    print("plugin: %r" % r[0])
 
     def test_plugin(self):
-        if not self.mysql_server_is(self.connections[0], (5, 5, 0)):
+        conn = self.connect()
+        if not self.mysql_server_is(conn, (5, 5, 0)):
             raise unittest2.SkipTest("MySQL-5.5 required for plugins")
-        cur = self.connections[0].cursor()
+        cur = conn.cursor()
         cur.execute("select plugin from mysql.user where concat(user, '@', host)=current_user()")
         for r in cur:
-            self.assertIn(self.connections[0]._auth_plugin_name, (r[0], 'mysql_native_password'))
+            self.assertIn(conn._auth_plugin_name, (r[0], 'mysql_native_password'))
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipIf(socket_found, "socket plugin already installed")
     def testSocketAuthInstallPlugin(self):
         # needs plugin. lets install it.
-        cur = self.connections[0].cursor()
+        cur = self.connect().cursor()
         try:
             cur.execute("install plugin auth_socket soname 'auth_socket.so'")
             TestAuthentication.socket_found = True
@@ -132,7 +133,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         self.realtestSocketAuth()
 
     def realtestSocketAuth(self):
-        with TempUser(self.connections[0].cursor(), TestAuthentication.osuser + '@localhost',
+        with TempUser(self.connect().cursor(), TestAuthentication.osuser + '@localhost',
                       self.databases[0]['db'], self.socket_plugin_name) as u:
             c = pymysql.connect(user=TestAuthentication.osuser, **self.db)
 
@@ -180,7 +181,7 @@ class TestAuthentication(base.PyMySQLTestCase):
     @unittest2.skipIf(two_questions_found, "two_questions plugin already installed")
     def testDialogAuthTwoQuestionsInstallPlugin(self):
         # needs plugin. lets install it.
-        cur = self.connections[0].cursor()
+        cur = self.connect().cursor()
         try:
             cur.execute("install plugin two_questions soname 'dialog_examples.so'")
             TestAuthentication.two_questions_found = True
@@ -200,7 +201,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         TestAuthentication.Dialog.fail=False
         TestAuthentication.Dialog.m = {b'Password, please:': b'notverysecret',
                                        b'Are you sure ?': b'yes, of course'}
-        with TempUser(self.connections[0].cursor(), 'pymysql_2q@localhost',
+        with TempUser(self.connect().cursor(), 'pymysql_2q@localhost',
                       self.databases[0]['db'], 'two_questions', 'notverysecret') as u:
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user='pymysql_2q', **self.db)
@@ -210,7 +211,7 @@ class TestAuthentication(base.PyMySQLTestCase):
     @unittest2.skipIf(three_attempts_found, "three_attempts plugin already installed")
     def testDialogAuthThreeAttemptsQuestionsInstallPlugin(self):
         # needs plugin. lets install it.
-        cur = self.connections[0].cursor()
+        cur = self.connect().cursor()
         try:
             cur.execute("install plugin three_attempts soname 'dialog_examples.so'")
             TestAuthentication.three_attempts_found = True
@@ -229,7 +230,7 @@ class TestAuthentication(base.PyMySQLTestCase):
     def realTestDialogAuthThreeAttempts(self):
         TestAuthentication.Dialog.m = {b'Password, please:': b'stillnotverysecret'}
         TestAuthentication.Dialog.fail=True   # fail just once. We've got three attempts after all
-        with TempUser(self.connections[0].cursor(), 'pymysql_3a@localhost',
+        with TempUser(self.connect().cursor(), 'pymysql_3a@localhost',
                       self.databases[0]['db'], 'three_attempts', 'stillnotverysecret') as u:
             pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
             pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.DialogHandler}, **self.db)
@@ -253,7 +254,7 @@ class TestAuthentication(base.PyMySQLTestCase):
     @unittest2.skipIf(os.environ.get('PAMSERVICE') is None, "PAMSERVICE env var required")
     def testPamAuthInstallPlugin(self):
         # needs plugin. lets install it.
-        cur = self.connections[0].cursor()
+        cur = self.connect().cursor()
         try:
             cur.execute("install plugin pam soname 'auth_pam.so'")
             TestAuthentication.pam_found = True
@@ -276,7 +277,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         db = self.db.copy()
         import os
         db['password'] = os.environ.get('PASSWORD')
-        cur = self.connections[0].cursor()
+        cur = self.connect().cursor()
         try:
             cur.execute('show grants for ' + TestAuthentication.osuser + '@localhost')
             grants = cur.fetchone()[0]
@@ -311,51 +312,54 @@ class TestAuthentication(base.PyMySQLTestCase):
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipUnless(mysql_old_password_found, "no mysql_old_password plugin")
     def testMySQLOldPasswordAuth(self):
-        if self.mysql_server_is(self.connections[0], (5, 7, 0)):
+        conn = self.connect()
+        if self.mysql_server_is(conn, (5, 7, 0)):
             raise unittest2.SkipTest('Old passwords aren\'t supported in 5.7')
         # pymysql.err.OperationalError: (1045, "Access denied for user 'old_pass_user'@'localhost' (using password: YES)")
         # from login in MySQL-5.6
-        if self.mysql_server_is(self.connections[0], (5, 6, 0)):
+        if self.mysql_server_is(conn, (5, 6, 0)):
             raise unittest2.SkipTest('Old passwords don\'t authenticate in 5.6')
         db = self.db.copy()
         db['password'] = "crummy p\tassword"
-        with self.connections[0] as c:
-            # deprecated in 5.6
-            if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(self.connections[0], (5, 6, 0)):
-                with self.assertWarns(pymysql.err.Warning) as cm:
-                    c.execute("SELECT OLD_PASSWORD('%s')" % db['password'])
-            else:
+        c = conn.cursor()
+
+        # deprecated in 5.6
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 6, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
                 c.execute("SELECT OLD_PASSWORD('%s')" % db['password'])
-            v = c.fetchone()[0]
-            self.assertEqual(v, '2a01785203b08770')
-            # only works in MariaDB and MySQL-5.6 - can't separate out by version
-            #if self.mysql_server_is(self.connections[0], (5, 5, 0)):
-            #    with TempUser(c, 'old_pass_user@localhost',
-            #                  self.databases[0]['db'], 'mysql_old_password', '2a01785203b08770') as u:
-            #        cur = pymysql.connect(user='old_pass_user', **db).cursor()
-            #        cur.execute("SELECT VERSION()")
-            c.execute("SELECT @@secure_auth")
-            secure_auth_setting = c.fetchone()[0]
-            c.execute('set old_passwords=1')
-            # pymysql.err.Warning: 'pre-4.1 password hash' is deprecated and will be removed in a future release. Please use post-4.1 password hash instead
-            if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(self.connections[0], (5, 6, 0)):
-                with self.assertWarns(pymysql.err.Warning) as cm:
-                    c.execute('set global secure_auth=0')
-            else:
+        else:
+            c.execute("SELECT OLD_PASSWORD('%s')" % db['password'])
+        v = c.fetchone()[0]
+        self.assertEqual(v, '2a01785203b08770')
+        # only works in MariaDB and MySQL-5.6 - can't separate out by version
+        #if self.mysql_server_is(self.connect(), (5, 5, 0)):
+        #    with TempUser(c, 'old_pass_user@localhost',
+        #                  self.databases[0]['db'], 'mysql_old_password', '2a01785203b08770') as u:
+        #        cur = pymysql.connect(user='old_pass_user', **db).cursor()
+        #        cur.execute("SELECT VERSION()")
+        c.execute("SELECT @@secure_auth")
+        secure_auth_setting = c.fetchone()[0]
+        c.execute('set old_passwords=1')
+        # pymysql.err.Warning: 'pre-4.1 password hash' is deprecated and will be removed in a future release. Please use post-4.1 password hash instead
+        if sys.version_info[0:2] >= (3,2) and self.mysql_server_is(conn, (5, 6, 0)):
+            with self.assertWarns(pymysql.err.Warning) as cm:
                 c.execute('set global secure_auth=0')
-            with TempUser(c, 'old_pass_user@localhost',
-                          self.databases[0]['db'], password=db['password']) as u:
-                cur = pymysql.connect(user='old_pass_user', **db).cursor()
-                cur.execute("SELECT VERSION()")
-            c.execute('set global secure_auth=%r' % secure_auth_setting)
+        else:
+            c.execute('set global secure_auth=0')
+        with TempUser(c, 'old_pass_user@localhost',
+                      self.databases[0]['db'], password=db['password']) as u:
+            cur = pymysql.connect(user='old_pass_user', **db).cursor()
+            cur.execute("SELECT VERSION()")
+        c.execute('set global secure_auth=%r' % secure_auth_setting)
 
     @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
     @unittest2.skipUnless(sha256_password_found, "no sha256 password authentication plugin found")
     def testAuthSHA256(self):
-        c = self.connections[0].cursor()
+        conn = self.connect()
+        c = conn.cursor()
         with TempUser(c, 'pymysql_sha256@localhost',
                       self.databases[0]['db'], 'sha256_password') as u:
-            if self.mysql_server_is(self.connections[0], (5, 7, 0)):
+            if self.mysql_server_is(conn, (5, 7, 0)):
                 c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' ='Sh@256Pa33'")
             else:
                 c.execute('SET old_passwords = 2')
@@ -377,7 +381,7 @@ class TestConnection(base.PyMySQLTestCase):
 
     def test_largedata(self):
         """Large query and response (>=16MB)"""
-        cur = self.connections[0].cursor()
+        cur = self.connect().cursor()
         cur.execute("SELECT @@max_allowed_packet")
         if cur.fetchone()[0] < 16*1024*1024 + 10:
             print("Set max_allowed_packet to bigger than 17MB")
@@ -387,7 +391,7 @@ class TestConnection(base.PyMySQLTestCase):
         assert cur.fetchone()[0] == t
 
     def test_autocommit(self):
-        con = self.connections[0]
+        con = self.connect()
         self.assertFalse(con.get_autocommit())
 
         cur = con.cursor()
@@ -400,7 +404,7 @@ class TestConnection(base.PyMySQLTestCase):
         self.assertEqual(cur.fetchone()[0], 0)
 
     def test_select_db(self):
-        con = self.connections[0]
+        con = self.connect()
         current_db = self.databases[0]['db']
         other_db = self.databases[1]['db']
 
@@ -503,7 +507,7 @@ def escape_foo(x, d):
 
 class TestEscape(base.PyMySQLTestCase):
     def test_escape_string(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         self.assertEqual(con.escape("foo'bar"), "'foo\\'bar'")
@@ -516,21 +520,21 @@ class TestEscape(base.PyMySQLTestCase):
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
     def test_escape_builtin_encoders(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         val = datetime.datetime(2012, 3, 4, 5, 6)
         self.assertEqual(con.escape(val, con.encoders), "'2012-03-04 05:06:00'")
 
     def test_escape_custom_object(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         mapping = {Foo: escape_foo}
         self.assertEqual(con.escape(Foo(), mapping), "bar")
 
     def test_escape_fallback_encoder(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         class Custom(str):
@@ -540,13 +544,13 @@ class TestEscape(base.PyMySQLTestCase):
         self.assertEqual(con.escape(Custom('foobar'), mapping), "'foobar'")
 
     def test_escape_no_default(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         self.assertRaises(TypeError, con.escape, 42, {})
 
     def test_escape_dict_value(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         mapping = con.encoders.copy()
@@ -554,7 +558,7 @@ class TestEscape(base.PyMySQLTestCase):
         self.assertEqual(con.escape({'foo': Foo()}, mapping), {'foo': "bar"})
 
     def test_escape_list_item(self):
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
 
         mapping = con.encoders.copy()

@@ -21,7 +21,7 @@ __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
         """ undefined methods datetime_or_None, date_or_None """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -42,7 +42,7 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_4(self):
         """ can't retrieve TIMESTAMP fields """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -57,7 +57,7 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_5(self):
         """ query on information_schema.tables fails """
-        con = self.connections[0]
+        con = self.connect()
         cur = con.cursor()
         cur.execute("select * from information_schema.tables")
 
@@ -73,7 +73,7 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_8(self):
         """ Primary Key and Index error when selecting data """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -98,7 +98,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 
     def test_issue_13(self):
         """ can't handle large result fields """
-        conn = self.connections[0]
+        conn = self.connect()
         cur = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -117,7 +117,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 
     def test_issue_15(self):
         """ query should be expanded before perform character encoding """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -132,7 +132,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
 
     def test_issue_16(self):
         """ Patch for string and tuple escaping """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -148,7 +148,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
     @unittest2.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
     def test_issue_17(self):
         """could not connect mysql use passwod"""
-        conn = self.connections[0]
+        conn = self.connect()
         host = self.databases[0]["host"]
         db = self.databases[0]["db"]
         c = conn.cursor()
@@ -191,7 +191,7 @@ class TestNewIssues(base.PyMySQLTestCase):
 
     @unittest2.skip("This test requires manual intervention")
     def test_issue_35(self):
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         print("sudo killall -9 mysqld within the next 10 seconds")
         try:
@@ -237,7 +237,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             del self.connections[1]
 
     def test_issue_37(self):
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         self.assertEqual(1, c.execute("SELECT @foo"))
         self.assertEqual((None,), c.fetchone())
@@ -245,7 +245,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         c.execute("set @foo = 'bar'")
 
     def test_issue_38(self):
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
 
@@ -259,7 +259,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             c.execute("drop table issue38")
 
     def disabled_test_issue_54(self):
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -278,7 +278,7 @@ class TestNewIssues(base.PyMySQLTestCase):
 class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_66(self):
         """ 'Connection' object has no attribute 'insert_id' """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor()
         self.assertEqual(0, conn.insert_id())
         try:
@@ -294,7 +294,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
     def test_issue_79(self):
         """ Duplicate field overwrites the previous one in the result of DictCursor """
-        conn = self.connections[0]
+        conn = self.connect()
         c = conn.cursor(pymysql.cursors.DictCursor)
 
         with warnings.catch_warnings():
@@ -321,7 +321,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
     def test_issue_95(self):
         """ Leftover trailing OK packet for "CALL my_sp" queries """
-        conn = self.connections[0]
+        conn = self.connect()
         cur = conn.cursor()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -366,7 +366,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
     def test_issue_175(self):
         """ The number of fields returned by server is read in wrong way """
-        conn = self.connections[0]
+        conn = self.connect()
         cur = conn.cursor()
         for length in (200, 300):
             columns = ', '.join('c{0} integer'.format(i) for i in range(length))
