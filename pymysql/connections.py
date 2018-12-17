@@ -694,6 +694,10 @@ class Connection(object):
                 raise err.OperationalError(
                     CR.CR_SERVER_LOST,
                     "Lost connection to MySQL server during query (%s)" % (e,))
+            except BaseException:
+                # Don't convert unknown exception to MySQLError.
+                self._force_close()
+                raise
         if len(data) < num_bytes:
             self._force_close()
             raise err.OperationalError(
