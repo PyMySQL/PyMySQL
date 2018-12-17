@@ -453,7 +453,7 @@ class TestConnection(base.PyMySQLTestCase):
     def test_context(self):
         with self.assertRaises(ValueError):
             c = self.connect()
-            with self.assertWarns(DeprecationWarning):
+            with pytest.warns(DeprecationWarning):
                 cur = c.__enter__()
             cur.execute('create table test ( a int ) ENGINE=InnoDB')
             c.begin()
