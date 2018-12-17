@@ -454,12 +454,13 @@ class TestConnection(base.PyMySQLTestCase):
         with self.assertRaises(ValueError):
             c = self.connect()
             with self.assertWarns(DeprecationWarning):
-                with c as cur:
-                    cur.execute('create table test ( a int ) ENGINE=InnoDB')
-                    c.begin()
-                    cur.execute('insert into test values ((1))')
-                    raise ValueError('pseudo abort')
-                    c.commit()
+                cur = c.__enter__()
+            cur.execute('create table test ( a int ) ENGINE=InnoDB')
+            c.begin()
+            cur.execute('insert into test values ((1))')
+            raise ValueError('pseudo abort')
+            c.commit()
+            c.__exit__()
         c = self.connect()
         with c as cur:
             cur.execute('select count(*) from test')
