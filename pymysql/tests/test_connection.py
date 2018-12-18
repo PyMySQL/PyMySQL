@@ -450,27 +450,6 @@ class TestConnection(base.PyMySQLTestCase):
         )
         self.assertTrue(conn.open)
 
-    def test_context(self):
-        with self.assertRaises(ValueError):
-            c = self.connect()
-            with pytest.warns(DeprecationWarning):
-                with c as cur:
-                    cur.execute('create table test ( a int ) ENGINE=InnoDB')
-                    c.begin()
-                    cur.execute('insert into test values ((1))')
-                    raise ValueError('pseudo abort')
-        c = self.connect()
-        with pytest.warns(DeprecationWarning):
-            with c as cur:
-                cur.execute('select count(*) from test')
-                self.assertEqual(0, cur.fetchone()[0])
-                cur.execute('insert into test values ((1))')
-        with pytest.warns(DeprecationWarning):
-            with c as cur:
-                cur.execute('select count(*) from test')
-                self.assertEqual(1,cur.fetchone()[0])
-                cur.execute('drop table test')
-
     def test_set_charset(self):
         c = self.connect()
         c.set_charset('utf8mb4')
