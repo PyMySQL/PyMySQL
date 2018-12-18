@@ -339,6 +339,7 @@ if not PY2 or JYTHON or IRONPYTHON:
     encoders[bytes] = escape_bytes
 
 decoders = {
+    FIELD_TYPE.BIT: convert_bit,
     FIELD_TYPE.TINY: int,
     FIELD_TYPE.SHORT: int,
     FIELD_TYPE.LONG: int,
@@ -359,7 +360,7 @@ decoders = {
     FIELD_TYPE.VAR_STRING: through,
     FIELD_TYPE.VARCHAR: through,
     FIELD_TYPE.DECIMAL: Decimal,
-    FIELD_TYPE.BIT: convert_bit,
+    FIELD_TYPE.NEWDECIMAL: Decimal,
 }
 
 
