@@ -1,11 +1,11 @@
 # vim: sw=2 ts=2 sts=2 expandtab
 
-sudo: required
+dist: xenial
 language: python
+cache: pip
+
 services:
   - docker
-
-cache: pip
 
 matrix:
   include:
