@@ -18,7 +18,7 @@ Requirements
 
 * Python -- one of the following:
 
-  - CPython_ >= 2.7 or >= 3.4
+  - CPython_ >= 2.7 or >= 3.5
   - Latest PyPy_
 
 * MySQL Server -- one of the following:

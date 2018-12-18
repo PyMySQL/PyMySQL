@@ -32,7 +32,7 @@ matrix:
       python: "3.6"
     - env:
         - DB=mysql:5.7
-      python: "3.4"
+      python: "3.7"
     - env:
         - DB=mysql:8.0
         - TEST_AUTH=yes
