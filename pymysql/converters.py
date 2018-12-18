@@ -301,46 +301,6 @@ def convert_date(obj):
         return obj
 
 
-def convert_mysql_timestamp(timestamp):
-    """Convert a MySQL TIMESTAMP to a Timestamp object.
-
-    MySQL >= 4.1 returns TIMESTAMP in the same format as DATETIME:
-
-      >>> mysql_timestamp_converter('2007-02-25 22:32:17')
-      datetime.datetime(2007, 2, 25, 22, 32, 17)
-
-    MySQL < 4.1 uses a big string of numbers:
-
-      >>> mysql_timestamp_converter('20070225223217')
-      datetime.datetime(2007, 2, 25, 22, 32, 17)
-
-    Illegal values are returned as None:
-
-      >>> mysql_timestamp_converter('2007-02-31 22:32:17') is None
-      True
-      >>> mysql_timestamp_converter('00000000000000') is None
-      True
-
-    """
-    if not PY2 and isinstance(timestamp, (bytes, bytearray)):
-        timestamp = timestamp.decode('ascii')
-    if timestamp[4] == '-':
-        return convert_datetime(timestamp)
-    timestamp += "0"*(14-len(timestamp)) # padding
-    year, month, day, hour, minute, second = \
-        int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:8]), \
-        int(timestamp[8:10]), int(timestamp[10:12]), int(timestamp[12:14])
-    try:
-        return datetime.datetime(year, month, day, hour, minute, second)
-    except ValueError:
-        return timestamp
-
-def convert_set(s):
-    if isinstance(s, (bytes, bytearray)):
-        return set(s.split(b","))
-    return set(s.split(","))
-
-
 def through(x):
     return x
 
@@ -379,7 +339,6 @@ if not PY2 or JYTHON or IRONPYTHON:
     encoders[bytes] = escape_bytes
 
 decoders = {
-    FIELD_TYPE.BIT: convert_bit,
     FIELD_TYPE.TINY: int,
     FIELD_TYPE.SHORT: int,
     FIELD_TYPE.LONG: int,
@@ -388,11 +347,10 @@ decoders = {
     FIELD_TYPE.LONGLONG: int,
     FIELD_TYPE.INT24: int,
     FIELD_TYPE.YEAR: int,
-    FIELD_TYPE.TIMESTAMP: convert_mysql_timestamp,
+    FIELD_TYPE.TIMESTAMP: convert_datetime,
     FIELD_TYPE.DATETIME: convert_datetime,
     FIELD_TYPE.TIME: convert_timedelta,
     FIELD_TYPE.DATE: convert_date,
-    FIELD_TYPE.SET: convert_set,
     FIELD_TYPE.BLOB: through,
     FIELD_TYPE.TINY_BLOB: through,
     FIELD_TYPE.MEDIUM_BLOB: through,
@@ -401,7 +359,7 @@ decoders = {
     FIELD_TYPE.VAR_STRING: through,
     FIELD_TYPE.VARCHAR: through,
     FIELD_TYPE.DECIMAL: Decimal,
-    FIELD_TYPE.NEWDECIMAL: Decimal,
+    FIELD_TYPE.BIT: convert_bit,
 }
 
 

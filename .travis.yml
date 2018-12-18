@@ -17,7 +17,7 @@ matrix:
       python: "3.6"
     - env:
         - DB=mariadb:10.1
-      python: "pypy"
+      python: "pypy3.5"
     - env:
         - DB=mariadb:10.2
       python: "2.7"
