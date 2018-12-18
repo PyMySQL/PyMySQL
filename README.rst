@@ -61,6 +61,11 @@ You can install it with pip::
 
     $ python3 -m pip install PyMySQL
 
+To use "sha256_password" or "caching_sha2_password" for authenticate,
+you need to install additional dependency::
+
+   $ python3 -m pip install PyMySQL[rsa]
+
 
 Documentation
 -------------

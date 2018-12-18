@@ -17,9 +17,9 @@ setup(
     description='Pure Python MySQL Driver',
     long_description=readme,
     packages=find_packages(exclude=['tests*', 'pymysql.tests*']),
-    install_requires=[
-        "cryptography",
-    ],
+    extras_require={
+        "rsa": ["cryptography"],
+    },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python :: 2',
