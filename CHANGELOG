@@ -1,5 +1,16 @@
 # Changes
 
+## 0.9.3
+
+Release date: 2018-12-18
+
+* cryptography dependency is optional now.
+* Fix old_password (used before MySQL 4.1) support.
+* Deprecate old_password.
+* Stop sending ``sys.argv[0]`` for connection attribute "program_name".
+* Close connection when unknown error is happened.
+* Deprecate context manager API of Connection object.
+
 ## 0.9.2
 
 Release date: 2018-07-04
