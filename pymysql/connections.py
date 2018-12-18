@@ -88,7 +88,7 @@ TEXT_TYPES = {
 }
 
 
-DEFAULT_CHARSET = 'utf8mb4'  # TODO: change to utf8mb4
+DEFAULT_CHARSET = 'utf8mb4'
 
 MAX_PACKET_LEN = 2**24-1
 

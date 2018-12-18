@@ -354,21 +354,6 @@ def through(x):
 convert_bit = through
 
 
-def convert_characters(connection, field, data):
-    field_charset = charset_by_id(field.charsetnr).name
-    encoding = charset_to_encoding(field_charset)
-    if field.flags & FLAG.SET:
-        return convert_set(data.decode(encoding))
-    if field.flags & FLAG.BINARY:
-        return data
-
-    if connection.use_unicode:
-        data = data.decode(encoding)
-    elif connection.charset != field_charset:
-        data = data.decode(encoding)
-        data = data.encode(connection.encoding)
-    return data
-
 encoders = {
     bool: escape_bool,
     int: escape_int,
