@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 
 from pymysql import err
 
@@ -6,7 +6,7 @@ from pymysql import err
 __all__ = ["TestRaiseException"]
 
 
-class TestRaiseException(unittest2.TestCase):
+class TestRaiseException(unittest.TestCase):
 
     def test_raise_mysql_exception(self):
         data = b"\xff\x15\x04#28000Access denied"

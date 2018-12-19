@@ -3,11 +3,12 @@ import time
 import warnings
 import sys
 
+import pytest
+
 import pymysql
 from pymysql import cursors
 from pymysql._compat import text_type
 from pymysql.tests import base
-import unittest2
 
 try:
     import imp
@@ -145,7 +146,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         finally:
             c.execute("drop table issue16")
 
-    @unittest2.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
+    @pytest.mark.skip("test_issue_17() requires a custom, legacy MySQL configuration and will not be run.")
     def test_issue_17(self):
         """could not connect mysql use passwod"""
         conn = self.connect()
@@ -189,7 +190,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         c.execute(u"select name from hei\xdfe")
         self.assertEqual(u"Pi\xdfata", c.fetchone()[0])
 
-    @unittest2.skip("This test requires manual intervention")
+    @pytest.mark.skip("This test requires manual intervention")
     def test_issue_35(self):
         conn = self.connect()
         c = conn.cursor()

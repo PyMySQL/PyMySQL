@@ -55,7 +55,7 @@ before_script:
   - export COVERALLS_PARALLEL=true
 
 script:
-  - coverage run ./runtests.py
+  - pytest -v --cov-config .coveragerc pymysql
   - if [ "${TEST_AUTH}" = "yes" ];
     then pytest -v --cov-config .coveragerc tests;
     fi
