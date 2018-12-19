@@ -490,20 +490,6 @@ class Connection(object):
             return cursor(self)
         return self.cursorclass(self)
 
-    def __enter__(self):
-        """Context manager that returns a Cursor"""
-        warnings.warn(
-            "Context manager API of Connection object is deprecated; Use conn.begin()",
-            DeprecationWarning)
-        return self.cursor()
-
-    def __exit__(self, exc, value, traceback):
-        """On successful exit, commit. On exception, rollback"""
-        if exc:
-            self.rollback()
-        else:
-            self.commit()
-
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
         # if DEBUG:
