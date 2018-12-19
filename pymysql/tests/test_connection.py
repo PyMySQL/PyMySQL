@@ -1,7 +1,7 @@
 import datetime
 import sys
 import time
-import unittest2
+import pytest
 import pymysql
 from pymysql.tests import base
 from pymysql._compat import text_type
@@ -100,14 +100,14 @@ class TestAuthentication(base.PyMySQLTestCase):
     def test_plugin(self):
         conn = self.connect()
         if not self.mysql_server_is(conn, (5, 5, 0)):
-            raise unittest2.SkipTest("MySQL-5.5 required for plugins")
+            pytest.skip("MySQL-5.5 required for plugins")
         cur = conn.cursor()
         cur.execute("select plugin from mysql.user where concat(user, '@', host)=current_user()")
         for r in cur:
             self.assertIn(conn._auth_plugin_name, (r[0], 'mysql_native_password'))
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipIf(socket_found, "socket plugin already installed")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(socket_found, reason="socket plugin already installed")
     def testSocketAuthInstallPlugin(self):
         # needs plugin. lets install it.
         cur = self.connect().cursor()
@@ -124,13 +124,13 @@ class TestAuthentication(base.PyMySQLTestCase):
                 self.realtestSocketAuth()
             except pymysql.err.InternalError:
                 TestAuthentication.socket_found = False
-                raise unittest2.SkipTest('we couldn\'t install the socket plugin')
+                pytest.skip('we couldn\'t install the socket plugin')
         finally:
             if TestAuthentication.socket_found:
                 cur.execute("uninstall plugin %s" % self.socket_plugin_name)
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipUnless(socket_found, "no socket plugin")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(not socket_found, reason="no socket plugin")
     def testSocketAuth(self):
         self.realtestSocketAuth()
 
@@ -179,8 +179,8 @@ class TestAuthentication(base.PyMySQLTestCase):
             self.con=con
 
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipIf(two_questions_found, "two_questions plugin already installed")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(two_questions_found, reason="two_questions plugin already installed")
     def testDialogAuthTwoQuestionsInstallPlugin(self):
         # needs plugin. lets install it.
         cur = self.connect().cursor()
@@ -189,13 +189,13 @@ class TestAuthentication(base.PyMySQLTestCase):
             TestAuthentication.two_questions_found = True
             self.realTestDialogAuthTwoQuestions()
         except pymysql.err.InternalError:
-            raise unittest2.SkipTest('we couldn\'t install the two_questions plugin')
+            pytest.skip('we couldn\'t install the two_questions plugin')
         finally:
             if TestAuthentication.two_questions_found:
                 cur.execute("uninstall plugin two_questions")
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipUnless(two_questions_found, "no two questions auth plugin")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(not two_questions_found, reason="no two questions auth plugin")
     def testDialogAuthTwoQuestions(self):
         self.realTestDialogAuthTwoQuestions()
 
@@ -209,8 +209,8 @@ class TestAuthentication(base.PyMySQLTestCase):
                 pymysql.connect(user='pymysql_2q', **self.db)
             pymysql.connect(user='pymysql_2q', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipIf(three_attempts_found, "three_attempts plugin already installed")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(three_attempts_found, reason="three_attempts plugin already installed")
     def testDialogAuthThreeAttemptsQuestionsInstallPlugin(self):
         # needs plugin. lets install it.
         cur = self.connect().cursor()
@@ -219,13 +219,13 @@ class TestAuthentication(base.PyMySQLTestCase):
             TestAuthentication.three_attempts_found = True
             self.realTestDialogAuthThreeAttempts()
         except pymysql.err.InternalError:
-            raise unittest2.SkipTest('we couldn\'t install the three_attempts plugin')
+            pytest.skip('we couldn\'t install the three_attempts plugin')
         finally:
             if TestAuthentication.three_attempts_found:
                 cur.execute("uninstall plugin three_attempts")
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipUnless(three_attempts_found, "no three attempts plugin")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(not three_attempts_found, reason="no three attempts plugin")
     def testDialogAuthThreeAttempts(self):
         self.realTestDialogAuthThreeAttempts()
 
@@ -250,10 +250,10 @@ class TestAuthentication(base.PyMySQLTestCase):
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user='pymysql_3a', auth_plugin_map={b'dialog': TestAuthentication.Dialog}, **self.db)
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipIf(pam_found, "pam plugin already installed")
-    @unittest2.skipIf(os.environ.get('PASSWORD') is None, "PASSWORD env var required")
-    @unittest2.skipIf(os.environ.get('PAMSERVICE') is None, "PAMSERVICE env var required")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(pam_found, reason="pam plugin already installed")
+    @pytest.mark.skipif(os.environ.get('PASSWORD') is None, reason="PASSWORD env var required")
+    @pytest.mark.skipif(os.environ.get('PAMSERVICE') is None, reason="PAMSERVICE env var required")
     def testPamAuthInstallPlugin(self):
         # needs plugin. lets install it.
         cur = self.connect().cursor()
@@ -262,16 +262,16 @@ class TestAuthentication(base.PyMySQLTestCase):
             TestAuthentication.pam_found = True
             self.realTestPamAuth()
         except pymysql.err.InternalError:
-            raise unittest2.SkipTest('we couldn\'t install the auth_pam plugin')
+            pytest.skip('we couldn\'t install the auth_pam plugin')
         finally:
             if TestAuthentication.pam_found:
                 cur.execute("uninstall plugin pam")
 
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipUnless(pam_found, "no pam plugin")
-    @unittest2.skipIf(os.environ.get('PASSWORD') is None, "PASSWORD env var required")
-    @unittest2.skipIf(os.environ.get('PAMSERVICE') is None, "PAMSERVICE env var required")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(not pam_found, reason="no pam plugin")
+    @pytest.mark.skipif(os.environ.get('PASSWORD') is None, reason="PASSWORD env var required")
+    @pytest.mark.skipif(os.environ.get('PAMSERVICE') is None, reason="PAMSERVICE env var required")
     def testPamAuth(self):
         self.realTestPamAuth()
 
@@ -311,16 +311,16 @@ class TestAuthentication(base.PyMySQLTestCase):
     # select old_password("crummy p\tassword");
     #| old_password("crummy p\tassword") |
     #| 2a01785203b08770                  |
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipUnless(mysql_old_password_found, "no mysql_old_password plugin")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(not mysql_old_password_found, reason="no mysql_old_password plugin")
     def testMySQLOldPasswordAuth(self):
         conn = self.connect()
         if self.mysql_server_is(conn, (5, 7, 0)):
-            raise unittest2.SkipTest('Old passwords aren\'t supported in 5.7')
+            pytest.skip('Old passwords aren\'t supported in 5.7')
         # pymysql.err.OperationalError: (1045, "Access denied for user 'old_pass_user'@'localhost' (using password: YES)")
         # from login in MySQL-5.6
         if self.mysql_server_is(conn, (5, 6, 0)):
-            raise unittest2.SkipTest('Old passwords don\'t authenticate in 5.6')
+            pytest.skip('Old passwords don\'t authenticate in 5.6')
         db = self.db.copy()
         db['password'] = "crummy p\tassword"
         c = conn.cursor()
@@ -354,8 +354,8 @@ class TestAuthentication(base.PyMySQLTestCase):
             cur.execute("SELECT VERSION()")
         c.execute('set global secure_auth=%r' % secure_auth_setting)
 
-    @unittest2.skipUnless(socket_auth, "connection to unix_socket required")
-    @unittest2.skipUnless(sha256_password_found, "no sha256 password authentication plugin found")
+    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
+    @pytest.mark.skipif(not sha256_password_found, reason="no sha256 password authentication plugin found")
     def testAuthSHA256(self):
         conn = self.connect()
         c = conn.cursor()

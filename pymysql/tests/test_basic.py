@@ -4,7 +4,7 @@ import json
 import time
 import warnings
 
-from unittest2 import SkipTest
+import pytest
 
 from pymysql import util
 import pymysql.cursors
@@ -143,7 +143,7 @@ class TestConversion(base.PyMySQLTestCase):
 
         conn = self.connect()
         if not self.mysql_server_is(conn, (5, 6, 4)):
-            raise SkipTest("target backend does not support microseconds")
+            pytest.skip("target backend does not support microseconds")
         c = conn.cursor()
         dt = datetime.datetime(2013, 11, 12, 9, 9, 9, 123450)
         c.execute("create table test_datetime (id int, ts datetime(6))")
@@ -256,7 +256,7 @@ class TestCursor(base.PyMySQLTestCase):
         args["charset"] = "utf8mb4"
         conn = pymysql.connect(**args)
         if not self.mysql_server_is(conn, (5, 7, 0)):
-            raise SkipTest("JSON type is not supported on MySQL <= 5.6")
+            pytest.skip("JSON type is not supported on MySQL <= 5.6")
 
         self.safe_create_table(conn, "test_json", """\
 create table test_json (

@@ -1,8 +1,5 @@
 from . import capabilities
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import pymysql
 from pymysql.tests import base
 import warnings

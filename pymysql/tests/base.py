@@ -3,14 +3,33 @@ import json
 import os
 import re
 import warnings
-
-import unittest2
+import unittest
 
 import pymysql
 from .._compat import CPYTHON
 
 
-class PyMySQLTestCase(unittest2.TestCase):
+if CPYTHON:
+    import atexit
+    gc.set_debug(gc.DEBUG_UNCOLLECTABLE)
+
+    @atexit.register
+    def report_uncollectable():
+        import gc
+        if not gc.garbage:
+            print("No garbages!")
+            return
+        print('uncollectable objects')
+        for obj in gc.garbage:
+            print(obj)
+            if hasattr(obj, '__dict__'):
+                print(obj.__dict__)
+            for ref in gc.get_referrers(obj):
+                print("referrer:", ref)
+            print('---')
+
+
+class PyMySQLTestCase(unittest.TestCase):
     # You can specify your test environment creating a file named
     #  "databases.json" or editing the `databases` variable below.
     fname = os.path.join(os.path.dirname(__file__), "databases.json")
@@ -97,7 +116,6 @@ class PyMySQLTestCase(unittest2.TestCase):
         """Ensure cycles are collected via gc.
 
         Runs additional times on non-CPython platforms.
-
         """
         gc.collect()
         if not CPYTHON:

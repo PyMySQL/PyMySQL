@@ -14,5 +14,5 @@ from pymysql.tests.test_optionfile import *
 from pymysql.tests.thirdparty import *
 
 if __name__ == "__main__":
-    import unittest2
-    unittest2.main()
+    import unittest
+    unittest.main()

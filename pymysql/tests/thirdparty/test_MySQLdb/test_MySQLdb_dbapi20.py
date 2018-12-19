@@ -2,10 +2,7 @@ from . import dbapi20
 import pymysql
 from pymysql.tests import base
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 
 class test_MySQLdb(dbapi20.DatabaseAPI20Test):
