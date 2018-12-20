@@ -1,9 +1,7 @@
 #!/bin/bash
 
-#debug
-set -x
-#verbose
-set -v
+#error,debug,verbose,
+set -exv
 
 if [ ! -z "${DB}" ]; then
     # disable existing database server in case of accidential connection
