@@ -39,6 +39,8 @@ if [ ! -z "${DB}" ]; then
         WITH_PLUGIN=''
     fi
 
+    mysql -e 'select VERSION()'
+
     mysql -uroot -e 'create database test1 DEFAULT CHARACTER SET utf8mb4'
     mysql -uroot -e 'create database test2 DEFAULT CHARACTER SET utf8mb4'
 
