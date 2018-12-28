@@ -9,10 +9,11 @@ if [ ! -z "${DB}" ]; then
     mysql() {
         docker exec mysqld mysql "${@}"
     }
+
     while :
     do
         sleep 5
-        mysql -e 'select version()' && break
+        docker exec mysqld mysql -uroot -e 'select version()' && break
         echo "server logs"
         docker logs --tail 5 mysqld
     done
@@ -39,7 +40,7 @@ if [ ! -z "${DB}" ]; then
         WITH_PLUGIN=''
     fi
 
-    mysql -e 'select VERSION()'
+    mysql -uroot -e 'select VERSION()'
 
     mysql -uroot -e 'create database test1 DEFAULT CHARACTER SET utf8mb4'
     mysql -uroot -e 'create database test2 DEFAULT CHARACTER SET utf8mb4'
