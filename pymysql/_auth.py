@@ -139,7 +139,7 @@ def sha2_rsa_encrypt(password, salt, public_key):
     Used for sha256_password and caching_sha2_password.
     """
     if not _have_cryptography:
-        raise RuntimeError("'cryptography' package is required for sha256_password or caching_sha2_password auth method")
+        raise RuntimeError("'cryptography' package is required for sha256_password or caching_sha2_password auth methods")
     message = _xor_password(password + b'\0', salt)
     rsa_key = serialization.load_pem_public_key(public_key, default_backend())
     return rsa_key.encrypt(
