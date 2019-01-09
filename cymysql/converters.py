@@ -5,6 +5,7 @@ import sys
 import decimal
 
 from cymysql.constants import FIELD_TYPE
+from cymysql.charset import encoding_by_charset
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -273,14 +274,16 @@ def convert_characters(data, charset=None, field=None, use_unicode=None):
         return convert_set(data.decode(field.charset))
     if field.is_binary:
         if PYTHON3 and field.charset != 'binary':
-            return data.decode(field.charset)
+            return data.decode(encoding_by_charset(field.charset))
         else:
             return data
 
     if use_unicode or PYTHON3:
-        return data.decode(field.charset)
+        return data.decode(encoding_by_charset(field.charset))
     elif charset != field.charset:
-        return data.decode(field.charset).encode(charset)
+        return data.decode(
+            encoding_by_charset(field.charset)
+        ).encode(encoding_by_charset(charset))
     return data
 
 

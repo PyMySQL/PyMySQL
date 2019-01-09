@@ -1,3 +1,10 @@
+
+def encoding_by_charset(charset):
+    if charset in ('utf8mb4', 'utf8mb3'):
+        return 'utf8'
+    return charset
+
+
 class Charset(object):
     def __init__(self, id, name, collation, is_default):
         self.id, self.name, self.collation = id, name, collation

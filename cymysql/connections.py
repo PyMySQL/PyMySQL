@@ -14,7 +14,7 @@ try:
 except ImportError:
     from configparser import RawConfigParser
 
-from cymysql.charset import charset_by_name
+from cymysql.charset import charset_by_name, encoding_by_charset
 from cymysql.cursors import Cursor
 from cymysql.constants import CLIENT, COMMAND
 from cymysql.converters import decoders, encoders, escape_item
@@ -218,8 +218,6 @@ class Connection(object):
         self.host = host
         self.port = port
         self.user = user or DEFAULT_USER
-        if isinstance(passwd, bytes):
-            passwd = passwd.decode(charset if charset else DEFAULT_CHARSET)
         self.password = passwd
         self.db = db
         self.unix_socket = unix_socket
@@ -234,6 +232,8 @@ class Connection(object):
 
         if use_unicode is not None:
             self.use_unicode = use_unicode
+
+        self.encoding = encoding_by_charset(self.charset)
 
         client_flag |= CLIENT.CAPABILITIES
         client_flag |= CLIENT.MULTI_STATEMENTS
@@ -434,7 +434,7 @@ class Connection(object):
             (PYTHON3 and isinstance(sql, str)) or
             (not PYTHON3 and isinstance(sql, unicode))
         ):
-            sql = sql.encode(self.charset)
+            sql = sql.encode(self.encoding)
 
         if len(sql) + 1 > 0xffffff:
             raise ValueError('Sending query packet is too large')
@@ -444,14 +444,14 @@ class Connection(object):
     def _scramble(self):
         if self.auth_plugin_name in ('', 'mysql_native_password'):
             data = _mysql_native_password_scramble(
-                self.password.encode(self.charset), self.salt
+                self.password.encode(self.encoding), self.salt
             )
         elif self.auth_plugin_name == 'caching_sha2_password':
             data = _caching_sha2_password_scramble(
-                self.password.encode(self.charset), self.salt
+                self.password.encode(self.encoding), self.salt
             )
         elif self.auth_plugin_name == 'mysql_clear_password':
-            data = self.password.encode(self.charset) + b'\x00'
+            data = self.password.encode(self.encoding) + b'\x00'
         else:
             raise NotImplementedError(
                 "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
@@ -465,7 +465,7 @@ class Connection(object):
         next_packet = 1
 
         charset_id = charset_by_name(self.charset).id
-        user = self.user.encode(self.charset)
+        user = self.user.encode(self.encoding)
 
         data_init = (
             struct.pack('<i', self.client_flag) +
@@ -490,10 +490,10 @@ class Connection(object):
             data += authresp + int2byte(0)
 
         if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
-            data += self.db.encode(self.charset) + int2byte(0)
+            data += self.db.encode(self.encoding) + int2byte(0)
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH:
-            data += self.auth_plugin_name.encode(self.charset) + int2byte(0)
+            data += self.auth_plugin_name.encode(self.encoding) + int2byte(0)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
@@ -524,7 +524,7 @@ class Connection(object):
         assert auth_packet.get_all_data() == b'\x01\x04'
 
         if self.ssl or self.unix_socket:
-            data = self.password.encode(self.charset) + b'\x00'
+            data = self.password.encode(self.encoding) + b'\x00'
         else:
             # request_public_key
             data = b'\x02'
@@ -538,7 +538,7 @@ class Connection(object):
             from Crypto.Cipher import PKCS1_OAEP
             key = RSA.importKey(public_pem)
             cipher = PKCS1_OAEP.new(key)
-            password = self.password.encode(self.charset) + b'\x00'
+            password = self.password.encode(self.encoding) + b'\x00'
             data = cipher.encrypt(_xor(password, self.salt))
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data

@@ -106,13 +106,13 @@ class Cursor(object):
         if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
             conn._last_execute_cursor()._flush()
 
-        charset = conn.charset
+        encoding = conn.encoding
         del self.messages[:]
 
         if PYTHON3 and (not isinstance(query, str)):
-            query = query.decode(charset)
+            query = query.decode(encoding)
         if (not PYTHON3) and isinstance(query, unicode):
-            query = query.encode(charset)
+            query = query.encode(encoding)
 
         if args is not None:
             if isinstance(args, (tuple, list)):
@@ -181,9 +181,9 @@ class Cursor(object):
         for index, arg in enumerate(args):
             q = "SET @_%s_%d=%s" % (procname, index, conn.escape(arg))
             if PYTHON3 and (not isinstance(q, str)):
-                q = q.decode(conn.charset)
+                q = q.decode(conn.encoding)
             if (not PYTHON3) and isinstance(q, unicode):
-                q = q.encode(conn.charset)
+                q = q.encode(conn.encoding)
             self._query(q)
             self.nextset()
 
@@ -191,9 +191,9 @@ class Cursor(object):
                              ','.join(['@_%s_%d' % (procname, i)
                                        for i in range(len(args))]))
         if PYTHON3 and (not isinstance(q, str)):
-            q = q.decode(conn.charset)
+            q = q.decode(conn.encoding)
         if (not PYTHON3) and isinstance(q, unicode):
-            q = q.encode(conn.charset)
+            q = q.encode(conn.encoding)
         self._query(q)
         self._executed = q
 
