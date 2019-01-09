@@ -266,7 +266,16 @@ class TestCursor(base.PyMySQLTestCase):
         except cymysql.ProgrammingError:
             pass
 
-__all__ = ["TestConversion","TestCursor"]
+
+class TestCharset(base.PyMySQLTestCase):
+    def test_charset(self):
+        conn = cymysql.connect(
+            host="localhost", user="root", passwd=self.test_passwd, db="mysql", charset="utf8mb4"
+        )
+        conn.close()
+
+
+__all__ = ["TestConversion","TestCursor", "TestCharset"]
 
 if __name__ == "__main__":
     import unittest
