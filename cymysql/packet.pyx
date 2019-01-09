@@ -216,7 +216,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         self.db = self._read_length_coded_string()
         self.table_name = self._read_length_coded_string()
         self.org_table = self._read_length_coded_string()
-        self.name = self._read_length_coded_string().decode(self.connection.charset)
+        self.name = self._read_length_coded_string().decode(self.connection.encoding)
         self.org_name = self._read_length_coded_string()
         self._skip(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
