@@ -6,7 +6,7 @@ import struct
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS, FLAG
 from cymysql.converters import convert_characters
-from cymysql.charset import charset_by_id
+from cymysql.charset import charset_by_id, encoding_by_charset
 
 from libc.stdint cimport uint16_t, uint32_t
 cdef int PYTHON3 = sys.version_info[0] > 2
@@ -45,7 +45,7 @@ cdef class MysqlPacket(object):
     """Representation of a MySQL response packet.  Reads in the packet
     from the network socket, removes packet header and provides an interface
     for reading/parsing the packet results."""
-    cdef object connection, _socket, _charset, _use_unicode
+    cdef object connection, _socket, _charset, _encoding, _use_unicode
     cdef bytes __data
     cdef int __position
 
@@ -54,6 +54,7 @@ cdef class MysqlPacket(object):
         self.connection = connection
         self._socket = connection.socket
         self._charset = connection.charset
+        self._encoding = connection.encoding
         self._use_unicode = connection.use_unicode
         self.__position = 0
         self.__recv_packet()
@@ -201,7 +202,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
     """
     cdef public object catalog, db, table_name, org_table, name, org_name
     cdef public int charsetnr, length, type_code, flags, scale, is_set, is_binary
-    cdef public str charset
+    cdef public str charset, encoding
 
     def __init__(self, *args):
         MysqlPacket.__init__(self, *args)
@@ -220,6 +221,7 @@ cdef class FieldDescriptorPacket(MysqlPacket):
         self._skip(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
         self.charset = charset_by_id(self.charsetnr).name
+        self.encoding = encoding_by_charset(self.charset)
         self.length = unpack_uint32(self._read(4))
         self.type_code = ord(self._read(1))
         self.flags = unpack_uint16(self._read(2))
