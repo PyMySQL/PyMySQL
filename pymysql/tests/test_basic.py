@@ -2,7 +2,6 @@
 import datetime
 import json
 import time
-import warnings
 
 import pytest
 
@@ -378,14 +377,3 @@ values (0,
 age = values(age)"""))
         cursor.execute('commit')
         self._verify_records(data)
-
-    def test_warnings(self):
-        con = self.connect()
-        cur = con.cursor()
-        with warnings.catch_warnings(record=True) as ws:
-            warnings.simplefilter("always")
-            cur.execute("drop table if exists no_exists_table")
-        self.assertEqual(len(ws), 1)
-        self.assertEqual(ws[0].category, pymysql.Warning)
-        if u"no_exists_table" not in str(ws[0].message):
-            self.fail("'no_exists_table' not in %s" % (str(ws[0].message),))

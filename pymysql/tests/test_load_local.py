@@ -2,7 +2,6 @@ from pymysql import cursors, OperationalError, Warning
 from pymysql.tests import base
 
 import os
-import warnings
 
 __all__ = ["TestLoadLocal"]
 
@@ -63,29 +62,6 @@ class TestLoadLocal(base.PyMySQLTestCase):
             conn.connect()
             c = conn.cursor()
             c.execute("DROP TABLE test_load_local")
-
-    def test_load_warnings(self):
-        """Test load local infile produces the appropriate warnings"""
-        conn = self.connect()
-        c = conn.cursor()
-        c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
-        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                'data',
-                                'load_local_warn_data.txt')
-        try:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter('always')
-                c.execute(
-                    ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
-                     "test_load_local FIELDS TERMINATED BY ','").format(filename)
-                )
-                self.assertEqual(w[0].category, Warning)
-                expected_message = "Incorrect integer value"
-                if expected_message not in str(w[-1].message):
-                    self.fail("%r not in %r" % (expected_message, w[-1].message))
-        finally:
-            c.execute("DROP TABLE test_load_local")
-            c.close()
 
 
 if __name__ == "__main__":
