@@ -485,28 +485,3 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         # don't assert the exact internal binary value, as it could
         # vary across implementations
         self.assertTrue(isinstance(row[0], bytes))
-
-    def test_issue_491(self):
-        """ Test warning propagation """
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
-
-        with warnings.catch_warnings():
-            # Ignore all warnings other than pymysql generated ones
-            warnings.simplefilter("ignore")
-            warnings.simplefilter("error", category=pymysql.Warning)
-
-            # verify for both buffered and unbuffered cursor types
-            for cursor_class in (cursors.Cursor, cursors.SSCursor):
-                c = conn.cursor(cursor_class)
-                try:
-                    c.execute("SELECT CAST('124b' AS SIGNED)")
-                    c.fetchall()
-                except pymysql.Warning as e:
-                    # Warnings should have errorcode and string message, just like exceptions
-                    self.assertEqual(len(e.args), 2)
-                    self.assertEqual(e.args[0], 1292)
-                    self.assertTrue(isinstance(e.args[1], text_type))
-                else:
-                    self.fail("Should raise Warning")
-                finally:
-                    c.close()
