@@ -666,7 +666,7 @@ class Connection(object):
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
-        packet = packet_type(buff, self.encoding)
+        packet = packet_type(bytes(buff), self.encoding)
         packet.check_error()
         return packet
 
