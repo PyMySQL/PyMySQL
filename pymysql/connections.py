@@ -659,14 +659,14 @@ class Connection(object):
 
             recv_data = self._read_bytes(bytes_to_read)
             if DEBUG: dump_packet(recv_data)
-            buff.extend(recv_data)
+            buff += recv_data
             # https://dev.mysql.com/doc/internals/en/sending-more-than-16mbyte.html
             if bytes_to_read == 0xffffff:
                 continue
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
-        packet = packet_type(bytes(buff), self.encoding)
+        packet = packet_type(buff, self.encoding)
         packet.check_error()
         return packet
 
