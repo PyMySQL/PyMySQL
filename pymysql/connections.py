@@ -638,7 +638,7 @@ class Connection(object):
         :raise OperationalError: If the connection to the MySQL server is lost.
         :raise InternalError: If the packet sequence number is wrong.
         """
-        buff = b''
+        buff = bytearray()
         while True:
             packet_header = self._read_bytes(4)
             #if DEBUG: dump_packet(packet_header)
@@ -666,7 +666,7 @@ class Connection(object):
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
-        packet = packet_type(buff, self.encoding)
+        packet = packet_type(bytes(buff), self.encoding)
         packet.check_error()
         return packet
 
