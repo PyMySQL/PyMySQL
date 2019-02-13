@@ -136,7 +136,7 @@ class Cursor(object):
         if PY2:  # Use bytes on Python 2 always
             query = self._ensure_bytes(query, encoding=conn.encoding)
 
-        if args is not None:
+        if args is not None and len(args) > 0:
             query = query % self._escape_args(args, conn)
 
         return query
