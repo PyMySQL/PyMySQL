@@ -156,9 +156,13 @@ class Connection(object):
     :param compress: Not supported
     :param named_pipe: Not supported
     :param autocommit: Autocommit mode. None means use server default. (default: False)
-    :param local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
+    :param local_infile: Boolean to enable the use of LOAD DATA LOCAL command.
+        Alternately, if a dictionary is specified, the filename of "LOAD DATA LOCAL INFILE 'name'"
+        will be looked up in the dictionary and the retreived file like object (has 'read' method)
+        that will be used to retrieve bytes (like a file) to send to the server.
+        (default: False)
     :param max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
-        Only used to limit size of "LOAD LOCAL INFILE" data packet smaller than default (16KB).
+        Only used to limit size of "LOAD DATA LOCAL INFILE" data packet smaller than default (16KB).
     :param defer_connect: Don't explicitly connect on contruction - wait for connect call.
         (default: False)
     :param auth_plugin_map: A dict of plugin names to a class that processes that plugin.
@@ -203,7 +207,7 @@ class Connection(object):
         if compress or named_pipe:
             raise NotImplementedError("compress and named_pipe arguments are not supported")
 
-        self._local_infile = bool(local_infile)
+        self._local_infile = local_infile
         if self._local_infile:
             client_flag |= CLIENT.LOCAL_FILES
 
@@ -1249,16 +1253,24 @@ class LoadLocalFile(object):
         if not self.connection._sock:
             raise err.InterfaceError("(0, '')")
         conn = self.connection
+        packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
 
         try:
-            with open(self.filename, 'rb') as open_file:
-                packet_size = min(conn.max_allowed_packet, 16*1024)  # 16KB is efficient enough
+            try:
+                open_file = conn._local_infile[self.filename]
                 while True:
                     chunk = open_file.read(packet_size)
                     if not chunk:
                         break
                     conn.write_packet(chunk)
-        except IOError:
+            except TypeError:
+                with open(self.filename, 'rb') as open_file:
+                    while True:
+                        chunk = open_file.read(packet_size)
+                        if not chunk:
+                            break
+                        conn.write_packet(chunk)
+        except (IOError, KeyError, AttributeError):
             raise err.OperationalError(1017, "Can't find file '{0}'".format(self.filename))
         finally:
             # send the empty packet to signify we are done sending data
