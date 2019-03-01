@@ -51,7 +51,7 @@ Release date: 2018-05-07
 * Many test suite improvements, especially adding MySQL 8.0 and using Docker.
   Thanks to Daniel Black.
 
-* Droppped support for old Python and MySQL whih is not tested long time.
+* Droppped support for old Python and MySQL which is not tested long time.
 
 
 ## 0.8
