@@ -140,7 +140,7 @@ class Connection(object):
         Specifies  my.cnf file to read these parameters from under the [client] section.
     :param conv:
         Conversion dictionary to use instead of the default one.
-        This is used to provide custom marshalling and unmarshaling of types.
+        This is used to provide custom marshalling and unmarshalling of types.
         See converters.
     :param use_unicode:
         Whether or not to default to unicode strings.
@@ -159,14 +159,14 @@ class Connection(object):
     :param local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
     :param max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
         Only used to limit size of "LOAD LOCAL INFILE" data packet smaller than default (16KB).
-    :param defer_connect: Don't explicitly connect on contruction - wait for connect call.
+    :param defer_connect: Don't explicitly connect on construction - wait for connect call.
         (default: False)
     :param auth_plugin_map: A dict of plugin names to a class that processes that plugin.
         The class will take the Connection object as the argument to the constructor.
         The class needs an authenticate method taking an authentication packet as
         an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
         (if no authenticate method) for returning a string from the user. (experimental)
-    :param server_public_key: SHA256 authenticaiton plugin public key value. (default: None)
+    :param server_public_key: SHA256 authentication plugin public key value. (default: None)
     :param db: Alias for database. (for compatibility to MySQLdb)
     :param passwd: Alias for password. (for compatibility to MySQLdb)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
@@ -622,9 +622,9 @@ class Connection(object):
 
     def write_packet(self, payload):
         """Writes an entire "mysql packet" in its entirety to the network
-        addings its length and sequence number.
+        adding its length and sequence number.
         """
-        # Internal note: when you build packet manualy and calls _write_bytes()
+        # Internal note: when you build packet manually and calls _write_bytes()
         # directly, you should set self._next_seq_id properly.
         data = pack_int24(len(payload)) + int2byte(self._next_seq_id) + payload
         if DEBUG: dump_packet(data)
