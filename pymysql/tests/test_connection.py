@@ -540,6 +540,24 @@ class TestEscape(base.PyMySQLTestCase):
         mapping[Foo] = escape_foo
         self.assertEqual(con.escape({'foo': Foo()}, mapping), {'foo': "bar"})
 
+    def test_escape_list(self):
+        con = self.connect()
+        cur = con.cursor()
+
+        self.assertEqual(con.escape([42, 43]), "(42,43)")
+
+    def test_escape_dict_keys(self):
+        con = self.connect()
+        cur = con.cursor()
+
+        self.assertEqual(con.escape({"one": 1, "two": 2}.keys()), "('one','two')")
+
+    def test_escape_dict_values(self):
+        con = self.connect()
+        cur = con.cursor()
+
+        self.assertEqual(con.escape({"one": 1, "two": 2}.values()), "(1,2)")
+
     def test_escape_list_item(self):
         con = self.connect()
         cur = con.cursor()

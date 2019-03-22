@@ -1,5 +1,6 @@
 from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON, unichr
 
+import collections
 import datetime
 from decimal import Decimal
 import re
@@ -14,8 +15,12 @@ def escape_item(val, charset, mapping=None):
         mapping = encoders
     encoder = mapping.get(type(val))
 
+    # If val is an iterable, try encoding it in whatever way we encode lists.
+    if encoder is None and isinstance(val, collections.Iterable):
+        encoder = mapping.get(list)
+
     # Fallback to default when no encoder found
-    if not encoder:
+    if encoder is None:
         try:
             encoder = mapping[text_type]
         except KeyError:
