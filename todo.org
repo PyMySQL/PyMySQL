@@ -1,0 +1,9 @@
+#+TITLE: todo
+
+* Issues
+- It doesn't tell me that "hey, you don't have a MySQL server
+- Have to create a DB named test1
+- Have to install the "crytography" package
+- Have to enable the user to connect to the DB
+- Need to make loose infile in my.cnf
+- Assumes that you have a file "~/ca.pem"

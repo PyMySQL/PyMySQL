@@ -15,7 +15,7 @@ class TempUser:
         self._c = c
         self._user = user
         self._db = db
-        create = "CREATE USER " + user
+        create = "CREATE USER {}".format(user)
         if password is not None:
             create += " IDENTIFIED BY '%s'" % password
         elif auth is not None:
@@ -29,7 +29,7 @@ class TempUser:
             # already exists - TODO need to check the same plugin applies
             self._created = False
         try:
-            c.execute("GRANT SELECT ON %s.* TO %s" % (db, user))
+            c.execute("GRANT SELECT ON %s.* TO %s WITH GRANT OPTION" % (db, user))
             self._grant = True
         except pymysql.err.InternalError:
             self._grant = False
