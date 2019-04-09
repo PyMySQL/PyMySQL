@@ -1,0 +1,17 @@
+version: '3.7'
+services:
+  db:
+    tty: true
+    image: mariadb
+    ports:
+      - "3306:3306"
+    restart: always
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+  app:
+    tty: true
+    build: .
+    depends_on:
+      - db

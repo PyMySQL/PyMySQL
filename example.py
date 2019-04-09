@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import pymysql
 
-conn = pymysql.connect(host='localhost', port=3306, user='root', passwd='', db='mysql')
+conn = pymysql.connect(host="db", port=3306, user="root", passwd="", db="mysql")
 
 cur = conn.cursor()
 
