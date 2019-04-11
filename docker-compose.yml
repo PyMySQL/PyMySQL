@@ -1,0 +1,27 @@
+version: '3.4'
+
+services:
+
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+    ports:
+      - "3306:33601"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d/:ro
+  app:
+    build: .
+    links:
+      - db
+    depends_on:
+      - db
+    healthcheck:
+      test: "mysqladmin -uroot status || exit 1"
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 0s
+    ports:
+      - "33061:3306"
