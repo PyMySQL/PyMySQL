@@ -7,7 +7,7 @@ services:
       - "3306:3306"
     restart: always
     volumes:
-      - ./db:/docker-entrypoint-initdb.d/:ro
+      - ./init:/docker-entrypoint-initdb.d/:ro
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
   app:
