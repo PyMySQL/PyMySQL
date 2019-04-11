@@ -11,22 +11,24 @@ from .._compat import CPYTHON
 
 if CPYTHON:
     import atexit
+
     gc.set_debug(gc.DEBUG_UNCOLLECTABLE)
 
     @atexit.register
     def report_uncollectable():
         import gc
+
         if not gc.garbage:
             print("No garbages!")
             return
-        print('uncollectable objects')
+        print("uncollectable objects")
         for obj in gc.garbage:
             print(obj)
-            if hasattr(obj, '__dict__'):
+            if hasattr(obj, "__dict__"):
                 print(obj.__dict__)
             for ref in gc.get_referrers(obj):
                 print("referrer:", ref)
-            print('---')
+            print("---")
 
 
 class PyMySQLTestCase(unittest.TestCase):
@@ -38,9 +40,16 @@ class PyMySQLTestCase(unittest.TestCase):
             databases = json.load(f)
     else:
         databases = [
-            {"host":"db","user":"root",
-             "passwd":"","db":"test1", "use_unicode": True, 'local_infile': True},
-            {"host":"db","user":"root","passwd":"","db":"test2"}]
+            {
+                "host": "db",
+                "user": "root",
+                "passwd": "",
+                "db": "test1",
+                "use_unicode": True,
+                "local_infile": True,
+            },
+            {"host": "db", "user": "root", "passwd": "", "db": "test2"},
+        ]
 
     def mysql_server_is(self, conn, version_tuple):
         """Return True if the given connection is on the version given or
@@ -54,8 +63,7 @@ class PyMySQLTestCase(unittest.TestCase):
         server_version = conn.get_server_info()
         server_version_tuple = tuple(
             (int(dig) if dig is not None else 0)
-            for dig in
-            re.match(r'(\d+)\.(\d+)\.(\d+)', server_version).group(1, 2, 3)
+            for dig in re.match(r"(\d+)\.(\d+)\.(\d+)", server_version).group(1, 2, 3)
         )
         return server_version_tuple >= version_tuple
 
@@ -74,10 +82,12 @@ class PyMySQLTestCase(unittest.TestCase):
         p = self.databases[0].copy()
         p.update(params)
         conn = pymysql.connect(**p)
+
         @self.addCleanup
         def teardown():
             if conn.open:
                 conn.close()
+
         return conn
 
     def _teardown_connections(self):
