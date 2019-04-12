@@ -13,3 +13,5 @@
 /pymysql/tests/databases.json
 __pycache__
 Pipfile.lock
+/app
+/db
