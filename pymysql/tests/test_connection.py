@@ -373,6 +373,7 @@ class TestAuthentication(base.PyMySQLTestCase):
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user='pymysql_sha256', **db)
 
+
 class TestConnection(base.PyMySQLTestCase):
 
     def test_utf8mb4(self):
@@ -477,6 +478,13 @@ class TestConnection(base.PyMySQLTestCase):
         c.connect(sock)
         c.close()
         sock.close()
+
+    def test_change_user(self):
+        with TempUser(self.connect().cursor(), 'user_to_change@localhost',
+                      self.databases[0]['db']) as u:
+            c = self.connect(user='root')
+            c.change_user(user='user_to_change')
+            print(c.get_host_info())
 
 
 # A custom type and function to escape it
