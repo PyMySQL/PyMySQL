@@ -2,7 +2,7 @@ version: '3.7'
 services:
   db:
     tty: true
-    image: mariadb:10.4
+    image: mysql:5
     ports:
       - "33061:3306"
     restart: always

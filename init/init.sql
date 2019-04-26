@@ -6,6 +6,9 @@ grant all on test2.* to test2;
 create user test2@localhost identified '' by 'some password';
 grant all on test2.* to test2@localhost;
 
+create user gganley;
+grant all privileges on *.* to 'gganley'@'%';
+
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
 
 -- FLUSH PRIVILEGES;
