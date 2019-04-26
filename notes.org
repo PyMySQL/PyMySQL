@@ -1,0 +1,21 @@
+#+TITLE: notes
+
+* Inbox
+** TODO MySQL Client Server Protocol https://dev.mysql.com/doc/internals/en/client-server-protocol.html
+** TODO PEP 209 Python Database API https://www.python.org/dev/peps/pep-0249/
+** THis is the area which you specify connection commands
+
+[[file:~/Developer/py/pymysql/pymysql/connections.py::def%20commit(self):]]
+** Seems that
+[[file:~/Developer/py/pymysql/pymysql/connections.py::def%20commit(self):]]
+** As compared to executing statements directly, prepared statements offer two main advantages
+- The overhead of compiling the statement is incurred only once, although the
+  statement is executed multiple times. However not all optimization can
+  be performed at the time the statement template is compiled, for two reasons:
+  the best plan may depend on the specific values of the parameters, and the
+  best plan may change as tables and indexes change over time.
+ 
+- Prepared statements are resilient against SQL injection because values which
+  are transmitted later using a different protocol are not compiled like the
+  statement template. If the statement template is not derived from external
+  input, SQL injection cannot occur.

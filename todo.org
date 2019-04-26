@@ -1,5 +1,10 @@
 #+TITLE: todo
 
+* Toggl
+** Research
+:LOGBOOK:
+CLOCK: [2019-04-18 Thu 13:06]--[2019-04-18 Thu 13:25] =>  0:19
+:END:
 * Issues
 - It doesn't tell me that "hey, you don't have a MySQL server
 - Have to create a DB named test1
@@ -7,3 +12,6 @@
 - Have to enable the user to connect to the DB
 - Need to make loose infile in my.cnf
 - Assumes that you have a file "~/ca.pem"
+* Inbox
+** TODO Compare existing COM implementations to C++ implementatitons to better understand how to handle the COM_CHANGE_USER
+** TODO MySQL Prepare Optimization http://s.petrunia.net/blog/?p=16
