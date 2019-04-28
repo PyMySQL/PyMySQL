@@ -4,17 +4,16 @@ services:
     tty: true
     image: mysql:5
     ports:
-      - "11235:11235"
+      - "33061:3306"
     restart: always
     volumes:
       - ./init:/docker-entrypoint-initdb.d/:ro
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
-      MYSQL_TCP_PORT: 11235
   app:
     tty: true
     ports:
-      - "11235:3306"
+      - "3306:33061"
     build: .
     depends_on:
       - db
