@@ -14,7 +14,7 @@ services:
   app:
     tty: true
     ports:
-      - "11235:11235"
+      - "11235:3306"
     build: .
     depends_on:
       - db

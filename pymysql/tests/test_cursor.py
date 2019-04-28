@@ -106,3 +106,27 @@ class CursorTest(base.PyMySQLTestCase):
             self.assertTrue(cursor._executed.endswith(b"(3, 4),(5, 6)"), "executemany with %% not in one query")
         finally:
             cursor.execute("DROP TABLE IF EXISTS percent_test")
+
+
+class PreparedCursorTest(base.PyMySQLTestCase):
+
+    def test_PreparedCursor(self):
+
+        conn = self.connect()
+        self.safe_create_table(
+            conn,
+            "test", "create table test (data varchar(10))",
+        )
+
+        cursor = conn.cursor()
+        prepared_cursor = PreparedCursorTest(cursor)
+
+        stmt = "insert into test (@data)"
+        prepared_cursor.prepared_statement(stmt)
+        assert self.stmt == stmt
+        print(stmt)
+
+        for i in range(5):
+            prepared_cursor.add_parameters("@data", i)
+            assert self.params["@data"] == i
+            prepared_cursor.prepared_execute()

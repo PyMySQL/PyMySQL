@@ -503,3 +503,22 @@ class SSCursor(Cursor):
 
 class SSDictCursor(DictCursorMixin, SSCursor):
     """An unbuffered cursor, which returns results as a dictionary"""
+
+
+# subclass of cursor
+class PreparedCursor(Cursor):
+
+    def __init__(self, connection):
+        self.stmt = ""
+        self.params = {}
+
+        Cursor.__init__(connection)
+
+    def prepared_statement(self, stmt):
+        self.stmt = stmt
+
+    def add_parameters(self, string, value):
+        self.params[value] = string
+
+    def prepared_execute(self):
+        self.execute(self.stmt, self.params)
