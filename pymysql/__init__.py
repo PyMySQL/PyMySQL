@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+from __future__ import print_function
 import sys
 
 from ._compat import PY2
@@ -123,11 +124,7 @@ def install_as_MySQLdb(MySQLdb_version=None):
     _mysql will unwittingly actually use pymysql.
     """
     if type(MySQLdb_version) == tuple and len(MySQLdb_version) == 5:
-        claim = "WARNING: Use at your own risk !!\nSet MySQLdb version = {}".format(MySQLdb_version)
-        if PY2:
-            print claim
-        else:
-            print(claim)
+        print("WARNING: Use at your own risk !!\nSet MySQLdb version = {}".format(MySQLdb_version))
         global version_info
         version_info = MySQLdb_version
     sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
