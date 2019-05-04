@@ -117,11 +117,19 @@ __version__ = get_client_info()
 def thread_safe():
     return True  # match MySQLdb.thread_safe()
 
-def install_as_MySQLdb():
+def install_as_MySQLdb(MySQLdb_version=None):
     """
     After this function is called, any application that imports MySQLdb or
     _mysql will unwittingly actually use pymysql.
     """
+    if type(MySQLdb_version) == tuple and len(MySQLdb_version) == 5:
+        claim = "WARNING: Use at your own risk !!\nSet MySQLdb version = {}".format(MySQLdb_version)
+        if PY2:
+            print claim
+        else:
+            print(claim)
+        global version_info
+        version_info = MySQLdb_version
     sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
 
 
