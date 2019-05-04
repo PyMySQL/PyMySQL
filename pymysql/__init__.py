@@ -123,7 +123,7 @@ def install_as_MySQLdb(MySQLdb_version=None):
     After this function is called, any application that imports MySQLdb or
     _mysql will unwittingly actually use pymysql.
     """
-    if type(MySQLdb_version) == tuple and len(MySQLdb_version) == 5:
+    if isinstance(MySQLdb_version, tuple) and len(MySQLdb_version) == 5:
         print("WARNING: Use at your own risk !!\nSet MySQLdb version = {}".format(MySQLdb_version))
         global version_info
         version_info = MySQLdb_version
