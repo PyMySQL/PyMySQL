@@ -540,7 +540,7 @@ class TestConnection(base.PyMySQLTestCase):
     def test_change_user(self):
         # If you change, change back
         con = self.connect()
-        assert con.change_user(b"test2", b"some password", b"test2")
+        assert con.change_user("test2", "some password", "test2")
 
     def test_set_charset(self):
         c = self.connect()
