@@ -34,6 +34,7 @@ from .times import (
     Date, Time, Timestamp,
     DateFromTicks, TimeFromTicks, TimestampFromTicks)
 
+from .cursors import PreparedCursor
 
 VERSION = (0, 9, 3, None)
 if VERSION[3] is not None:
