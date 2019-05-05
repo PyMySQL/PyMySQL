@@ -18,109 +18,107 @@ class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
         """ test every data type """
         conn = self.connect()
-        c = conn.cursor()
-        c.execute(
-            "create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)"
-        )
-        try:
-            # insert values
-
-            v = (
-                True,
-                -3,
-                123456789012,
-                5.7,
-                "hello'\" world",
-                u"Espa\xc3\xb1ol",
-                "binary\x00data".encode(conn.encoding),
-                datetime.date(1988, 2, 2),
-                datetime.datetime(2014, 5, 15, 7, 45, 57),
-                datetime.timedelta(5, 6),
-                datetime.time(16, 32),
-                time.localtime(),
-            )
+        with conn.cursor() as c:
             c.execute(
-                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                v,
+                "create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)"
             )
-            c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
-            r = c.fetchone()
-            self.assertEqual(util.int2byte(1), r[0])
-            self.assertEqual(v[1:10], r[1:10])
-            self.assertEqual(
-                datetime.timedelta(0, 60 * (v[10].hour * 60 + v[10].minute)), r[10]
-            )
-            self.assertEqual(datetime.datetime(*v[-1][:6]), r[-1])
+            try:
+                # insert values
 
-            c.execute("delete from test_datatypes")
-
-            # check nulls
-            c.execute(
-                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                [None] * 12,
-            )
-            c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
-            r = c.fetchone()
-            self.assertEqual(tuple([None] * 12), r)
-
-            c.execute("delete from test_datatypes")
-
-            # check sequences type
-            for seq_type in (tuple, list, set, frozenset):
-                c.execute(
-                    "insert into test_datatypes (i, l) values (2,4), (6,8), (10,12)"
+                v = (
+                    True,
+                    -3,
+                    123456789012,
+                    5.7,
+                    "hello'\" world",
+                    u"Espa\xc3\xb1ol",
+                    "binary\x00data".encode(conn.encoding),
+                    datetime.date(1988, 2, 2),
+                    datetime.datetime(2014, 5, 15, 7, 45, 57),
+                    datetime.timedelta(5, 6),
+                    datetime.time(16, 32),
+                    time.localtime(),
                 )
-                seq = seq_type([2, 6])
                 c.execute(
-                    "select l from test_datatypes where i in %s order by i", (seq,)
+                    "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    v,
                 )
-                r = c.fetchall()
-                self.assertEqual(((4,), (8,)), r)
+                c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
+                r = c.fetchone()
+                self.assertEqual(util.int2byte(1), r[0])
+                self.assertEqual(v[1:10], r[1:10])
+                self.assertEqual(
+                    datetime.timedelta(0, 60 * (v[10].hour * 60 + v[10].minute)), r[10]
+                )
+                self.assertEqual(datetime.datetime(*v[-1][:6]), r[-1])
+
                 c.execute("delete from test_datatypes")
 
-        finally:
-            c.execute("drop table test_datatypes")
-            c.close()
+                # check nulls
+                c.execute(
+                    "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    [None] * 12,
+                )
+                c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
+                r = c.fetchone()
+                self.assertEqual(tuple([None] * 12), r)
+
+                c.execute("delete from test_datatypes")
+
+                # check sequences type
+                for seq_type in (tuple, list, set, frozenset):
+                    c.execute(
+                        "insert into test_datatypes (i, l) values (2,4), (6,8), (10,12)"
+                    )
+                    seq = seq_type([2, 6])
+                    c.execute(
+                        "select l from test_datatypes where i in %s order by i", (seq,)
+                    )
+                    r = c.fetchall()
+                    self.assertEqual(((4,), (8,)), r)
+                    c.execute("delete from test_datatypes")
+
+            finally:
+                c.execute("drop table test_datatypes")
 
     def test_dict(self):
         """ test dict escaping """
         conn = self.connect()
-        c = conn.cursor()
-        c.execute("create table test_dict (a integer, b integer, c integer)")
-        try:
-            c.execute(
-                "insert into test_dict (a,b,c) values (%(a)s, %(b)s, %(c)s)",
-                {"a": 1, "b": 2, "c": 3},
-            )
-            c.execute("select a,b,c from test_dict")
-            self.assertEqual((1, 2, 3), c.fetchone())
-        finally:
-            c.execute("drop table test_dict")
-            c.close()
+        with conn.cursor() as c:
+            c.execute("create table test_dict (a integer, b integer, c integer)")
+            try:
+                c.execute(
+                    "insert into test_dict (a,b,c) values (%(a)s, %(b)s, %(c)s)",
+                    {"a": 1, "b": 2, "c": 3},
+                )
+                c.execute("select a,b,c from test_dict")
+                self.assertEqual((1, 2, 3), c.fetchone())
+            finally:
+                c.execute("drop table test_dict")
 
     def test_string(self):
         conn = self.connect()
-        c = conn.cursor()
-        c.execute("create table test_dict (a text)")
-        test_value = "I am a test string"
-        try:
-            c.execute("insert into test_dict (a) values (%s)", test_value)
-            c.execute("select a from test_dict")
-            self.assertEqual((test_value,), c.fetchone())
-        finally:
-            c.execute("drop table test_dict")
+        with conn.cursor() as c:
+            c.execute("create table test_dict (a text)")
+            test_value = "I am a test string"
+            try:
+                c.execute("insert into test_dict (a) values (%s)", test_value)
+                c.execute("select a from test_dict")
+                self.assertEqual((test_value,), c.fetchone())
+            finally:
+                c.execute("drop table test_dict")
 
     def test_integer(self):
         conn = self.connect()
-        c = conn.cursor()
-        c.execute("create table test_dict (a integer)")
-        test_value = 12345
-        try:
-            c.execute("insert into test_dict (a) values (%s)", test_value)
-            c.execute("select a from test_dict")
-            self.assertEqual((test_value,), c.fetchone())
-        finally:
-            c.execute("drop table test_dict")
+        with conn.cursor() as c:
+            c.execute("create table test_dict (a integer)")
+            test_value = 12345
+            try:
+                c.execute("insert into test_dict (a) values (%s)", test_value)
+                c.execute("select a from test_dict")
+                self.assertEqual((test_value,), c.fetchone())
+            finally:
+                c.execute("drop table test_dict")
 
     def test_binary(self):
         """test binary data"""
@@ -149,31 +147,31 @@ class TestConversion(base.PyMySQLTestCase):
     def test_untyped(self):
         """ test conversion of null, empty string """
         conn = self.connect()
-        c = conn.cursor()
-        c.execute("select null,''")
-        self.assertEqual((None, u""), c.fetchone())
-        c.execute("select '',null")
-        self.assertEqual((u"", None), c.fetchone())
+        with conn.cursor() as c:
+            c.execute("select null,''")
+            self.assertEqual((None, u""), c.fetchone())
+            c.execute("select '',null")
+            self.assertEqual((u"", None), c.fetchone())
 
     def test_timedelta(self):
         """ test timedelta conversion """
         conn = self.connect()
-        c = conn.cursor()
-        c.execute(
-            "select time('12:30'), time('23:12:59'), time('23:12:59.05100'), time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')"
-        )
-        self.assertEqual(
-            (
-                datetime.timedelta(0, 45000),
-                datetime.timedelta(0, 83579),
-                datetime.timedelta(0, 83579, 51000),
-                -datetime.timedelta(0, 45000),
-                -datetime.timedelta(0, 83579),
-                -datetime.timedelta(0, 83579, 51000),
-                -datetime.timedelta(0, 1800),
-            ),
-            c.fetchone(),
-        )
+        with conn.cursor() as c:
+            c.execute(
+                "select time('12:30'), time('23:12:59'), time('23:12:59.05100'), time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')"
+            )
+            self.assertEqual(
+                (
+                    datetime.timedelta(0, 45000),
+                    datetime.timedelta(0, 83579),
+                    datetime.timedelta(0, 83579, 51000),
+                    -datetime.timedelta(0, 45000),
+                    -datetime.timedelta(0, 83579),
+                    -datetime.timedelta(0, 83579, 51000),
+                    -datetime.timedelta(0, 1800),
+                ),
+                c.fetchone(),
+            )
 
     def test_datetime_microseconds(self):
         """ test datetime conversion w microseconds"""
@@ -181,15 +179,15 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connect()
         if not self.mysql_server_is(conn, (5, 6, 4)):
             pytest.skip("target backend does not support microseconds")
-        c = conn.cursor()
-        dt = datetime.datetime(2013, 11, 12, 9, 9, 9, 123450)
-        c.execute("create table test_datetime (id int, ts datetime(6))")
-        try:
-            c.execute("insert into test_datetime values (%s, %s)", (1, dt))
-            c.execute("select ts from test_datetime")
-            self.assertEqual((dt,), c.fetchone())
-        finally:
-            c.execute("drop table test_datetime")
+        with conn.cursor() as c:
+            dt = datetime.datetime(2013, 11, 12, 9, 9, 9, 123450)
+            c.execute("create table test_datetime (id int, ts datetime(6))")
+            try:
+                c.execute("insert into test_datetime values (%s, %s)", (1, dt))
+                c.execute("select ts from test_datetime")
+                self.assertEqual((dt,), c.fetchone())
+            finally:
+                c.execute("drop table test_datetime")
 
 
 class TestCursor(base.PyMySQLTestCase):
@@ -249,41 +247,40 @@ class TestCursor(base.PyMySQLTestCase):
     def test_fetch_no_result(self):
         """ test a fetchone() with no rows """
         conn = self.connect()
-        c = conn.cursor()
-        c.execute("create table test_nr (b varchar(32))")
-        try:
-            data = "pymysql"
-            c.execute("insert into test_nr (b) values (%s)", (data,))
-            self.assertEqual(None, c.fetchone())
-        finally:
-            c.execute("drop table test_nr")
+        with conn.cursor() as c:
+            c.execute("create table test_nr (b varchar(32))")
+            try:
+                data = "pymysql"
+                c.execute("insert into test_nr (b) values (%s)", (data,))
+                self.assertEqual(None, c.fetchone())
+            finally:
+                c.execute("drop table test_nr")
 
     def test_aggregates(self):
         """ test aggregate functions """
         conn = self.connect()
-        c = conn.cursor()
-        try:
-            c.execute("create table test_aggregates (i integer)")
-            for i in range(0, 10):
-                c.execute("insert into test_aggregates (i) values (%s)", (i,))
-            c.execute("select sum(i) from test_aggregates")
-            r, = c.fetchone()
-            self.assertEqual(sum(range(0, 10)), r)
-        finally:
-            c.execute("drop table test_aggregates")
+        with conn.cursor() as c:
+            try:
+                c.execute("create table test_aggregates (i integer)")
+                for i in range(0, 10):
+                    c.execute("insert into test_aggregates (i) values (%s)", (i,))
+                c.execute("select sum(i) from test_aggregates")
+                r, = c.fetchone()
+                self.assertEqual(sum(range(0, 10)), r)
+            finally:
+                c.execute("drop table test_aggregates")
 
     def test_single_tuple(self):
         """ test a single tuple """
         conn = self.connect()
-        c = conn.cursor()
-        self.safe_create_table(
-            conn, "mystuff", "create table mystuff (id integer primary key)"
-        )
-        c.execute("insert into mystuff (id) values (1)")
-        c.execute("insert into mystuff (id) values (2)")
-        c.execute("select id from mystuff where id in %s", ((1,),))
-        self.assertEqual([(1,)], list(c.fetchall()))
-        c.close()
+        with conn.cursor() as c:
+            self.safe_create_table(
+                conn, "mystuff", "create table mystuff (id integer primary key)"
+            )
+            c.execute("insert into mystuff (id) values (1)")
+            c.execute("insert into mystuff (id) values (2)")
+            c.execute("select id from mystuff where id in %s", ((1,),))
+            self.assertEqual([(1,)], list(c.fetchall()))
 
     def test_json(self):
         args = self.databases[0].copy()
@@ -302,17 +299,19 @@ create table test_json (
     primary key (id)
 );""",
         )
-        cur = conn.cursor()
 
-        json_str = u'{"hello": "こんにちは"}'
-        cur.execute("INSERT INTO test_json (id, `json`) values (42, %s)", (json_str,))
-        cur.execute("SELECT `json` from `test_json` WHERE `id`=42")
-        res = cur.fetchone()[0]
-        self.assertEqual(json.loads(res), json.loads(json_str))
+        with conn.cursor() as cur:
+            json_str = u'{"hello": "こんにちは"}'
+            cur.execute(
+                "INSERT INTO test_json (id, `json`) values (42, %s)", (json_str,)
+            )
+            cur.execute("SELECT `json` from `test_json` WHERE `id`=42")
+            res = cur.fetchone()[0]
+            self.assertEqual(json.loads(res), json.loads(json_str))
 
-        cur.execute("SELECT CAST(%s AS JSON) AS x", (json_str,))
-        res = cur.fetchone()[0]
-        self.assertEqual(json.loads(res), json.loads(json_str))
+            cur.execute("SELECT CAST(%s AS JSON) AS x", (json_str,))
+            res = cur.fetchone()[0]
+            self.assertEqual(json.loads(res), json.loads(json_str))
 
 
 class TestBulkInserts(base.PyMySQLTestCase):
@@ -322,23 +321,22 @@ class TestBulkInserts(base.PyMySQLTestCase):
     def setUp(self):
         super(TestBulkInserts, self).setUp()
         self.conn = conn = self.connect()
-        c = conn.cursor(self.cursor_type)
-
-        # create a table ane some data to query
-        self.safe_create_table(
-            conn,
-            "bulkinsert",
-            """\
-CREATE TABLE bulkinsert
-(
-id int(11),
-name char(20),
-age int,
-height int,
-PRIMARY KEY (id)
-)
-""",
-        )
+        with conn.cursor(self.cursor_type) as c:
+            # create a table ane some data to query
+            self.safe_create_table(
+                conn,
+                "bulkinsert",
+                """\
+    CREATE TABLE bulkinsert
+    (
+    id int(11),
+    name char(20),
+    age int,
+    height int,
+    PRIMARY KEY (id)
+    )
+    """,
+            )
 
     def _verify_records(self, data):
         conn = self.connect()
@@ -350,7 +348,7 @@ PRIMARY KEY (id)
     def test_bulk_insert(self):
         conn = self.connect()
         cursor = conn.cursor()
-
+        print("hello trying to figure out id" + str(conn.thread_id()))
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
         cursor.executemany(
             "insert into bulkinsert (id, name, age, height) " "values (%s,%s,%s,%s)",
