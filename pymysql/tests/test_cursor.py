@@ -1,4 +1,5 @@
 import warnings
+import pytest
 
 from pymysql.tests import base
 import pymysql.cursors
@@ -110,23 +111,115 @@ class CursorTest(base.PyMySQLTestCase):
 
 class PreparedCursorTest(base.PyMySQLTestCase):
 
-    def test_PreparedCursor(self):
-
+    def test_happy_PreparedCursor(self):
+        # happy path
         conn = self.connect()
+        old_cursorclass = conn.cursorclass
+        conn.cursorclass = pymysql.PreparedCursor
         self.safe_create_table(
             conn,
-            "test", "create table test (data varchar(10))",
+            "test", "create table test (column1 varchar(10))",
         )
 
-        cursor = conn.cursor()
-        prepared_cursor = PreparedCursorTest(cursor)
+        # cursor = conn.cursor()
+        prepared_cursor = conn.cursor()
 
-        stmt = "insert into test (@data)"
+        stmt = "insert into test (column1) VALUES (%s)"
         prepared_cursor.prepared_statement(stmt)
-        assert self.stmt == stmt
-        print(stmt)
+        assert prepared_cursor.stmt == stmt
 
         for i in range(5):
-            prepared_cursor.add_parameters("@data", i)
-            assert self.params["@data"] == i
+            prepared_cursor.add_parameters([str(i)])
+            assert prepared_cursor.params == [str(i)]
             prepared_cursor.prepared_execute()
+            conn.commit()
+            prepared_cursor.reset_parameters()
+            assert prepared_cursor.params == []
+
+        stmt = "select test.column1 from test"
+        prepared_cursor.prepared_statement(stmt)
+        prepared_cursor.reset_parameters()
+        prepared_cursor.prepared_execute()
+        results = prepared_cursor.fetchall()
+
+        z = 0
+        for row in results:
+            assert row[0] == str(z)
+            z = z + 1
+
+        conn.cursorclass = old_cursorclass
+
+    def test_bad_statement(self):
+        # bad_path
+        conn = self.connect()
+        old_cursorclass = conn.cursorclass
+        conn.cursorclass = pymysql.PreparedCursor
+        self.safe_create_table(
+            conn,
+            "test2", "create table test2 (column1 varchar(10))",
+        )
+
+        prepared_cursor = conn.cursor()
+
+        stmt = 1
+        prepared_cursor.prepared_statement(stmt)
+        prepared_cursor.add_parameters(['0'])
+        assert TypeError
+
+        conn.cursorclass = old_cursorclass
+
+    def test_bad_parameters(self):
+        conn = self.connect()
+
+        old_cursorclass = conn.cursorclass
+        conn.cursorclass = pymysql.PreparedCursor
+        self.safe_create_table(
+            conn,
+            "test3", "create table test3 (column1 varchar(10))",
+        )
+
+        stmt = "insert into test3 (column1) VALUES (%s)"
+        prepared_cursor = conn.cursor()
+        prepared_cursor.prepared_statement(stmt)
+
+        with pytest.raises(TypeError):
+            prepared_cursor.add_parameters('0', '1', '2')
+            assert TypeError
+
+        conn.cursorclass = old_cursorclass
+
+    def test_bad_path_reset_params(self):
+        conn = self.connect()
+
+        old_cursorclass = conn.cursorclass
+        conn.cursorclass = pymysql.PreparedCursor
+        prepared_cursor = conn.cursor()
+
+        with pytest.raises(TypeError):
+            prepared_cursor.reset_parameters('0', '1', '2')
+            assert TypeError
+
+        conn.cursorclass = old_cursorclass
+
+    def test_bad_path_execute(self):
+        conn = self.connect()
+
+        old_cursorclass = conn.cursorclass
+        conn.cursorclass = pymysql.PreparedCursor
+        self.safe_create_table(
+            conn,
+            "test4", "create table test4 (column1 varchar(10))",
+        )
+
+        # cursor = conn.cursor()
+        prepared_cursor = conn.cursor()
+
+        stmt = "insert into test4 (column1) VALUES (%s)"
+        prepared_cursor.prepared_statement(stmt)
+        prepared_cursor.add_parameters(['0'])
+
+        with pytest.raises(TypeError):
+            prepared_cursor.prepared_execute("here")
+            assert TypeError
+
+        conn.cursorclass = old_cursorclass

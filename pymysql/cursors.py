@@ -509,16 +509,32 @@ class SSDictCursor(DictCursorMixin, SSCursor):
 class PreparedCursor(Cursor):
 
     def __init__(self, connection):
-        self.stmt = ""
-        self.params = {}
 
-        Cursor.__init__(connection)
+        self.stmt = ""
+        self.params = []
+
+        super().__init__(connection)
 
     def prepared_statement(self, stmt):
-        self.stmt = stmt
+        try:
+            self.stmt = stmt
+        except TypeError as error:
+            print(error)
 
-    def add_parameters(self, string, value):
-        self.params[value] = string
+    def add_parameters(self, parameters):
+        try:
+            self.params = parameters
+        except TypeError as error:
+            print(error)
 
     def prepared_execute(self):
-        self.execute(self.stmt, self.params)
+        try:
+            self.execute(self.stmt, self.params)
+        except TypeError as error:
+            print(error)
+
+    def reset_parameters(self):
+        try:
+            self.params = []
+        except TypeError as error:
+            print(error)

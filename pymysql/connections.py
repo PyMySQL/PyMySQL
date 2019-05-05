@@ -49,7 +49,7 @@ except (ImportError, KeyError):
     # KeyError occurs when there's no entry in OS database for a current user.
     DEFAULT_USER = None
 
-DEBUG = True
+DEBUG = False
 
 _py_version = sys.version_info[:2]
 
@@ -531,6 +531,11 @@ class Connection(object):
         if cursor:
             return cursor(self)
         return self.cursorclass(self)
+
+    def prepared_cursor(self, cursor=None):
+        if cursor:
+            return cursor(self)
+        return self.preparedcursorclass(self)
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     def query(self, sql, unbuffered=False):
