@@ -1,2 +1,4 @@
 cryptography
 pytest
+tzlocal
+pytz
