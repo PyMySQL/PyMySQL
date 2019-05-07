@@ -47,7 +47,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
 
     def test_stored_procedures(self):
         connection = self.connect()
-        with connection.cursor() as c:
+        with connection as c:
             try:
                 self.create_table(("pos INT", "tree CHAR(20)"))
                 c.executemany(
@@ -93,7 +93,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
         from pymysql.constants import ER
 
         connection = self.connect()
-        with connection.cursor() as cursor:
+        with connection as cursor:
             try:
                 cursor.execute("describe some_non_existent_table")
             except connection.ProgrammingError as msg:

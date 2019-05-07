@@ -733,7 +733,7 @@ class DatabaseAPI20Test(unittest.TestCase):
 
     def test_nextset(self):
         con = self._connect()
-        with con.cursor() as cur:
+        with con as cur:
             print(id(cur))
             # try:
             if not hasattr(cur, "nextset"):

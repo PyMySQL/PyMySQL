@@ -187,7 +187,7 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
         from warnings import warn
 
         con = self._connect()
-        with con.cursor() as cur:
+        with con as cur:
             if not hasattr(cur, "nextset"):
                 return
 

@@ -69,7 +69,7 @@ class DatabaseTest(unittest.TestCase):
 
     def new_table_name(self):
         connection = self.connect()
-        with connection.cursor() as cursor:
+        with connection as cursor:
             i = id(cursor)
             while True:
                 name = self.quote_identifier("tb%08x" % i)
@@ -90,7 +90,7 @@ class DatabaseTest(unittest.TestCase):
         """
         self.table = self.new_table_name()
         connection = self.connect()
-        with connection.cursor() as cursor:
+        with connection as cursor:
             cursor.execute(
                 "CREATE TABLE %s (%s) %s"
                 % (self.table, ",\n".join(columndefs), self.create_table_extra)
@@ -110,11 +110,11 @@ class DatabaseTest(unittest.TestCase):
         if self.debug:
             print(data)
         connection = self.connect()
-        with connection.cursor() as cursor:
+        with connection as cursor:
             cursor.executemany(insert_statement, data)
             connection.commit()
             # verify
-        with connection.cursor() as cursor:
+        with connection as cursor:
             cursor.execute("select * from %s" % self.table)
             l = cursor.fetchall()
             if self.debug:
@@ -147,7 +147,7 @@ class DatabaseTest(unittest.TestCase):
             [generator(i, j) for j in range(len(columndefs))] for i in range(self.rows)
         ]
         connection = self.connect()
-        with connection.cursor() as cursor:
+        with connection as cursor:
             cursor.executemany(insert_statement, data)
             # verify
             connection.commit()
@@ -184,7 +184,7 @@ class DatabaseTest(unittest.TestCase):
             ",".join(["%s"] * len(columndefs)),
         )
         connection = self.connect()
-        with connection.cursor() as cursor:
+        with connection as cursor:
             try:
                 cursor.execute(insert_statement, (0, "0" * 256))
             except Warning:

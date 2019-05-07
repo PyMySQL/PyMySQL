@@ -12,7 +12,7 @@ class CursorTest(base.PyMySQLTestCase):
         conn = self.connect()
         self.safe_create_table(conn, "test", "create table test (data varchar(10))")
         cursor = conn.cursor()
-        with conn.cursor() as cursor:
+        with conn as cursor:
             cursor.execute(
                 "insert into test (data) values "
                 "('row1'), ('row2'), ('row3'), ('row4'), ('row5')"
@@ -30,7 +30,7 @@ class CursorTest(base.PyMySQLTestCase):
 
         self.safe_gc_collect()
 
-        with conn.cursor() as c2:
+        with conn as c2:
             c2.execute("select 1")
             self.assertEqual(c2.fetchone(), (1,))
             self.assertIsNone(c2.fetchone())
@@ -45,7 +45,7 @@ class CursorTest(base.PyMySQLTestCase):
 
         self.safe_gc_collect()
 
-        with conn.cursor() as c2:
+        with conn as c2:
             c2.execute("select 1")
 
             self.assertEqual(c2.fetchone(), (1,))

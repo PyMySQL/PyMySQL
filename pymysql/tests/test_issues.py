@@ -395,7 +395,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_175(self):
         """ The number of fields returned by server is read in wrong way """
         conn = self.connect()
-        with conn.cursor() as cur:
+        with conn as cur:
             for length in (200, 300):
                 columns = ", ".join("c{0} integer".format(i) for i in range(length))
                 sql = "create table test_field_count ({0})".format(columns)
@@ -429,7 +429,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             [[u"b"], u"\u0430"],
             {"value_1": [[u"c"]], "value_2": u"\u0430"},
         ]
-        with conn.cursor() as cur:
+        with conn as cur:
             self.assertEqual(cur.execute(sql_insert, data[0]), 1)
             self.assertEqual(cur.execute(sql_insert, data[1]), 1)
             self.assertEqual(cur.execute(sql_dict_insert, data[2]), 1)
@@ -456,7 +456,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         values = [pymysql.Binary(b"\x00\xff\x00"), u"\xe4\xf6\xfc"]
 
         # test single insert and select
-        with conn.cursor() as cur:
+        with conn as cur:
             cur.execute(sql, args=values)
             cur.execute("select * from issue364")
             self.assertEqual(cur.fetchone(), tuple(values))
@@ -485,7 +485,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             "ENGINE=MyISAM",
         )
 
-        with conn.cursor() as cur:
+        with conn as cur:
             # From MySQL 5.7, ST_GeomFromText is added and GeomFromText is deprecated.
             if self.mysql_server_is(conn, (5, 7, 0)):
                 geom_from_text = "ST_GeomFromText"

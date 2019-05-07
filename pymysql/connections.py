@@ -116,6 +116,7 @@ def pack_int24(n):
 def get_timezone():
     return
 
+
 # https://dev.mysql.com/doc/internals/en/integer.html#packet-Protocol::LengthEncodedInteger
 def lenenc_int(i):
     if i < 0:
@@ -372,6 +373,14 @@ class Connection(object):
             self._sock = None
         else:
             self.connect()
+
+    def __enter__(self):
+        cur = self.cursor()
+        self.cur = cur
+        return cur
+
+    def __exit__(self, *exec_info):
+        self.cur.close()
 
     def _create_ssl_ctx(self, sslp):
         if isinstance(sslp, ssl.SSLContext):
