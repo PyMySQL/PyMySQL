@@ -599,23 +599,23 @@ class Connection(object):
             else:
                 raise
 
-    def change_user(self, username="", passwd="", dbname="", client_auth_plugin=""):
-        authresp = _auth.scramble_native_password(passwd.encode("latin1"), self.salt)
-        username = username.encode(self.encoding)
-        dbname = dbname.encode("utf8")
-        client_auth_plugin = client_auth_plugin.encode("utf8")
-        arg = struct.pack(
-            f"{len(username)}s{len(authresp)}s{len(dbname)}sH{len(client_auth_plugin)}s",
-            username,
-            authresp,
-            dbname,
-            charset_by_name(self.charset).id,
-            client_auth_plugin,
-        )
-        print(arg)
-        print(authresp)
-        self._execute_command(COMMAND.COM_CHANGE_USER, arg)
-        return self._read_ok_packet()
+    # def change_user(self, username="", passwd="", dbname="", client_auth_plugin=""):
+    #     authresp = _auth.scramble_native_password(passwd.encode("latin1"), self.salt)
+    #     username = username.encode(self.encoding)
+    #     dbname = dbname.encode("utf8")
+    #     client_auth_plugin = client_auth_plugin.encode("utf8")
+    #     arg = struct.pack(
+    #         f"{len(username)}s{len(authresp)}s{len(dbname)}sH{len(client_auth_plugin)}s",
+    #         username,
+    #         authresp,
+    #         dbname,
+    #         charset_by_name(self.charset).id,
+    #         client_auth_plugin,
+    #     )
+    #     print(arg)
+    #     print(authresp)
+    #     self._execute_command(COMMAND.COM_CHANGE_USER, arg)
+    #     return self._read_ok_packet()
 
     def set_charset(self, charset):
         # Make sure charset is supported.
