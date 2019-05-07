@@ -1,11 +1,16 @@
 import datetime
-import sys
 import time
+import sys
+import os
+import pytz
 import pytest
 import pymysql
 from pymysql.tests import base
 from pymysql._compat import text_type
 from pymysql.constants import CLIENT
+# from tzlocal import get_localzone
+# from datetime import timezone
+
 
 import pytest
 
@@ -45,7 +50,6 @@ class TempUser:
 
 
 class TestAuthentication(base.PyMySQLTestCase):
-
     socket_auth = False
     socket_found = False
     two_questions_found = False
@@ -141,10 +145,10 @@ class TestAuthentication(base.PyMySQLTestCase):
 
     def realtestSocketAuth(self):
         with TempUser(
-            self.connect().cursor(),
-            TestAuthentication.osuser + "@localhost",
-            self.databases[0]["db"],
-            self.socket_plugin_name,
+                self.connect().cursor(),
+                TestAuthentication.osuser + "@localhost",
+                self.databases[0]["db"],
+                self.socket_plugin_name,
         ) as u:
             c = pymysql.connect(user=TestAuthentication.osuser, **self.db)
 
@@ -215,11 +219,11 @@ class TestAuthentication(base.PyMySQLTestCase):
             b"Are you sure ?": b"yes, of course",
         }
         with TempUser(
-            self.connect().cursor(),
-            "pymysql_2q@localhost",
-            self.databases[0]["db"],
-            "two_questions",
-            "notverysecret",
+                self.connect().cursor(),
+                "pymysql_2q@localhost",
+                self.databases[0]["db"],
+                "two_questions",
+                "notverysecret",
         ) as u:
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user="pymysql_2q", **self.db)
@@ -257,11 +261,11 @@ class TestAuthentication(base.PyMySQLTestCase):
             True
         )  # fail just once. We've got three attempts after all
         with TempUser(
-            self.connect().cursor(),
-            "pymysql_3a@localhost",
-            self.databases[0]["db"],
-            "three_attempts",
-            "stillnotverysecret",
+                self.connect().cursor(),
+                "pymysql_3a@localhost",
+                self.databases[0]["db"],
+                "three_attempts",
+                "stillnotverysecret",
         ) as u:
             pymysql.connect(
                 user="pymysql_3a",
@@ -352,11 +356,11 @@ class TestAuthentication(base.PyMySQLTestCase):
             self.assertEqual(1045, e.args[0])
             grants = None
         with TempUser(
-            cur,
-            TestAuthentication.osuser + "@localhost",
-            self.databases[0]["db"],
-            "pam",
-            os.environ.get("PAMSERVICE"),
+                cur,
+                TestAuthentication.osuser + "@localhost",
+                self.databases[0]["db"],
+                "pam",
+                os.environ.get("PAMSERVICE"),
         ) as u:
             try:
                 c = pymysql.connect(user=TestAuthentication.osuser, **db)
@@ -427,10 +431,10 @@ class TestAuthentication(base.PyMySQLTestCase):
         else:
             c.execute("set global secure_auth=0")
         with TempUser(
-            c,
-            "old_pass_user@localhost",
-            self.databases[0]["db"],
-            password=db["password"],
+                c,
+                "old_pass_user@localhost",
+                self.databases[0]["db"],
+                password=db["password"],
         ) as u:
             cur = pymysql.connect(user="old_pass_user", **db).cursor()
             cur.execute("SELECT VERSION()")
@@ -445,7 +449,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         with TempUser(
-            c, "pymysql_sha256@localhost", self.databases[0]["db"], "sha256_password"
+                c, "pymysql_sha256@localhost", self.databases[0]["db"], "sha256_password"
         ) as u:
             if self.mysql_server_is(conn, (5, 7, 0)):
                 c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' ='Sh@256Pa33'")
@@ -532,6 +536,22 @@ class TestConnection(base.PyMySQLTestCase):
         conn.close()
         with self.assertRaises(pymysql.err.Error):
             conn.ping(reconnect=False)
+
+    def test_init_command_timezone(self):
+        conn = self.connect(init_command = 'set @session.time_zone="0:00";')
+        # client_flag = CLIENT.MULTI_STATEMENTS,
+        c = conn.cursor()
+        my_tz_name = '/'.join(os.path.realpath('/US/Eastern').split('/')[-2:])
+        my_tz = pytz.timezone(my_tz_name)
+        # my_time = datetime.datetime.utcnow().replace(tzinfo=timezone.utc)
+        local_time = datetime.datetime.now()
+        local_tz = local_time.replace(tzinfo=my_tz)
+        c.execute('select @@system_time_zone;')
+        test_tz = c.fetchone()[0]
+
+        assert test_tz == "UTC"
+        assert test_tz != local_tz
+
 
     def test_read_default_group(self):
         conn = self.connect(read_default_group="client")
@@ -659,3 +679,5 @@ class TestEscape(base.PyMySQLTestCase):
         con.commit()
         cur.execute("SELECT 3")
         self.assertEqual(cur.fetchone()[0], 3)
+
+
