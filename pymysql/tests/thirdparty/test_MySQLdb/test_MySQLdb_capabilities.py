@@ -46,15 +46,15 @@ class test_MySQLdb(capabilities.DatabaseTest):
         self.check_data_integrity(("col1 TINYINT",), generator)
 
     def test_stored_procedures(self):
-        db = self.connection
-        with db.cursor() as c:
+        connection = self.connect()
+        with connection.cursor() as c:
             try:
                 self.create_table(("pos INT", "tree CHAR(20)"))
                 c.executemany(
                     "INSERT INTO %s (pos,tree) VALUES (%%s,%%s)" % self.table,
                     list(enumerate("ash birch cedar larch pine".split())),
                 )
-                db.commit()
+                connection.commit()
 
                 c.execute(
                     """
@@ -65,7 +65,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
                 """
                     % self.table
                 )
-                db.commit()
+                connection.commit()
 
                 c.callproc("test_sp", ("larch",))
                 rows = c.fetchall()
@@ -75,6 +75,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
             finally:
                 c.execute("DROP PROCEDURE IF EXISTS test_sp")
                 c.execute("drop table %s" % (self.table))
+        connection.close()
 
     def test_small_CHAR(self):
         # Character data
@@ -91,20 +92,30 @@ class test_MySQLdb(capabilities.DatabaseTest):
     def test_bug_2671682(self):
         from pymysql.constants import ER
 
-        with self.connection.cursor() as cursor:
+        connection = self.connect()
+        with connection.cursor() as cursor:
             try:
                 cursor.execute("describe some_non_existent_table")
-            except self.connection.ProgrammingError as msg:
+            except connection.ProgrammingError as msg:
                 self.assertEqual(msg.args[0], ER.NO_SUCH_TABLE)
+        connection.close()
 
     def test_ping(self):
-        self.connection.ping()
+        connection = self.connect()
+        connection.ping()
+        connection.close()
 
     def test_literal_int(self):
-        self.assertTrue("2" == self.connection.literal(2))
+        connection = self.connect()
+        self.assertTrue("2" == connection.literal(2))
+        connection.close()
 
     def test_literal_float(self):
-        self.assertTrue("3.1415" == self.connection.literal(3.1415))
+        connection = self.connect()
+        self.assertTrue("3.1415" == connection.literal(3.1415))
+        connection.close()
 
     def test_literal_string(self):
-        self.assertTrue("'foo'" == self.connection.literal("foo"))
+        connection = self.connect()
+        self.assertTrue("'foo'" == connection.literal("foo"))
+        connection.close()

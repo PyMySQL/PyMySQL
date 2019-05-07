@@ -591,7 +591,7 @@ class Connection(object):
                 raise
 
     def change_user(self, username="", passwd="", dbname="", client_auth_plugin=""):
-        authresp = _auth.scramble_native_password(passwd.encode('latin1'), self.salt)
+        authresp = _auth.scramble_native_password(passwd.encode("latin1"), self.salt)
         username = username.encode(self.encoding)
         dbname = dbname.encode("utf8")
         client_auth_plugin = client_auth_plugin.encode("utf8")

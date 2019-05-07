@@ -203,6 +203,7 @@ class DatabaseAPI20Test(unittest.TestCase):
         self.assertTrue(con.InternalError is drv.InternalError)
         self.assertTrue(con.ProgrammingError is drv.ProgrammingError)
         self.assertTrue(con.NotSupportedError is drv.NotSupportedError)
+        con.close()
 
     def test_commit(self):
         con = self._connect()
@@ -214,7 +215,6 @@ class DatabaseAPI20Test(unittest.TestCase):
 
     def test_rollback(self):
         con = self._connect()
-        print(con.thread_id())
         # If rollback is defined, it should either work or throw
         # the documented exception
         if hasattr(con, "rollback"):

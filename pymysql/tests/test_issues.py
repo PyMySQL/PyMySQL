@@ -203,7 +203,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
 
     def test_issue_33(self):
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = self.connect()
         self.safe_create_table(
             conn, u"hei\xdfe", u"create table hei\xdfe (name varchar(32))"
         )
@@ -395,22 +395,23 @@ class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_175(self):
         """ The number of fields returned by server is read in wrong way """
         conn = self.connect()
-        cur = conn.cursor()
-        for length in (200, 300):
-            columns = ", ".join("c{0} integer".format(i) for i in range(length))
-            sql = "create table test_field_count ({0})".format(columns)
-            try:
-                cur.execute(sql)
-                cur.execute("select * from test_field_count")
-                assert len(cur.description) == length
-            finally:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore")
-                    cur.execute("drop table if exists test_field_count")
+        with conn.cursor() as cur:
+            for length in (200, 300):
+                columns = ", ".join("c{0} integer".format(i) for i in range(length))
+                sql = "create table test_field_count ({0})".format(columns)
+                try:
+                    cur.execute(sql)
+                    cur.execute("select * from test_field_count")
+                    assert len(cur.description) == length
+                finally:
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore")
+                        cur.execute("drop table if exists test_field_count")
+        conn.close()
 
     def test_issue_321(self):
         """ Test iterable as query argument. """
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = self.connect()
         self.safe_create_table(
             conn,
             "issue321",
@@ -428,18 +429,21 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             [[u"b"], u"\u0430"],
             {"value_1": [[u"c"]], "value_2": u"\u0430"},
         ]
-        cur = conn.cursor()
-        self.assertEqual(cur.execute(sql_insert, data[0]), 1)
-        self.assertEqual(cur.execute(sql_insert, data[1]), 1)
-        self.assertEqual(cur.execute(sql_dict_insert, data[2]), 1)
-        self.assertEqual(cur.execute(sql_select, [(u"a", u"b", u"c"), u"\u0430"]), 3)
-        self.assertEqual(cur.fetchone(), (u"a", u"\u0430"))
-        self.assertEqual(cur.fetchone(), (u"b", u"\u0430"))
-        self.assertEqual(cur.fetchone(), (u"c", u"\u0430"))
+        with conn.cursor() as cur:
+            self.assertEqual(cur.execute(sql_insert, data[0]), 1)
+            self.assertEqual(cur.execute(sql_insert, data[1]), 1)
+            self.assertEqual(cur.execute(sql_dict_insert, data[2]), 1)
+            self.assertEqual(
+                cur.execute(sql_select, [(u"a", u"b", u"c"), u"\u0430"]), 3
+            )
+            self.assertEqual(cur.fetchone(), (u"a", u"\u0430"))
+            self.assertEqual(cur.fetchone(), (u"b", u"\u0430"))
+            self.assertEqual(cur.fetchone(), (u"c", u"\u0430"))
+        # conn.close()
 
     def test_issue_364(self):
         """ Test mixed unicode/binary arguments in executemany. """
-        conn = pymysql.connect(charset="utf8mb4", **self.databases[0])
+        conn = self.connect()
         self.safe_create_table(
             conn,
             "issue364",
@@ -452,26 +456,26 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         values = [pymysql.Binary(b"\x00\xff\x00"), u"\xe4\xf6\xfc"]
 
         # test single insert and select
-        cur = conn.cursor()
-        cur.execute(sql, args=values)
-        cur.execute("select * from issue364")
-        self.assertEqual(cur.fetchone(), tuple(values))
+        with conn.cursor() as cur:
+            cur.execute(sql, args=values)
+            cur.execute("select * from issue364")
+            self.assertEqual(cur.fetchone(), tuple(values))
 
-        # test single insert unicode query
-        cur.execute(usql, args=values)
+            # test single insert unicode query
+            cur.execute(usql, args=values)
 
-        # test multi insert and select
-        cur.executemany(sql, args=(values, values, values))
-        cur.execute("select * from issue364")
-        for row in cur.fetchall():
-            self.assertEqual(row, tuple(values))
+            # test multi insert and select
+            cur.executemany(sql, args=(values, values, values))
+            cur.execute("select * from issue364")
+            for row in cur.fetchall():
+                self.assertEqual(row, tuple(values))
 
-        # test multi insert with unicode query
-        cur.executemany(usql, args=(values, values, values))
+            # test multi insert with unicode query
+            cur.executemany(usql, args=(values, values, values))
 
     def test_issue_363(self):
         """ Test binary / geometry types. """
-        conn = pymysql.connect(charset="utf8", **self.databases[0])
+        conn = self.connect()
         self.safe_create_table(
             conn,
             "issue363",
@@ -481,46 +485,46 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             "ENGINE=MyISAM",
         )
 
-        cur = conn.cursor()
-        # From MySQL 5.7, ST_GeomFromText is added and GeomFromText is deprecated.
-        if self.mysql_server_is(conn, (5, 7, 0)):
-            geom_from_text = "ST_GeomFromText"
-            geom_as_text = "ST_AsText"
-            geom_as_bin = "ST_AsBinary"
-        else:
-            geom_from_text = "GeomFromText"
-            geom_as_text = "AsText"
-            geom_as_bin = "AsBinary"
-        query = (
-            "INSERT INTO issue363 (id, geom) VALUES"
-            "(1998, %s('LINESTRING(1.1 1.1,2.2 2.2)'))" % geom_from_text
-        )
-        cur.execute(query)
+        with conn.cursor() as cur:
+            # From MySQL 5.7, ST_GeomFromText is added and GeomFromText is deprecated.
+            if self.mysql_server_is(conn, (5, 7, 0)):
+                geom_from_text = "ST_GeomFromText"
+                geom_as_text = "ST_AsText"
+                geom_as_bin = "ST_AsBinary"
+            else:
+                geom_from_text = "GeomFromText"
+                geom_as_text = "AsText"
+                geom_as_bin = "AsBinary"
+            query = (
+                "INSERT INTO issue363 (id, geom) VALUES"
+                "(1998, %s('LINESTRING(1.1 1.1,2.2 2.2)'))" % geom_from_text
+            )
+            cur.execute(query)
 
-        # select WKT
-        query = "SELECT %s(geom) FROM issue363" % geom_as_text
-        cur.execute(query)
-        row = cur.fetchone()
-        self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)",))
+            # select WKT
+            query = "SELECT %s(geom) FROM issue363" % geom_as_text
+            cur.execute(query)
+            row = cur.fetchone()
+            self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)",))
 
-        # select WKB
-        query = "SELECT %s(geom) FROM issue363" % geom_as_bin
-        cur.execute(query)
-        row = cur.fetchone()
-        self.assertEqual(
-            row,
-            (
-                b"\x01\x02\x00\x00\x00\x02\x00\x00\x00"
-                b"\x9a\x99\x99\x99\x99\x99\xf1?"
-                b"\x9a\x99\x99\x99\x99\x99\xf1?"
-                b"\x9a\x99\x99\x99\x99\x99\x01@"
-                b"\x9a\x99\x99\x99\x99\x99\x01@",
-            ),
-        )
+            # select WKB
+            query = "SELECT %s(geom) FROM issue363" % geom_as_bin
+            cur.execute(query)
+            row = cur.fetchone()
+            self.assertEqual(
+                row,
+                (
+                    b"\x01\x02\x00\x00\x00\x02\x00\x00\x00"
+                    b"\x9a\x99\x99\x99\x99\x99\xf1?"
+                    b"\x9a\x99\x99\x99\x99\x99\xf1?"
+                    b"\x9a\x99\x99\x99\x99\x99\x01@"
+                    b"\x9a\x99\x99\x99\x99\x99\x01@",
+                ),
+            )
 
-        # select internal binary
-        cur.execute("SELECT geom FROM issue363")
-        row = cur.fetchone()
-        # don't assert the exact internal binary value, as it could
-        # vary across implementations
-        self.assertTrue(isinstance(row[0], bytes))
+            # select internal binary
+            cur.execute("SELECT geom FROM issue363")
+            row = cur.fetchone()
+            # don't assert the exact internal binary value, as it could
+            # vary across implementations
+            self.assertTrue(isinstance(row[0], bytes))

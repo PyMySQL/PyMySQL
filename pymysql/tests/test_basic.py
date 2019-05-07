@@ -348,7 +348,6 @@ class TestBulkInserts(base.PyMySQLTestCase):
     def test_bulk_insert(self):
         conn = self.connect()
         cursor = conn.cursor()
-        print("hello trying to figure out id" + str(conn.thread_id()))
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
         cursor.executemany(
             "insert into bulkinsert (id, name, age, height) " "values (%s,%s,%s,%s)",
@@ -410,34 +409,35 @@ values (0,
     def test_issue_288(self):
         """executemany should work with "insert ... on update" """
         conn = self.connect()
-        cursor = conn.cursor()
-        data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
-        cursor.executemany(
-            """insert
-into bulkinsert (id, name,
-age, height)
-values (%s,
-%s , %s,
-%s ) on duplicate key update
-age = values(age)
- """,
-            data,
-        )
-        self.assertEqual(
-            cursor._last_executed.strip(),
-            bytearray(
-                b"""insert
-into bulkinsert (id, name,
-age, height)
-values (0,
-'bob' , 21,
-123 ),(1,
-'jim' , 56,
-45 ),(2,
-'fred' , 100,
-180 ) on duplicate key update
-age = values(age)"""
-            ),
-        )
-        cursor.execute("commit")
-        self._verify_records(data)
+        with conn.cursor() as cursor:
+            data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
+            cursor.executemany(
+                """insert
+    into bulkinsert (id, name,
+    age, height)
+    values (%s,
+    %s , %s,
+    %s ) on duplicate key update
+    age = values(age)
+    """,
+                data,
+            )
+            self.assertEqual(
+                cursor._last_executed.strip(),
+                bytearray(
+                    b"""insert
+    into bulkinsert (id, name,
+    age, height)
+    values (0,
+    'bob' , 21,
+    123 ),(1,
+    'jim' , 56,
+    45 ),(2,
+    'fred' , 100,
+    180 ) on duplicate key update
+    age = values(age)"""
+                ),
+            )
+            cursor.execute("commit")
+            self._verify_records(data)
+        conn.close()
