@@ -34,5 +34,5 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Topic :: Database',
     ],
-    keywords="MySQL",
+    keywords="MySQL", install_requires=['pytz']
 )

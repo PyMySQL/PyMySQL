@@ -3,6 +3,7 @@
 # Error codes:
 # http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
 from __future__ import print_function
+
 from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
 
 import errno
@@ -31,6 +32,7 @@ from .protocol import (
 )
 from .util import byte2int, int2byte
 from . import err, VERSION_STRING
+
 
 try:
     import ssl
@@ -110,6 +112,9 @@ MAX_PACKET_LEN = 2 ** 24 - 1
 def pack_int24(n):
     return struct.pack("<I", n)[:3]
 
+
+def get_timezone():
+    return
 
 # https://dev.mysql.com/doc/internals/en/integer.html#packet-Protocol::LengthEncodedInteger
 def lenenc_int(i):
@@ -658,6 +663,9 @@ class Connection(object):
 
             if self.init_command is not None:
                 c = self.cursor()
+
+                # set @session.time_zone="UTC"; also works
+                self.init_command = 'set @session.time_zone="+0:00";'
                 c.execute(self.init_command)
                 c.close()
                 self.commit()
