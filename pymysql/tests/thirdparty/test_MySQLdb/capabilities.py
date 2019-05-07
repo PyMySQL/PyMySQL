@@ -21,8 +21,8 @@ class DatabaseTest(unittest.TestCase):
     debug = False
 
     def setUp(self):
-        db = self.db_module.connect(*self.connect_args, **self.connect_kwargs)
-        self.connection = db
+        # db = self.connect()
+        # self.connection = db
         # self.cursor = db.cursor()
         self.BLOBText = "".join([chr(i) for i in range(256)] * 100)
         if PY2:
@@ -32,42 +32,49 @@ class DatabaseTest(unittest.TestCase):
         data = bytearray(range(256)) * 16
         self.BLOBBinary = self.db_module.Binary(data)
 
-    leak_test = True
+    leak_test = False
 
-    def tearDown(self):
-        if self.leak_test:
-            import gc
+    def connect(self):
+        connection = self.db_module.connect(*self.connect_args, **self.connect_kwargs)
+        # print("\n" + method_name + " " + str(connection.thread_id()))
+        return connection
 
-            # del self.cursor
-            orphans = gc.collect()
-            self.assertFalse(
-                orphans, "%d orphaned objects found after deleting cursor" % orphans
-            )
+    # def tearDown(self):
+    # self.connection.close()
+    # if self.leak_test:
+    #     import gc
 
-            del self.connection
-            orphans = gc.collect()
-            self.assertFalse(
-                orphans, "%d orphaned objects found after deleting connection" % orphans
-            )
+    #     # del self.cursor
+    #     orphans = gc.collect()
+    #     self.assertFalse(
+    #         orphans, "%d orphaned objects found after deleting cursor" % orphans
+    #     )
 
-    def table_exists(self, name):
-        with self.connection.cursor() as cursor:
-            try:
-                cursor.execute("select * from %s where 1=0" % name)
-            except Exception:
-                return False
-            else:
-                return True
+    #     del self.connection
+    #     orphans = gc.collect()
+    #     self.assertFalse(
+    #         orphans, "%d orphaned objects found after deleting connection" % orphans
+    #     )
+
+    def table_exists(self, cursor, name):
+        try:
+            cursor.execute("select * from %s where 1=0" % name)
+        except Exception:
+            return False
+        else:
+            return True
 
     def quote_identifier(self, ident):
         return '"%s"' % ident
 
     def new_table_name(self):
-        with self.connection.cursor() as cursor:
+        connection = self.connect()
+        with connection.cursor() as cursor:
             i = id(cursor)
             while True:
                 name = self.quote_identifier("tb%08x" % i)
-                if not self.table_exists(name):
+                if not self.table_exists(cursor, name):
+                    connection.close()
                     return name
                 i = i + 1
 
@@ -82,11 +89,13 @@ class DatabaseTest(unittest.TestCase):
 
         """
         self.table = self.new_table_name()
-        with self.connection.cursor() as cursor:
+        connection = self.connect()
+        with connection.cursor() as cursor:
             cursor.execute(
                 "CREATE TABLE %s (%s) %s"
                 % (self.table, ",\n".join(columndefs), self.create_table_extra)
             )
+        connection.close()
 
     def check_data_integrity(self, columndefs, generator):
         # insert
@@ -100,11 +109,12 @@ class DatabaseTest(unittest.TestCase):
         ]
         if self.debug:
             print(data)
-        with self.connection.cursor() as cursor:
+        connection = self.connect()
+        with connection.cursor() as cursor:
             cursor.executemany(insert_statement, data)
-            self.connection.commit()
+            connection.commit()
             # verify
-        with self.connection.cursor() as cursor:
+        with connection.cursor() as cursor:
             cursor.execute("select * from %s" % self.table)
             l = cursor.fetchall()
             if self.debug:
@@ -117,6 +127,7 @@ class DatabaseTest(unittest.TestCase):
             finally:
                 if not self.debug:
                     cursor.execute("drop table %s" % (self.table))
+        connection.close()
 
     def test_transactions(self):
         columndefs = ("col1 INT", "col2 VARCHAR(255)")
@@ -135,10 +146,11 @@ class DatabaseTest(unittest.TestCase):
         data = [
             [generator(i, j) for j in range(len(columndefs))] for i in range(self.rows)
         ]
-        with self.connection.cursor() as cursor:
+        connection = self.connect()
+        with connection.cursor() as cursor:
             cursor.executemany(insert_statement, data)
             # verify
-            self.connection.commit()
+            connection.commit()
             cursor.execute("select * from %s" % self.table)
             l = cursor.fetchall()
             self.assertEqual(len(l), self.rows)
@@ -150,11 +162,12 @@ class DatabaseTest(unittest.TestCase):
             cursor.execute("select col1 from %s where col1=%s" % (self.table, 0))
             l = cursor.fetchall()
             self.assertFalse(l, "DELETE didn't work")
-            self.connection.rollback()
+            connection.rollback()
             cursor.execute("select col1 from %s where col1=%s" % (self.table, 0))
             l = cursor.fetchall()
             self.assertTrue(len(l) == 1, "ROLLBACK didn't work")
             cursor.execute("drop table %s" % (self.table))
+        connection.close()
 
     def test_truncation(self):
         columndefs = ("col1 INT", "col2 VARCHAR(255)")
@@ -170,21 +183,21 @@ class DatabaseTest(unittest.TestCase):
             self.table,
             ",".join(["%s"] * len(columndefs)),
         )
-
-        with self.connection.cursor() as cursor:
+        connection = self.connect()
+        with connection.cursor() as cursor:
             try:
                 cursor.execute(insert_statement, (0, "0" * 256))
             except Warning:
                 if self.debug:
                     print(cursor.messages)
-            except self.connection.DataError:
+            except connection.DataError:
                 pass
             else:
                 self.fail(
                     "Over-long column did not generate warnings/exception with single insert"
                 )
 
-            self.connection.rollback()
+            connection.rollback()
 
             try:
                 for i in range(self.rows):
@@ -195,14 +208,14 @@ class DatabaseTest(unittest.TestCase):
             except Warning:
                 if self.debug:
                     print(cursor.messages)
-            except self.connection.DataError:
+            except connection.DataError:
                 pass
             else:
                 self.fail(
                     "Over-long columns did not generate warnings/exception with execute()"
                 )
 
-            self.connection.rollback()
+            connection.rollback()
 
             try:
                 data = [
@@ -213,14 +226,14 @@ class DatabaseTest(unittest.TestCase):
             except Warning:
                 if self.debug:
                     print(cursor.messages)
-            except self.connection.DataError:
+            except connection.DataError:
                 pass
             else:
                 self.fail(
                     "Over-long columns did not generate warnings/exception with executemany()"
                 )
 
-            self.connection.rollback()
+            connection.rollback()
             cursor.execute("drop table %s" % (self.table))
 
     def test_CHAR(self):

@@ -105,13 +105,11 @@ class PyMySQLTestCase(unittest.TestCase):
         Also adds a cleanup rule to drop the table after the test
         completes.
         """
-        cursor = connection.cursor()
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists `%s`" % (tablename,))
-        cursor.execute(ddl)
-        cursor.close()
+        with connection.cursor() as cursor:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                cursor.execute("drop table if exists `%s`" % (tablename,))
+            cursor.execute(ddl)
         if cleanup:
             self.addCleanup(self.drop_table, connection, tablename)
 

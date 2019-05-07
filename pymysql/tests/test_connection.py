@@ -103,13 +103,15 @@ class TestAuthentication(base.PyMySQLTestCase):
     def test_plugin(self):
         conn = self.connect()
         if not self.mysql_server_is(conn, (5, 5, 0)):
+            conn.close()
             pytest.skip("MySQL-5.5 required for plugins")
-        cur = conn.cursor()
-        cur.execute(
-            "select plugin from mysql.user where concat(user, '@', host)=current_user()"
-        )
-        for r in cur:
-            self.assertIn(conn._auth_plugin_name, (r[0], "mysql_native_password"))
+        with conn.cursor() as cur:
+            cur.execute(
+                "select plugin from mysql.user where concat(user, '@', host)=current_user()"
+            )
+            for r in cur:
+                self.assertIn(conn._auth_plugin_name, (r[0], "mysql_native_password"))
+        conn.close()
 
     @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
     @pytest.mark.skipif(socket_found, reason="socket plugin already installed")
@@ -221,6 +223,8 @@ class TestAuthentication(base.PyMySQLTestCase):
             "two_questions",
             "notverysecret",
         ) as u:
+            # This raises aborted connection but I can't tease out how to
+            # design this better
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user="pymysql_2q", **self.db)
             pymysql.connect(
@@ -468,13 +472,14 @@ class TestConnection(base.PyMySQLTestCase):
         arg = self.databases[0].copy()
         arg["charset"] = "utf8mb4"
         conn = pymysql.connect(**arg)
+        conn.close()
 
     def test_largedata(self):
         """Large query and response (>=16MB)"""
         cur = self.connect().cursor()
         cur.execute("SELECT @@max_allowed_packet")
         if cur.fetchone()[0] < 16 * 1024 * 1024 + 10:
-            print("Set max_allowed_packet to bigger than 17MB")
+            print("Set max_allowed_packet to bigger than 17MB", end="")
             return
         t = "a" * (16 * 1024 * 1024)
         cur.execute("SELECT '" + t + "'")
@@ -484,14 +489,15 @@ class TestConnection(base.PyMySQLTestCase):
         con = self.connect()
         self.assertFalse(con.get_autocommit())
 
-        cur = con.cursor()
-        cur.execute("SET AUTOCOMMIT=1")
-        self.assertTrue(con.get_autocommit())
+        with con.cursor() as cur:
+            cur.execute("SET AUTOCOMMIT=1")
+            self.assertTrue(con.get_autocommit())
 
-        con.autocommit(False)
-        self.assertFalse(con.get_autocommit())
-        cur.execute("SELECT @@AUTOCOMMIT")
-        self.assertEqual(cur.fetchone()[0], 0)
+            con.autocommit(False)
+            self.assertFalse(con.get_autocommit())
+            cur.execute("SELECT @@AUTOCOMMIT")
+            self.assertEqual(cur.fetchone()[0], 0)
+        con.close()
 
     def test_select_db(self):
         con = self.connect()
@@ -512,14 +518,16 @@ class TestConnection(base.PyMySQLTestCase):
         http://dev.mysql.com/doc/refman/5.0/en/error-messages-client.html#error_cr_server_gone_error
         """
         con = self.connect()
-        cur = con.cursor()
-        cur.execute("SET wait_timeout=1")
-        time.sleep(2)
-        with self.assertRaises(pymysql.OperationalError) as cm:
-            cur.execute("SELECT 1+1")
-        # error occures while reading, not writing because of socket buffer.
-        # self.assertEqual(cm.exception.args[0], 2006)
-        self.assertIn(cm.exception.args[0], (2006, 2013))
+        with con.cursor() as cur:
+            cur.execute("SET wait_timeout=1")
+            # This causes Warning Aborted connection, intended but really annoying
+            time.sleep(2)
+            with self.assertRaises(pymysql.OperationalError) as cm:
+                cur.execute("SELECT 1+1")
+                # error occures while reading, not writing because of socket buffer.
+                # self.assertEqual(cm.exception.args[0], 2006)
+                self.assertIn(cm.exception.args[0], (2006, 2013))
+        con.close()
 
     def test_init_command(self):
         conn = self.connect(
@@ -546,6 +554,7 @@ class TestConnection(base.PyMySQLTestCase):
         c = self.connect()
         c.set_charset("utf8mb4")
         # TODO validate setting here
+        c.close()
 
     def test_defer_connect(self):
         import socket
