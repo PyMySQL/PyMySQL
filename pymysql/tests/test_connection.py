@@ -484,7 +484,6 @@ class TestConnection(base.PyMySQLTestCase):
         cur = self.connect().cursor()
         cur.execute("SELECT @@max_allowed_packet")
         if cur.fetchone()[0] < 16 * 1024 * 1024 + 10:
-            print("Set max_allowed_packet to bigger than 17MB", end="")
             return
         t = "a" * (16 * 1024 * 1024)
         cur.execute("SELECT '" + t + "'")
