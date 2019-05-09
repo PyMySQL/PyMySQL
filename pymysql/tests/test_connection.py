@@ -599,6 +599,18 @@ class TestConnection(base.PyMySQLTestCase):
         c.close()
         sock.close()
 
+    def test_double_close(self):
+        con = self.connect()
+        con.close()
+        assert not con.open
+        with pytest.raises(pymysql.err.Error):
+            assert con.close()
+
+    def test_ping_after_close(self):
+        con = self.connect()
+        con.close()
+        assert con.ping() == None
+
 
 # A custom type and function to escape it
 class Foo(object):
