@@ -66,6 +66,11 @@ you need to install additional dependency::
 
    $ python3 -m pip install PyMySQL[rsa]
 
+To use MariaDB's "ed25519" authentication method, you need to install
+additional dependency::
+
+   $ python3 -m pip install PyMySQL[ed25519]
+
 
 Documentation
 -------------
