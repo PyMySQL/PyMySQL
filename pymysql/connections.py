@@ -245,7 +245,7 @@ class Connection(object):
                         ssl[key] = value
 
         self.ssl = False
-        if ssl:
+        if isinstance(ssl, dict):
             if not SSL_ENABLED:
                 raise NotImplementedError("ssl module not found")
             self.ssl = True
