@@ -270,6 +270,32 @@ class Cursor(object):
         self._executed = q
         return args
 
+    def callfnct(self, fnctname, args):
+            """Execute function fnctname with args
+
+            fnctname -- string, name of function to execute on server
+
+            args -- Sequence of parameters to use with function
+
+            Returns the original args.
+
+            Essentially the same as callproc, except the cursor will store
+            a "table" containing the result of a function, which can be
+            accessed as follows: {instance of Cursor}.fetchall()[0]["result"]
+            """
+            conn = self._get_db()
+            if args:
+                fmt = '@_{0}_%d=%s'.format(fnctname)
+                self._query('SET %s' % ','.join(fmt % (index, conn.escape(arg))
+                                                for index, arg in enumerate(args)))
+                self.nextset()
+
+            q = "SELECT %s(%s)" % (fnctname,
+                                 ','.join(['@_%s_%d' % (fnctname, i)
+                                           for i in range_type(len(args))])) + "as `result`"
+            self._query(q)
+            self._executed = q
+
     def fetchone(self):
         """Fetch the next row"""
         self._check_executed()
