@@ -292,9 +292,10 @@ class Cursor(object):
 
             q = "SELECT %s(%s)" % (fnctname,
                                  ','.join(['@_%s_%d' % (fnctname, i)
-                                           for i in range_type(len(args))])) + "as `result`"
+                                           for i in range_type(len(args))])) + " AS `result`"
             self._query(q)
             self._executed = q
+            return args
 
     def fetchone(self):
         """Fetch the next row"""
