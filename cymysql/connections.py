@@ -26,7 +26,7 @@ from cymysql.packet import MysqlPacket, MySQLResult
 PYTHON3 = sys.version_info[0] > 2
 
 DEFAULT_USER = getpass.getuser()
-DEFAULT_CHARSET = 'utf8'
+DEFAULT_CHARSET = 'utf8mb4'
 
 
 def sha_new(*args, **kwargs):
