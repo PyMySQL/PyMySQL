@@ -259,8 +259,6 @@ class Connection(object):
             c = self.cursor()
             c.execute("SET sql_mode=%s", (sql_mode,))
 
-        self.commit()
-
         if init_command is not None:
             c = self.cursor()
             c.execute(init_command)
