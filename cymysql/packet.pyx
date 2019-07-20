@@ -152,7 +152,7 @@ cdef class MysqlPacket(object):
     cdef read_decode_data(self, fields, decoders):
         return tuple([
             None if value is None
-            else decoder(value, self._charset, field, self._use_unicode)
+            else decoder(value, self._encoding, field, self._use_unicode)
             if decoder is convert_characters
             else decoder(value)
             for value, field, decoder in [
