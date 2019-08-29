@@ -54,7 +54,12 @@ def escape_int(value, mapping=None):
     return str(value)
 
 def escape_float(value, mapping=None):
-    return ('%.15g' % value)
+    s = repr(value)
+    if s in ('inf', 'nan'):
+        raise ProgrammingError("%s can not be used with MySQL" % s)
+    if 'e' not in s:
+        s += 'e0'
+    return s
 
 _escape_table = [unichr(x) for x in range(128)]
 _escape_table[0] = u'\\0'
