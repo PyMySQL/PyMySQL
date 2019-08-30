@@ -15,7 +15,7 @@ Release date: 2018-12-18
 
 Release date: 2018-07-04
 
-* Disalbled unintentinally enabled debug log
+* Disabled unintentinally enabled debug log
 * Removed unintentionally installed tests
 
 
@@ -51,7 +51,7 @@ Release date: 2018-05-07
 * Many test suite improvements, especially adding MySQL 8.0 and using Docker.
   Thanks to Daniel Black.
 
-* Droppped support for old Python and MySQL which is not tested long time.
+* Dropped support for old Python and MySQL which is not tested long time.
 
 
 ## 0.8
