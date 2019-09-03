@@ -668,6 +668,8 @@ class Connection(object):
                 break
 
         packet = packet_type(bytes(buff), self.encoding)
+        if packet.is_error_packet() and self._result.unbuffered_active is True:
+            self._result.unbuffered_active = False
         packet.check_error()
         return packet
 
