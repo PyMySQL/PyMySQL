@@ -669,7 +669,7 @@ class Connection(object):
 
         packet = packet_type(bytes(buff), self.encoding)
         if packet.is_error_packet():
-            if self._result.unbuffered_active is True:
+            if self._result is not None and self._result.unbuffered_active is True:
                 self._result.unbuffered_active = False
             packet.raise_error()
         return packet
