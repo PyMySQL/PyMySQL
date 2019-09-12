@@ -222,12 +222,12 @@ class Connection(object):
 
             def _config(key, arg):
                 if arg:
-                    return arg
-                try:
-                    return cfg.get(read_default_group, key)
-                except Exception:
-                    return arg
-
+                   return arg  # arg is already set.
+                for group in (if isinstance(read_default_group, tuple) else (read_default_group, )):
+                    value = cfg.get(group, key, fallback=None)
+                    if value:
+                        return value
+            
             user = _config("user", user)
             password = _config("password", password)
             host = _config("host", host)
