@@ -217,14 +217,14 @@ class Connection(object):
             if not read_default_group:
                 read_default_group = "client"
 
-            cfg = Parser()
+            cfg = Parser(fallback=None)
             cfg.read(os.path.expanduser(read_default_file))
 
             def _config(key, arg):
                 if arg:
-                   return arg  # arg is already set.
-                for group in (if isinstance(read_default_group, tuple) else (read_default_group, )):
-                    value = cfg.get(group, key, fallback=None)
+                    return arg  # arg is already set.
+                for group in read_default_group if isinstance(read_default_group, tuple) else (read_default_group,):
+                    value = cfg.get(group, key)
                     if value:
                         return value
             
