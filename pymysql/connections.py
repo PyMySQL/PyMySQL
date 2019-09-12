@@ -227,7 +227,7 @@ class Connection(object):
                     value = cfg.get(group, key)
                     if value:
                         return value
-            
+
             user = _config("user", user)
             password = _config("password", password)
             host = _config("host", host)
