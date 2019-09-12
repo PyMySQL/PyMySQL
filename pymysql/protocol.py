@@ -213,9 +213,9 @@ class MysqlPacket(object):
 
     def check_error(self):
         if self.is_error_packet():
-            self.raise_error()
+            self.raise_for_error()
 
-    def raise_error(self):
+    def raise_for_error(self):
         self.rewind()
         self.advance(1)  # field_count == error (we already know that)
         errno = self.read_uint16()
