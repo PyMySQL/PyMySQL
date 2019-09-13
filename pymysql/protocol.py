@@ -213,11 +213,14 @@ class MysqlPacket(object):
 
     def check_error(self):
         if self.is_error_packet():
-            self.rewind()
-            self.advance(1)  # field_count == error (we already know that)
-            errno = self.read_uint16()
-            if DEBUG: print("errno =", errno)
-            err.raise_mysql_exception(self._data)
+            self.raise_for_error()
+
+    def raise_for_error(self):
+        self.rewind()
+        self.advance(1)  # field_count == error (we already know that)
+        errno = self.read_uint16()
+        if DEBUG: print("errno =", errno)
+        err.raise_mysql_exception(self._data)
 
     def dump(self):
         dump_packet(self._data)
