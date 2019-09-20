@@ -90,7 +90,7 @@ class test_MySQLdb(capabilities.DatabaseTest):
         self.assertTrue("2" == self.connection.literal(2))
 
     def test_literal_float(self):
-        self.assertTrue("3.1415" == self.connection.literal(3.1415))
+        self.assertEqual("3.1415e0", self.connection.literal(3.1415))
 
     def test_literal_string(self):
         self.assertTrue("'foo'" == self.connection.literal("foo"))
