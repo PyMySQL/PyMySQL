@@ -1,11 +1,7 @@
-addons:
-  apt:
-    sources:
-      - mysql-5.7-trusty
-    packages:
-      - mysql-server
+services:
+  - mysql
 
-dist: trusty
+dist: xenial
 
 sudo: required
 
