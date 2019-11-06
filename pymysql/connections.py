@@ -550,6 +550,9 @@ class Connection(object):
     def connect(self, sock=None):
         self._closed = False
         try:
+            # Make sure port is an int.
+            if not type(self.port) is int:
+                raise socket.error("port should be of type int")
             if sock is None:
                 if self.unix_socket:
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
