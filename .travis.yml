@@ -17,13 +17,13 @@ matrix:
       python: "3.6"
     - env:
         - DB=mariadb:10.1
-      python: "pypy3.5"
+      python: "pypy3"
     - env:
         - DB=mariadb:10.2
       python: "2.7"
     - env:
         - DB=mariadb:10.3
-      python: "3.7-dev"
+      python: "3.7"
     - env:
         - DB=mysql:5.5
       python: "3.5"
@@ -36,7 +36,7 @@ matrix:
     - env:
         - DB=mysql:8.0
         - TEST_AUTH=yes
-      python: "3.7-dev"
+      python: "3.8"
     - env:
         - DB=mysql:8.0
         - TEST_AUTH=yes
