@@ -551,7 +551,7 @@ class Connection(object):
         self._closed = False
         try:
             # Make sure port is an int.
-            if not type(self.port) is int:
+            if type(self.port) is not int:
                 raise socket.error("port should be of type int")
             if sock is None:
                 if self.unix_socket:
