@@ -102,5 +102,5 @@ def raise_mysql_exception(data):
     errval = data[9:].decode('utf-8', 'replace')
     errorclass = error_map.get(errno)
     if errorclass is None:
-        errorclass = InternalError if errorno < 1000 else OperationalError
+        errorclass = InternalError if errno < 1000 else OperationalError
     raise errorclass(errno, errval)
