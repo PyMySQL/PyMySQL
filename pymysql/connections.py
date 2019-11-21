@@ -254,6 +254,8 @@ class Connection(object):
 
         self.host = host or "localhost"
         self.port = port or 3306
+        if type(self.port) is not int:
+            raise ValueError("port should be of type int")
         self.user = user or DEFAULT_USER
         self.password = password or b""
         if isinstance(self.password, text_type):
@@ -277,10 +279,6 @@ class Connection(object):
             self.charset = DEFAULT_CHARSET
             self.use_unicode = False
         
-        # Make sure port is an int.
-        if type(self.port) is not int:
-            raise ValueError("port should be of type int")
-
         if use_unicode is not None:
             self.use_unicode = use_unicode
 
