@@ -276,6 +276,10 @@ class Connection(object):
         else:
             self.charset = DEFAULT_CHARSET
             self.use_unicode = False
+        
+        # Make sure port is an int.
+        if type(self.port) is not int:
+            raise ValueError("port should be of type int")
 
         if use_unicode is not None:
             self.use_unicode = use_unicode
@@ -550,9 +554,6 @@ class Connection(object):
     def connect(self, sock=None):
         self._closed = False
         try:
-            # Make sure port is an int.
-            if type(self.port) is not int:
-                raise socket.error("port should be of type int")
             if sock is None:
                 if self.unix_socket:
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
