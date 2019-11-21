@@ -20,6 +20,12 @@ class Charset(object):
         name = self.name
         if name in ('utf8mb4', 'utf8mb3'):
             return 'utf8'
+        if name == 'latin1':
+            return 'cp1252'
+        if name == 'koi8r':
+            return 'koi8_r'
+        if name == 'koi8u':
+            return 'koi8_u'
         return name
 
     @property
@@ -202,11 +208,3 @@ _charsets.add(Charset(255, 'utf8mb4', 'utf8mb4_0900_ai_ci', ''))
 
 charset_by_name = _charsets.by_name
 charset_by_id = _charsets.by_id
-
-
-#TODO: remove this
-def charset_to_encoding(name):
-    """Convert MySQL's charset name to Python's codec name"""
-    if name in ('utf8mb4', 'utf8mb3'):
-        return 'utf8'
-    return name
