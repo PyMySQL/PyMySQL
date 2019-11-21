@@ -278,7 +278,7 @@ class Connection(object):
         else:
             self.charset = DEFAULT_CHARSET
             self.use_unicode = False
-        
+
         if use_unicode is not None:
             self.use_unicode = use_unicode
 
