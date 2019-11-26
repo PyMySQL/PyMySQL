@@ -159,6 +159,11 @@ def escape_date(obj, mapping=None):
 def escape_struct_time(obj, mapping=None):
     return escape_datetime(datetime.datetime(*obj[:6]))
 
+
+def Decimal2Literal(o, d):
+    return format(o, "f")
+
+
 def _convert_second_fraction(s):
     if not s:
         return 0
@@ -337,7 +342,7 @@ encoders = {
     datetime.timedelta: escape_timedelta,
     datetime.time: escape_time,
     time.struct_time: escape_struct_time,
-    Decimal: escape_object,
+    Decimal: Decimal2Literal,
 }
 
 if not PY2 or JYTHON or IRONPYTHON:
