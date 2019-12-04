@@ -267,10 +267,10 @@ class Connection(object):
             raise ValueError("connect_timeout should be >0 and <=31536000")
         self.connect_timeout = connect_timeout or None
         if read_timeout is not None and read_timeout <= 0:
-            raise ValueError("read_timeout should be >= 0")
+            raise ValueError("read_timeout should be > 0")
         self._read_timeout = read_timeout
         if write_timeout is not None and write_timeout <= 0:
-            raise ValueError("write_timeout should be >= 0")
+            raise ValueError("write_timeout should be > 0")
         self._write_timeout = write_timeout
         if charset:
             self.charset = charset
