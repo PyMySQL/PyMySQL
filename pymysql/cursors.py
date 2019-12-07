@@ -8,7 +8,7 @@ from . import err
 
 
 #: Regular expression for :meth:`Cursor.executemany`.
-#: executemany only suports simple bulk insert.
+#: executemany only supports simple bulk insert.
 #: You can use it to load large dataset.
 RE_INSERT_VALUES = re.compile(
     r"\s*((?:INSERT|REPLACE)\b.+\bVALUES?\s*)" +
