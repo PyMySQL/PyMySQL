@@ -5,8 +5,7 @@ from decimal import Decimal
 import re
 import time
 
-from .constants import FIELD_TYPE, FLAG
-from .charset import charset_by_id
+from .constants import FIELD_TYPE
 
 
 def escape_item(val, charset, mapping=None):
