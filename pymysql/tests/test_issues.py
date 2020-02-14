@@ -79,8 +79,8 @@ class TestOldIssues(base.PyMySQLTestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             c.execute("drop table if exists test")
-        c.execute("""CREATE TABLE `test` (`station` int(10) NOT NULL DEFAULT '0', `dh`
-datetime NOT NULL DEFAULT '2015-01-01 00:00:00', `echeance` int(1) NOT NULL
+        c.execute("""CREATE TABLE `test` (`station` int NOT NULL DEFAULT '0', `dh`
+datetime NOT NULL DEFAULT '2015-01-01 00:00:00', `echeance` int NOT NULL
 DEFAULT '0', `me` double DEFAULT NULL, `mo` double DEFAULT NULL, PRIMARY
 KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         try:

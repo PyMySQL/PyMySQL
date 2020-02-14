@@ -289,7 +289,7 @@ class TestBulkInserts(base.PyMySQLTestCase):
         self.safe_create_table(conn, 'bulkinsert', """\
 CREATE TABLE bulkinsert
 (
-id int(11),
+id int,
 name char(20),
 age int,
 height int,
