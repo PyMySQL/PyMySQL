@@ -215,9 +215,14 @@ class Connection(object):
 
         if read_default_file:
             if not read_default_group:
-                read_default_group = "client"
+                read_default_group = "pymysql"
 
-            cfg = Parser()
+            # Default section is different from default group.
+            # The 'read_default_group' used here, in get() could be called 'group'
+            # Default section is what to use if the default group fails
+            # for client-purposed settings, this is normally 'client'
+            # cf. https://dev.mysql.com/doc/refman/8.0/en/mysql-options.html
+            cfg = Parser(default_section="client")
             cfg.read(os.path.expanduser(read_default_file))
 
             def _config(key, arg):
