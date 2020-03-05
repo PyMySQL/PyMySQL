@@ -222,9 +222,11 @@ class Connection(object):
             # Default section is what to use if the default group fails
             # for client-purposed settings, this is normally 'client'
             # cf. https://dev.mysql.com/doc/refman/8.0/en/mysql-options.html
-            # However, ConfigParser does not recognise the initialisation string.
+            # ConfigParser does not default_section parameter.
+            cfg = None
             if PY2:
                 cfg = Parser()
+                cfg.DEFAULT = "client"
             else:
                 cfg = Parser(default_section="client")
             cfg.read(os.path.expanduser(read_default_file))
