@@ -49,11 +49,15 @@ class TestParser(TestCase):
         parser = None
         group = 'pymysql'
         if PY2:
+            config_file = StringIO(_cfg_file_2)
             parser = Parser()
-            parser.DEFAULT = "client"
-            parser.readfp(StringIO(_cfg_file_2))
+            parser.readfp(config_file)
+            # Once the parser is initialised, there seems no way to configure the defaults
+            # via the API
+            parser._defaults = dict(parser.items("client"))
         else:
             parser = Parser(default_section="client")
             parser.read_file(StringIO(_cfg_file_2))
+
         self.assertEqual(parser.get(group, 'wobble'), "correct")
         self.assertEqual(parser.get(group, 'little'), "perfik")
