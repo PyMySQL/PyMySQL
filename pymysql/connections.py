@@ -215,7 +215,7 @@ class Connection(object):
 
         if read_default_file:
             if not read_default_group:
-                read_default_group = "pymysql" if not PY2 else "client"
+                read_default_group = "pymysql"
 
             # Default section is different from default group.
             # The 'read_default_group' used here, in get() could be called 'group'
