@@ -227,7 +227,8 @@ class Connection(object):
             cfg = None
             if PY2:
                 cfg = Parser()
-                cfg._defaults = dict(cfg.items("client"))
+                if cfg.has_section("client"):
+                    cfg._defaults = dict(cfg.items("client"))
             else:
                 cfg = Parser(default_section="client")
             cfg.read(os.path.expanduser(read_default_file))

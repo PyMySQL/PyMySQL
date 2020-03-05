@@ -54,7 +54,8 @@ class TestParser(TestCase):
             parser.readfp(config_file)
             # Once the parser is initialised, there seems no way to configure the defaults
             # via the API
-            parser._defaults = dict(parser.items("client"))
+            if parser.has_section("client"):
+                parser._defaults = dict(parser.items("client"))
         else:
             parser = Parser(default_section="client")
             parser.read_file(StringIO(_cfg_file_2))
