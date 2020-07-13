@@ -739,7 +739,7 @@ class Connection(object):
         :raise ValueError: If no username was specified.
         """
         if not self._sock:
-            raise err.InterfaceError("(0, '')")
+            raise err.InterfaceError(0, '')
 
         # If the last query was unbuffered, make sure it finishes before
         # sending new commands
@@ -1253,7 +1253,7 @@ class LoadLocalFile(object):
     def send_data(self):
         """Send data packets from the local file to the server"""
         if not self.connection._sock:
-            raise err.InterfaceError("(0, '')")
+            raise err.InterfaceError(0, '')
         conn = self.connection
 
         try:
