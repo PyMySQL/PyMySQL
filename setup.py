@@ -2,7 +2,7 @@
 import io
 from setuptools import setup, find_packages
 
-version = "0.9.3"
+version = "0.10.0"
 
 with io.open('./README.rst', encoding='utf-8') as f:
     readme = f.read()
@@ -30,6 +30,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Intended Audience :: Developers',
