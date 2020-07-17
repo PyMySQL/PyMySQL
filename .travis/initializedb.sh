@@ -6,7 +6,7 @@ docker pull ${DB}
 docker run -it --name=mysqld -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 ${DB}
 
 mysql() {
-    docker exec mysqld mysql "${@}"
+    docker exec -i mysqld mysql "${@}"
 }
 while :
 do
@@ -33,6 +33,14 @@ if [ $DB == 'mysql:8.0' ]; then
             nopass_caching_sha2 IDENTIFIED WITH "caching_sha2_password"
             PASSWORD EXPIRE NEVER;'
     mysql -e 'GRANT RELOAD ON *.* TO user_caching_sha2;'
+elif [[ $DB == mariadb:10.* ]] && [ ${DB#mariadb:10.} -ge 3 ]; then
+    mysql -e '
+        INSTALL SONAME "auth_ed25519";
+        CREATE FUNCTION ed25519_password RETURNS STRING SONAME "auth_ed25519.so";'
+    # we need to pass the hashed password manually until 10.4, so hide it here
+    mysql -sNe "SELECT CONCAT('CREATE USER nopass_ed25519 IDENTIFIED VIA ed25519 USING \"',ed25519_password(\"\"),'\";');" | mysql
+    mysql -sNe "SELECT CONCAT('CREATE USER user_ed25519 IDENTIFIED VIA ed25519 USING \"',ed25519_password(\"pass_ed25519\"),'\";');" | mysql
+    WITH_PLUGIN=''
 else
     WITH_PLUGIN=''
 fi

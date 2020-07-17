@@ -894,6 +894,8 @@ class Connection(object):
             return _auth.sha256_password_auth(self, auth_packet)
         elif plugin_name == b"mysql_native_password":
             data = _auth.scramble_native_password(self.password, auth_packet.read_all())
+        elif plugin_name == b'client_ed25519':
+            data = _auth.ed25519_password(self.password, auth_packet.read_all())
         elif plugin_name == b"mysql_old_password":
             data = _auth.scramble_old_password(self.password, auth_packet.read_all()) + b'\0'
         elif plugin_name == b"mysql_clear_password":

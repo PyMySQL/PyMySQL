@@ -113,6 +113,66 @@ def _hash_password_323(password):
     return struct.pack(">LL", r1, r2)
 
 
+# MariaDB's client_ed25519-plugin
+# https://mariadb.com/kb/en/library/connection/#client_ed25519-plugin
+
+_nacl_bindings = False
+
+
+def _init_nacl():
+    global _nacl_bindings
+    try:
+        from nacl import bindings
+        _nacl_bindings = bindings
+    except ImportError:
+        raise RuntimeError("'pynacl' package is required for ed25519_password auth method")
+
+
+def _scalar_clamp(s32):
+    ba = bytearray(s32)
+    ba0 = bytes(bytearray([ba[0] & 248]))
+    ba31 = bytes(bytearray([(ba[31] & 127) | 64]))
+    return ba0 + bytes(s32[1:31]) + ba31
+
+
+def ed25519_password(password, scramble):
+    """Sign a random scramble with elliptic curve Ed25519.
+
+    Secret and public key are derived from password.
+    """
+    # variable names based on rfc8032 section-5.1.6
+    #
+    if not _nacl_bindings:
+        _init_nacl()
+
+    # h = SHA512(password)
+    h = hashlib.sha512(password).digest()
+
+    # s = prune(first_half(h))
+    s = _scalar_clamp(h[:32])
+
+    # r = SHA512(second_half(h) || M)
+    r = hashlib.sha512(h[32:] + scramble).digest()
+
+    # R = encoded point [r]B
+    r = _nacl_bindings.crypto_core_ed25519_scalar_reduce(r)
+    R = _nacl_bindings.crypto_scalarmult_ed25519_base_noclamp(r)
+
+    # A = encoded point [s]B
+    A = _nacl_bindings.crypto_scalarmult_ed25519_base_noclamp(s)
+
+    # k = SHA512(R || A || M)
+    k = hashlib.sha512(R + A + scramble).digest()
+
+    # S = (k * s + r) mod L
+    k = _nacl_bindings.crypto_core_ed25519_scalar_reduce(k)
+    ks = _nacl_bindings.crypto_core_ed25519_scalar_mul(k, s)
+    S = _nacl_bindings.crypto_core_ed25519_scalar_add(ks, r)
+
+    # signature = R || S
+    return R + S
+
+
 # sha256_password
 
 
