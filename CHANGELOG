@@ -2,7 +2,9 @@
 
 ## v0.10.0
 
-Release date: 2020-07-17
+Release date: 2020-07-18
+
+This version is the last version supporting Python 2.7.
 
 * MariaDB ed25519 auth is supported.
 * Python 3.4 support is dropped.
