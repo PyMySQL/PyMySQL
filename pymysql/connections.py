@@ -331,8 +331,9 @@ class Connection(object):
             return sslp
         ca = sslp.get('ca')
         capath = sslp.get('capath')
-        hasnoca = ca is None and capath is None
-        ctx = ssl.create_default_context(cafile=ca, capath=capath)
+        cadata = sslp.get('cadata')
+        hasnoca = ca is None and capath is None and cadata is None
+        ctx = ssl.create_default_context(cafile=ca, capath=capath, cadata=cadata)
         ctx.check_hostname = not hasnoca and sslp.get('check_hostname', True)
         ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if 'cert' in sslp:
