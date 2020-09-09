@@ -41,7 +41,7 @@ def test_caching_sha2_no_password():
     con.close()
 
 
-def test_caching_sha2_no_password():
+def test_caching_sha2_no_password_ssl():
     con = pymysql.connect(user="nopass_caching_sha2", host=host, port=port, ssl=ssl)
     con.close()
 
