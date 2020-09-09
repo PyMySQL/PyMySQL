@@ -184,6 +184,7 @@ def _roundtrip(conn, send_data):
 
 
 def _xor_password(password, salt):
+    salt = salt[:SCRAMBLE_LENGTH]
     password_bytes = bytearray(password)
     salt = bytearray(salt)  # for PY2 compat.
     salt_len = len(salt)
