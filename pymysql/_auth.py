@@ -184,6 +184,8 @@ def _roundtrip(conn, send_data):
 
 
 def _xor_password(password, salt):
+    # Trailing NUL character will be added in Auth Switch Request.
+    # See https://github.com/mysql/mysql-server/blob/7d10c82196c8e45554f27c00681474a9fb86d137/sql/auth/sha2_password.cc#L939-L945
     salt = salt[:SCRAMBLE_LENGTH]
     password_bytes = bytearray(password)
     salt = bytearray(salt)  # for PY2 compat.
