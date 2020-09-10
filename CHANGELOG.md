@@ -1,5 +1,13 @@
 # Changes
 
+## v0.10.1
+
+Release date: 2020-09-10
+
+* Fix missing import of ProgrammingError. (#878)
+* Fix auth switch request handling. (#890)
+
+
 ## v0.10.0
 
 Release date: 2020-07-18
