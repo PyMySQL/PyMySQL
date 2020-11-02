@@ -254,14 +254,16 @@ class Connection(object):
 
         self.ssl = False
         if not ssl_disabled:
-            if ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
+            if ssl_ca or ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
                 ssl = {
                     "ca": ssl_ca,
-                    "cert": ssl_cert,
-                    "key": ssl_key,
                     "check_hostname": bool(ssl_verify_identity),
                     "verify_mode": ssl_verify_cert if ssl_verify_cert is not None else False,
                 }
+                if ssl_cert is not None:
+                    ssl["cert"] = ssl_cert
+                if ssl_key is not None:
+                    ssl["key" ] = ssl_key
             if ssl:
                 if not SSL_ENABLED:
                     raise NotImplementedError("ssl module not found")
