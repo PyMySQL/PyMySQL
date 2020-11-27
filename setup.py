@@ -5,21 +5,22 @@ from distutils.extension import Extension
 try:
     from Cython.Build import cythonize
     ext_modules = cythonize([
-        Extension("cymysql.packet", ["cymysql/packet.pyx"]),
-
-        Extension("cymysql.charset", ["cymysql/charset.py"]),
-        Extension("cymysql.converters", ["cymysql/converters.py"]),
-        Extension("cymysql.connections", ["cymysql/connections.py"]),
-        Extension("cymysql.cursors", ["cymysql/cursors.py"]),
-        Extension("cymysql.err", ["cymysql/err.py"]),
-        Extension("cymysql.times", ["cymysql/times.py"]),
-    ])
+            Extension("cymysql.packet", ["cymysql/packet.pyx"]),
+            Extension("cymysql.charset", ["cymysql/charset.py"]),
+            Extension("cymysql.converters", ["cymysql/converters.py"]),
+            Extension("cymysql.connections", ["cymysql/connections.py"]),
+            Extension("cymysql.cursors", ["cymysql/cursors.py"]),
+            Extension("cymysql.err", ["cymysql/err.py"]),
+            Extension("cymysql.times", ["cymysql/times.py"]),
+        ],
+        compiler_directives={'language_level': str(sys.version_info[0])},
+    )
 except ImportError:
     ext_modules = None
 
 
 class TestCommand(Command):
-    user_options = [ ]
+    user_options = []
 
     def initialize_options(self):
         pass
@@ -34,6 +35,7 @@ class TestCommand(Command):
         from cymysql import tests
         import unittest
         unittest.main(tests, argv=sys.argv[:1])
+
 
 cmdclass = {'test': TestCommand}
 
@@ -55,19 +57,19 @@ classifiers = [
 ]
 
 setup(
-    name = "cymysql",
-    version = version,
-    url = 'https://github.com/nakagami/CyMySQL/',
+    name="cymysql",
+    version=version,
+    url='https://github.com/nakagami/CyMySQL/',
     classifiers=classifiers,
     keywords=['MySQL'],
-    author = 'Yutaka Matsubara',
-    author_email = 'yutaka.matsubara@gmail.com',
-    maintainer = 'Hajime Nakagami',
-    maintainer_email = 'nakagami@gmail.com',
-    description = 'Python MySQL Driver using Cython',
+    author='Yutaka Matsubara',
+    author_email='yutaka.matsubara@gmail.com',
+    maintainer='Hajime Nakagami',
+    maintainer_email='nakagami@gmail.com',
+    description='Python MySQL Driver using Cython',
     long_description=open('README.rst').read(),
-    license = "MIT",
-    packages = ['cymysql', 'cymysql.constants', 'cymysql.tests'],
-    cmdclass = cmdclass,
-    ext_modules = ext_modules,
+    license="MIT",
+    packages=['cymysql', 'cymysql.constants', 'cymysql.tests'],
+    cmdclass=cmdclass,
+    ext_modules=ext_modules,
 )
