@@ -70,7 +70,7 @@ class TestAuthentication(base.PyMySQLTestCase):
     for r in cur:
         if (r[1], r[2]) !=  (u'ACTIVE', u'AUTHENTICATION'):
             continue
-        if r[3] ==  u'auth_socket.so':
+        if r[3] ==  u'auth_socket.so' or r[0] == u'unix_socket':
             socket_plugin_name = r[0]
             socket_found = True
         elif r[3] ==  u'dialog_examples.so':
