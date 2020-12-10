@@ -1,6 +1,6 @@
 # vim: sw=2 ts=2 sts=2 expandtab
 
-dist: xenial
+dist: bionic
 language: python
 cache: pip
 
@@ -13,16 +13,18 @@ matrix:
         - DB=mariadb:5.5
       python: "3.5"
     - env:
-        - DB=mariadb:10.0
+        - DB=mariadb:10.2
       python: "3.6"
     - env:
-        - DB=mariadb:10.1
+        - DB=mariadb:10.3
+        - TEST_MARIADB_AUTH=yes
       python: "pypy3"
     - env:
-        - DB=mariadb:10.2
+        - DB=mariadb:10.4
+        - TEST_MARIADB_AUTH=yes
       python: "2.7"
     - env:
-        - DB=mariadb:10.3
+        - DB=mariadb:10.5
         - TEST_MARIADB_AUTH=yes
       python: "3.7"
     - env:
