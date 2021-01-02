@@ -40,6 +40,7 @@ jobs:
           python-version: ${{ matrix.py }}
       - name: Set up MySQL
         run: |
+          sleep 10
           mysql -h 127.0.0.1 -uroot -e "select version()"
           mysql -h 127.0.0.1 -uroot -e "SET GLOBAL local_infile=on"
           mysql -h 127.0.0.1 -uroot -e 'create database test1 DEFAULT CHARACTER SET utf8mb4'
