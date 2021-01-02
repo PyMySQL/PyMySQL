@@ -11,6 +11,7 @@ except Exception:
     import pymysql.cursors
     from pymysql.constants import CLIENT
 
+
 class TestSSCursor(base.PyMySQLTestCase):
     def test_SSCursor(self):
         affected_rows = 18446744073709551615

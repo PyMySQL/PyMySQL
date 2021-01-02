@@ -1,5 +1,3 @@
-from ._compat import PY2, text_type, long_type, JYTHON, IRONPYTHON, unichr
-
 import datetime
 from decimal import Decimal
 import re
@@ -17,7 +15,7 @@ def escape_item(val, charset, mapping=None):
     # Fallback to default when no encoder found
     if not encoder:
         try:
-            encoder = mapping[text_type]
+            encoder = mapping[str]
         except KeyError:
             raise TypeError("no default type converter defined")
 
@@ -47,9 +45,6 @@ def escape_set(val, charset, mapping=None):
 def escape_bool(value, mapping=None):
     return str(int(value))
 
-def escape_object(value, mapping=None):
-    return str(value)
-
 def escape_int(value, mapping=None):
     return str(value)
 
@@ -61,7 +56,7 @@ def escape_float(value, mapping=None):
         s += 'e0'
     return s
 
-_escape_table = [unichr(x) for x in range(128)]
+_escape_table = [chr(x) for x in range(128)]
 _escape_table[0] = u'\\0'
 _escape_table[ord('\\')] = u'\\\\'
 _escape_table[ord('\n')] = u'\\n'
@@ -70,57 +65,21 @@ _escape_table[ord('\032')] = u'\\Z'
 _escape_table[ord('"')] = u'\\"'
 _escape_table[ord("'")] = u"\\'"
 
-def _escape_unicode(value, mapping=None):
+def escape_string(value, mapping=None):
     """escapes *value* without adding quote.
 
     Value should be unicode
     """
     return value.translate(_escape_table)
 
-if PY2:
-    def escape_string(value, mapping=None):
-        """escape_string escapes *value* but not surround it with quotes.
 
-        Value should be bytes or unicode.
-        """
-        if isinstance(value, unicode):
-            return _escape_unicode(value)
-        assert isinstance(value, (bytes, bytearray))
-        value = value.replace('\\', '\\\\')
-        value = value.replace('\0', '\\0')
-        value = value.replace('\n', '\\n')
-        value = value.replace('\r', '\\r')
-        value = value.replace('\032', '\\Z')
-        value = value.replace("'", "\\'")
-        value = value.replace('"', '\\"')
-        return value
-
-    def escape_bytes_prefixed(value, mapping=None):
-        assert isinstance(value, (bytes, bytearray))
-        return b"_binary'%s'" % escape_string(value)
-
-    def escape_bytes(value, mapping=None):
-        assert isinstance(value, (bytes, bytearray))
-        return b"'%s'" % escape_string(value)
-
-else:
-    escape_string = _escape_unicode
-
-    # On Python ~3.5, str.decode('ascii', 'surrogateescape') is slow.
-    # (fixed in Python 3.6, http://bugs.python.org/issue24870)
-    # Workaround is str.decode('latin1') then translate 0x80-0xff into 0udc80-0udcff.
-    # We can escape special chars and surrogateescape at once.
-    _escape_bytes_table = _escape_table + [chr(i) for i in range(0xdc80, 0xdd00)]
-
-    def escape_bytes_prefixed(value, mapping=None):
-        return "_binary'%s'" % value.decode('latin1').translate(_escape_bytes_table)
-
-    def escape_bytes(value, mapping=None):
-        return "'%s'" % value.decode('latin1').translate(_escape_bytes_table)
+def escape_bytes_prefixed(value, mapping=None):
+    return "_binary'%s'" % value.decode('ascii', 'surrogateescape')
 
 
-def escape_unicode(value, mapping=None):
-    return u"'%s'" % _escape_unicode(value)
+def escape_bytes(value, mapping=None):
+    return "'%s'" % value.decode('ascii', 'surrogateescape')
+
 
 def escape_str(value, mapping=None):
     return "'%s'" % escape_string(str(value), mapping)
@@ -190,7 +149,7 @@ def convert_datetime(obj):
       True
 
     """
-    if not PY2 and isinstance(obj, (bytes, bytearray)):
+    if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode('ascii')
 
     m = DATETIME_RE.match(obj)
@@ -224,7 +183,7 @@ def convert_timedelta(obj):
     can accept values as (+|-)DD HH:MM:SS. The latter format will not
     be parsed correctly by this function.
     """
-    if not PY2 and isinstance(obj, (bytes, bytearray)):
+    if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode('ascii')
 
     m = TIMEDELTA_RE.match(obj)
@@ -272,7 +231,7 @@ def convert_time(obj):
     to be treated as time-of-day and not a time offset, then you can
     use set this function as the converter for FIELD_TYPE.TIME.
     """
-    if not PY2 and isinstance(obj, (bytes, bytearray)):
+    if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode('ascii')
 
     m = TIME_RE.match(obj)
@@ -303,7 +262,7 @@ def convert_date(obj):
       True
 
     """
-    if not PY2 and isinstance(obj, (bytes, bytearray)):
+    if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode('ascii')
     try:
         return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
@@ -327,10 +286,9 @@ convert_bit = through
 encoders = {
     bool: escape_bool,
     int: escape_int,
-    long_type: escape_int,
     float: escape_float,
     str: escape_str,
-    text_type: escape_unicode,
+    bytes: escape_bytes,
     tuple: escape_sequence,
     list: escape_sequence,
     set: escape_sequence,
@@ -345,8 +303,6 @@ encoders = {
     Decimal: Decimal2Literal,
 }
 
-if not PY2 or JYTHON or IRONPYTHON:
-    encoders[bytes] = escape_bytes
 
 decoders = {
     FIELD_TYPE.BIT: convert_bit,

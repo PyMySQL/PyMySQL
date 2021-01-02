@@ -1,7 +1,6 @@
 """
 Implements auth methods
 """
-from ._compat import PY2
 from .err import OperationalError
 from .util import byte2int, int2byte
 
@@ -46,8 +45,6 @@ def scramble_native_password(password, message):
 
 def _my_crypt(message1, message2):
     result = bytearray(message1)
-    if PY2:
-        message2 = bytearray(message2)
 
     for i in range(len(result)):
         result[i] ^= message2[i]
@@ -61,7 +58,7 @@ def _my_crypt(message1, message2):
 SCRAMBLE_LENGTH_323 = 8
 
 
-class RandStruct_323(object):
+class RandStruct_323:
 
     def __init__(self, seed1, seed2):
         self.max_value = 0x3FFFFFFF
@@ -188,7 +185,7 @@ def _xor_password(password, salt):
     # See https://github.com/mysql/mysql-server/blob/7d10c82196c8e45554f27c00681474a9fb86d137/sql/auth/sha2_password.cc#L939-L945
     salt = salt[:SCRAMBLE_LENGTH]
     password_bytes = bytearray(password)
-    salt = bytearray(salt)  # for PY2 compat.
+    #salt = bytearray(salt)  # for PY2 compat.
     salt_len = len(salt)
     for i in range(len(password_bytes)):
         password_bytes[i] ^= salt[i % salt_len]
@@ -259,8 +256,6 @@ def scramble_caching_sha2(password, nonce):
     p3 = hashlib.sha256(p2 + nonce).digest()
 
     res = bytearray(p1)
-    if PY2:
-        p3 = bytearray(p3)
     for i in range(len(p3)):
         res[i] ^= p3[i]
 

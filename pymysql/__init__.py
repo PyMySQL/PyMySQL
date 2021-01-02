@@ -23,7 +23,6 @@ THE SOFTWARE.
 """
 import sys
 
-from ._compat import PY2
 from .constants import FIELD_TYPE
 from .converters import escape_dict, escape_sequence, escape_string
 from .err import (
@@ -79,10 +78,7 @@ ROWID     = DBAPISet()
 
 def Binary(x):
     """Return x as a binary type."""
-    if PY2:
-        return bytearray(x)
-    else:
-        return bytes(x)
+    return bytes(x)
 
 
 def Connect(*args, **kwargs):

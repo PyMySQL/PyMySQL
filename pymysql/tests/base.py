@@ -6,27 +6,6 @@ import warnings
 import unittest
 
 import pymysql
-from .._compat import CPYTHON
-
-
-if CPYTHON:
-    import atexit
-    gc.set_debug(gc.DEBUG_UNCOLLECTABLE)
-
-    @atexit.register
-    def report_uncollectable():
-        import gc
-        if not gc.garbage:
-            print("No garbages!")
-            return
-        print('uncollectable objects')
-        for obj in gc.garbage:
-            print(obj)
-            if hasattr(obj, '__dict__'):
-                print(obj.__dict__)
-            for ref in gc.get_referrers(obj):
-                print("referrer:", ref)
-            print('---')
 
 
 class PyMySQLTestCase(unittest.TestCase):
@@ -111,12 +90,3 @@ class PyMySQLTestCase(unittest.TestCase):
             warnings.simplefilter("ignore")
             cursor.execute("drop table if exists `%s`" % (tablename,))
         cursor.close()
-
-    def safe_gc_collect(self):
-        """Ensure cycles are collected via gc.
-
-        Runs additional times on non-CPython platforms.
-        """
-        gc.collect()
-        if not CPYTHON:
-            gc.collect()

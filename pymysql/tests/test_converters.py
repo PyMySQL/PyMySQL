@@ -1,7 +1,5 @@
 import datetime
 from unittest import TestCase
-
-from pymysql._compat import PY2
 from pymysql import converters
 
 
@@ -15,13 +13,6 @@ class TestConverter(TestCase):
             converters.escape_string(u"foo\nbar"),
             u"foo\\nbar"
         )
-
-    if PY2:
-        def test_escape_string_bytes(self):
-            self.assertEqual(
-                converters.escape_string(b"foo\nbar"),
-                b"foo\\nbar"
-            )
 
     def test_convert_datetime(self):
         expected = datetime.datetime(2007, 2, 24, 23, 6, 20)

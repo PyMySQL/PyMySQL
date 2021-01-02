@@ -6,7 +6,7 @@ MBLENGTH = {
         }
 
 
-class Charset(object):
+class Charset:
     def __init__(self, id, name, collation, is_default):
         self.id, self.name, self.collation = id, name, collation
         self.is_default = is_default == 'Yes'

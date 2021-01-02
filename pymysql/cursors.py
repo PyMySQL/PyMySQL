@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function, absolute_import
-from functools import partial
 import re
 
-from ._compat import range_type, text_type, PY2
 from . import err
 
 
@@ -17,7 +13,7 @@ RE_INSERT_VALUES = re.compile(
     re.IGNORECASE | re.DOTALL)
 
 
-class Cursor(object):
+class Cursor:
     """
     This is the object you use to interact with the database.
 
@@ -100,29 +96,20 @@ class Cursor(object):
         return self._nextset(False)
 
     def _ensure_bytes(self, x, encoding=None):
-        if isinstance(x, text_type):
+        if isinstance(x, str):
             x = x.encode(encoding)
         elif isinstance(x, (tuple, list)):
             x = type(x)(self._ensure_bytes(v, encoding=encoding) for v in x)
         return x
 
     def _escape_args(self, args, conn):
-        ensure_bytes = partial(self._ensure_bytes, encoding=conn.encoding)
-
         if isinstance(args, (tuple, list)):
-            if PY2:
-                args = tuple(map(ensure_bytes, args))
             return tuple(conn.literal(arg) for arg in args)
         elif isinstance(args, dict):
-            if PY2:
-                args = {ensure_bytes(key): ensure_bytes(val) for
-                        (key, val) in args.items()}
             return {key: conn.literal(val) for (key, val) in args.items()}
         else:
             # If it's not a dictionary let's try escaping it anyways.
             # Worst case it will throw a Value error
-            if PY2:
-                args = ensure_bytes(args)
             return conn.escape(args)
 
     def mogrify(self, query, args=None):
@@ -133,8 +120,6 @@ class Cursor(object):
         This method follows the extension to the DB API 2.0 followed by Psycopg.
         """
         conn = self._get_db()
-        if PY2:  # Use bytes on Python 2 always
-            query = self._ensure_bytes(query, encoding=conn.encoding)
 
         if args is not None:
             query = query % self._escape_args(args, conn)
@@ -195,29 +180,21 @@ class Cursor(object):
     def _do_execute_many(self, prefix, values, postfix, args, max_stmt_length, encoding):
         conn = self._get_db()
         escape = self._escape_args
-        if isinstance(prefix, text_type):
+        if isinstance(prefix, str):
             prefix = prefix.encode(encoding)
-        if PY2 and isinstance(values, text_type):
-            values = values.encode(encoding)
-        if isinstance(postfix, text_type):
+        if isinstance(postfix, str):
             postfix = postfix.encode(encoding)
         sql = bytearray(prefix)
         args = iter(args)
         v = values % escape(next(args), conn)
-        if isinstance(v, text_type):
-            if PY2:
-                v = v.encode(encoding)
-            else:
-                v = v.encode(encoding, 'surrogateescape')
+        if isinstance(v, str):
+            v = v.encode(encoding, 'surrogateescape')
         sql += v
         rows = 0
         for arg in args:
             v = values % escape(arg, conn)
-            if isinstance(v, text_type):
-                if PY2:
-                    v = v.encode(encoding)
-                else:
-                    v = v.encode(encoding, 'surrogateescape')
+            if isinstance(v, str):
+                v = v.encode(encoding, 'surrogateescape')
             if len(sql) + len(v) + len(postfix) + 1 > max_stmt_length:
                 rows += self.execute(sql + postfix)
                 sql = bytearray(prefix)
@@ -265,7 +242,7 @@ class Cursor(object):
 
         q = "CALL %s(%s)" % (procname,
                              ','.join(['@_%s_%d' % (procname, i)
-                                       for i in range_type(len(args))]))
+                                       for i in range(len(args))]))
         self._query(q)
         self._executed = q
         return args
@@ -356,7 +333,7 @@ class Cursor(object):
     NotSupportedError = err.NotSupportedError
 
 
-class DictCursorMixin(object):
+class DictCursorMixin:
     # You can override this to use OrderedDict or other dict-like types.
     dict_type = dict
 
@@ -469,7 +446,7 @@ class SSCursor(Cursor):
             size = self.arraysize
 
         rows = []
-        for i in range_type(size):
+        for i in range(size):
             row = self.read_next()
             if row is None:
                 break
@@ -485,7 +462,7 @@ class SSCursor(Cursor):
                 raise err.NotSupportedError(
                         "Backwards scrolling not supported by this cursor")
 
-            for _ in range_type(value):
+            for _ in range(value):
                 self.read_next()
             self.rownumber += value
         elif mode == 'absolute':
@@ -494,7 +471,7 @@ class SSCursor(Cursor):
                     "Backwards scrolling not supported by this cursor")
 
             end = value - self.rownumber
-            for _ in range_type(end):
+            for _ in range(end):
                 self.read_next()
             self.rownumber = value
         else:

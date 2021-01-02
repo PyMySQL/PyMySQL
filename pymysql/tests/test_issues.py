@@ -7,15 +7,7 @@ import pytest
 
 import pymysql
 from pymysql import cursors
-from pymysql._compat import text_type
 from pymysql.tests import base
-
-try:
-    import imp
-    reload = imp.reload
-except AttributeError:
-    pass
-
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
@@ -89,13 +81,6 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             self.assertEqual(0, c.execute("SELECT * FROM test"))
         finally:
             c.execute("drop table test")
-
-    def test_issue_9(self):
-        """ sets DeprecationWarning in Python 2.6 """
-        try:
-            reload(pymysql)
-        except DeprecationWarning:
-            self.fail()
 
     def test_issue_13(self):
         """ can't handle large result fields """
