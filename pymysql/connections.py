@@ -152,6 +152,12 @@ class Connection(object):
         (default: 10, min: 1, max: 31536000)
     :param ssl:
         A dict of arguments similar to mysql_ssl_set()'s parameters.
+    :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate
+    :param ssl_cert: Path to the file that contains a PEM-formatted client certificate
+    :param ssl_disabled: A boolean value that disables usage of TLS
+    :param ssl_key: Path to the file that contains a PEM-formatted private key for the client certificate
+    :param ssl_verify_cert: Set to true to check the validity of server certificates
+    :param ssl_verify_identity: Set to true to check the server's identity
     :param read_default_group: Group to read from in the configuration file.
     :param compress: Not supported
     :param named_pipe: Not supported
@@ -191,7 +197,9 @@ class Connection(object):
                  max_allowed_packet=16*1024*1024, defer_connect=False,
                  auth_plugin_map=None, read_timeout=None, write_timeout=None,
                  bind_address=None, binary_prefix=False, program_name=None,
-                 server_public_key=None):
+                 server_public_key=None, ssl_ca=None, ssl_cert=None,
+                 ssl_disabled=None, ssl_key=None, ssl_verify_cert=None,
+                 ssl_verify_identity=None):
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
 
@@ -245,12 +253,23 @@ class Connection(object):
                         ssl[key] = value
 
         self.ssl = False
-        if ssl:
-            if not SSL_ENABLED:
-                raise NotImplementedError("ssl module not found")
-            self.ssl = True
-            client_flag |= CLIENT.SSL
-            self.ctx = self._create_ssl_ctx(ssl)
+        if not ssl_disabled:
+            if ssl_ca or ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
+                ssl = {
+                    "ca": ssl_ca,
+                    "check_hostname": bool(ssl_verify_identity),
+                    "verify_mode": ssl_verify_cert if ssl_verify_cert is not None else False,
+                }
+                if ssl_cert is not None:
+                    ssl["cert"] = ssl_cert
+                if ssl_key is not None:
+                    ssl["key" ] = ssl_key
+            if ssl:
+                if not SSL_ENABLED:
+                    raise NotImplementedError("ssl module not found")
+                self.ssl = True
+                client_flag |= CLIENT.SSL
+                self.ctx = self._create_ssl_ctx(ssl)
 
         self.host = host or "localhost"
         self.port = port or 3306
@@ -341,7 +360,22 @@ class Connection(object):
         hasnoca = ca is None and capath is None
         ctx = ssl.create_default_context(cafile=ca, capath=capath)
         ctx.check_hostname = not hasnoca and sslp.get('check_hostname', True)
-        ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
+        verify_mode_value = sslp.get('verify_mode')
+        if verify_mode_value is None:
+            ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
+        elif isinstance(verify_mode_value, bool):
+            ctx.verify_mode = ssl.CERT_REQUIRED if verify_mode_value else ssl.CERT_NONE
+        else:
+            if isinstance(verify_mode_value, (text_type, str_type)):
+                verify_mode_value = verify_mode_value.lower()
+            if verify_mode_value in ("none", "0", "false", "no"):
+                ctx.verify_mode = ssl.CERT_NONE
+            elif verify_mode_value == "optional":
+                ctx.verify_mode = ssl.CERT_OPTIONAL
+            elif verify_mode_value in ("required", "1", "true", "yes"):
+                ctx.verify_mode = ssl.CERT_REQUIRED
+            else:
+                ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if 'cert' in sslp:
             ctx.load_cert_chain(sslp['cert'], keyfile=sslp.get('key'))
         if 'cipher' in sslp:
