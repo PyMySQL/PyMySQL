@@ -325,7 +325,14 @@ class Connection(object):
             self._sock = None
         else:
             self.connect()
-
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *exc_info):
+        del exc_info
+        self.close()
+        
     def _create_ssl_ctx(self, sslp):
         if isinstance(sslp, ssl.SSLContext):
             return sslp
