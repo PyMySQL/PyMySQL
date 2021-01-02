@@ -3,7 +3,6 @@
 # Error codes:
 # https://dev.mysql.com/doc/refman/5.5/en/error-handling.html
 import errno
-import io
 import os
 import socket
 import struct

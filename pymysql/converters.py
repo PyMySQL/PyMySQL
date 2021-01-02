@@ -288,7 +288,7 @@ encoders = {
     int: escape_int,
     float: escape_float,
     str: escape_str,
-    bytes: escape_bytes
+    bytes: escape_bytes,
     tuple: escape_sequence,
     list: escape_sequence,
     set: escape_sequence,
