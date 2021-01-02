@@ -1,4 +1,3 @@
-from functools import partial
 import re
 
 from . import err
@@ -104,8 +103,6 @@ class Cursor:
         return x
 
     def _escape_args(self, args, conn):
-        ensure_bytes = partial(self._ensure_bytes, encoding=conn.encoding)
-
         if isinstance(args, (tuple, list)):
             return tuple(conn.literal(arg) for arg in args)
         elif isinstance(args, dict):
