@@ -32,8 +32,7 @@ jobs:
           MYSQL_USER: test2
           MYSQL_PASSWORD: "some password"
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
-        options:
-          name: "mysqld"
+        options: "--name=mysqld"
 
     steps:
       - name: Set up MySQL
