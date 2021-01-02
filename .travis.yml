@@ -10,9 +10,6 @@ services:
 matrix:
   include:
     - env:
-        - DB=mariadb:5.5
-      python: "3.5"
-    - env:
         - DB=mariadb:10.2
       python: "3.6"
     - env:
@@ -20,19 +17,12 @@ matrix:
         - TEST_MARIADB_AUTH=yes
       python: "pypy3"
     - env:
-        - DB=mariadb:10.4
-        - TEST_MARIADB_AUTH=yes
-      python: "2.7"
-    - env:
         - DB=mariadb:10.5
         - TEST_MARIADB_AUTH=yes
       python: "3.7"
     - env:
-        - DB=mysql:5.5
-      python: "3.5"
-    - env:
         - DB=mysql:5.6
-      python: "3.9-dev"
+      python: "3.9"
     - env:
         - DB=mysql:5.7
       python: "3.7"
@@ -40,10 +30,6 @@ matrix:
         - DB=mysql:8.0
         - TEST_AUTH=yes
       python: "3.8"
-    - env:
-        - DB=mysql:8.0
-        - TEST_AUTH=yes
-      python: "2.7"
 
 # different py version from 5.6 and 5.7 as cache seems to be based on py version
 # http://dev.mysql.com/downloads/mysql/5.7.html has latest development release version
