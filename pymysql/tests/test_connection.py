@@ -4,7 +4,6 @@ import time
 import pytest
 import pymysql
 from pymysql.tests import base
-from pymysql._compat import text_type
 from pymysql.constants import CLIENT
 
 import pytest
@@ -523,7 +522,7 @@ class TestEscape(base.PyMySQLTestCase):
         class Custom(str):
             pass
 
-        mapping = {text_type: pymysql.escape_string}
+        mapping = {str: pymysql.escape_string}
         self.assertEqual(con.escape(Custom('foobar'), mapping), "'foobar'")
 
     def test_escape_no_default(self):
