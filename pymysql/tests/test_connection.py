@@ -139,7 +139,7 @@ class TestAuthentication(base.PyMySQLTestCase):
                       self.databases[0]['db'], self.socket_plugin_name) as u:
             c = pymysql.connect(user=TestAuthentication.osuser, **self.db)
 
-    class Dialog(object):
+    class Dialog:
         fail=False
 
         def __init__(self, con):
@@ -152,7 +152,7 @@ class TestAuthentication(base.PyMySQLTestCase):
                return b'bad guess at a password'
             return self.m.get(prompt)
 
-    class DialogHandler(object):
+    class DialogHandler:
 
         def __init__(self, con):
             self.con=con
@@ -174,7 +174,7 @@ class TestAuthentication(base.PyMySQLTestCase):
                     break
             return pkt
 
-    class DefectiveHandler(object):
+    class DefectiveHandler:
         def __init__(self, con):
             self.con=con
 
@@ -480,7 +480,7 @@ class TestConnection(base.PyMySQLTestCase):
 
 
 # A custom type and function to escape it
-class Foo(object):
+class Foo:
     value = "bar"
 
 

@@ -2,9 +2,6 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 # Error codes:
 # https://dev.mysql.com/doc/refman/5.5/en/error-handling.html
-from __future__ import print_function
-from ._compat import PY2, range_type, text_type, str_type, JYTHON, IRONPYTHON
-
 import errno
 import io
 import os
@@ -47,32 +44,11 @@ DEBUG = False
 
 _py_version = sys.version_info[:2]
 
-if PY2:
-    pass
-elif _py_version < (3, 6):
-    # See http://bugs.python.org/issue24870
-    _surrogateescape_table = [chr(i) if i < 0x80 else chr(i + 0xdc00) for i in range(256)]
+def _fast_surrogateescape(s):
+    return s.decode('ascii', 'surrogateescape')
 
-    def _fast_surrogateescape(s):
-        return s.decode('latin1').translate(_surrogateescape_table)
-else:
-    def _fast_surrogateescape(s):
-        return s.decode('ascii', 'surrogateescape')
-
-# socket.makefile() in Python 2 is not usable because very inefficient and
-# bad behavior about timeout.
-# XXX: ._socketio doesn't work under IronPython.
-if PY2 and not IRONPYTHON:
-    # read method of file-like returned by sock.makefile() is very slow.
-    # So we copy io-based one from Python 3.
-    from ._socketio import SocketIO
-
-    def _makefile(sock, mode):
-        return io.BufferedReader(SocketIO(sock, mode))
-else:
-    # socket.makefile in Python 3 is nice.
-    def _makefile(sock, mode):
-        return sock.makefile(mode)
+def _makefile(sock, mode):
+    return sock.makefile(mode)
 
 
 TEXT_TYPES = {
@@ -113,7 +89,7 @@ def lenenc_int(i):
         raise ValueError("Encoding %x is larger than %x - no representation in LengthEncodedInteger" % (i, (1 << 64)))
 
 
-class Connection(object):
+class Connection:
     """
     Representation of a socket with a mysql server.
 
@@ -258,7 +234,7 @@ class Connection(object):
             raise ValueError("port should be of type int")
         self.user = user or DEFAULT_USER
         self.password = password or b""
-        if isinstance(self.password, text_type):
+        if isinstance(self.password, str):
             self.password = self.password.encode('latin1')
         self.db = database
         self.unix_socket = unix_socket
@@ -459,7 +435,7 @@ class Connection(object):
 
         Non-standard, for internal use; do not use this in your applications.
         """
-        if isinstance(obj, str_type):
+        if isinstance(obj, str):
             return "'" + self.escape_string(obj) + "'"
         if isinstance(obj, (bytes, bytearray)):
             ret = self._quote_bytes(obj)
@@ -503,11 +479,8 @@ class Connection(object):
     def query(self, sql, unbuffered=False):
         # if DEBUG:
         #     print("DEBUG: sending query:", sql)
-        if isinstance(sql, text_type) and not (JYTHON or IRONPYTHON):
-            if PY2:
-                sql = sql.encode(self.encoding)
-            else:
-                sql = sql.encode(self.encoding, 'surrogateescape')
+        if isinstance(sql, str):
+            sql = sql.encode(self.encoding, 'surrogateescape')
         self._execute_command(COMMAND.COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
@@ -758,7 +731,7 @@ class Connection(object):
                 self.next_result()
             self._result = None
 
-        if isinstance(sql, text_type):
+        if isinstance(sql, str):
             sql = sql.encode(self.encoding)
 
         packet_size = min(MAX_PACKET_LEN, len(sql) + 1)  # +1 is for command
@@ -791,7 +764,7 @@ class Connection(object):
             raise ValueError("Did not specify a username")
 
         charset_id = charset_by_name(self.charset).id
-        if isinstance(self.user, text_type):
+        if isinstance(self.user, str):
             self.user = self.user.encode(self.encoding)
 
         data_init = struct.pack('<iIB23s', self.client_flag, MAX_PACKET_LEN, charset_id, b'')
@@ -840,7 +813,7 @@ class Connection(object):
             data += authresp + b'\0'
 
         if self.db and self.server_capabilities & CLIENT.CONNECT_WITH_DB:
-            if isinstance(self.db, text_type):
+            if isinstance(self.db, str):
                 self.db = self.db.encode(self.encoding)
             data += self.db + b'\0'
 
@@ -1049,7 +1022,7 @@ class Connection(object):
     NotSupportedError = err.NotSupportedError
 
 
-class MySQLResult(object):
+class MySQLResult:
 
     def __init__(self, connection):
         """
@@ -1219,7 +1192,7 @@ class MySQLResult(object):
         conn_encoding = self.connection.encoding
         description = []
 
-        for i in range_type(self.field_count):
+        for i in range(self.field_count):
             field = self.connection._read_packet(FieldDescriptorPacket)
             self.fields.append(field)
             description.append(field.description())
@@ -1254,7 +1227,7 @@ class MySQLResult(object):
         self.description = tuple(description)
 
 
-class LoadLocalFile(object):
+class LoadLocalFile:
     def __init__(self, filename, connection):
         self.filename = filename
         self.connection = connection
