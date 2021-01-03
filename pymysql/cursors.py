@@ -292,6 +292,7 @@ class Cursor:
         self.rownumber = r
 
     def _query(self, q):
+        print(q)
         conn = self._get_db()
         self._last_executed = q
         self._clear_result()
