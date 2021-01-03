@@ -9,6 +9,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - uses: psf/black@stable
+        with:
+          args: ". --diff --check"
       - name: Setup flake8 annotations
         uses: rbialon/flake8-annotations@v1
       - name: flake8
