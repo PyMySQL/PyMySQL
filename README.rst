@@ -35,13 +35,13 @@ Requirements
 
 * Python -- one of the following:
 
-  - CPython_ : 2.7 and >= 3.5
-  - PyPy_ : Latest version
+  - CPython_ : 3.6 and newer
+  - PyPy_ : Latest 3.x version
 
 * MySQL Server -- one of the following:
 
-  - MySQL_ >= 5.5
-  - MariaDB_ >= 5.5
+  - MySQL_ >= 5.6
+  - MariaDB_ >= 10.0
 
 .. _CPython: https://www.python.org/
 .. _PyPy: https://pypy.org/
@@ -76,6 +76,7 @@ Documentation is available online: https://pymysql.readthedocs.io/
 
 For support, please refer to the `StackOverflow
 <https://stackoverflow.com/questions/tagged/pymysql>`_.
+
 
 Example
 -------
