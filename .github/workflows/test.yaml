@@ -50,5 +50,5 @@ jobs:
           cp .travis/docker.json pymysql/tests/databases.json
       - name: Run test
         run: |
-          pip install -U cryptography PyNaCl pytest pytest-cov
+          pip install -U cryptography PyNaCl pytest pytest-cov mock
           pytest -v --cov --cov-config .coveragerc pymysql
