@@ -1,6 +1,4 @@
 import re
-import traceback
-
 from . import err
 
 
@@ -296,13 +294,8 @@ class Cursor:
         conn = self._get_db()
         self._last_executed = q
         self._clear_result()
-        try:
-            conn.query(q)
-            self._do_get_result()
-        except:
-            traceback.print_exc()
-            print(repr(q))
-            raise
+        conn.query(q)
+        self._do_get_result()
         return self.rowcount
 
     def _clear_result(self):
