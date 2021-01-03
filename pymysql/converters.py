@@ -25,12 +25,14 @@ def escape_item(val, charset, mapping=None):
         val = encoder(val, mapping)
     return val
 
+
 def escape_dict(val, charset, mapping=None):
     n = {}
     for k, v in val.items():
         quoted = escape_item(v, charset, mapping)
         n[k] = quoted
     return n
+
 
 def escape_sequence(val, charset, mapping=None):
     n = []
@@ -39,31 +41,37 @@ def escape_sequence(val, charset, mapping=None):
         n.append(quoted)
     return "(" + ",".join(n) + ")"
 
+
 def escape_set(val, charset, mapping=None):
-    return ','.join([escape_item(x, charset, mapping) for x in val])
+    return ",".join([escape_item(x, charset, mapping) for x in val])
+
 
 def escape_bool(value, mapping=None):
     return str(int(value))
 
+
 def escape_int(value, mapping=None):
     return str(value)
 
+
 def escape_float(value, mapping=None):
     s = repr(value)
-    if s in ('inf', 'nan'):
+    if s in ("inf", "nan"):
         raise ProgrammingError("%s can not be used with MySQL" % s)
-    if 'e' not in s:
-        s += 'e0'
+    if "e" not in s:
+        s += "e0"
     return s
 
+
 _escape_table = [chr(x) for x in range(128)]
-_escape_table[0] = u'\\0'
-_escape_table[ord('\\')] = u'\\\\'
-_escape_table[ord('\n')] = u'\\n'
-_escape_table[ord('\r')] = u'\\r'
-_escape_table[ord('\032')] = u'\\Z'
+_escape_table[0] = u"\\0"
+_escape_table[ord("\\")] = u"\\\\"
+_escape_table[ord("\n")] = u"\\n"
+_escape_table[ord("\r")] = u"\\r"
+_escape_table[ord("\032")] = u"\\Z"
 _escape_table[ord('"')] = u'\\"'
 _escape_table[ord("'")] = u"\\'"
+
 
 def escape_string(value, mapping=None):
     """escapes *value* without adding quote.
@@ -74,18 +82,22 @@ def escape_string(value, mapping=None):
 
 
 def escape_bytes_prefixed(value, mapping=None):
-    return "_binary'%s'" % value.decode('ascii', 'surrogateescape').translate(_escape_table)
+    return "_binary'%s'" % value.decode("ascii", "surrogateescape").translate(
+        _escape_table
+    )
 
 
 def escape_bytes(value, mapping=None):
-    return "'%s'" % value.decode('ascii', 'surrogateescape').translate(_escape_table)
+    return "'%s'" % value.decode("ascii", "surrogateescape").translate(_escape_table)
 
 
 def escape_str(value, mapping=None):
     return "'%s'" % escape_string(str(value), mapping)
 
+
 def escape_None(value, mapping=None):
-    return 'NULL'
+    return "NULL"
+
 
 def escape_timedelta(obj, mapping=None):
     seconds = int(obj.seconds) % 60
@@ -97,12 +109,14 @@ def escape_timedelta(obj, mapping=None):
         fmt = "'{0:02d}:{1:02d}:{2:02d}'"
     return fmt.format(hours, minutes, seconds, obj.microseconds)
 
+
 def escape_time(obj, mapping=None):
     if obj.microsecond:
         fmt = "'{0.hour:02}:{0.minute:02}:{0.second:02}.{0.microsecond:06}'"
     else:
         fmt = "'{0.hour:02}:{0.minute:02}:{0.second:02}'"
     return fmt.format(obj)
+
 
 def escape_datetime(obj, mapping=None):
     if obj.microsecond:
@@ -111,9 +125,11 @@ def escape_datetime(obj, mapping=None):
         fmt = "'{0.year:04}-{0.month:02}-{0.day:02} {0.hour:02}:{0.minute:02}:{0.second:02}'"
     return fmt.format(obj)
 
+
 def escape_date(obj, mapping=None):
     fmt = "'{0.year:04}-{0.month:02}-{0.day:02}'"
     return fmt.format(obj)
+
 
 def escape_struct_time(obj, mapping=None):
     return escape_datetime(datetime.datetime(*obj[:6]))
@@ -127,10 +143,13 @@ def _convert_second_fraction(s):
     if not s:
         return 0
     # Pad zeros to ensure the fraction length in microseconds
-    s = s.ljust(6, '0')
+    s = s.ljust(6, "0")
     return int(s[:6])
 
-DATETIME_RE = re.compile(r"(\d{1,4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?")
+
+DATETIME_RE = re.compile(
+    r"(\d{1,4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?"
+)
 
 
 def convert_datetime(obj):
@@ -150,7 +169,7 @@ def convert_datetime(obj):
 
     """
     if isinstance(obj, (bytes, bytearray)):
-        obj = obj.decode('ascii')
+        obj = obj.decode("ascii")
 
     m = DATETIME_RE.match(obj)
     if not m:
@@ -159,9 +178,10 @@ def convert_datetime(obj):
     try:
         groups = list(m.groups())
         groups[-1] = _convert_second_fraction(groups[-1])
-        return datetime.datetime(*[ int(x) for x in groups ])
+        return datetime.datetime(*[int(x) for x in groups])
     except ValueError:
         return convert_date(obj)
+
 
 TIMEDELTA_RE = re.compile(r"(-)?(\d{1,3}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?")
 
@@ -184,7 +204,7 @@ def convert_timedelta(obj):
     be parsed correctly by this function.
     """
     if isinstance(obj, (bytes, bytearray)):
-        obj = obj.decode('ascii')
+        obj = obj.decode("ascii")
 
     m = TIMEDELTA_RE.match(obj)
     if not m:
@@ -196,15 +216,19 @@ def convert_timedelta(obj):
         negate = -1 if groups[0] else 1
         hours, minutes, seconds, microseconds = groups[1:]
 
-        tdelta = datetime.timedelta(
-            hours = int(hours),
-            minutes = int(minutes),
-            seconds = int(seconds),
-            microseconds = int(microseconds)
-            ) * negate
+        tdelta = (
+            datetime.timedelta(
+                hours=int(hours),
+                minutes=int(minutes),
+                seconds=int(seconds),
+                microseconds=int(microseconds),
+            )
+            * negate
+        )
         return tdelta
     except ValueError:
         return obj
+
 
 TIME_RE = re.compile(r"(\d{1,2}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?")
 
@@ -232,7 +256,7 @@ def convert_time(obj):
     use set this function as the converter for FIELD_TYPE.TIME.
     """
     if isinstance(obj, (bytes, bytearray)):
-        obj = obj.decode('ascii')
+        obj = obj.decode("ascii")
 
     m = TIME_RE.match(obj)
     if not m:
@@ -242,8 +266,12 @@ def convert_time(obj):
         groups = list(m.groups())
         groups[-1] = _convert_second_fraction(groups[-1])
         hours, minutes, seconds, microseconds = groups
-        return datetime.time(hour=int(hours), minute=int(minutes),
-                             second=int(seconds), microsecond=int(microseconds))
+        return datetime.time(
+            hour=int(hours),
+            minute=int(minutes),
+            second=int(seconds),
+            microsecond=int(microseconds),
+        )
     except ValueError:
         return obj
 
@@ -263,9 +291,9 @@ def convert_date(obj):
 
     """
     if isinstance(obj, (bytes, bytearray)):
-        obj = obj.decode('ascii')
+        obj = obj.decode("ascii")
     try:
-        return datetime.date(*[ int(x) for x in obj.split('-', 2) ])
+        return datetime.date(*[int(x) for x in obj.split("-", 2)])
     except ValueError:
         return obj
 
@@ -274,7 +302,7 @@ def through(x):
     return x
 
 
-#def convert_bit(b):
+# def convert_bit(b):
 #    b = "\x00" * (8 - len(b)) + b # pad w/ zeroes
 #    return struct.unpack(">Q", b)[0]
 #

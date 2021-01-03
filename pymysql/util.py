@@ -10,4 +10,3 @@ def byte2int(b):
 
 def int2byte(i):
     return struct.pack("!B", i)
-

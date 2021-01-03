@@ -15,8 +15,9 @@ def test_ed25519_no_password():
 
 
 def test_ed25519_password():  # nosec
-    con = pymysql.connect(user="user_ed25519", password="pass_ed25519",
-                          host=host, port=port, ssl=None)
+    con = pymysql.connect(
+        user="user_ed25519", password="pass_ed25519", host=host, port=port, ssl=None
+    )
     con.close()
 
 

@@ -7,11 +7,11 @@ from pymysql.constants import CLIENT
 
 
 class TestNextset(base.PyMySQLTestCase):
-
     def test_nextset(self):
         con = self.connect(
             init_command='SELECT "bar"; SELECT "baz"',
-            client_flag=CLIENT.MULTI_STATEMENTS)
+            client_flag=CLIENT.MULTI_STATEMENTS,
+        )
         cur = con.cursor()
         cur.execute("SELECT 1; SELECT 2;")
         self.assertEqual([(1,)], list(cur))
@@ -71,14 +71,14 @@ class TestNextset(base.PyMySQLTestCase):
     def test_multi_statement_warnings(self):
         con = self.connect(
             init_command='SELECT "bar"; SELECT "baz"',
-            client_flag=CLIENT.MULTI_STATEMENTS)
+            client_flag=CLIENT.MULTI_STATEMENTS,
+        )
         cursor = con.cursor()
 
         try:
-            cursor.execute('DROP TABLE IF EXISTS a; '
-                           'DROP TABLE IF EXISTS b;')
+            cursor.execute("DROP TABLE IF EXISTS a; " "DROP TABLE IF EXISTS b;")
         except TypeError:
             self.fail()
 
-    #TODO: How about SSCursor and nextset?
+    # TODO: How about SSCursor and nextset?
     # It's very hard to implement correctly...

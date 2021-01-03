@@ -6,10 +6,11 @@ from . import err
 #: executemany only supports simple bulk insert.
 #: You can use it to load large dataset.
 RE_INSERT_VALUES = re.compile(
-    r"\s*((?:INSERT|REPLACE)\b.+\bVALUES?\s*)" +
-    r"(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))" +
-    r"(\s*(?:ON DUPLICATE.*)?);?\s*\Z",
-    re.IGNORECASE | re.DOTALL)
+    r"\s*((?:INSERT|REPLACE)\b.+\bVALUES?\s*)"
+    + r"(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))"
+    + r"(\s*(?:ON DUPLICATE.*)?);?\s*\Z",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 class Cursor:
@@ -167,16 +168,23 @@ class Cursor:
         if m:
             q_prefix = m.group(1) % ()
             q_values = m.group(2).rstrip()
-            q_postfix = m.group(3) or ''
-            assert q_values[0] == '(' and q_values[-1] == ')'
-            return self._do_execute_many(q_prefix, q_values, q_postfix, args,
-                                         self.max_stmt_length,
-                                         self._get_db().encoding)
+            q_postfix = m.group(3) or ""
+            assert q_values[0] == "(" and q_values[-1] == ")"
+            return self._do_execute_many(
+                q_prefix,
+                q_values,
+                q_postfix,
+                args,
+                self.max_stmt_length,
+                self._get_db().encoding,
+            )
 
         self.rowcount = sum(self.execute(query, arg) for arg in args)
         return self.rowcount
 
-    def _do_execute_many(self, prefix, values, postfix, args, max_stmt_length, encoding):
+    def _do_execute_many(
+        self, prefix, values, postfix, args, max_stmt_length, encoding
+    ):
         conn = self._get_db()
         escape = self._escape_args
         if isinstance(prefix, str):
@@ -187,18 +195,18 @@ class Cursor:
         args = iter(args)
         v = values % escape(next(args), conn)
         if isinstance(v, str):
-            v = v.encode(encoding, 'surrogateescape')
+            v = v.encode(encoding, "surrogateescape")
         sql += v
         rows = 0
         for arg in args:
             v = values % escape(arg, conn)
             if isinstance(v, str):
-                v = v.encode(encoding, 'surrogateescape')
+                v = v.encode(encoding, "surrogateescape")
             if len(sql) + len(v) + len(postfix) + 1 > max_stmt_length:
                 rows += self.execute(sql + postfix)
                 sql = bytearray(prefix)
             else:
-                sql += b','
+                sql += b","
             sql += v
         rows += self.execute(sql + postfix)
         self.rowcount = rows
@@ -234,14 +242,19 @@ class Cursor:
         """
         conn = self._get_db()
         if args:
-            fmt = '@_{0}_%d=%s'.format(procname)
-            self._query('SET %s' % ','.join(fmt % (index, conn.escape(arg))
-                                            for index, arg in enumerate(args)))
+            fmt = "@_{0}_%d=%s".format(procname)
+            self._query(
+                "SET %s"
+                % ",".join(
+                    fmt % (index, conn.escape(arg)) for index, arg in enumerate(args)
+                )
+            )
             self.nextset()
 
-        q = "CALL %s(%s)" % (procname,
-                             ','.join(['@_%s_%d' % (procname, i)
-                                       for i in range(len(args))]))
+        q = "CALL %s(%s)" % (
+            procname,
+            ",".join(["@_%s_%d" % (procname, i) for i in range(len(args))]),
+        )
         self._query(q)
         self._executed = q
         return args
@@ -261,7 +274,7 @@ class Cursor:
         if self._rows is None:
             return ()
         end = self.rownumber + (size or self.arraysize)
-        result = self._rows[self.rownumber:end]
+        result = self._rows[self.rownumber : end]
         self.rownumber = min(end, len(self._rows))
         return result
 
@@ -271,17 +284,17 @@ class Cursor:
         if self._rows is None:
             return ()
         if self.rownumber:
-            result = self._rows[self.rownumber:]
+            result = self._rows[self.rownumber :]
         else:
             result = self._rows
         self.rownumber = len(self._rows)
         return result
 
-    def scroll(self, value, mode='relative'):
+    def scroll(self, value, mode="relative"):
         self._check_executed()
-        if mode == 'relative':
+        if mode == "relative":
             r = self.rownumber + value
-        elif mode == 'absolute':
+        elif mode == "absolute":
             r = value
         else:
             raise err.ProgrammingError("unknown scroll mode %s" % mode)
@@ -343,7 +356,7 @@ class DictCursorMixin:
             for f in self._result.fields:
                 name = f.name
                 if name in fields:
-                    name = f.table_name + '.' + name
+                    name = f.table_name + "." + name
                 fields.append(name)
             self._fields = fields
 
@@ -453,21 +466,23 @@ class SSCursor(Cursor):
             self.rownumber += 1
         return rows
 
-    def scroll(self, value, mode='relative'):
+    def scroll(self, value, mode="relative"):
         self._check_executed()
 
-        if mode == 'relative':
+        if mode == "relative":
             if value < 0:
                 raise err.NotSupportedError(
-                        "Backwards scrolling not supported by this cursor")
+                    "Backwards scrolling not supported by this cursor"
+                )
 
             for _ in range(value):
                 self.read_next()
             self.rownumber += value
-        elif mode == 'absolute':
+        elif mode == "absolute":
             if value < self.rownumber:
                 raise err.NotSupportedError(
-                    "Backwards scrolling not supported by this cursor")
+                    "Backwards scrolling not supported by this cursor"
+                )
 
             end = value - self.rownumber
             for _ in range(end):
