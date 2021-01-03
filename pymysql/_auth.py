@@ -2,7 +2,6 @@
 Implements auth methods
 """
 from .err import OperationalError
-from .util import byte2int
 
 
 try:
@@ -16,7 +15,6 @@ except ImportError:
 
 from functools import partial
 import hashlib
-import struct
 
 
 DEBUG = False
@@ -49,22 +47,6 @@ def _my_crypt(message1, message2):
         result[i] ^= message2[i]
 
     return bytes(result)
-
-
-def _hash_password_323(password):
-    nr = 1345345333
-    add = 7
-    nr2 = 0x12345671
-
-    # x in py3 is numbers, p27 is chars
-    for c in [byte2int(x) for x in password if x not in (" ", "\t", 32, 9)]:
-        nr ^= (((nr & 63) + add) * c) + (nr << 8) & 0xFFFFFFFF
-        nr2 = (nr2 + ((nr2 << 8) ^ nr)) & 0xFFFFFFFF
-        add = (add + c) & 0xFFFFFFFF
-
-    r1 = nr & ((1 << 31) - 1)  # kill sign bits
-    r2 = nr2 & ((1 << 31) - 1)
-    return struct.pack(">LL", r1, r2)
 
 
 # MariaDB's client_ed25519-plugin
