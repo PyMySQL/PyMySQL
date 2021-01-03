@@ -302,6 +302,7 @@ class Cursor:
         except:
             traceback.print_exc()
             print(repr(q))
+            raise
         return self.rowcount
 
     def _clear_result(self):
