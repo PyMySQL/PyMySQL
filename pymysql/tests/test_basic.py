@@ -4,7 +4,6 @@ import time
 
 import pytest
 
-from pymysql import util
 import pymysql.cursors
 from pymysql.tests import base
 from pymysql.err import ProgrammingError
