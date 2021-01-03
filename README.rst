@@ -5,9 +5,6 @@
 .. image:: https://badge.fury.io/py/PyMySQL.svg
     :target: https://badge.fury.io/py/PyMySQL
 
-.. image:: https://travis-ci.com/PyMySQL/PyMySQL.svg?branch=master
-    :target: https://travis-ci.com/PyMySQL/PyMySQL
-
 .. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=master&service=github
     :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
 
