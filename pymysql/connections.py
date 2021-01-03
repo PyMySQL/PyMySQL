@@ -341,7 +341,7 @@ class Connection:
         elif isinstance(verify_mode_value, bool):
             ctx.verify_mode = ssl.CERT_REQUIRED if verify_mode_value else ssl.CERT_NONE
         else:
-            if isinstance(verify_mode_value, (text_type, str_type)):
+            if isinstance(verify_mode_value, str):
                 verify_mode_value = verify_mode_value.lower()
             if verify_mode_value in ("none", "0", "false", "no"):
                 ctx.verify_mode = ssl.CERT_NONE
