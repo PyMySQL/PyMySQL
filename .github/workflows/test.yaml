@@ -64,11 +64,27 @@ jobs:
 
       - name: Run MySQL8 auth test
         if: ${{ matrix.mysql_auth }}
-        run: pytest -v --cov --cov-config .coveragerc tests/test_auth.py;
+        run: |
+          mysql -uroot -h127.0.0.1 -e '
+              CREATE USER
+                  user_sha256   IDENTIFIED WITH "sha256_password" BY "pass_sha256_01234567890123456789",
+                  nopass_sha256 IDENTIFIED WITH "sha256_password",
+                  user_caching_sha2   IDENTIFIED WITH "caching_sha2_password" BY "pass_caching_sha2_01234567890123456789",
+                  nopass_caching_sha2 IDENTIFIED WITH "caching_sha2_password"
+                  PASSWORD EXPIRE NEVER;
+              GRANT RELOAD ON *.* TO user_caching_sha2;'
+          pytest -v --cov --cov-config .coveragerc tests/test_auth.py;
 
       - name: Run MariaDB auth test
         if: ${{ matrix.mariadb_auth }}
-        run: pytest -v --cov --cov-config .coveragerc tests/test_mariadb_auth.py
+        run: |
+          mysql -uroot -h127.0.0.1 -e '
+              INSTALL SONAME "auth_ed25519";
+              CREATE FUNCTION ed25519_password RETURNS STRING SONAME "auth_ed25519.so";'
+          # we need to pass the hashed password manually until 10.4, so hide it here
+          mysql -uroot -h127.0.0.1 -sNe "SELECT CONCAT('CREATE USER nopass_ed25519 IDENTIFIED VIA ed25519 USING \"',ed25519_password(\"\"),'\";');" | mysql -uroot -h127.0.0.1
+          mysql -uroot -h127.0.0.1 -sNe "SELECT CONCAT('CREATE USER user_ed25519 IDENTIFIED VIA ed25519 USING \"',ed25519_password(\"pass_ed25519\"),'\";');" | mysql -uroot -h127.0.0.1
+          pytest -v --cov --cov-config .coveragerc tests/test_mariadb_auth.py
 
       - name: Report coverage
         run: coveralls
