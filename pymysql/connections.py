@@ -47,17 +47,6 @@ except (ImportError, KeyError):
 
 DEBUG = False
 
-_py_version = sys.version_info[:2]
-
-
-def _fast_surrogateescape(s):
-    return s.decode("ascii", "surrogateescape")
-
-
-def _makefile(sock, mode):
-    return sock.makefile(mode)
-
-
 TEXT_TYPES = {
     FIELD_TYPE.BIT,
     FIELD_TYPE.BLOB,
@@ -76,12 +65,12 @@ DEFAULT_CHARSET = "utf8mb4"
 MAX_PACKET_LEN = 2 ** 24 - 1
 
 
-def pack_int24(n):
+def _pack_int24(n):
     return struct.pack("<I", n)[:3]
 
 
 # https://dev.mysql.com/doc/internals/en/integer.html#packet-Protocol::LengthEncodedInteger
-def lenenc_int(i):
+def _lenenc_int(i):
     if i < 0:
         raise ValueError(
             "Encoding %d is less than 0 - no representation in LengthEncodedInteger" % i
@@ -535,7 +524,7 @@ class Connection:
 
     def _quote_bytes(self, s):
         if self.server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
-            return "'%s'" % (_fast_surrogateescape(s.replace(b"'", b"''")),)
+            return "'%s'" % (s.replace(b"'", b"''").decode("ascii", "surrogateescape"),)
         return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
@@ -638,7 +627,7 @@ class Connection:
                 sock.settimeout(None)
 
             self._sock = sock
-            self._rfile = _makefile(sock, "rb")
+            self._rfile = sock.makefile("rb")
             self._next_seq_id = 0
 
             self._get_server_information()
@@ -686,7 +675,7 @@ class Connection:
         """
         # Internal note: when you build packet manually and calls _write_bytes()
         # directly, you should set self._next_seq_id properly.
-        data = pack_int24(len(payload)) + int2byte(self._next_seq_id) + payload
+        data = _pack_int24(len(payload)) + int2byte(self._next_seq_id) + payload
         if DEBUG:
             dump_packet(data)
         self._write_bytes(data)
@@ -859,7 +848,7 @@ class Connection:
             self.write_packet(data_init)
 
             self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
-            self._rfile = _makefile(self._sock, "rb")
+            self._rfile = self._sock.makefile("rb")
             self._secure = True
 
         data = data_init + self.user + b"\0"
@@ -892,7 +881,7 @@ class Connection:
                 authresp = b"\0"  # empty password
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
-            data += lenenc_int(len(authresp)) + authresp
+            data += _lenenc_int(len(authresp)) + authresp
         elif self.server_capabilities & CLIENT.SECURE_CONNECTION:
             data += struct.pack("B", len(authresp)) + authresp
         else:  # pragma: no cover - not testing against servers without secure auth (>=5.0)

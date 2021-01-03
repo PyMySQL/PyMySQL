@@ -90,7 +90,7 @@ The following examples make use of a simple table
        `email` varchar(255) COLLATE utf8_bin NOT NULL,
        `password` varchar(255) COLLATE utf8_bin NOT NULL,
        PRIMARY KEY (`id`)
-   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8_bin
    AUTO_INCREMENT=1 ;
 
 
@@ -103,10 +103,9 @@ The following examples make use of a simple table
                                  user='user',
                                  password='passwd',
                                  db='db',
-                                 charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
-    try:
+    with connection:
         with connection.cursor() as cursor:
             # Create a new record
             sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
@@ -122,8 +121,7 @@ The following examples make use of a simple table
             cursor.execute(sql, ('webmaster@python.org',))
             result = cursor.fetchone()
             print(result)
-    finally:
-        connection.close()
+
 
 This example will print:
 
