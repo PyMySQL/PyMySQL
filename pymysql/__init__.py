@@ -25,7 +25,6 @@ import sys
 
 from .constants import FIELD_TYPE
 from .converters import escape_dict, escape_sequence, escape_string
-from . import connections
 from .err import (
     Warning,
     Error,
@@ -57,6 +56,8 @@ else:
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
+
+from . import connections  # noqa: E402
 
 
 class DBAPISet(frozenset):
