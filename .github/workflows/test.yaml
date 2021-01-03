@@ -65,6 +65,11 @@ jobs:
       - name: Run MySQL8 auth test
         if: ${{ matrix.mysql_auth }}
         run: |
+          docker cp mysqld:/var/lib/mysql/public_key.pem "${HOME}"
+          docker cp mysqld:/var/lib/mysql/ca.pem "${HOME}"
+          docker cp mysqld:/var/lib/mysql/server-cert.pem "${HOME}"
+          docker cp mysqld:/var/lib/mysql/client-key.pem "${HOME}"
+          docker cp mysqld:/var/lib/mysql/client-cert.pem "${HOME}"
           mysql -uroot -h127.0.0.1 -e '
               CREATE USER
                   user_sha256   IDENTIFIED WITH "sha256_password" BY "pass_sha256_01234567890123456789",
