@@ -8,7 +8,6 @@ import sys
 from time import time
 import unittest
 
-PY2 = sys.version_info[0] == 2
 
 class DatabaseTest(unittest.TestCase):
 
@@ -24,10 +23,7 @@ class DatabaseTest(unittest.TestCase):
         self.connection = db
         self.cursor = db.cursor()
         self.BLOBText = ''.join([chr(i) for i in range(256)] * 100);
-        if PY2:
-            self.BLOBUText = unicode().join(unichr(i) for i in range(16834))
-        else:
-            self.BLOBUText = "".join(chr(i) for i in range(16834))
+        self.BLOBUText = "".join(chr(i) for i in range(16834))
         data = bytearray(range(256)) * 16
         self.BLOBBinary = self.db_module.Binary(data)
 
@@ -64,14 +60,12 @@ class DatabaseTest(unittest.TestCase):
             i = i + 1
 
     def create_table(self, columndefs):
+        """
+        Create a table using a list of column definitions given in columndefs.
 
-        """ Create a table using a list of column definitions given in
-            columndefs.
-
-            generator must be a function taking arguments (row_number,
-            col_number) returning a suitable data object for insertion
-            into the table.
-
+        generator must be a function taking arguments (row_number,
+        col_number) returning a suitable data object for insertion
+        into the table.
         """
         self.table = self.new_table_name()
         self.cursor.execute('CREATE TABLE %s (%s) %s' %

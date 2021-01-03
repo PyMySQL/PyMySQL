@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -50,5 +50,24 @@ jobs:
           cp .travis/docker.json pymysql/tests/databases.json
       - name: Run test
         run: |
-          pip install -U cryptography PyNaCl pytest pytest-cov mock
+          pip install -U cryptography PyNaCl pytest pytest-cov mock coveralls
           pytest -v --cov --cov-config .coveragerc pymysql
+      - name: Report coverage
+        run: coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.test-name }}
+          COVERALLS_PARALLEL: true
+
+  coveralls:
+    name: Finish coveralls
+    runs-on: ubuntu-20.04
+    needs: test
+    container: python:3-slim
+    steps:
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

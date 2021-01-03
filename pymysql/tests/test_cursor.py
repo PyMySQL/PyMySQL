@@ -30,7 +30,6 @@ class CursorTest(base.PyMySQLTestCase):
                 break
 
         del cursor
-        self.safe_gc_collect()
 
         c2 = conn.cursor()
 
@@ -48,10 +47,8 @@ class CursorTest(base.PyMySQLTestCase):
                 break
 
         del cursor
-        self.safe_gc_collect()
 
         c2 = conn.cursor()
-
         c2.execute("select 1")
 
         self.assertEqual(
