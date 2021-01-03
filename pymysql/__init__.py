@@ -25,6 +25,7 @@ import sys
 
 from .constants import FIELD_TYPE
 from .converters import escape_dict, escape_sequence, escape_string
+from . import connections
 from .err import (
     Warning,
     Error,
@@ -109,20 +110,10 @@ def Binary(x):
 
 
 def Connect(*args, **kwargs):
-    """
-    Connect to the database; see connections.Connection.__init__() for
-    more information.
-    """
-    from .connections import Connection
-
-    return Connection(*args, **kwargs)
+    return connections.Connection(*args, **kwargs)
 
 
-from . import connections as _orig_conn
-
-if _orig_conn.Connection.__init__.__doc__ is not None:
-    Connect.__doc__ = _orig_conn.Connection.__init__.__doc__
-del _orig_conn
+Connect.__doc__ = connections.Connection.__init__.__doc__
 
 
 def get_client_info():  # for MySQLdb compatibility
