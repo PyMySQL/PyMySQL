@@ -11,6 +11,9 @@
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/PyMySQL/PyMySQL/blob/master/LICENSE
 
+.. image:: https://img.shields.io/lgtm/grade/python/g/PyMySQL/PyMySQL.svg?logo=lgtm&logoWidth=18
+    :target: https://lgtm.com/projects/g/PyMySQL/PyMySQL/context:python
+
 
 PyMySQL
 =======
