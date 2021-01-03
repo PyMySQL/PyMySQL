@@ -74,11 +74,11 @@ def escape_string(value, mapping=None):
 
 
 def escape_bytes_prefixed(value, mapping=None):
-    return "_binary'%s'" % value.decode('ascii', 'surrogateescape')
+    return "_binary'%s'" % value.decode('ascii', 'surrogateescape').translate(_escape_table)
 
 
 def escape_bytes(value, mapping=None):
-    return "'%s'" % value.decode('ascii', 'surrogateescape')
+    return "'%s'" % value.decode('ascii', 'surrogateescape').translate(_escape_table)
 
 
 def escape_str(value, mapping=None):
