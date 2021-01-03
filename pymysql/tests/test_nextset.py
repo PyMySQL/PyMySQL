@@ -1,7 +1,6 @@
 import pytest
 
 import pymysql
-from pymysql import util
 from pymysql.tests import base
 from pymysql.constants import CLIENT
 

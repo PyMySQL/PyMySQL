@@ -4,7 +4,6 @@
 from .charset import MBLENGTH
 from .constants import FIELD_TYPE, SERVER_STATUS
 from . import err
-from .util import byte2int
 
 import struct
 import sys
@@ -21,10 +20,8 @@ UNSIGNED_INT64_COLUMN = 254
 
 def dump_packet(data):  # pragma: no cover
     def printable(data):
-        if 32 <= byte2int(data) < 127:
-            if isinstance(data, int):
-                return chr(data)
-            return data
+        if 32 <= data < 127:
+            return chr(data)
         return "."
 
     try:
@@ -38,7 +35,7 @@ def dump_packet(data):  # pragma: no cover
     dump_data = [data[i : i + 16] for i in range(0, min(len(data), 256), 16)]
     for d in dump_data:
         print(
-            " ".join("{:02X}".format(byte2int(x)) for x in d)
+            " ".join("{:02X}".format(x) for x in d)
             + "   " * (16 - len(d))
             + " " * 2
             + "".join(printable(x) for x in d)
