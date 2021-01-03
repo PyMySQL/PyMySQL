@@ -44,7 +44,7 @@ class TestConversion(base.PyMySQLTestCase):
             )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
-            self.assertEqual(b'\x01', r[0])
+            self.assertEqual(b"\x01", r[0])
             self.assertEqual(v[1:10], r[1:10])
             self.assertEqual(
                 datetime.timedelta(0, 60 * (v[10].hour * 60 + v[10].minute)), r[10]
