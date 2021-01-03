@@ -16,8 +16,10 @@ class TestLoadLocal(base.PyMySQLTestCase):
             self.assertRaises(
                 OperationalError,
                 c.execute,
-                ("LOAD DATA LOCAL INFILE 'no_data.txt' INTO TABLE "
-                 "test_load_local fields terminated by ','")
+                (
+                    "LOAD DATA LOCAL INFILE 'no_data.txt' INTO TABLE "
+                    "test_load_local fields terminated by ','"
+                ),
             )
         finally:
             c.execute("DROP TABLE test_load_local")
@@ -28,13 +30,15 @@ class TestLoadLocal(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
-        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                'data',
-                                'load_local_data.txt')
+        filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "load_local_data.txt"
+        )
         try:
             c.execute(
-                ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
-                 "test_load_local FIELDS TERMINATED BY ','").format(filename)
+                (
+                    "LOAD DATA LOCAL INFILE '{0}' INTO TABLE "
+                    + "test_load_local FIELDS TERMINATED BY ','"
+                ).format(filename)
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
             self.assertEqual(22749, c.fetchone()[0])
@@ -46,13 +50,15 @@ class TestLoadLocal(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor(cursors.SSCursor)
         c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
-        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                'data',
-                                'load_local_data.txt')
+        filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "load_local_data.txt"
+        )
         try:
             c.execute(
-                ("LOAD DATA LOCAL INFILE '{0}' INTO TABLE " +
-                 "test_load_local FIELDS TERMINATED BY ','").format(filename)
+                (
+                    "LOAD DATA LOCAL INFILE '{0}' INTO TABLE "
+                    + "test_load_local FIELDS TERMINATED BY ','"
+                ).format(filename)
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
             self.assertEqual(22749, c.fetchone()[0])
@@ -66,4 +72,5 @@ class TestLoadLocal(base.PyMySQLTestCase):
 
 if __name__ == "__main__":
     import unittest
+
     unittest.main()

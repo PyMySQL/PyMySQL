@@ -25,7 +25,7 @@ def dump_packet(data):  # pragma: no cover
             if isinstance(data, int):
                 return chr(data)
             return data
-        return '.'
+        return "."
 
     try:
         print("packet length:", len(data))
@@ -35,11 +35,14 @@ def dump_packet(data):  # pragma: no cover
         print("-" * 66)
     except ValueError:
         pass
-    dump_data = [data[i:i+16] for i in range(0, min(len(data), 256), 16)]
+    dump_data = [data[i : i + 16] for i in range(0, min(len(data), 256), 16)]
     for d in dump_data:
-        print(' '.join("{:02X}".format(byte2int(x)) for x in d) +
-              '   ' * (16 - len(d)) + ' ' * 2 +
-              ''.join(printable(x) for x in d))
+        print(
+            " ".join("{:02X}".format(byte2int(x)) for x in d)
+            + "   " * (16 - len(d))
+            + " " * 2
+            + "".join(printable(x) for x in d)
+        )
     print("-" * 66)
     print()
 
@@ -49,7 +52,8 @@ class MysqlPacket:
 
     Provides an interface for reading/parsing the packet results.
     """
-    __slots__ = ('_position', '_data')
+
+    __slots__ = ("_position", "_data")
 
     def __init__(self, data, encoding):
         self._position = 0
@@ -60,11 +64,13 @@ class MysqlPacket:
 
     def read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
-        result = self._data[self._position:(self._position+size)]
+        result = self._data[self._position : (self._position + size)]
         if len(result) != size:
-            error = ('Result length not requested length:\n'
-                     'Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s'
-                     % (size, len(result), self._position, len(self._data)))
+            error = (
+                "Result length not requested length:\n"
+                "Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s"
+                % (size, len(result), self._position, len(self._data))
+            )
             if DEBUG:
                 print(error)
                 self.dump()
@@ -77,7 +83,7 @@ class MysqlPacket:
 
         (Subsequent read() will return errors.)
         """
-        result = self._data[self._position:]
+        result = self._data[self._position :]
         self._position = None  # ensure no subsequent read()
         return result
 
@@ -85,8 +91,10 @@ class MysqlPacket:
         """Advance the cursor in data buffer 'length' bytes."""
         new_position = self._position + length
         if new_position < 0 or new_position > len(self._data):
-            raise Exception('Invalid advance amount (%s) for cursor.  '
-                            'Position=%s' % (length, new_position))
+            raise Exception(
+                "Invalid advance amount (%s) for cursor.  "
+                "Position=%s" % (length, new_position)
+            )
         self._position = new_position
 
     def rewind(self, position=0):
@@ -104,7 +112,7 @@ class MysqlPacket:
         No error checking is done.  If requesting outside end of buffer
         an empty string (or string shorter than 'length') may be returned!
         """
-        return self._data[position:(position+length)]
+        return self._data[position : (position + length)]
 
     def read_uint8(self):
         result = self._data[self._position]
@@ -112,30 +120,30 @@ class MysqlPacket:
         return result
 
     def read_uint16(self):
-        result = struct.unpack_from('<H', self._data, self._position)[0]
+        result = struct.unpack_from("<H", self._data, self._position)[0]
         self._position += 2
         return result
 
     def read_uint24(self):
-        low, high = struct.unpack_from('<HB', self._data, self._position)
+        low, high = struct.unpack_from("<HB", self._data, self._position)
         self._position += 3
         return low + (high << 16)
 
     def read_uint32(self):
-        result = struct.unpack_from('<I', self._data, self._position)[0]
+        result = struct.unpack_from("<I", self._data, self._position)[0]
         self._position += 4
         return result
 
     def read_uint64(self):
-        result = struct.unpack_from('<Q', self._data, self._position)[0]
+        result = struct.unpack_from("<Q", self._data, self._position)[0]
         self._position += 8
         return result
 
     def read_string(self):
-        end_pos = self._data.find(b'\0', self._position)
+        end_pos = self._data.find(b"\0", self._position)
         if end_pos < 0:
             return None
-        result = self._data[self._position:end_pos]
+        result = self._data[self._position : end_pos]
         self._position = end_pos + 1
         return result
 
@@ -177,31 +185,31 @@ class MysqlPacket:
 
     def is_ok_packet(self):
         # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
-        return self._data[0:1] == b'\0' and len(self._data) >= 7
+        return self._data[0:1] == b"\0" and len(self._data) >= 7
 
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return self._data[0:1] == b'\xfe' and len(self._data) < 9
+        return self._data[0:1] == b"\xfe" and len(self._data) < 9
 
     def is_auth_switch_request(self):
         # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b'\xfe'
+        return self._data[0:1] == b"\xfe"
 
     def is_extra_auth_data(self):
         # https://dev.mysql.com/doc/internals/en/successful-authentication.html
-        return self._data[0:1] == b'\x01'
+        return self._data[0:1] == b"\x01"
 
     def is_resultset_packet(self):
         field_count = ord(self._data[0:1])
         return 1 <= field_count <= 250
 
     def is_load_local_packet(self):
-        return self._data[0:1] == b'\xfb'
+        return self._data[0:1] == b"\xfb"
 
     def is_error_packet(self):
-        return self._data[0:1] == b'\xff'
+        return self._data[0:1] == b"\xff"
 
     def check_error(self):
         if self.is_error_packet():
@@ -211,7 +219,8 @@ class MysqlPacket:
         self.rewind()
         self.advance(1)  # field_count == error (we already know that)
         errno = self.read_uint16()
-        if DEBUG: print("errno =", errno)
+        if DEBUG:
+            print("errno =", errno)
         err.raise_mysql_exception(self._data)
 
     def dump(self):
@@ -240,8 +249,13 @@ class FieldDescriptorPacket(MysqlPacket):
         self.org_table = self.read_length_coded_string().decode(encoding)
         self.name = self.read_length_coded_string().decode(encoding)
         self.org_name = self.read_length_coded_string().decode(encoding)
-        self.charsetnr, self.length, self.type_code, self.flags, self.scale = (
-            self.read_struct('<xHIBHBxx'))
+        (
+            self.charsetnr,
+            self.length,
+            self.type_code,
+            self.flags,
+            self.scale,
+        ) = self.read_struct("<xHIBHBxx")
         # 'default' is a length coded binary and is still in the buffer?
         # not used for normal result sets...
 
@@ -254,7 +268,8 @@ class FieldDescriptorPacket(MysqlPacket):
             self.get_column_length(),  # 'internal_size'
             self.get_column_length(),  # 'precision'  # TODO: why!?!?
             self.scale,
-            self.flags % 2 == 0)
+            self.flags % 2 == 0,
+        )
 
     def get_column_length(self):
         if self.type_code == FIELD_TYPE.VAR_STRING:
@@ -263,9 +278,14 @@ class FieldDescriptorPacket(MysqlPacket):
         return self.length
 
     def __str__(self):
-        return ('%s %r.%r.%r, type=%s, flags=%x'
-                % (self.__class__, self.db, self.table_name, self.name,
-                   self.type_code, self.flags))
+        return "%s %r.%r.%r, type=%s, flags=%x" % (
+            self.__class__,
+            self.db,
+            self.table_name,
+            self.name,
+            self.type_code,
+            self.flags,
+        )
 
 
 class OKPacketWrapper:
@@ -277,15 +297,18 @@ class OKPacketWrapper:
 
     def __init__(self, from_packet):
         if not from_packet.is_ok_packet():
-            raise ValueError('Cannot create ' + str(self.__class__.__name__) +
-                             ' object from invalid packet type')
+            raise ValueError(
+                "Cannot create "
+                + str(self.__class__.__name__)
+                + " object from invalid packet type"
+            )
 
         self.packet = from_packet
         self.packet.advance(1)
 
         self.affected_rows = self.packet.read_length_encoded_integer()
         self.insert_id = self.packet.read_length_encoded_integer()
-        self.server_status, self.warning_count = self.read_struct('<HH')
+        self.server_status, self.warning_count = self.read_struct("<HH")
         self.message = self.packet.read_all()
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
@@ -304,11 +327,14 @@ class EOFPacketWrapper:
         if not from_packet.is_eof_packet():
             raise ValueError(
                 "Cannot create '{0}' object from invalid packet type".format(
-                    self.__class__))
+                    self.__class__
+                )
+            )
 
         self.packet = from_packet
-        self.warning_count, self.server_status = self.packet.read_struct('<xhh')
-        if DEBUG: print("server_status=", self.server_status)
+        self.warning_count, self.server_status = self.packet.read_struct("<xhh")
+        if DEBUG:
+            print("server_status=", self.server_status)
         self.has_next = self.server_status & SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 
     def __getattr__(self, key):
@@ -326,11 +352,14 @@ class LoadLocalPacketWrapper:
         if not from_packet.is_load_local_packet():
             raise ValueError(
                 "Cannot create '{0}' object from invalid packet type".format(
-                    self.__class__))
+                    self.__class__
+                )
+            )
 
         self.packet = from_packet
         self.filename = self.packet.get_all_data()[1:]
-        if DEBUG: print("filename=", self.filename)
+        if DEBUG:
+            print("filename=", self.filename)
 
     def __getattr__(self, key):
         return getattr(self.packet, key)

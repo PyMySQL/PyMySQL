@@ -17,9 +17,16 @@ class PyMySQLTestCase(unittest.TestCase):
             databases = json.load(f)
     else:
         databases = [
-            {"host":"localhost","user":"root",
-             "passwd":"","db":"test1", "use_unicode": True, 'local_infile': True},
-            {"host":"localhost","user":"root","passwd":"","db":"test2"}]
+            {
+                "host": "localhost",
+                "user": "root",
+                "passwd": "",
+                "db": "test1",
+                "use_unicode": True,
+                "local_infile": True,
+            },
+            {"host": "localhost", "user": "root", "passwd": "", "db": "test2"},
+        ]
 
     def mysql_server_is(self, conn, version_tuple):
         """Return True if the given connection is on the version given or
@@ -33,8 +40,7 @@ class PyMySQLTestCase(unittest.TestCase):
         server_version = conn.get_server_info()
         server_version_tuple = tuple(
             (int(dig) if dig is not None else 0)
-            for dig in
-            re.match(r'(\d+)\.(\d+)\.(\d+)', server_version).group(1, 2, 3)
+            for dig in re.match(r"(\d+)\.(\d+)\.(\d+)", server_version).group(1, 2, 3)
         )
         return server_version_tuple >= version_tuple
 
@@ -53,10 +59,12 @@ class PyMySQLTestCase(unittest.TestCase):
         p = self.databases[0].copy()
         p.update(params)
         conn = pymysql.connect(**p)
+
         @self.addCleanup
         def teardown():
             if conn.open:
                 conn.close()
+
         return conn
 
     def _teardown_connections(self):

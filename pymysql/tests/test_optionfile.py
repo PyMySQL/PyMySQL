@@ -3,20 +3,19 @@ from unittest import TestCase
 from pymysql.optionfile import Parser
 
 
-__all__ = ['TestParser']
+__all__ = ["TestParser"]
 
 
-_cfg_file = (r"""
+_cfg_file = r"""
 [default]
 string = foo
 quoted = "bar"
 single_quoted = 'foobar'
 skip-slave-start
-""")
+"""
 
 
 class TestParser(TestCase):
-
     def test_string(self):
         parser = Parser()
         parser.read_file(StringIO(_cfg_file))
