@@ -12,16 +12,24 @@ jobs:
         include:
           - db: "mariadb:10.2"
             py: "3.9"
+
           - db: "mariadb:10.3"
             py: "3.8"
+            mariadb_auth: true
+
           - db: "mariadb:10.5"
             py: "3.7"
+            mariadb_auth: true
+
           - db: "mysql:5.6"
             py: "3.6"
+
           - db: "mysql:5.7"
             py: "pypy-3.6"
+
           - db: "mysql:8.0"
             py: "3.9"
+            mysql_auth: true
 
     services:
       mysql:
@@ -48,10 +56,20 @@ jobs:
           mysql -h 127.0.0.1 -uroot -e "create user test2           identified ${WITH_PLUGIN} by 'some password'; grant all on test2.* to test2;"
           mysql -h 127.0.0.1 -uroot -e "create user test2@localhost identified ${WITH_PLUGIN} by 'some password'; grant all on test2.* to test2@localhost;"
           cp .travis/docker.json pymysql/tests/databases.json
+
       - name: Run test
         run: |
           pip install -U cryptography PyNaCl pytest pytest-cov mock coveralls
           pytest -v --cov --cov-config .coveragerc pymysql
+
+      - name: Run MySQL8 auth test
+        if: ${{ matrix.mysql_auth }}
+        run: pytest -v --cov --cov-config .coveragerc tests/test_auth.py;
+
+      - name: Run MariaDB auth test
+        if: ${{ matrix.mariadb_auth }}
+        run: pytest -v --cov --cov-config .coveragerc tests/test_mariadb_auth.py
+
       - name: Report coverage
         run: coveralls
         env:
