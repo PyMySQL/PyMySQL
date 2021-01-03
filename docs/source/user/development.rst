@@ -30,7 +30,8 @@ and edit the new file to match your MySQL configuration::
 
 To run all the tests, execute the script ``runtests.py``::
 
-    $ python runtests.py
+    $ pip install pytest
+    $ pytest -v pymysql
 
 A ``tox.ini`` file is also provided for conveniently running tests on multiple
 Python versions::
