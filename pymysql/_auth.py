@@ -2,7 +2,7 @@
 Implements auth methods
 """
 from .err import OperationalError
-from .util import byte2int, int2byte
+from .util import byte2int
 
 
 try:
@@ -16,9 +16,7 @@ except ImportError:
 
 from functools import partial
 import hashlib
-import io
 import struct
-import warnings
 
 
 DEBUG = False
@@ -51,49 +49,6 @@ def _my_crypt(message1, message2):
         result[i] ^= message2[i]
 
     return bytes(result)
-
-
-# old_passwords support ported from libmysql/password.c
-# https://dev.mysql.com/doc/internals/en/old-password-authentication.html
-
-SCRAMBLE_LENGTH_323 = 8
-
-
-class RandStruct_323:
-    def __init__(self, seed1, seed2):
-        self.max_value = 0x3FFFFFFF
-        self.seed1 = seed1 % self.max_value
-        self.seed2 = seed2 % self.max_value
-
-    def my_rnd(self):
-        self.seed1 = (self.seed1 * 3 + self.seed2) % self.max_value
-        self.seed2 = (self.seed1 + self.seed2 + 33) % self.max_value
-        return float(self.seed1) / float(self.max_value)
-
-
-def scramble_old_password(password, message):
-    """Scramble for old_password"""
-    warnings.warn(
-        "old password (for MySQL <4.1) is used.  Upgrade your password with newer auth method.\n"
-        "old password support will be removed in future PyMySQL version"
-    )
-    hash_pass = _hash_password_323(password)
-    hash_message = _hash_password_323(message[:SCRAMBLE_LENGTH_323])
-    hash_pass_n = struct.unpack(">LL", hash_pass)
-    hash_message_n = struct.unpack(">LL", hash_message)
-
-    rand_st = RandStruct_323(
-        hash_pass_n[0] ^ hash_message_n[0], hash_pass_n[1] ^ hash_message_n[1]
-    )
-    outbuf = io.BytesIO()
-    for _ in range(min(SCRAMBLE_LENGTH_323, len(message))):
-        outbuf.write(int2byte(int(rand_st.my_rnd() * 31) + 64))
-    extra = int2byte(int(rand_st.my_rnd() * 31))
-    out = outbuf.getvalue()
-    outbuf = io.BytesIO()
-    for c in out:
-        outbuf.write(int2byte(byte2int(c) ^ byte2int(extra)))
-    return outbuf.getvalue()
 
 
 def _hash_password_323(password):
