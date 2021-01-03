@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import io
 from setuptools import setup, find_packages
 
 version = "0.10.1"
 
-with io.open("./README.rst", encoding="utf-8") as f:
+with open("./README.rst", encoding="utf-8") as f:
     readme = f.read()
 
 setup(
@@ -23,10 +22,7 @@ setup(
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
