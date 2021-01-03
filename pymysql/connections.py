@@ -926,16 +926,7 @@ class Connection:
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
             auth_packet.read_uint8()  # 0xfe packet identifier
             plugin_name = auth_packet.read_string()
-            if (
-                self.server_capabilities & CLIENT.PLUGIN_AUTH
-                and plugin_name is not None
-            ):
-                auth_packet = self._process_auth(plugin_name, auth_packet)
-            else:
-                # send legacy handshake
-                data = _auth.scramble_old_password(self.password, self.salt) + b"\0"
-                self.write_packet(data)
-                auth_packet = self._read_packet()
+            auth_packet = self._process_auth(plugin_name, auth_packet)
         elif auth_packet.is_extra_auth_data():
             if DEBUG:
                 print("received extra data")
@@ -973,11 +964,6 @@ class Connection:
             data = _auth.scramble_native_password(self.password, auth_packet.read_all())
         elif plugin_name == b"client_ed25519":
             data = _auth.ed25519_password(self.password, auth_packet.read_all())
-        elif plugin_name == b"mysql_old_password":
-            data = (
-                _auth.scramble_old_password(self.password, auth_packet.read_all())
-                + b"\0"
-            )
         elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
             data = self.password + b"\0"
