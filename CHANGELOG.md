@@ -1,5 +1,20 @@
 # Changes
 
+## v1.0.0
+
+Release date: TBD
+
+Backward incompatible changes:
+
+* Python 2.7 and 3.5 are not supported.
+* old_password (used by MySQL older than 4.1) is not supported.
+
+Other changes:
+
+* Connection supports context manager API. ``__exit__`` closes the connection. (#886)
+* Add MySQL Connector/Python compatible TLS options (#903)
+
+
 ## v0.10.1
 
 Release date: 2020-09-10
