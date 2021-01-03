@@ -25,7 +25,6 @@ from .protocol import (
     EOFPacketWrapper,
     LoadLocalPacketWrapper,
 )
-from .util import byte2int, int2byte
 from . import err, VERSION_STRING
 
 try:
@@ -76,7 +75,7 @@ def _lenenc_int(i):
             "Encoding %d is less than 0 - no representation in LengthEncodedInteger" % i
         )
     elif i < 0xFB:
-        return int2byte(i)
+        return bytes([i])
     elif i < (1 << 16):
         return b"\xfc" + struct.pack("<H", i)
     elif i < (1 << 24):
@@ -675,7 +674,7 @@ class Connection:
         """
         # Internal note: when you build packet manually and calls _write_bytes()
         # directly, you should set self._next_seq_id properly.
-        data = _pack_int24(len(payload)) + int2byte(self._next_seq_id) + payload
+        data = _pack_int24(len(payload)) + bytes([self._next_seq_id]) + payload
         if DEBUG:
             dump_packet(data)
         self._write_bytes(data)
@@ -1056,7 +1055,7 @@ class Connection:
         packet = self._read_packet()
         data = packet.get_all_data()
 
-        self.protocol_version = byte2int(data[i : i + 1])
+        self.protocol_version = data[i]
         i += 1
 
         server_end = data.find(b"\0", i)
