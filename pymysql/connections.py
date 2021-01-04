@@ -1331,7 +1331,7 @@ class MySQLResult:
             if converter is converters.through:
                 converter = None
             if DEBUG:
-                print("DEBUG: field={}, converter={}".format(field, converter))
+                print(f"DEBUG: field={field}, converter={converter}")
             self.converters.append((encoding, converter))
 
         eof_packet = self.connection._read_packet()
@@ -1361,9 +1361,7 @@ class LoadLocalFile:
                         break
                     conn.write_packet(chunk)
         except IOError:
-            raise err.OperationalError(
-                1017, "Can't find file '{0}'".format(self.filename)
-            )
+            raise err.OperationalError(1017, f"Can't find file '{self.filename}'")
         finally:
             # send the empty packet to signify we are done sending data
             conn.write_packet(b"")
