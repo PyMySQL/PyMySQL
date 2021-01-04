@@ -403,7 +403,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         c = conn.cursor()
 
         # deprecated in 5.6
-        if sys.version_info[0:2] >= (3, 2) and self.mysql_server_is(conn, (5, 6, 0)):
+        if self.mysql_server_is(conn, (5, 6, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
                 c.execute("SELECT OLD_PASSWORD('%s')" % db["password"])
         else:
@@ -420,7 +420,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         secure_auth_setting = c.fetchone()[0]
         c.execute("set old_passwords=1")
         # pymysql.err.Warning: 'pre-4.1 password hash' is deprecated and will be removed in a future release. Please use post-4.1 password hash instead
-        if sys.version_info[0:2] >= (3, 2) and self.mysql_server_is(conn, (5, 6, 0)):
+        if self.mysql_server_is(conn, (5, 6, 0)):
             with self.assertWarns(pymysql.err.Warning) as cm:
                 c.execute("set global secure_auth=0")
         else:

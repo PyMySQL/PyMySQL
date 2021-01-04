@@ -174,7 +174,7 @@ class Connection:
         sql_mode=None,
         read_default_file=None,
         conv=None,
-        use_unicode=None,
+        use_unicode=True,
         client_flag=0,
         cursorclass=Cursor,
         init_command=None,
@@ -203,9 +203,6 @@ class Connection:
         ssl_verify_cert=None,
         ssl_verify_identity=None,
     ):
-        if use_unicode is None and sys.version_info[0] > 2:
-            use_unicode = True
-
         if db is not None and database is None:
             database = db
         if passwd is not None and not password:
@@ -298,15 +295,9 @@ class Connection:
         if write_timeout is not None and write_timeout <= 0:
             raise ValueError("write_timeout should be > 0")
         self._write_timeout = write_timeout
-        if charset:
-            self.charset = charset
-            self.use_unicode = True
-        else:
-            self.charset = DEFAULT_CHARSET
-            self.use_unicode = False
 
-        if use_unicode is not None:
-            self.use_unicode = use_unicode
+        self.charset = charset or DEFAULT_CHARSET
+        self.use_unicode = use_unicode
 
         self.encoding = charset_by_name(self.charset).encoding
 
