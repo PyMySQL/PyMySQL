@@ -29,7 +29,7 @@ class TestConversion(base.PyMySQLTestCase):
                 123456789012,
                 5.7,
                 "hello'\" world",
-                u"Espa\xc3\xb1ol",
+                "Espa\xc3\xb1ol",
                 "binary\x00data".encode(conn.encoding),
                 datetime.date(1988, 2, 2),
                 datetime.datetime(2014, 5, 15, 7, 45, 57),
@@ -147,9 +147,9 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         c.execute("select null,''")
-        self.assertEqual((None, u""), c.fetchone())
+        self.assertEqual((None, ""), c.fetchone())
         c.execute("select '',null")
-        self.assertEqual((u"", None), c.fetchone())
+        self.assertEqual(("", None), c.fetchone())
 
     def test_timedelta(self):
         """ test timedelta conversion """
@@ -300,7 +300,7 @@ create table test_json (
         )
         cur = conn.cursor()
 
-        json_str = u'{"hello": "こんにちは"}'
+        json_str = '{"hello": "こんにちは"}'
         cur.execute("INSERT INTO test_json (id, `json`) values (42, %s)", (json_str,))
         cur.execute("SELECT `json` from `test_json` WHERE `id`=42")
         res = cur.fetchone()[0]

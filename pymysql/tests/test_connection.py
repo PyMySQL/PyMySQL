@@ -70,17 +70,17 @@ class TestAuthentication(base.PyMySQLTestCase):
     del db["user"]
     cur.execute("SHOW PLUGINS")
     for r in cur:
-        if (r[1], r[2]) != (u"ACTIVE", u"AUTHENTICATION"):
+        if (r[1], r[2]) != ("ACTIVE", "AUTHENTICATION"):
             continue
-        if r[3] == u"auth_socket.so" or r[0] == u"unix_socket":
+        if r[3] == "auth_socket.so" or r[0] == "unix_socket":
             socket_plugin_name = r[0]
             socket_found = True
-        elif r[3] == u"dialog_examples.so":
+        elif r[3] == "dialog_examples.so":
             if r[0] == "two_questions":
                 two_questions_found = True
             elif r[0] == "three_attempts":
                 three_attempts_found = True
-        elif r[0] == u"pam":
+        elif r[0] == "pam":
             pam_found = True
             pam_plugin_name = r[3].split(".")[0]
             if pam_plugin_name == "auth_pam":
@@ -92,9 +92,9 @@ class TestAuthentication(base.PyMySQLTestCase):
             # https://mariadb.com/kb/en/mariadb/pam-authentication-plugin/
 
             # Names differ but functionality is close
-        elif r[0] == u"mysql_old_password":
+        elif r[0] == "mysql_old_password":
             mysql_old_password_found = True
-        elif r[0] == u"sha256_password":
+        elif r[0] == "sha256_password":
             sha256_password_found = True
         # else:
         #    print("plugin: %r" % r[0])

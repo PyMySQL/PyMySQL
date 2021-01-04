@@ -8,7 +8,7 @@ __all__ = ["TestConverter"]
 
 class TestConverter(TestCase):
     def test_escape_string(self):
-        self.assertEqual(converters.escape_string(u"foo\nbar"), u"foo\\nbar")
+        self.assertEqual(converters.escape_string("foo\nbar"), "foo\\nbar")
 
     def test_convert_datetime(self):
         expected = datetime.datetime(2007, 2, 24, 23, 6, 20)

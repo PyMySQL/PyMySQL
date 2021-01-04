@@ -120,9 +120,9 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
             c.execute("drop table if exists issue15")
         c.execute("create table issue15 (t varchar(32))")
         try:
-            c.execute("insert into issue15 (t) values (%s)", (u"\xe4\xf6\xfc",))
+            c.execute("insert into issue15 (t) values (%s)", ("\xe4\xf6\xfc",))
             c.execute("select t from issue15")
-            self.assertEqual(u"\xe4\xf6\xfc", c.fetchone()[0])
+            self.assertEqual("\xe4\xf6\xfc", c.fetchone()[0])
         finally:
             c.execute("drop table issue15")
 
@@ -189,12 +189,12 @@ class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_33(self):
         conn = pymysql.connect(charset="utf8", **self.databases[0])
         self.safe_create_table(
-            conn, u"hei\xdfe", u"create table hei\xdfe (name varchar(32))"
+            conn, "hei\xdfe", "create table hei\xdfe (name varchar(32))"
         )
         c = conn.cursor()
-        c.execute(u"insert into hei\xdfe (name) values ('Pi\xdfata')")
-        c.execute(u"select name from hei\xdfe")
-        self.assertEqual(u"Pi\xdfata", c.fetchone()[0])
+        c.execute("insert into hei\xdfe (name) values ('Pi\xdfata')")
+        c.execute("select name from hei\xdfe")
+        self.assertEqual("Pi\xdfata", c.fetchone()[0])
 
     @pytest.mark.skip("This test requires manual intervention")
     def test_issue_35(self):
@@ -408,18 +408,18 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         )
         sql_select = "select * from issue321 where " "value_1 in %s and value_2=%s"
         data = [
-            [(u"a",), u"\u0430"],
-            [[u"b"], u"\u0430"],
-            {"value_1": [[u"c"]], "value_2": u"\u0430"},
+            [("a",), "\u0430"],
+            [["b"], "\u0430"],
+            {"value_1": [["c"]], "value_2": "\u0430"},
         ]
         cur = conn.cursor()
         self.assertEqual(cur.execute(sql_insert, data[0]), 1)
         self.assertEqual(cur.execute(sql_insert, data[1]), 1)
         self.assertEqual(cur.execute(sql_dict_insert, data[2]), 1)
-        self.assertEqual(cur.execute(sql_select, [(u"a", u"b", u"c"), u"\u0430"]), 3)
-        self.assertEqual(cur.fetchone(), (u"a", u"\u0430"))
-        self.assertEqual(cur.fetchone(), (u"b", u"\u0430"))
-        self.assertEqual(cur.fetchone(), (u"c", u"\u0430"))
+        self.assertEqual(cur.execute(sql_select, [("a", "b", "c"), "\u0430"]), 3)
+        self.assertEqual(cur.fetchone(), ("a", "\u0430"))
+        self.assertEqual(cur.fetchone(), ("b", "\u0430"))
+        self.assertEqual(cur.fetchone(), ("c", "\u0430"))
 
     def test_issue_364(self):
         """ Test mixed unicode/binary arguments in executemany. """
@@ -432,8 +432,8 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         )
 
         sql = "insert into issue364 (value_1, value_2) values (_binary %s, %s)"
-        usql = u"insert into issue364 (value_1, value_2) values (_binary %s, %s)"
-        values = [pymysql.Binary(b"\x00\xff\x00"), u"\xe4\xf6\xfc"]
+        usql = "insert into issue364 (value_1, value_2) values (_binary %s, %s)"
+        values = [pymysql.Binary(b"\x00\xff\x00"), "\xe4\xf6\xfc"]
 
         # test single insert and select
         cur = conn.cursor()
