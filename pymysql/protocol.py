@@ -182,31 +182,31 @@ class MysqlPacket:
 
     def is_ok_packet(self):
         # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
-        return self._data[0:1] == b"\0" and len(self._data) >= 7
+        return self._data[0] == 0 and len(self._data) >= 7
 
     def is_eof_packet(self):
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return self._data[0:1] == b"\xfe" and len(self._data) < 9
+        return self._data[0] == 0xfe and len(self._data) < 9
 
     def is_auth_switch_request(self):
         # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0:1] == b"\xfe"
+        return self._data[0] == 0xfe
 
     def is_extra_auth_data(self):
         # https://dev.mysql.com/doc/internals/en/successful-authentication.html
-        return self._data[0:1] == b"\x01"
+        return self._data[0] == 1
 
     def is_resultset_packet(self):
-        field_count = ord(self._data[0:1])
+        field_count = self._data[0]
         return 1 <= field_count <= 250
 
     def is_load_local_packet(self):
-        return self._data[0:1] == b"\xfb"
+        return self._data[0] == 0xfb
 
     def is_error_packet(self):
-        return self._data[0:1] == b"\xff"
+        return self._data[0] == 0xff
 
     def check_error(self):
         if self.is_error_packet():
