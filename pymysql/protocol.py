@@ -188,11 +188,11 @@ class MysqlPacket:
         # http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-EOF_Packet
         # Caution: \xFE may be LengthEncodedInteger.
         # If \xFE is LengthEncodedInteger header, 8bytes followed.
-        return self._data[0] == 0xfe and len(self._data) < 9
+        return self._data[0] == 0xFE and len(self._data) < 9
 
     def is_auth_switch_request(self):
         # http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-        return self._data[0] == 0xfe
+        return self._data[0] == 0xFE
 
     def is_extra_auth_data(self):
         # https://dev.mysql.com/doc/internals/en/successful-authentication.html
@@ -203,10 +203,10 @@ class MysqlPacket:
         return 1 <= field_count <= 250
 
     def is_load_local_packet(self):
-        return self._data[0] == 0xfb
+        return self._data[0] == 0xFB
 
     def is_error_packet(self):
-        return self._data[0] == 0xff
+        return self._data[0] == 0xFF
 
     def check_error(self):
         if self.is_error_packet():
