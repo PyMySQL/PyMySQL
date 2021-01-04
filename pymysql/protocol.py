@@ -323,9 +323,7 @@ class EOFPacketWrapper:
     def __init__(self, from_packet):
         if not from_packet.is_eof_packet():
             raise ValueError(
-                "Cannot create '{0}' object from invalid packet type".format(
-                    self.__class__
-                )
+                f"Cannot create '{self.__class__}' object from invalid packet type"
             )
 
         self.packet = from_packet
@@ -348,9 +346,7 @@ class LoadLocalPacketWrapper:
     def __init__(self, from_packet):
         if not from_packet.is_load_local_packet():
             raise ValueError(
-                "Cannot create '{0}' object from invalid packet type".format(
-                    self.__class__
-                )
+                f"Cannot create '{self.__class__}' object from invalid packet type"
             )
 
         self.packet = from_packet

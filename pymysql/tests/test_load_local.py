@@ -35,10 +35,7 @@ class TestLoadLocal(base.PyMySQLTestCase):
         )
         try:
             c.execute(
-                (
-                    "LOAD DATA LOCAL INFILE '{0}' INTO TABLE "
-                    + "test_load_local FIELDS TERMINATED BY ','"
-                ).format(filename)
+                f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE test_load_local FIELDS TERMINATED BY ','"
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
             self.assertEqual(22749, c.fetchone()[0])
@@ -55,10 +52,7 @@ class TestLoadLocal(base.PyMySQLTestCase):
         )
         try:
             c.execute(
-                (
-                    "LOAD DATA LOCAL INFILE '{0}' INTO TABLE "
-                    + "test_load_local FIELDS TERMINATED BY ','"
-                ).format(filename)
+                f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE test_load_local FIELDS TERMINATED BY ','"
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
             self.assertEqual(22749, c.fetchone()[0])

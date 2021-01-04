@@ -242,7 +242,7 @@ class Cursor:
         """
         conn = self._get_db()
         if args:
-            fmt = "@_{0}_%d=%s".format(procname)
+            fmt = f"@_{procname}_%d=%s"
             self._query(
                 "SET %s"
                 % ",".join(
