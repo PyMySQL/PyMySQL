@@ -64,13 +64,13 @@ def escape_float(value, mapping=None):
 
 
 _escape_table = [chr(x) for x in range(128)]
-_escape_table[0] = u"\\0"
-_escape_table[ord("\\")] = u"\\\\"
-_escape_table[ord("\n")] = u"\\n"
-_escape_table[ord("\r")] = u"\\r"
-_escape_table[ord("\032")] = u"\\Z"
-_escape_table[ord('"')] = u'\\"'
-_escape_table[ord("'")] = u"\\'"
+_escape_table[0] = "\\0"
+_escape_table[ord("\\")] = "\\\\"
+_escape_table[ord("\n")] = "\\n"
+_escape_table[ord("\r")] = "\\r"
+_escape_table[ord("\032")] = "\\Z"
+_escape_table[ord('"')] = '\\"'
+_escape_table[ord("'")] = "\\'"
 
 
 def escape_string(value, mapping=None):
