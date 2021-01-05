@@ -110,11 +110,7 @@ def Binary(x):
     return bytes(x)
 
 
-def Connect(*args, **kwargs):
-    return connections.Connection(*args, **kwargs)
-
-
-Connect.__doc__ = connections.Connection.__init__.__doc__
+Connect = connect = Connection = connections.Connection
 
 
 def get_client_info():  # for MySQLdb compatibility
@@ -123,8 +119,6 @@ def get_client_info():  # for MySQLdb compatibility
         version = VERSION[:3]
     return ".".join(map(str, version))
 
-
-connect = Connection = Connect
 
 # we include a doctored version_info here for MySQLdb compatibility
 version_info = (1, 4, 0, "final", 0)
