@@ -120,7 +120,7 @@ class Connection:
         See converters.
     :param use_unicode:
         Whether or not to default to unicode strings.
-        This option defaults to true for Py3k.
+        This option defaults to true.
     :param client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
     :param cursorclass: Custom cursor class to use.
     :param init_command: Initial SQL statement to run when connection is established.
@@ -164,12 +164,13 @@ class Connection:
 
     def __init__(
         self,
-        host=None,
         user=None,
         password="",
+        host=None,
         database=None,
-        port=0,
+        *,
         unix_socket=None,
+        port=0,
         charset="",
         sql_mode=None,
         read_default_file=None,
@@ -179,13 +180,8 @@ class Connection:
         cursorclass=Cursor,
         init_command=None,
         connect_timeout=10,
-        ssl=None,
         read_default_group=None,
-        compress=None,
-        named_pipe=None,
         autocommit=False,
-        db=None,
-        passwd=None,
         local_infile=False,
         max_allowed_packet=16 * 1024 * 1024,
         defer_connect=False,
@@ -196,16 +192,25 @@ class Connection:
         binary_prefix=False,
         program_name=None,
         server_public_key=None,
+        ssl=None,
         ssl_ca=None,
         ssl_cert=None,
         ssl_disabled=None,
         ssl_key=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
+        compress=None,  # not supported
+        named_pipe=None,  # not supported
+        passwd=None,  # deprecated
+        db=None,  # deprecated
     ):
         if db is not None and database is None:
+            warnings.warn("'db' is deprecated, use 'database'", DeprecationWarning, 3)
             database = db
         if passwd is not None and not password:
+            warnings.warn(
+                "'passwd' is deprecated, use 'password'", DeprecationWarning, 3
+            )
             password = passwd
 
         if compress or named_pipe:

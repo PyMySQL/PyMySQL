@@ -383,58 +383,6 @@ class TestAuthentication(base.PyMySQLTestCase):
             # recreate the user
             cur.execute(grants)
 
-    # select old_password("crummy p\tassword");
-    # | old_password("crummy p\tassword") |
-    # | 2a01785203b08770                  |
-    @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
-    @pytest.mark.skipif(
-        not mysql_old_password_found, reason="no mysql_old_password plugin"
-    )
-    def testMySQLOldPasswordAuth(self):
-        conn = self.connect()
-        if self.mysql_server_is(conn, (5, 7, 0)):
-            pytest.skip("Old passwords aren't supported in 5.7")
-        # pymysql.err.OperationalError: (1045, "Access denied for user 'old_pass_user'@'localhost' (using password: YES)")
-        # from login in MySQL-5.6
-        if self.mysql_server_is(conn, (5, 6, 0)):
-            pytest.skip("Old passwords don't authenticate in 5.6")
-        db = self.db.copy()
-        db["password"] = "crummy p\tassword"
-        c = conn.cursor()
-
-        # deprecated in 5.6
-        if self.mysql_server_is(conn, (5, 6, 0)):
-            with self.assertWarns(pymysql.err.Warning) as cm:
-                c.execute("SELECT OLD_PASSWORD('%s')" % db["password"])
-        else:
-            c.execute("SELECT OLD_PASSWORD('%s')" % db["password"])
-        v = c.fetchone()[0]
-        self.assertEqual(v, "2a01785203b08770")
-        # only works in MariaDB and MySQL-5.6 - can't separate out by version
-        # if self.mysql_server_is(self.connect(), (5, 5, 0)):
-        #    with TempUser(c, 'old_pass_user@localhost',
-        #                  self.databases[0]['db'], 'mysql_old_password', '2a01785203b08770') as u:
-        #        cur = pymysql.connect(user='old_pass_user', **db).cursor()
-        #        cur.execute("SELECT VERSION()")
-        c.execute("SELECT @@secure_auth")
-        secure_auth_setting = c.fetchone()[0]
-        c.execute("set old_passwords=1")
-        # pymysql.err.Warning: 'pre-4.1 password hash' is deprecated and will be removed in a future release. Please use post-4.1 password hash instead
-        if self.mysql_server_is(conn, (5, 6, 0)):
-            with self.assertWarns(pymysql.err.Warning) as cm:
-                c.execute("set global secure_auth=0")
-        else:
-            c.execute("set global secure_auth=0")
-        with TempUser(
-            c,
-            "old_pass_user@localhost",
-            self.databases[0]["db"],
-            password=db["password"],
-        ) as u:
-            cur = pymysql.connect(user="old_pass_user", **db).cursor()
-            cur.execute("SELECT VERSION()")
-        c.execute("set global secure_auth=%r" % secure_auth_setting)
-
     @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
     @pytest.mark.skipif(
         not sha256_password_found,
