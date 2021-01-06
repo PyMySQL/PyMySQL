@@ -30,7 +30,7 @@ The following examples make use of a simple table
     connection = pymysql.connect(host='localhost',
                                  user='user',
                                  password='passwd',
-                                 db='db',
+                                 database='db',
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 

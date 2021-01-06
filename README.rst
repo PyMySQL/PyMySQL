@@ -105,7 +105,7 @@ The following examples make use of a simple table
     connection = pymysql.connect(host='localhost',
                                  user='user',
                                  password='passwd',
-                                 db='db',
+                                 database='db',
                                  cursorclass=pymysql.cursors.DictCursor)
 
     with connection:
