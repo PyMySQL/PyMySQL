@@ -21,11 +21,11 @@ class PyMySQLTestCase(unittest.TestCase):
                 "host": "localhost",
                 "user": "root",
                 "passwd": "",
-                "db": "test1",
+                "database": "test1",
                 "use_unicode": True,
                 "local_infile": True,
             },
-            {"host": "localhost", "user": "root", "passwd": "", "db": "test2"},
+            {"host": "localhost", "user": "root", "passwd": "", "database": "test2"},
         ]
 
     def mysql_server_is(self, conn, version_tuple):

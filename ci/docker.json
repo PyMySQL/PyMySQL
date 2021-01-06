@@ -1,0 +1,4 @@
+[
+    {"host": "127.0.0.1", "port": 3306, "user": "root",  "password": "", "database": "test1",  "use_unicode": true, "local_infile": true},
+    {"host": "127.0.0.1", "port": 3306, "user": "test2", "password": "some password", "database": "test2" }
+]

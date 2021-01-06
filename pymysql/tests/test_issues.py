@@ -66,7 +66,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
         # ToDo: this test requires access to db 'mysql'.
         kwargs = self.databases[0].copy()
-        kwargs["db"] = "mysql"
+        kwargs["database"] = "mysql"
         conn = pymysql.connect(**kwargs)
         c = conn.cursor()
         c.execute("select * from user")
@@ -152,7 +152,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
         """could not connect mysql use passwod"""
         conn = self.connect()
         host = self.databases[0]["host"]
-        db = self.databases[0]["db"]
+        db = self.databases[0]["database"]
         c = conn.cursor()
 
         # grant access to a table to a user with a password

@@ -70,7 +70,7 @@ jobs:
           mysql -h127.0.0.1 -uroot -e 'create database test2 DEFAULT CHARACTER SET utf8mb4'
           mysql -h127.0.0.1 -uroot -e "create user test2           identified ${WITH_PLUGIN} by 'some password'; grant all on test2.* to test2;"
           mysql -h127.0.0.1 -uroot -e "create user test2@localhost identified ${WITH_PLUGIN} by 'some password'; grant all on test2.* to test2@localhost;"
-          cp .travis/docker.json pymysql/tests/databases.json
+          cp ci/docker.json pymysql/tests/databases.json
 
       - name: Run test
         run: |
