@@ -142,7 +142,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         with TempUser(
             self.connect().cursor(),
             TestAuthentication.osuser + "@localhost",
-            self.databases[0]["db"],
+            self.databases[0]["database"],
             self.socket_plugin_name,
         ) as u:
             c = pymysql.connect(user=TestAuthentication.osuser, **self.db)
@@ -216,7 +216,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         with TempUser(
             self.connect().cursor(),
             "pymysql_2q@localhost",
-            self.databases[0]["db"],
+            self.databases[0]["database"],
             "two_questions",
             "notverysecret",
         ) as u:
@@ -258,7 +258,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         with TempUser(
             self.connect().cursor(),
             "pymysql_3a@localhost",
-            self.databases[0]["db"],
+            self.databases[0]["database"],
             "three_attempts",
             "stillnotverysecret",
         ) as u:
@@ -353,7 +353,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         with TempUser(
             cur,
             TestAuthentication.osuser + "@localhost",
-            self.databases[0]["db"],
+            self.databases[0]["database"],
             "pam",
             os.environ.get("PAMSERVICE"),
         ) as u:
@@ -392,7 +392,7 @@ class TestAuthentication(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         with TempUser(
-            c, "pymysql_sha256@localhost", self.databases[0]["db"], "sha256_password"
+            c, "pymysql_sha256@localhost", self.databases[0]["database"], "sha256_password"
         ) as u:
             if self.mysql_server_is(conn, (5, 7, 0)):
                 c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' ='Sh@256Pa33'")

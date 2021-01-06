@@ -152,7 +152,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
         """could not connect mysql use passwod"""
         conn = self.connect()
         host = self.databases[0]["host"]
-        db = self.databases[0]["db"]
+        db = self.databases[0]["database"]
         c = conn.cursor()
 
         # grant access to a table to a user with a password
