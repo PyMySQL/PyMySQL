@@ -392,7 +392,10 @@ class TestAuthentication(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         with TempUser(
-            c, "pymysql_sha256@localhost", self.databases[0]["database"], "sha256_password"
+            c,
+            "pymysql_sha256@localhost",
+            self.databases[0]["database"],
+            "sha256_password",
         ) as u:
             if self.mysql_server_is(conn, (5, 7, 0)):
                 c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' ='Sh@256Pa33'")
