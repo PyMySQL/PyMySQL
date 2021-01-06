@@ -754,7 +754,7 @@ class TestEscape(base.PyMySQLTestCase):
         class Custom(str):
             pass
 
-        mapping = {str: pymysql.escape_string}
+        mapping = {str: pymysql.converters.escape_string}
         self.assertEqual(con.escape(Custom("foobar"), mapping), "'foobar'")
 
     def test_escape_no_default(self):
