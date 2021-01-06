@@ -24,7 +24,6 @@ THE SOFTWARE.
 import sys
 
 from .constants import FIELD_TYPE
-from .converters import escape_dict, escape_sequence, escape_string
 from .err import (
     Warning,
     Error,
@@ -177,14 +176,10 @@ __all__ = [
     "constants",
     "converters",
     "cursors",
-    "escape_dict",
-    "escape_sequence",
-    "escape_string",
     "get_client_info",
     "paramstyle",
     "threadsafety",
     "version_info",
     "install_as_MySQLdb",
-    "NULL",
     "__version__",
 ]
