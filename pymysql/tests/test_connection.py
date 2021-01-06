@@ -442,8 +442,8 @@ class TestConnection(base.PyMySQLTestCase):
 
     def test_select_db(self):
         con = self.connect()
-        current_db = self.databases[0]["db"]
-        other_db = self.databases[1]["db"]
+        current_db = self.databases[0]["database"]
+        other_db = self.databases[1]["database"]
 
         cur = con.cursor()
         cur.execute("SELECT database()")
