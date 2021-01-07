@@ -7,12 +7,18 @@ Release date: TBD
 Backward incompatible changes:
 
 * Python 2.7 and 3.5 are not supported.
-* old_password (used by MySQL older than 4.1) is not supported.
+* ``connect()`` uses keyword-only arguments. User must use keyword argument.
+* ``connect()`` kwargs ``db`` and ``passwd`` are now deprecated; Use ``database`` and ``password`` instead.
+* old_password authentication method (used by MySQL older than 4.1) is not supported.
+* MySQL 5.5 and MariaDB 5.5 are not officially supported, although it may still works.
+* Removed ``escape_dict``, ``escape_sequence``, and ``escape_string`` from ``pymysql``
+  module. They are still in ``pymysql.converters``.
 
 Other changes:
 
 * Connection supports context manager API. ``__exit__`` closes the connection. (#886)
 * Add MySQL Connector/Python compatible TLS options (#903)
+* Major code cleanup; PyMySQL now uses black and flake8.
 
 
 ## v0.10.1
