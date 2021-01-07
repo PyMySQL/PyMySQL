@@ -2,9 +2,9 @@ import datetime
 import ssl
 import sys
 import time
-import mock
 import pytest
 import pymysql
+from unittest import mock
 from pymysql.tests import base
 from pymysql.constants import CLIENT
 
