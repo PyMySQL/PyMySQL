@@ -2,7 +2,7 @@
 
 ## v1.0.0
 
-Release date: TBD
+Release date: 2021-01-07
 
 Backward incompatible changes:
 
