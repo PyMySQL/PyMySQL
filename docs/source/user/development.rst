@@ -32,8 +32,3 @@ To run all the tests, execute the script ``runtests.py``::
 
     $ pip install pytest
     $ pytest -v pymysql
-
-A ``tox.ini`` file is also provided for conveniently running tests on multiple
-Python versions::
-
-    $ tox
