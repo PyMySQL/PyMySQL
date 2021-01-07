@@ -2,14 +2,8 @@
     :target: https://pymysql.readthedocs.io/
     :alt: Documentation Status
 
-.. image:: https://badge.fury.io/py/PyMySQL.svg
-    :target: https://badge.fury.io/py/PyMySQL
-
 .. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=master&service=github
     :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
-
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg
-    :target: https://github.com/PyMySQL/PyMySQL/blob/master/LICENSE
 
 .. image:: https://img.shields.io/lgtm/grade/python/g/PyMySQL/PyMySQL.svg?logo=lgtm&logoWidth=18
     :target: https://lgtm.com/projects/g/PyMySQL/PyMySQL/context:python
