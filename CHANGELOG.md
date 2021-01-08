@@ -1,5 +1,14 @@
 # Changes
 
+## v1.0.1
+
+Release date: 2021-01-08
+
+* Stop emitting DeprecationWarning for use of ``db`` and ``passwd``.
+  Note that they are still deprecated. (#939)
+* Add ``python_requires=">=3.6"`` to setup.py. (#936)
+
+
 ## v1.0.0
 
 Release date: 2021-01-07

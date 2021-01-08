@@ -47,7 +47,7 @@ from .times import (
 )
 
 
-VERSION = (1, 0, 0, None)
+VERSION = (1, 0, 1, None)
 if VERSION[3] is not None:
     VERSION_STRING = "%d.%d.%d_%s" % VERSION
 else:
