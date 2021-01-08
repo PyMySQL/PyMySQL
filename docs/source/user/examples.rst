@@ -56,4 +56,4 @@ This example will print:
 
 .. code:: python
 
-    {'password': 'very-secret', 'id': 1}
+    {'id': 1, 'password': 'very-secret'}

@@ -135,8 +135,6 @@ class Connection:
     :param ssl_verify_cert: Set to true to check the validity of server certificates
     :param ssl_verify_identity: Set to true to check the server's identity
     :param read_default_group: Group to read from in the configuration file.
-    :param compress: Not supported
-    :param named_pipe: Not supported
     :param autocommit: Autocommit mode. None means use server default. (default: False)
     :param local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
     :param max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
@@ -149,9 +147,11 @@ class Connection:
         an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
         (if no authenticate method) for returning a string from the user. (experimental)
     :param server_public_key: SHA256 authentication plugin public key value. (default: None)
-    :param db: Alias for database. (for compatibility to MySQLdb)
-    :param passwd: Alias for password. (for compatibility to MySQLdb)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
+    :param compress: Not supported
+    :param named_pipe: Not supported
+    :param db: **DEPRECATED** Alias for database.
+    :param passwd: **DEPRECATED** Alias for password.
 
     See `Connection <https://www.python.org/dev/peps/pep-0249/#connection-objects>`_ in the
     specification.
@@ -205,12 +205,16 @@ class Connection:
         db=None,  # deprecated
     ):
         if db is not None and database is None:
-            warnings.warn("'db' is deprecated, use 'database'", DeprecationWarning, 3)
+            # We will raise warining in 2022 or later.
+            # See https://github.com/PyMySQL/PyMySQL/issues/939
+            # warnings.warn("'db' is deprecated, use 'database'", DeprecationWarning, 3)
             database = db
         if passwd is not None and not password:
-            warnings.warn(
-                "'passwd' is deprecated, use 'password'", DeprecationWarning, 3
-            )
+            # We will raise warining in 2022 or later.
+            # See https://github.com/PyMySQL/PyMySQL/issues/939
+            # warnings.warn(
+            #    "'passwd' is deprecated, use 'password'", DeprecationWarning, 3
+            # )
             password = passwd
 
         if compress or named_pipe:
