@@ -56,7 +56,7 @@ jobs:
 
       - name: Install dependency
         run: |
-          pip install -U cryptography PyNaCl pytest pytest-cov mock coveralls
+          pip install -U cryptography PyNaCl pytest pytest-cov coveralls
 
       - name: Set up MySQL
         run: |
