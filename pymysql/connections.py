@@ -164,11 +164,11 @@ class Connection:
 
     def __init__(
         self,
-        user=None,
+        *,
+        user=None,  # The first four arguments is based on DB-API 2.0 recommendation.
         password="",
         host=None,
         database=None,
-        *,
         unix_socket=None,
         port=0,
         charset="",
