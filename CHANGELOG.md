@@ -1,5 +1,13 @@
 # Changes
 
+## v1.0.2
+
+Release date: 2021-01-09
+
+* Fix `user`, `password`, `host`, `database` are still positional arguments.
+  All arguments of `connect()` are now keyword-only. (#941)
+
+
 ## v1.0.1
 
 Release date: 2021-01-08

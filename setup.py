@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-version = "1.0.1"
+version = "1.0.2"
 
 with open("./README.rst", encoding="utf-8") as f:
     readme = f.read()
