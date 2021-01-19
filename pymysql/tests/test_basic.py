@@ -353,7 +353,7 @@ PRIMARY KEY (id)
             data,
         )
         self.assertEqual(
-            cursor._last_executed,
+            cursor._executed,
             bytearray(
                 b"insert into bulkinsert (id, name, age, height) values "
                 b"(0,'bob',21,123),(1,'jim',56,45),(2,'fred',100,180)"
@@ -377,7 +377,7 @@ values (%s,
             data,
         )
         self.assertEqual(
-            cursor._last_executed.strip(),
+            cursor._executed.strip(),
             bytearray(
                 b"""insert
 into bulkinsert (id, name,
@@ -422,7 +422,7 @@ age = values(age)
             data,
         )
         self.assertEqual(
-            cursor._last_executed.strip(),
+            cursor._executed.strip(),
             bytearray(
                 b"""insert
 into bulkinsert (id, name,
