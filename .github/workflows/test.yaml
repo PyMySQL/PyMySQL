@@ -106,7 +106,7 @@ jobs:
           pytest -v --cov --cov-config .coveragerc tests/test_mariadb_auth.py
 
       - name: Report coverage
-        run: coveralls
+        run: coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.py }}-${{ matrix.db }}
@@ -116,11 +116,10 @@ jobs:
     name: Finish coveralls
     runs-on: ubuntu-20.04
     needs: test
-    container: python:3-slim
     steps:
     - name: Finished
       run: |
-        pip3 install --upgrade coveralls
-        coveralls --finish
+        pip install --upgrade coveralls
+        coveralls --finish --service=github
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
