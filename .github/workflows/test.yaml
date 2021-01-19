@@ -120,6 +120,14 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: 3.9
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: finish-pip-1
+        restore-keys: |
+          finish-pip-
+
     - name: Finished
       run: |
         pip install --upgrade coveralls
