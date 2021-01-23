@@ -155,16 +155,16 @@ DATETIME_RE = re.compile(
 def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
-      >>> datetime_or_None('2007-02-25 23:06:20')
+      >>> convert_datetime('2007-02-25 23:06:20')
       datetime.datetime(2007, 2, 25, 23, 6, 20)
-      >>> datetime_or_None('2007-02-25T23:06:20')
+      >>> convert_datetime('2007-02-25T23:06:20')
       datetime.datetime(2007, 2, 25, 23, 6, 20)
 
     Illegal values are returned as None:
 
-      >>> datetime_or_None('2007-02-31T23:06:20') is None
+      >>> convert_datetime('2007-02-31T23:06:20') is None
       True
-      >>> datetime_or_None('0000-00-00 00:00:00') is None
+      >>> convert_datetime('0000-00-00 00:00:00') is None
       True
 
     """
@@ -189,14 +189,14 @@ TIMEDELTA_RE = re.compile(r"(-)?(\d{1,3}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?")
 def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
 
-      >>> timedelta_or_None('25:06:17')
+      >>> convert_timedelta('25:06:17')
       datetime.timedelta(1, 3977)
-      >>> timedelta_or_None('-25:06:17')
+      >>> convert_timedelta('-25:06:17')
       datetime.timedelta(-2, 83177)
 
     Illegal values are returned as None:
 
-      >>> timedelta_or_None('random crap') is None
+      >>> convert_timedelta('random crap') is None
       True
 
     Note that MySQL always returns TIME columns as (+|-)HH:MM:SS, but
@@ -236,14 +236,14 @@ TIME_RE = re.compile(r"(\d{1,2}):(\d{1,2}):(\d{1,2})(?:.(\d{1,6}))?")
 def convert_time(obj):
     """Returns a TIME column as a time object:
 
-      >>> time_or_None('15:06:17')
+      >>> convert_time('15:06:17')
       datetime.time(15, 6, 17)
 
     Illegal values are returned as None:
 
-      >>> time_or_None('-25:06:17') is None
+      >>> convert_time('-25:06:17') is None
       True
-      >>> time_or_None('random crap') is None
+      >>> convert_time('random crap') is None
       True
 
     Note that MySQL always returns TIME columns as (+|-)HH:MM:SS, but
@@ -279,14 +279,14 @@ def convert_time(obj):
 def convert_date(obj):
     """Returns a DATE column as a date object:
 
-      >>> date_or_None('2007-02-26')
+      >>> convert_date('2007-02-26')
       datetime.date(2007, 2, 26)
 
     Illegal values are returned as None:
 
-      >>> date_or_None('2007-02-31') is None
+      >>> convert_date('2007-02-31') is None
       True
-      >>> date_or_None('0000-00-00') is None
+      >>> convert_date('0000-00-00') is None
       True
 
     """
