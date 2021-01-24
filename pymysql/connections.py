@@ -99,18 +99,18 @@ class Connection:
     Establish a connection to the MySQL database. Accepts several
     arguments:
 
-    :param host: Host where the database server is located
-    :param user: Username to log in as
+    :param host: Host where the database server is located.
+    :param user: Username to log in as.
     :param password: Password to use.
     :param database: Database to use, None to not use a particular one.
     :param port: MySQL port to use, default is usually OK. (default: 3306)
     :param bind_address: When the client has multiple network interfaces, specify
         the interface from which to connect to the host. Argument can be
         a hostname or an IP address.
-    :param unix_socket: Optionally, you can use a unix socket rather than TCP/IP.
+    :param unix_socket: Use a unix socket rather than TCP/IP.
     :param read_timeout: The timeout for reading from the connection in seconds (default: None - no timeout)
     :param write_timeout: The timeout for writing to the connection in seconds (default: None - no timeout)
-    :param charset: Charset you want to use.
+    :param charset: Charset to use.
     :param sql_mode: Default SQL_MODE to use.
     :param read_default_file:
         Specifies  my.cnf file to read these parameters from under the [client] section.
@@ -124,16 +124,15 @@ class Connection:
     :param client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
     :param cursorclass: Custom cursor class to use.
     :param init_command: Initial SQL statement to run when connection is established.
-    :param connect_timeout: Timeout before throwing an exception when connecting.
+    :param connect_timeout: The timeout for connecting to the database in seconds.
         (default: 10, min: 1, max: 31536000)
-    :param ssl:
-        A dict of arguments similar to mysql_ssl_set()'s parameters.
-    :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate
-    :param ssl_cert: Path to the file that contains a PEM-formatted client certificate
-    :param ssl_disabled: A boolean value that disables usage of TLS
-    :param ssl_key: Path to the file that contains a PEM-formatted private key for the client certificate
-    :param ssl_verify_cert: Set to true to check the validity of server certificates
-    :param ssl_verify_identity: Set to true to check the server's identity
+    :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters.
+    :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate.
+    :param ssl_cert: Path to the file that contains a PEM-formatted client certificate.
+    :param ssl_disabled: A boolean value that disables usage of TLS.
+    :param ssl_key: Path to the file that contains a PEM-formatted private key for the client certificate.
+    :param ssl_verify_cert: Set to true to check the server certificate's validity.
+    :param ssl_verify_identity: Set to true to check the server's identity.
     :param read_default_group: Group to read from in the configuration file.
     :param autocommit: Autocommit mode. None means use server default. (default: False)
     :param local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
@@ -148,8 +147,8 @@ class Connection:
         (if no authenticate method) for returning a string from the user. (experimental)
     :param server_public_key: SHA256 authentication plugin public key value. (default: None)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
-    :param compress: Not supported
-    :param named_pipe: Not supported
+    :param compress: Not supported.
+    :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
     :param passwd: **DEPRECATED** Alias for password.
 
@@ -415,11 +414,11 @@ class Connection:
 
     @property
     def open(self):
-        """Return True if the connection is open"""
+        """Return True if the connection is open."""
         return self._sock is not None
 
     def _force_close(self):
-        """Close connection without QUIT message"""
+        """Close connection without QUIT message."""
         if self._sock:
             try:
                 self._sock.close()
@@ -448,7 +447,7 @@ class Connection:
         return ok
 
     def _send_autocommit_mode(self):
-        """Set whether or not to commit after every execute()"""
+        """Set whether or not to commit after every execute()."""
         self._execute_command(
             COMMAND.COM_QUERY, "SET AUTOCOMMIT = %s" % self.escape(self.autocommit_mode)
         )
@@ -496,7 +495,7 @@ class Connection:
         self._read_ok_packet()
 
     def escape(self, obj, mapping=None):
-        """Escape whatever value you pass to it.
+        """Escape whatever value is passed.
 
         Non-standard, for internal use; do not use this in your applications.
         """
@@ -510,7 +509,7 @@ class Connection:
         return converters.escape_item(obj, self.charset, mapping=mapping)
 
     def literal(self, obj):
-        """Alias for escape()
+        """Alias for escape().
 
         Non-standard, for internal use; do not use this in your applications.
         """
@@ -530,9 +529,8 @@ class Connection:
         """
         Create a new cursor to execute queries with.
 
-        :param cursor: The type of cursor to create; one of :py:class:`Cursor`,
-            :py:class:`SSCursor`, :py:class:`DictCursor`, or :py:class:`SSDictCursor`.
-            None means use Cursor.
+        :param cursor: The type of cursor to create. None means use Cursor.
+        :type cursor: :py:class:`Cursor`, :py:class:`SSCursor`, :py:class:`DictCursor`, or :py:class:`SSDictCursor`.
         """
         if cursor:
             return cursor(self)
@@ -565,6 +563,8 @@ class Connection:
         Check if the server is alive.
 
         :param reconnect: If the connection is closed, reconnect.
+        :type reconnect: boolean
+
         :raise Error: If the connection is closed and reconnect=False.
         """
         if self._sock is None:
