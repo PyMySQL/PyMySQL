@@ -15,7 +15,7 @@ RE_INSERT_VALUES = re.compile(
 
 class Cursor:
     """
-    This is the object you use to interact with the database.
+    This is the object used to interact with the database.
 
     Do not create an instance of a Cursor yourself. Call
     connections.Connection.cursor().
@@ -79,7 +79,7 @@ class Cursor:
         """Does nothing, required by DB API."""
 
     def _nextset(self, unbuffered=False):
-        """Get the next query set"""
+        """Get the next query set."""
         conn = self._get_db()
         current_result = self._result
         if current_result is None or current_result is not conn._result:
@@ -114,8 +114,17 @@ class Cursor:
 
     def mogrify(self, query, args=None):
         """
-        Returns the exact string that is sent to the database by calling the
+        Returns the exact string that would be sent to the database by calling the
         execute() method.
+
+        :param query: Query to mogrify.
+        :type query: str
+
+        :param args: Parameters used with query. (optional)
+        :type args: tuple, list or dict
+
+        :return: The query with argument binding applied.
+        :rtype: str
 
         This method follows the extension to the DB API 2.0 followed by Psycopg.
         """
@@ -127,14 +136,15 @@ class Cursor:
         return query
 
     def execute(self, query, args=None):
-        """Execute a query
+        """Execute a query.
 
-        :param str query: Query to execute.
+        :param query: Query to execute.
+        :type query: str
 
-        :param args: parameters used with query. (optional)
+        :param args: Parameters used with query. (optional)
         :type args: tuple, list or dict
 
-        :return: Number of affected rows
+        :return: Number of affected rows.
         :rtype: int
 
         If args is a list or tuple, %s can be used as a placeholder in the query.
@@ -150,12 +160,16 @@ class Cursor:
         return result
 
     def executemany(self, query, args):
-        # type: (str, list) -> int
-        """Run several data against one query
+        """Run several data against one query.
 
-        :param query: query to execute on server
-        :param args:  Sequence of sequences or mappings.  It is used as parameter.
+        :param query: Query to execute.
+        :type query: str
+
+        :param args: Sequence of sequences or mappings. It is used as parameter.
+        :type args: tuple or list
+
         :return: Number of rows affected, if any.
+        :rtype: int or None
 
         This method improves performance on multiple-row INSERT and
         REPLACE. Otherwise it is equivalent to looping over args with
@@ -213,11 +227,13 @@ class Cursor:
         return rows
 
     def callproc(self, procname, args=()):
-        """Execute stored procedure procname with args
+        """Execute stored procedure procname with args.
 
-        procname -- string, name of procedure to execute on server
+        :param procname: Name of procedure to execute on server.
+        :type procname: str
 
-        args -- Sequence of parameters to use with procedure
+        :param args: Sequence of parameters to use with procedure.
+        :type args: tuple or list
 
         Returns the original args.
 
@@ -260,7 +276,7 @@ class Cursor:
         return args
 
     def fetchone(self):
-        """Fetch the next row"""
+        """Fetch the next row."""
         self._check_executed()
         if self._rows is None or self.rownumber >= len(self._rows):
             return None
@@ -269,7 +285,7 @@ class Cursor:
         return result
 
     def fetchmany(self, size=None):
-        """Fetch several rows"""
+        """Fetch several rows."""
         self._check_executed()
         if self._rows is None:
             return ()
@@ -279,7 +295,7 @@ class Cursor:
         return result
 
     def fetchall(self):
-        """Fetch all the rows"""
+        """Fetch all the rows."""
         self._check_executed()
         if self._rows is None:
             return ()
@@ -418,11 +434,11 @@ class SSCursor(Cursor):
         return self._nextset(unbuffered=True)
 
     def read_next(self):
-        """Read next row"""
+        """Read next row."""
         return self._conv_row(self._result._read_rowdata_packet_unbuffered())
 
     def fetchone(self):
-        """Fetch next row"""
+        """Fetch next row."""
         self._check_executed()
         row = self.read_next()
         if row is None:
@@ -450,7 +466,7 @@ class SSCursor(Cursor):
         return self.fetchall_unbuffered()
 
     def fetchmany(self, size=None):
-        """Fetch many"""
+        """Fetch many."""
         self._check_executed()
         if size is None:
             size = self.arraysize
