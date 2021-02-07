@@ -13,12 +13,24 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+        ports:
+            - '8888:3306'
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-
+        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9]
     steps:
     - uses: actions/checkout@v2
+    - name: Set up MySQL
+      run: |
+        mysql -e 'create database test_cymysql DEFAULT CHARACTER SET utf8mb4;'
+        mysql -e 'create database test_cymysql2 DEFAULT CHARACTER SET utf8mb4;'
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
