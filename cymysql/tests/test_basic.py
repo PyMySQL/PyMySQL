@@ -270,7 +270,7 @@ class TestCursor(base.PyMySQLTestCase):
 class TestCharset(base.PyMySQLTestCase):
     def test_charset(self):
         conn = cymysql.connect(
-            host="localhost", user="root", passwd=self.test_passwd, db="mysql",
+            host=self.test_host, user="root", passwd=self.test_passwd, db="mysql",
             charset="utf8mb4"
         )
         c = conn.cursor()
