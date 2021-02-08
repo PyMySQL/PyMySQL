@@ -7,6 +7,10 @@ import decimal
 from cymysql.constants import FIELD_TYPE
 
 PYTHON3 = sys.version_info[0] > 2
+if PYTHON3:
+    # suppress flake8 error
+    long = int
+    unicode = str
 
 ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',

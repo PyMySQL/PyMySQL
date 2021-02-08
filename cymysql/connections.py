@@ -428,10 +428,11 @@ class Connection(object):
         if not self.socket:
             self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
-        if (
-            (PYTHON3 and isinstance(sql, str)) or
-            (not PYTHON3 and isinstance(sql, unicode))
-        ):
+        # suppress flake8 error
+        if PYTHON3:
+            unicode = str
+
+        if isinstance(sql, unicode):
             sql = sql.encode(self.encoding)
 
         if len(sql) + 1 > 0xffffff:
