@@ -24,6 +24,9 @@ from cymysql.err import Warning, Error, \
 from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
+if PYTHON3:
+    # suppress flake8 error
+    unicode = str
 
 DEFAULT_USER = getpass.getuser()
 DEFAULT_CHARSET = 'utf8mb4'
@@ -429,10 +432,10 @@ class Connection(object):
             self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
         # suppress flake8 error
-        if PYTHON3:
-            unicode = str
-
-        if isinstance(sql, unicode):
+        if (
+            (PYTHON3 and isinstance(sql, str)) or
+            (not PYTHON3 and isinstance(sql, unicode))
+        ):
             sql = sql.encode(self.encoding)
 
         if len(sql) + 1 > 0xffffff:
