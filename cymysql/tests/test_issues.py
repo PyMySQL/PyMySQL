@@ -22,6 +22,9 @@ if not hasattr(unittest, "skip"):
     unittest.skip = _skip
 
 PYTHON3 = sys.version_info[0] > 2
+if PYTHON3:
+    # suppress flake8 error
+    unicode = str
 
 def u(x):
     if sys.version_info[0] < 3:
