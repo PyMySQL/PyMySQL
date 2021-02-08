@@ -277,7 +277,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         big_sql = "select * from issue54 where "
-        big_sql += " and ".join("%d=%d" % (i,i) for i in xrange(0, 100000))
+        big_sql += " and ".join("%d=%d" % (i,i) for i in range(0, 100000))
 
         try:
             c.execute("create table issue54 (id integer primary key)")
