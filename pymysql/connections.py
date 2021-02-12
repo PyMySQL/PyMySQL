@@ -427,7 +427,11 @@ class Connection:
         self._sock = None
         self._rfile = None
 
-    __del__ = _force_close
+    def __del__(self):
+        if not self._closed:
+            self.close()
+        else:
+            self._force_close()
 
     def autocommit(self, value):
         self.autocommit_mode = bool(value)
