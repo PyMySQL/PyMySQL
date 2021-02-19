@@ -2,14 +2,15 @@ import os
 import cymysql
 import unittest
 
+
 class PyMySQLTestCase(unittest.TestCase):
     # Edit this to suit your test environment.
     test_host = "127.0.0.1"
     test_passwd = os.environ.get("MYSQL_ROOT_PASSWORD", "")
     databases = [
-        {"host":test_host, "user":"root",
-         "passwd":test_passwd, "db":"test_cymysql", "use_unicode": True},
-        {"host":test_host, "user":"root", "passwd":test_passwd, "db":"test_cymysql2"}]
+        {"host": test_host, "user": "root",
+         "passwd": test_passwd, "db": "test_cymysql", "use_unicode": True},
+        {"host": test_host, "user": "root", "passwd": test_passwd, "db": "test_cymysql2"}]
 
     def setUp(self):
         self.connections = []
@@ -20,4 +21,3 @@ class PyMySQLTestCase(unittest.TestCase):
     def tearDown(self):
         for connection in self.connections:
             connection.close()
-

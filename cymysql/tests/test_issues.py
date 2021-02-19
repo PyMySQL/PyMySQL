@@ -17,6 +17,7 @@ import datetime
 if not hasattr(unittest, "skip"):
     def _empty(func):
         pass
+
     def _skip(message):
         return _empty
     unittest.skip = _skip
@@ -26,12 +27,14 @@ if PYTHON3:
     # suppress flake8 error
     unicode = str
 
+
 def u(x):
     if sys.version_info[0] < 3:
         import codecs
         return codecs.unicode_escape_decode(x)[0]
     else:
         return x
+
 
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
@@ -75,7 +78,7 @@ class TestOldIssues(base.PyMySQLTestCase):
 
     def test_issue_6(self):
         """ exception: TypeError: ord() expected a character, but string of length 0 found """
-        conn = cymysql.connect(host=self.test_host,user="root",passwd=self.test_passwd,db="mysql")
+        conn = cymysql.connect(host=self.test_host, user="root", passwd=self.test_passwd, db="mysql")
         c = conn.cursor()
         c.execute("select * from user")
         conn.close()
@@ -107,8 +110,8 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
         conn = self.connections[0]
         cur = conn.cursor()
         cur.errorhandler = lambda errorclass, errorvalue: None
-        cur.execute( "create table issue10( n int )" )
-        cur.execute( "create table issue10( n int )" )
+        cur.execute("create table issue10( n int )")
+        cur.execute("create table issue10( n int )")
 
     def test_issue_13(self):
         """ can't handle large result fields """
@@ -173,13 +176,14 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("insert into issue17 (x) values ('hello, world!')")
             c.execute("grant all privileges on %s.issue17 to 'issue17user'@'%%' identified by '1234'" % db)
             conn.commit()
-            
+
             conn2 = cymysql.connect(host=host, user="issue17user", passwd="1234", db=db)
             c2 = conn2.cursor()
             c2.execute("select x from issue17")
             self.assertEqual("hello, world!", c2.fetchone()[0])
         finally:
             c.execute("drop table issue17")
+
 
 def _uni(s, e):
     # hack for py3
@@ -188,6 +192,7 @@ def _uni(s, e):
     else:
         return unicode(s, e)
 
+
 class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_34(self):
         try:
@@ -195,7 +200,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.fail()
         except cymysql.OperationalError as e:
             self.assertEqual(2003, e.args[0])
-        except:
+        except Exception:
             self.fail()
 
     def test_issue_33(self):
@@ -205,7 +210,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             c.execute(_uni("create table hei\xc3\x9fe (name varchar(32))", "utf8"))
             c.execute(_uni("insert into hei\xc3\x9fe (name) values ('Pi\xc3\xb1ata')", "utf8"))
             c.execute(_uni("select name from hei\xc3\x9fe", "utf8"))
-            self.assertEqual(_uni("Pi\xc3\xb1ata","utf8"), c.fetchone()[0])
+            self.assertEqual(_uni("Pi\xc3\xb1ata", "utf8"), c.fetchone()[0])
         finally:
             c.execute(_uni("drop table hei\xc3\x9fe", "utf8"))
 
@@ -226,7 +231,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         # kill connections[0]
         c.execute("show processlist")
         kill_id = None
-        for id,user,host,db,command,time,state,info in c.fetchall():
+        for id, user, host, db, command, time, state, info in c.fetchall():
             if info == "show processlist":
                 kill_id = id
                 break
@@ -234,14 +239,14 @@ class TestNewIssues(base.PyMySQLTestCase):
         try:
             conn.kill(kill_id)
         except cymysql.InternalError:   # MySQL 5.6
-            exc,value,tb = sys.exc_info()
+            exc, value, tb = sys.exc_info()
             self.assertEqual(value.errno, 1317)
             self.assertEqual(value.errmsg, 'Query execution was interrupted')
         # make sure this connection has broken
         try:
             c.execute("show tables")
             self.fail()
-        except:
+        except Exception:
             pass
         # check the process list from the other connection
         sleep(0.5)
@@ -265,8 +270,8 @@ class TestNewIssues(base.PyMySQLTestCase):
     def test_issue_38(self):
         conn = self.connections[0]
         c = conn.cursor()
-        datum = "a" * 1024 * 1023 # reduced size for most default mysql installs
-        
+        datum = "a" * 1024 * 1023   # reduced size for most default mysql installs
+
         try:
             c.execute("create table issue38 (id integer, data mediumblob)")
             c.execute("insert into issue38 values (1, %s)", (datum,))
@@ -277,7 +282,7 @@ class TestNewIssues(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         big_sql = "select * from issue54 where "
-        big_sql += " and ".join("%d=%d" % (i,i) for i in range(0, 100000))
+        big_sql += " and ".join("%d=%d" % (i, i) for i in range(0, 100000))
 
         try:
             c.execute("create table issue54 (id integer primary key)")
@@ -286,6 +291,7 @@ class TestNewIssues(base.PyMySQLTestCase):
             self.assertEqual(7, c.fetchone()[0])
         finally:
             c.execute("drop table issue54")
+
 
 class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_66(self):
@@ -299,6 +305,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             self.assertEqual(2, conn.insert_id())
         finally:
             c.execute("drop table issue66")
+
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 

@@ -1,10 +1,10 @@
 import cymysql
 from cymysql.tests import base
 
+
 class TestExample(base.PyMySQLTestCase):
     def test_example(self):
         conn = cymysql.connect(host='127.0.0.1', port=3306, user='root', passwd=self.test_passwd, db='mysql')
-   
 
         cur = conn.cursor()
 
@@ -24,6 +24,7 @@ class TestExample(base.PyMySQLTestCase):
 
         cur.close()
         conn.close()
+
 
 __all__ = ["TestExample"]
 
