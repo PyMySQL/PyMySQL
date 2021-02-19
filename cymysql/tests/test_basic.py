@@ -24,12 +24,43 @@ class TestConversion(base.PyMySQLTestCase):
         """ test every data type """
         conn = self.connections[0]
         c = conn.cursor()
-        c.execute("create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)")
+        c.execute(
+            """create table test_datatypes
+                (b bit,
+                i int,
+                l bigint,
+                f real,
+                s varchar(32),
+                u varchar(32),
+                bb blob,
+                d date,
+                dt datetime,
+                ts timestamp,
+                td time,
+                t time,
+                st datetime)"""
+        )
         try:
             # insert values
 
-            v = (True, -3, 123456789012, 5.7, "hello'\" world", u"Espa\xc3\xb1ol", "binary\x00data".encode(conn.encoding), datetime.date(1988, 2, 2), datetime.datetime(2014, 5, 15, 7, 45, 57), datetime.timedelta(5, 6), datetime.time(16, 32), time.localtime())
-            c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", v)
+            v = (
+                True,
+                -3,
+                123456789012,
+                5.7,
+                "hello'\" world",
+                u"Espa\xc3\xb1ol",
+                "binary\x00data".encode(conn.encoding),
+                datetime.date(1988, 2, 2),
+                datetime.datetime(2014, 5, 15, 7, 45, 57),
+                datetime.timedelta(5, 6),
+                datetime.time(16, 32),
+                time.localtime()
+            )
+            c.execute(
+                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                v
+            )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
             self.assertEqual(int2byte(1), r[0])
@@ -40,7 +71,10 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("delete from test_datatypes")
 
             # check nulls
-            c.execute("insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", [None] * 12)
+            c.execute(
+                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                [None] * 12
+            )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
             r = c.fetchone()
             self.assertEqual(tuple([None] * 12), r)
