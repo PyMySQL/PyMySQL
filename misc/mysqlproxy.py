@@ -24,10 +24,9 @@
 ################################################################################
 from __future__ import print_function
 import sys
-import time
 import socket
 import binascii
-import select
+
 
 def recv_from_socket(sock, n):
     recieved = b''
@@ -37,16 +36,19 @@ def recv_from_socket(sock, n):
         n -= len(bs)
     return recieved
 
+
 def recv_mysql_packet(sock):
     head = recv_from_socket(sock, 4)
     n = int.from_bytes(head[:3], byteorder='little')
     return head + recv_from_socket(sock, n)
+
 
 def to_ascii(s):
     r = ''
     for c in s:
         r += chr(c) if (c >= 32 and c < 128) else '.'
     return r
+
 
 def print_command_type(code):
     r = {
@@ -56,6 +58,7 @@ def print_command_type(code):
 
     print("%-12s" % (r), end='')
     return r
+
 
 def print_response_type(code):
     r = {
