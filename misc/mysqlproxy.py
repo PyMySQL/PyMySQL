@@ -70,6 +70,7 @@ def print_response_type(code):
     print("%-12s" % (r), end='')
     return r
 
+
 def proxy_wire(server_name, server_port, listen_host, listen_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((listen_host, listen_port))
