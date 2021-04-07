@@ -286,7 +286,7 @@ def convert_characters(data, encoding=None, field=None, use_unicode=None):
 
 def convert_json(data, encoding=None, field=None, use_unicode=None):
     if use_unicode or PYTHON3:
-        return data.decode(field.encoding)
+        return data.decode(encoding)
     return data
 
 
