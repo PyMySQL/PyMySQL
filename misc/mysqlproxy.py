@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
-##############################################################################
-#The MIT License (MIT)
+################################################################################
+# The MIT License (MIT)
 #
-#Copyright (c) 2016 Hajime Nakagami
+# Copyright (c) 2016 Hajime Nakagami
 #
-#Permission is hereby granted, free of charge, to any person obtaining a copy
-#of this software and associated documentation files (the "Software"), to deal
-#in the Software without restriction, including without limitation the rights
-#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#SOFTWARE.
-##############################################################################
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+################################################################################
 from __future__ import print_function
 import sys
-import time
 import socket
 import binascii
-import select
+
 
 def recv_from_socket(sock, n):
     recieved = b''
@@ -37,16 +36,19 @@ def recv_from_socket(sock, n):
         n -= len(bs)
     return recieved
 
+
 def recv_mysql_packet(sock):
     head = recv_from_socket(sock, 4)
     n = int.from_bytes(head[:3], byteorder='little')
     return head + recv_from_socket(sock, n)
+
 
 def to_ascii(s):
     r = ''
     for c in s:
         r += chr(c) if (c >= 32 and c < 128) else '.'
     return r
+
 
 def print_command_type(code):
     r = {
@@ -57,6 +59,7 @@ def print_command_type(code):
     print("%-12s" % (r), end='')
     return r
 
+
 def print_response_type(code):
     r = {
         0x00: 'OK',
@@ -66,6 +69,7 @@ def print_response_type(code):
 
     print("%-12s" % (r), end='')
     return r
+
 
 def proxy_wire(server_name, server_port, listen_host, listen_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
