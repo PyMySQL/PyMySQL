@@ -9,9 +9,6 @@ from cymysql.err import (
 )
 
 PYTHON3 = sys.version_info[0] > 2
-if PYTHON3:
-    # suppress flake8 error
-    unicode = str
 
 
 class Cursor(object):
@@ -64,7 +61,7 @@ class Cursor(object):
         try:
             while self.nextset():
                 pass
-        except Exception:
+        except:
             pass
 
         self.connection = None
@@ -131,7 +128,7 @@ class Cursor(object):
 
         try:
             self._query(query)
-        except Exception:
+        except:
             exc, value, tb = exc_info()
             del tb
             self.messages.append((exc, value))

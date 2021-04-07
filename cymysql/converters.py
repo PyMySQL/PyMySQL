@@ -7,10 +7,6 @@ import decimal
 from cymysql.constants import FIELD_TYPE
 
 PYTHON3 = sys.version_info[0] > 2
-if PYTHON3:
-    # suppress flake8 error
-    long = int
-    unicode = str
 
 ESCAPE_REGEX = re.compile(r"[\0\n\r\032\'\"\\]")
 ESCAPE_MAP = {'\0': '\\0', '\n': '\\n', '\r': '\\r', '\032': '\\Z',
@@ -288,10 +284,6 @@ def convert_characters(data, encoding=None, field=None, use_unicode=None):
     return data
 
 
-def convert_json(data, encoding=None, field=None, use_unicode=None):
-    return data.decode(encoding)
-
-
 def convert_decimal(obj):
     if PYTHON3 and not isinstance(obj, str):
         obj = obj.decode('ascii')
@@ -324,7 +316,7 @@ decoders = {
         FIELD_TYPE.STRING: convert_characters,
         FIELD_TYPE.VAR_STRING: convert_characters,
         FIELD_TYPE.VARCHAR: convert_characters,
-        FIELD_TYPE.JSON: convert_json,
+        FIELD_TYPE.JSON: convert_characters,
 }
 
 encoders = {

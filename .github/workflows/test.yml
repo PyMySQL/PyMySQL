@@ -41,6 +41,6 @@ jobs:
     - name: Test
       run: |
         MYSQL_ROOT_PASSWORD=password python setup.py test
-        # python -m pip install cython
-        # python setup.py build_ext -i
-        # MYSQL_ROOT_PASSWORD=password python setup.py test
+        python -m pip install cython
+        python setup.py build_ext -i
+        MYSQL_ROOT_PASSWORD=password python setup.py test

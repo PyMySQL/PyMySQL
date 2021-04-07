@@ -5,7 +5,7 @@ import sys
 import struct
 from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS, FLAG
-from cymysql.converters import convert_characters, convert_json
+from cymysql.converters import convert_characters
 from cymysql.charset import charset_by_id, encoding_by_charset
 
 from libc.stdint cimport uint16_t, uint32_t
@@ -153,7 +153,7 @@ cdef class MysqlPacket(object):
         return tuple([
             None if value is None
             else decoder(value, self._encoding, field, self._use_unicode)
-            if decoder is (convert_characters, convert_json)
+            if decoder is convert_characters
             else decoder(value)
             for value, field, decoder in [
                 (self._read_length_coded_string(), f, decoders.get(f.type_code))

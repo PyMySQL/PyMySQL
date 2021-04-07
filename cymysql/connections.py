@@ -24,9 +24,6 @@ from cymysql.err import Warning, Error, \
 from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
-if PYTHON3:
-    # suppress flake8 error
-    unicode = str
 
 DEFAULT_USER = getpass.getuser()
 DEFAULT_CHARSET = 'utf8mb4'
@@ -68,7 +65,8 @@ def _xor(data1, data2):
     result = b''
     for i in range(len(data1)):
         j = i % len(data2)
-        x = (struct.unpack('B', data1[i:i+1])[0] ^ struct.unpack('B', data2[j:j+1])[0])
+        x = (struct.unpack('B', data1[i:i+1])[0] ^ \
+             struct.unpack('B', data2[j:j+1])[0])
         result += struct.pack('B', x)
     return result
 
@@ -192,7 +190,7 @@ class Connection(object):
             def _config(key, default):
                 try:
                     return cfg.get(read_default_group, key)
-                except Exception:
+                except:
                     return default
 
             user = _config("user", user)
@@ -285,7 +283,7 @@ class Connection(object):
         try:
             self._execute_command(COMMAND.COM_QUERY, q)
             self.read_packet()
-        except Exception:
+        except:
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
@@ -294,7 +292,7 @@ class Connection(object):
         try:
             self._execute_command(COMMAND.COM_QUERY, "COMMIT")
             self.read_packet()
-        except Exception:
+        except:
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
@@ -303,7 +301,7 @@ class Connection(object):
         try:
             self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
             self.read_packet()
-        except Exception:
+        except:
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
@@ -360,7 +358,7 @@ class Connection(object):
             self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
             pkt = self.read_packet()
             return pkt.is_ok_packet()
-        except Exception:
+        except:
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
         return False
@@ -369,7 +367,7 @@ class Connection(object):
         ''' Check if the server is alive '''
         try:
             self._execute_command(COMMAND.COM_PING, "")
-        except Exception:
+        except:
             if reconnect:
                 self._connect()
                 return self.ping(False)
@@ -388,7 +386,7 @@ class Connection(object):
                                       self.escape(charset))
                 self.read_packet()
                 self.charset = charset
-        except Exception:
+        except:
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
@@ -430,7 +428,6 @@ class Connection(object):
         if not self.socket:
             self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
 
-        # suppress flake8 error
         if (
             (PYTHON3 and isinstance(sql, str)) or
             (not PYTHON3 and isinstance(sql, unicode))
