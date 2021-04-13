@@ -65,8 +65,7 @@ def _xor(data1, data2):
     result = b''
     for i in range(len(data1)):
         j = i % len(data2)
-        x = (struct.unpack('B', data1[i:i+1])[0] ^ \
-             struct.unpack('B', data2[j:j+1])[0])
+        x = struct.unpack('B', data1[i:i+1])[0] ^ struct.unpack('B', data2[j:j+1])[0]
         result += struct.pack('B', x)
     return result
 
