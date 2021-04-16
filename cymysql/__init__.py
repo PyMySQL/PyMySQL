@@ -24,11 +24,14 @@ THE SOFTWARE.
 '''
 from cymysql import converters
 from cymysql.converters import escape_dict, escape_sequence, escape_string
-from cymysql.err import Warning, Error, InterfaceError, DataError, \
-     DatabaseError, OperationalError, IntegrityError, InternalError, \
-     NotSupportedError, ProgrammingError, MySQLError
-from cymysql.times import Date, Time, Timestamp, \
-    DateFromTicks, TimeFromTicks, TimestampFromTicks
+from cymysql.err import (
+    Warning, Error, InterfaceError, DataError,
+    DatabaseError, OperationalError, IntegrityError, InternalError,
+    NotSupportedError, ProgrammingError, MySQLError
+)
+from cymysql.times import (
+    Date, Time, Timestamp, DateFromTicks, TimeFromTicks, TimestampFromTicks
+)
 from cymysql.connections import Connection
 from cymysql.constants import FIELD_TYPE
 

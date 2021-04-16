@@ -96,7 +96,8 @@ cdef class MysqlPacket(object):
 
         self.__data = recv_data
   
-    def get_all_data(self): return self.__data
+    def get_all_data(self):
+        return self.__data
 
     cpdef read(self, size):
         return self._read(size)
@@ -104,7 +105,7 @@ cdef class MysqlPacket(object):
     cdef bytes _read(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         self.__position += size
-        return self.__data[self.__position-size:self.__position]
+        return self.__data[self.__position - size:self.__position]
 
     cdef void _skip(self, int size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
@@ -186,12 +187,14 @@ cdef class MysqlPacket(object):
                 server_status, warning_count, message)
 
     cpdef read_auth_switch_request(self):
-        cdef int i
+        cdef int i, j
         cdef data, plugin_name
         data = self.get_all_data()
         i = data.find(b'\0', 1)
         plugin_name = data[1:i].decode('utf-8')
-        return plugin_name, data[i+1:]
+        j = data.find(b'\0', i + 1)
+        salt = data[i + 1:j]
+        return plugin_name, salt
 
 
 cdef class FieldDescriptorPacket(MysqlPacket):
@@ -344,5 +347,5 @@ cdef class MySQLResult(object):
             return packet.read_decode_data(self.fields, self.connection.conv)
         elif len(self.rest_rows) != self.rest_row_index:
             self.rest_row_index += 1
-            return self.rest_rows[self.rest_row_index-1]
+            return self.rest_rows[self.rest_row_index - 1]
         return None

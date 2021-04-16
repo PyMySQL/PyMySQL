@@ -94,7 +94,8 @@ class MysqlPacket(object):
                 break
         self.__data = recv_data
 
-    def get_all_data(self): return self.__data
+    def get_all_data(self):
+        return self.__data
 
     def read(self, size):
         return self._read(size)
@@ -102,7 +103,7 @@ class MysqlPacket(object):
     def _read(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
         self.__position += size
-        return self.__data[self.__position-size:self.__position]
+        return self.__data[self.__position - size:self.__position]
 
     def _skip(self, size):
         """Read the first 'size' bytes in packet and advance cursor past them."""
@@ -184,8 +185,8 @@ class MysqlPacket(object):
         data = self.get_all_data()
         i = data.find(b'\0', 1)
         plugin_name = data[1:i].decode('utf-8')
-        j = data.find(b'\0', i+1)
-        salt = data[i+1:j]
+        j = data.find(b'\0', i + 1)
+        salt = data[i + 1:j]
         return plugin_name, salt
 
 
@@ -326,5 +327,5 @@ class MySQLResult(object):
             return packet.read_decode_data(self.fields, self.connection.conv)
         elif len(self.rest_rows) != self.rest_row_index:
             self.rest_row_index += 1
-            return self.rest_rows[self.rest_row_index-1]
+            return self.rest_rows[self.rest_row_index - 1]
         return None
