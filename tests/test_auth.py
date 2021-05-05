@@ -10,7 +10,9 @@ host = "127.0.0.1"
 port = 3306
 
 ca = os.path.expanduser("~/ca.pem")
+cadata = open(ca, "r").read()
 ssl = {"ca": ca, "check_hostname": False}
+ssl_cadata = {"cadata": cadata, "check_hostname": False}
 
 pass_sha256 = "pass_sha256_01234567890123456789"
 pass_caching_sha2 = "pass_caching_sha2_01234567890123456789"
@@ -23,6 +25,11 @@ def test_sha256_no_password():
 
 def test_sha256_no_passowrd_ssl():
     con = pymysql.connect(user="nopass_sha256", host=host, port=port, ssl=ssl)
+    con.close()
+
+
+def test_sha256_no_passowrd_ssl_cadata():
+    con = pymysql.connect(user="nopass_sha256", host=host, port=port, ssl=ssl_cadata)
     con.close()
 
 

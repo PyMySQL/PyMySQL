@@ -128,6 +128,9 @@ class Connection:
         (default: 10, min: 1, max: 31536000)
     :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters.
     :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate.
+    :param ssl_cadata:
+        Either an ASCII string of one or more PEM-encoded certificates or
+        a bytes-like object of DER-encoded certificates.
     :param ssl_cert: Path to the file that contains a PEM-formatted client certificate.
     :param ssl_disabled: A boolean value that disables usage of TLS.
     :param ssl_key: Path to the file that contains a PEM-formatted private key for the client certificate.
@@ -193,6 +196,7 @@ class Connection:
         server_public_key=None,
         ssl=None,
         ssl_ca=None,
+        ssl_cadata=None,
         ssl_cert=None,
         ssl_disabled=None,
         ssl_key=None,
@@ -264,14 +268,24 @@ class Connection:
 
         self.ssl = False
         if not ssl_disabled:
-            if ssl_ca or ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
+            if (
+                ssl_ca
+                or ssl_cadata
+                or ssl_cert
+                or ssl_key
+                or ssl_verify_cert
+                or ssl_verify_identity
+            ):
                 ssl = {
-                    "ca": ssl_ca,
                     "check_hostname": bool(ssl_verify_identity),
                     "verify_mode": ssl_verify_cert
                     if ssl_verify_cert is not None
                     else False,
                 }
+                if ssl_ca is not None:
+                    ssl["ca"] = ssl_ca
+                elif ssl_cadata is not None:
+                    ssl["cadata"] = ssl_cadata
                 if ssl_cert is not None:
                     ssl["cert"] = ssl_cert
                 if ssl_key is not None:
@@ -362,9 +376,10 @@ class Connection:
         if isinstance(sslp, ssl.SSLContext):
             return sslp
         ca = sslp.get("ca")
+        cadata = sslp.get("cadata")
         capath = sslp.get("capath")
-        hasnoca = ca is None and capath is None
-        ctx = ssl.create_default_context(cafile=ca, capath=capath)
+        hasnoca = ca is None and cadata is None and capath is None
+        ctx = ssl.create_default_context(cafile=ca, capath=capath, cadata=cadata)
         ctx.check_hostname = not hasnoca and sslp.get("check_hostname", True)
         verify_mode_value = sslp.get("verify_mode")
         if verify_mode_value is None:
