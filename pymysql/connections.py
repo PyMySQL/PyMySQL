@@ -898,10 +898,10 @@ class Connection:
             connect_attrs = b""
             for k, v in self._connect_attrs.items():
                 k = k.encode("utf-8")
-                connect_attrs += struct.pack("B", len(k)) + k
+                connect_attrs += _lenenc_int(len(k)) + k
                 v = v.encode("utf-8")
-                connect_attrs += struct.pack("B", len(v)) + v
-            data += struct.pack("B", len(connect_attrs)) + connect_attrs
+                connect_attrs += _lenenc_int(len(v)) + v
+            data += _lenenc_int(len(connect_attrs)) + connect_attrs
 
         self.write_packet(data)
         auth_packet = self._read_packet()
