@@ -14,7 +14,7 @@ __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
 
 class TestConversion(base.PyMySQLTestCase):
     def test_datatypes(self):
-        """ test every data type """
+        """test every data type"""
         conn = self.connect()
         c = conn.cursor()
         c.execute(
@@ -80,7 +80,7 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("drop table test_datatypes")
 
     def test_dict(self):
-        """ test dict escaping """
+        """test dict escaping"""
         conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_dict (a integer, b integer, c integer)")
@@ -143,7 +143,7 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual(data, c.fetchone()[0])
 
     def test_untyped(self):
-        """ test conversion of null, empty string """
+        """test conversion of null, empty string"""
         conn = self.connect()
         c = conn.cursor()
         c.execute("select null,''")
@@ -152,7 +152,7 @@ class TestConversion(base.PyMySQLTestCase):
         self.assertEqual(("", None), c.fetchone())
 
     def test_timedelta(self):
-        """ test timedelta conversion """
+        """test timedelta conversion"""
         conn = self.connect()
         c = conn.cursor()
         c.execute(
@@ -172,7 +172,7 @@ class TestConversion(base.PyMySQLTestCase):
         )
 
     def test_datetime_microseconds(self):
-        """ test datetime conversion w microseconds"""
+        """test datetime conversion w microseconds"""
 
         conn = self.connect()
         if not self.mysql_server_is(conn, (5, 6, 4)):
@@ -243,7 +243,7 @@ class TestCursor(base.PyMySQLTestCase):
     #    self.assertEqual(r, c.description)
 
     def test_fetch_no_result(self):
-        """ test a fetchone() with no rows """
+        """test a fetchone() with no rows"""
         conn = self.connect()
         c = conn.cursor()
         c.execute("create table test_nr (b varchar(32))")
@@ -255,7 +255,7 @@ class TestCursor(base.PyMySQLTestCase):
             c.execute("drop table test_nr")
 
     def test_aggregates(self):
-        """ test aggregate functions """
+        """test aggregate functions"""
         conn = self.connect()
         c = conn.cursor()
         try:
@@ -269,7 +269,7 @@ class TestCursor(base.PyMySQLTestCase):
             c.execute("drop table test_aggregates")
 
     def test_single_tuple(self):
-        """ test a single tuple """
+        """test a single tuple"""
         conn = self.connect()
         c = conn.cursor()
         self.safe_create_table(

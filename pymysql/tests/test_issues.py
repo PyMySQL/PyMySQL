@@ -14,7 +14,7 @@ __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
 
 class TestOldIssues(base.PyMySQLTestCase):
     def test_issue_3(self):
-        """ undefined methods datetime_or_None, date_or_None """
+        """undefined methods datetime_or_None, date_or_None"""
         conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
@@ -42,7 +42,7 @@ class TestOldIssues(base.PyMySQLTestCase):
             c.execute("drop table issue3")
 
     def test_issue_4(self):
-        """ can't retrieve TIMESTAMP fields """
+        """can't retrieve TIMESTAMP fields"""
         conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
@@ -57,13 +57,13 @@ class TestOldIssues(base.PyMySQLTestCase):
             c.execute("drop table issue4")
 
     def test_issue_5(self):
-        """ query on information_schema.tables fails """
+        """query on information_schema.tables fails"""
         con = self.connect()
         cur = con.cursor()
         cur.execute("select * from information_schema.tables")
 
     def test_issue_6(self):
-        """ exception: TypeError: ord() expected a character, but string of length 0 found """
+        """exception: TypeError: ord() expected a character, but string of length 0 found"""
         # ToDo: this test requires access to db 'mysql'.
         kwargs = self.databases[0].copy()
         kwargs["database"] = "mysql"
@@ -73,7 +73,7 @@ class TestOldIssues(base.PyMySQLTestCase):
         conn.close()
 
     def test_issue_8(self):
-        """ Primary Key and Index error when selecting data """
+        """Primary Key and Index error when selecting data"""
         conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
@@ -93,7 +93,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
             c.execute("drop table test")
 
     def test_issue_13(self):
-        """ can't handle large result fields """
+        """can't handle large result fields"""
         conn = self.connect()
         cur = conn.cursor()
         with warnings.catch_warnings():
@@ -112,7 +112,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
             cur.execute("drop table issue13")
 
     def test_issue_15(self):
-        """ query should be expanded before perform character encoding """
+        """query should be expanded before perform character encoding"""
         conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
@@ -127,7 +127,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
             c.execute("drop table issue15")
 
     def test_issue_16(self):
-        """ Patch for string and tuple escaping """
+        """Patch for string and tuple escaping"""
         conn = self.connect()
         c = conn.cursor()
         with warnings.catch_warnings():
@@ -285,7 +285,7 @@ class TestNewIssues(base.PyMySQLTestCase):
 
 class TestGitHubIssues(base.PyMySQLTestCase):
     def test_issue_66(self):
-        """ 'Connection' object has no attribute 'insert_id' """
+        """'Connection' object has no attribute 'insert_id'"""
         conn = self.connect()
         c = conn.cursor()
         self.assertEqual(0, conn.insert_id())
@@ -303,7 +303,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             c.execute("drop table issue66")
 
     def test_issue_79(self):
-        """ Duplicate field overwrites the previous one in the result of DictCursor """
+        """Duplicate field overwrites the previous one in the result of DictCursor"""
         conn = self.connect()
         c = conn.cursor(pymysql.cursors.DictCursor)
 
@@ -330,7 +330,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             c.execute("drop table b")
 
     def test_issue_95(self):
-        """ Leftover trailing OK packet for "CALL my_sp" queries """
+        """Leftover trailing OK packet for "CALL my_sp" queries"""
         conn = self.connect()
         cur = conn.cursor()
         with warnings.catch_warnings():
@@ -352,7 +352,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                 cur.execute("DROP PROCEDURE IF EXISTS `foo`")
 
     def test_issue_114(self):
-        """ autocommit is not set after reconnecting with ping() """
+        """autocommit is not set after reconnecting with ping()"""
         conn = pymysql.connect(charset="utf8", **self.databases[0])
         conn.autocommit(False)
         c = conn.cursor()
@@ -377,7 +377,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn.close()
 
     def test_issue_175(self):
-        """ The number of fields returned by server is read in wrong way """
+        """The number of fields returned by server is read in wrong way"""
         conn = self.connect()
         cur = conn.cursor()
         for length in (200, 300):
@@ -393,7 +393,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
                     cur.execute("drop table if exists test_field_count")
 
     def test_issue_321(self):
-        """ Test iterable as query argument. """
+        """Test iterable as query argument."""
         conn = pymysql.connect(charset="utf8", **self.databases[0])
         self.safe_create_table(
             conn,
@@ -422,7 +422,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         self.assertEqual(cur.fetchone(), ("c", "\u0430"))
 
     def test_issue_364(self):
-        """ Test mixed unicode/binary arguments in executemany. """
+        """Test mixed unicode/binary arguments in executemany."""
         conn = pymysql.connect(charset="utf8mb4", **self.databases[0])
         self.safe_create_table(
             conn,
@@ -454,7 +454,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         cur.executemany(usql, args=(values, values, values))
 
     def test_issue_363(self):
-        """ Test binary / geometry types. """
+        """Test binary / geometry types."""
         conn = pymysql.connect(charset="utf8", **self.databases[0])
         self.safe_create_table(
             conn,

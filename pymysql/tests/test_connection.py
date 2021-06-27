@@ -226,7 +226,7 @@ class TestAuthentication(base.PyMySQLTestCase):
             pymysql.connect(
                 user="pymysql_2q",
                 auth_plugin_map={b"dialog": TestAuthentication.Dialog},
-                **self.db
+                **self.db,
             )
 
     @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
@@ -266,12 +266,12 @@ class TestAuthentication(base.PyMySQLTestCase):
             pymysql.connect(
                 user="pymysql_3a",
                 auth_plugin_map={b"dialog": TestAuthentication.Dialog},
-                **self.db
+                **self.db,
             )
             pymysql.connect(
                 user="pymysql_3a",
                 auth_plugin_map={b"dialog": TestAuthentication.DialogHandler},
-                **self.db
+                **self.db,
             )
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(
@@ -282,27 +282,27 @@ class TestAuthentication(base.PyMySQLTestCase):
                 pymysql.connect(
                     user="pymysql_3a",
                     auth_plugin_map={b"dialog": TestAuthentication.DefectiveHandler},
-                    **self.db
+                    **self.db,
                 )
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(
                     user="pymysql_3a",
                     auth_plugin_map={b"notdialogplugin": TestAuthentication.Dialog},
-                    **self.db
+                    **self.db,
                 )
             TestAuthentication.Dialog.m = {b"Password, please:": b"I do not know"}
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(
                     user="pymysql_3a",
                     auth_plugin_map={b"dialog": TestAuthentication.Dialog},
-                    **self.db
+                    **self.db,
                 )
             TestAuthentication.Dialog.m = {b"Password, please:": None}
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(
                     user="pymysql_3a",
                     auth_plugin_map={b"dialog": TestAuthentication.Dialog},
-                    **self.db
+                    **self.db,
                 )
 
     @pytest.mark.skipif(not socket_auth, reason="connection to unix_socket required")
@@ -367,7 +367,7 @@ class TestAuthentication(base.PyMySQLTestCase):
                         auth_plugin_map={
                             b"mysql_cleartext_password": TestAuthentication.DefectiveHandler
                         },
-                        **self.db
+                        **self.db,
                     )
             except pymysql.OperationalError as e:
                 self.assertEqual(1045, e.args[0])
@@ -378,7 +378,7 @@ class TestAuthentication(base.PyMySQLTestCase):
                         auth_plugin_map={
                             b"mysql_cleartext_password": TestAuthentication.DefectiveHandler
                         },
-                        **self.db
+                        **self.db,
                     )
         if grants:
             # recreate the user
