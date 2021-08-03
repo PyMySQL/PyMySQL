@@ -160,13 +160,12 @@ def convert_datetime(obj):
       >>> convert_datetime('2007-02-25T23:06:20')
       datetime.datetime(2007, 2, 25, 23, 6, 20)
 
-    Illegal values are returned as None:
+    Illegal values are returned as str:
 
-      >>> convert_datetime('2007-02-31T23:06:20') is None
-      True
-      >>> convert_datetime('0000-00-00 00:00:00') is None
-      True
-
+      >>> convert_datetime('2007-02-31T23:06:20')
+      '2007-02-31T23:06:20'
+      >>> convert_datetime('0000-00-00 00:00:00')
+      '0000-00-00 00:00:00'
     """
     if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode("ascii")
@@ -190,14 +189,14 @@ def convert_timedelta(obj):
     """Returns a TIME column as a timedelta object:
 
       >>> convert_timedelta('25:06:17')
-      datetime.timedelta(1, 3977)
+      datetime.timedelta(days=1, seconds=3977)
       >>> convert_timedelta('-25:06:17')
-      datetime.timedelta(-2, 83177)
+      datetime.timedelta(days=-2, seconds=82423)
 
-    Illegal values are returned as None:
+    Illegal values are returned as string:
 
-      >>> convert_timedelta('random crap') is None
-      True
+      >>> convert_timedelta('random crap')
+      'random crap'
 
     Note that MySQL always returns TIME columns as (+|-)HH:MM:SS, but
     can accept values as (+|-)DD HH:MM:SS. The latter format will not
@@ -239,12 +238,12 @@ def convert_time(obj):
       >>> convert_time('15:06:17')
       datetime.time(15, 6, 17)
 
-    Illegal values are returned as None:
+    Illegal values are returned as str:
 
-      >>> convert_time('-25:06:17') is None
-      True
-      >>> convert_time('random crap') is None
-      True
+      >>> convert_time('-25:06:17')
+      '-25:06:17'
+      >>> convert_time('random crap')
+      'random crap'
 
     Note that MySQL always returns TIME columns as (+|-)HH:MM:SS, but
     can accept values as (+|-)DD HH:MM:SS. The latter format will not
@@ -282,13 +281,12 @@ def convert_date(obj):
       >>> convert_date('2007-02-26')
       datetime.date(2007, 2, 26)
 
-    Illegal values are returned as None:
+    Illegal values are returned as str:
 
-      >>> convert_date('2007-02-31') is None
-      True
-      >>> convert_date('0000-00-00') is None
-      True
-
+      >>> convert_date('2007-02-31')
+      '2007-02-31'
+      >>> convert_date('0000-00-00')
+      '0000-00-00'
     """
     if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode("ascii")
@@ -362,3 +360,5 @@ decoders = {
 conversions = encoders.copy()
 conversions.update(decoders)
 Thing2Literal = escape_str
+
+# Run doctests with `pytest --doctest-modules pymysql/converters.py`
