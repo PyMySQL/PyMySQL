@@ -346,7 +346,10 @@ class Cursor:
         self._rows = result.rows
 
     def __iter__(self):
-        return iter(self.fetchone, None)
+        return self
+
+    def __next__(self):
+        return next(iter(self.fetchone, None))
 
     Warning = err.Warning
     Error = err.Error
