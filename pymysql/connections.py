@@ -920,10 +920,7 @@ class Connection:
             ):
                 auth_packet = self._process_auth(plugin_name, auth_packet)
             else:
-                # send legacy handshake
-                data = _auth.scramble_old_password(self.password, self.salt) + b"\0"
-                self.write_packet(data)
-                auth_packet = self._read_packet()
+                raise err.OperationalError("received unknown auth swich request")
         elif auth_packet.is_extra_auth_data():
             if DEBUG:
                 print("received extra data")
