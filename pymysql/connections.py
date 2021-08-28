@@ -998,8 +998,7 @@ class Connection:
                 else:
                     raise err.OperationalError(
                         2059,
-                        "Authentication plugin '%s' (%r) not configured"
-                        % (plugin_name, handler),
+                        "Authentication plugin '%s' not configured" % (plugin_name,),
                     )
                 pkt = self._read_packet()
                 pkt.check_error()
