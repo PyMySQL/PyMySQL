@@ -10,8 +10,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - db: "mariadb:10.0"
+          - db: "mariadb:10.2"
             py: "3.9"
+            mariadb_auth: true
 
           - db: "mariadb:10.3"
             py: "3.8"
