@@ -53,6 +53,7 @@ class TestAuthentication(base.PyMySQLTestCase):
     pam_found = False
     mysql_old_password_found = False
     sha256_password_found = False
+    ed25519_found = False
 
     import os
 
@@ -97,6 +98,8 @@ class TestAuthentication(base.PyMySQLTestCase):
             mysql_old_password_found = True
         elif r[0] == "sha256_password":
             sha256_password_found = True
+        elif r[0] == "ed25519":
+            ed25519_found = True
         # else:
         #    print("plugin: %r" % r[0])
 
@@ -411,6 +414,35 @@ class TestAuthentication(base.PyMySQLTestCase):
             # Although SHA256 is supported, need the configuration of public key of the mysql server. Currently will get error by this test.
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user="pymysql_sha256", **db)
+
+    @pytest.mark.skipif(not ed25519_found, reason="no ed25519 authention plugin")
+    def testAuthEd25519(self):
+        db = self.db.copy()
+        del db["password"]
+        conn = self.connect()
+        c = conn.cursor()
+        c.execute("select ed25519_password(''), ed25519_password('ed25519_password')")
+        for r in c:
+            empty_pass = r[0].decode("ascii")
+            non_empty_pass = r[1].decode("ascii")
+
+        with TempUser(
+            c,
+            "pymysql_ed25519",
+            self.databases[0]["database"],
+            "ed25519",
+            empty_pass,
+        ) as u:
+            pymysql.connect(user="pymysql_ed25519", password="", **db)
+
+        with TempUser(
+            c,
+            "pymysql_ed25519",
+            self.databases[0]["database"],
+            "ed25519",
+            non_empty_pass,
+        ) as u:
+            pymysql.connect(user="pymysql_ed25519", password="ed25519_password", **db)
 
 
 class TestConnection(base.PyMySQLTestCase):
