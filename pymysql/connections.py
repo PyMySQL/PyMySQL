@@ -61,7 +61,7 @@ TEXT_TYPES = {
 
 DEFAULT_CHARSET = "utf8mb4"
 
-MAX_PACKET_LEN = 2 ** 24 - 1
+MAX_PACKET_LEN = 2**24 - 1
 
 
 def _pack_int24(n):
