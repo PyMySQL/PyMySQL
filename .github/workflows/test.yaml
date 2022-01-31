@@ -115,6 +115,10 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
+    - name: requirements.
+      run: |
+        echo coveralls > requirements.txt
+
     - uses: actions/setup-python@v2
       with:
         python-version: '3.9'
