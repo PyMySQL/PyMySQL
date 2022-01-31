@@ -47,17 +47,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.py }}
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-1
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
 
       - name: Install dependency
         run: |
-          pip install -U cryptography PyNaCl pytest pytest-cov coveralls
+          pip install -U -r requirements-dev.txt
 
       - name: Set up MySQL
         run: |
@@ -98,16 +93,14 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
+    - name: requirements.
+      run: |
+        echo coveralls > requirements.txt
+
     - uses: actions/setup-python@v2
       with:
-        python-version: 3.9
-
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: finish-pip-1
-        restore-keys: |
-          finish-pip-
+        python-version: '3.9'
+        cache: 'pip'
 
     - name: Finished
       run: |
