@@ -122,14 +122,9 @@ jobs:
     steps:
     - uses: actions/setup-python@v2
       with:
-        python-version: 3.9
-
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: finish-pip-1
-        restore-keys: |
-          finish-pip-
+        python-version: '3.9'
+        cache: 'pip'
+        cache-dependency-path: 'requirements-dev.txt'
 
     - name: Finished
       run: |
