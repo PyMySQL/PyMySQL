@@ -13,7 +13,7 @@ import warnings
 from . import _auth
 
 from .charset import charset_by_name, charset_by_id
-from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
+from .constants import CLIENT, COMMAND, CR, ER, FIELD_TYPE, SERVER_STATUS
 from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
@@ -441,7 +441,10 @@ class Connection:
     def _read_ok_packet(self):
         pkt = self._read_packet()
         if not pkt.is_ok_packet():
-            raise err.OperationalError(2014, "Command Out of Sync")
+            raise err.OperationalError(
+                CR.CR_COMMANDS_OUT_OF_SYNC,
+                "Command Out of Sync",
+            )
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
         return ok
@@ -654,7 +657,8 @@ class Connection:
 
             if isinstance(e, (OSError, IOError, socket.error)):
                 exc = err.OperationalError(
-                    2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e)
+                    CR.CR_CONN_HOST_ERROR,
+                    "Can't connect to MySQL server on %r (%s)" % (self.host, e),
                 )
                 # Keep original exception and traceback to investigate error.
                 exc.original_exception = e
@@ -945,7 +949,7 @@ class Connection:
             except AttributeError:
                 if plugin_name != b"dialog":
                     raise err.OperationalError(
-                        2059,
+                        CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                         "Authentication plugin '%s'"
                         " not loaded: - %r missing authenticate method"
                         % (plugin_name, type(handler)),
@@ -983,21 +987,21 @@ class Connection:
                         self.write_packet(resp + b"\0")
                     except AttributeError:
                         raise err.OperationalError(
-                            2059,
+                            CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                             "Authentication plugin '%s'"
                             " not loaded: - %r missing prompt method"
                             % (plugin_name, handler),
                         )
                     except TypeError:
                         raise err.OperationalError(
-                            2061,
+                            CR.CR_AUTH_PLUGIN_ERR,
                             "Authentication plugin '%s'"
                             " %r didn't respond with string. Returned '%r' to prompt %r"
                             % (plugin_name, handler, resp, prompt),
                         )
                 else:
                     raise err.OperationalError(
-                        2059,
+                        CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                         "Authentication plugin '%s' not configured" % (plugin_name,),
                     )
                 pkt = self._read_packet()
@@ -1007,7 +1011,8 @@ class Connection:
             return pkt
         else:
             raise err.OperationalError(
-                2059, "Authentication plugin '%s' not configured" % plugin_name
+                CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
+                "Authentication plugin '%s' not configured" % plugin_name,
             )
 
         self.write_packet(data)
@@ -1024,7 +1029,7 @@ class Connection:
                 handler = plugin_class(self)
             except TypeError:
                 raise err.OperationalError(
-                    2059,
+                    CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                     "Authentication plugin '%s'"
                     " not loaded: - %r cannot be constructed with connection object"
                     % (plugin_name, plugin_class),
@@ -1211,7 +1216,10 @@ class MySQLResult:
         if (
             not ok_packet.is_ok_packet()
         ):  # pragma: no cover - upstream induced protocol error
-            raise err.OperationalError(2014, "Commands Out of Sync")
+            raise err.OperationalError(
+                CR.CR_COMMANDS_OUT_OF_SYNC,
+                "Commands Out of Sync",
+            )
         self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
@@ -1357,7 +1365,10 @@ class LoadLocalFile:
                         break
                     conn.write_packet(chunk)
         except IOError:
-            raise err.OperationalError(1017, f"Can't find file '{self.filename}'")
+            raise err.OperationalError(
+                ER.FILE_NOT_FOUND,
+                f"Can't find file '{self.filename}'",
+            )
         finally:
             # send the empty packet to signify we are done sending data
             conn.write_packet(b"")
