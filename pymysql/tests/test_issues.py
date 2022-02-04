@@ -466,29 +466,20 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         )
 
         cur = conn.cursor()
-        # From MySQL 5.7, ST_GeomFromText is added and GeomFromText is deprecated.
-        if self.mysql_server_is(conn, (5, 7, 0)):
-            geom_from_text = "ST_GeomFromText"
-            geom_as_text = "ST_AsText"
-            geom_as_bin = "ST_AsBinary"
-        else:
-            geom_from_text = "GeomFromText"
-            geom_as_text = "AsText"
-            geom_as_bin = "AsBinary"
         query = (
             "INSERT INTO issue363 (id, geom) VALUES"
-            "(1998, %s('LINESTRING(1.1 1.1,2.2 2.2)'))" % geom_from_text
+            "(1998, ST_GeomFromText('LINESTRING(1.1 1.1,2.2 2.2)'))"
         )
         cur.execute(query)
 
         # select WKT
-        query = "SELECT %s(geom) FROM issue363" % geom_as_text
+        query = "SELECT ST_AsText(geom) FROM issue363"
         cur.execute(query)
         row = cur.fetchone()
         self.assertEqual(row, ("LINESTRING(1.1 1.1,2.2 2.2)",))
 
         # select WKB
-        query = "SELECT %s(geom) FROM issue363" % geom_as_bin
+        query = "SELECT ST_AsBinary(geom) FROM issue363"
         cur.execute(query)
         row = cur.fetchone()
         self.assertEqual(

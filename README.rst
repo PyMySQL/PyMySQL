@@ -25,13 +25,13 @@ Requirements
 
 * Python -- one of the following:
 
-  - CPython_ : 3.6 and newer
+  - CPython_ : 3.7 and newer
   - PyPy_ : Latest 3.x version
 
 * MySQL Server -- one of the following:
 
-  - MySQL_ >= 5.6
-  - MariaDB_ >= 10.0
+  - MySQL_ >= 5.7
+  - MariaDB_ >= 10.2
 
 .. _CPython: https://www.python.org/
 .. _PyPy: https://pypy.org/

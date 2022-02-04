@@ -175,8 +175,6 @@ class TestConversion(base.PyMySQLTestCase):
         """test datetime conversion w microseconds"""
 
         conn = self.connect()
-        if not self.mysql_server_is(conn, (5, 6, 4)):
-            pytest.skip("target backend does not support microseconds")
         c = conn.cursor()
         dt = datetime.datetime(2013, 11, 12, 9, 9, 9, 123450)
         c.execute("create table test_datetime (id int, ts datetime(6))")
@@ -285,8 +283,10 @@ class TestCursor(base.PyMySQLTestCase):
         args = self.databases[0].copy()
         args["charset"] = "utf8mb4"
         conn = pymysql.connect(**args)
+        # MariaDB only has limited JSON support, stores data as longtext
+        # https://mariadb.com/kb/en/json-data-type/
         if not self.mysql_server_is(conn, (5, 7, 0)):
-            pytest.skip("JSON type is not supported on MySQL <= 5.6")
+            pytest.skip("JSON type is only supported on MySQL >= 5.7")
 
         self.safe_create_table(
             conn,
