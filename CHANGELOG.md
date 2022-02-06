@@ -1,5 +1,14 @@
 # Changes
 
+## v1.0.3
+
+Release date: TBD
+
+* Dropped support of end of life MySQL version 5.6
+* Dropped support of end of life MariaDB versions below 10.2
+* Dropped support of end of life Python version 3.6
+
+
 ## v1.0.2
 
 Release date: 2021-01-09

@@ -24,18 +24,18 @@ jobs:
           - db: "mariadb:10.5"
             py: "3.7"
 
-          - db: "mysql:5.6"
-            py: "3.6"
+          - db: "mariadb:10.7"
+            py: "3.11-dev"
 
           - db: "mysql:5.7"
-            py: "pypy-3.6"
+            py: "pypy-3.8"
 
           - db: "mysql:8.0"
             py: "3.9"
             mysql_auth: true
 
           - db: "mysql:8.0"
-            py: "3.10-dev"
+            py: "3.10"
 
     services:
       mysql:
