@@ -7,6 +7,7 @@ Release date: TBD
 * Dropped support of end of life MySQL version 5.6
 * Dropped support of end of life MariaDB versions below 10.3
 * Dropped support of end of life Python version 3.6
+* Fixed SSCursor raising OperationalError for query timeouts on wrong statement #1032
 
 
 ## v1.0.2

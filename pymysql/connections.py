@@ -1262,7 +1262,20 @@ class MySQLResult:
         # in fact, no way to stop MySQL from sending all the data after
         # executing a query, so we just spin, and wait for an EOF packet.
         while self.unbuffered_active:
-            packet = self.connection._read_packet()
+            try:
+                packet = self.connection._read_packet()
+            except err.OperationalError as e:
+                if e.args[0] in (
+                    ER.QUERY_TIMEOUT,
+                    ER.STATEMENT_TIMEOUT,
+                ):
+                    # if the query timed out we can simply ignore this error
+                    self.unbuffered_active = False
+                    self.connection = None
+                    return
+
+                raise
+
             if self._check_packet_is_eof(packet):
                 self.unbuffered_active = False
                 self.connection = None  # release reference to kill cyclic reference.
