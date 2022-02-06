@@ -4,10 +4,15 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         include:
           - db: "mariadb:10.2"
@@ -82,6 +87,7 @@ jobs:
           pytest -v --cov --cov-config .coveragerc tests/test_auth.py;
 
       - name: Report coverage
+        if: github.repository == 'PyMySQL/PyMySQL'
         run: coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,6 +95,7 @@ jobs:
           COVERALLS_PARALLEL: true
 
   coveralls:
+    if: github.repository == 'PyMySQL/PyMySQL'
     name: Finish coveralls
     runs-on: ubuntu-20.04
     needs: test
