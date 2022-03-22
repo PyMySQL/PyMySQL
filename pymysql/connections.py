@@ -924,7 +924,7 @@ class Connection:
             ):
                 auth_packet = self._process_auth(plugin_name, auth_packet)
             else:
-                raise err.OperationalError("received unknown auth swich request")
+                raise err.OperationalError("received unknown auth switch request")
         elif auth_packet.is_extra_auth_data():
             if DEBUG:
                 print("received extra data")
