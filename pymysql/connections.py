@@ -169,7 +169,7 @@ class Connection:
         host=None,
         database=None,
         unix_socket=None,
-        port=0,
+        port=3306,
         charset="",
         sql_mode=None,
         read_default_file=None,
