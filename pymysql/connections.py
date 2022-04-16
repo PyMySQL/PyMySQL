@@ -126,7 +126,7 @@ class Connection:
     :param init_command: Initial SQL statement to run when connection is established.
     :param connect_timeout: The timeout for connecting to the database in seconds.
         (default: 10, min: 1, max: 31536000)
-    :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters.
+    :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters or an ssl.SSLContext.
     :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate.
     :param ssl_cert: Path to the file that contains a PEM-formatted client certificate.
     :param ssl_disabled: A boolean value that disables usage of TLS.
