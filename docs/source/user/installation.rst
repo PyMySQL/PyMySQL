@@ -24,7 +24,7 @@ Requirements
 * MySQL Server -- one of the following:
 
   - MySQL_ >= 5.7
-  - MariaDB_ >= 10.2
+  - MariaDB_ >= 10.3
 
 .. _CPython: http://www.python.org/
 .. _PyPy: http://pypy.org/
