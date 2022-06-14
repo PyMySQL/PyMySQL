@@ -15,9 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - db: "mariadb:10.2"
-            py: "3.9"
-
           - db: "mariadb:10.3"
             py: "3.8"
 
@@ -26,6 +23,9 @@ jobs:
 
           - db: "mariadb:10.7"
             py: "3.11-dev"
+
+          - db: "mariadb:10.8"
+            py: "3.9"
 
           - db: "mysql:5.7"
             py: "pypy-3.8"
