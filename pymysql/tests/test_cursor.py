@@ -1,5 +1,4 @@
-import warnings
-
+from pymysql.constants import ER
 from pymysql.tests import base
 import pymysql.cursors
 
@@ -129,3 +128,20 @@ class CursorTest(base.PyMySQLTestCase):
             )
         finally:
             cursor.execute("DROP TABLE IF EXISTS percent_test")
+
+    def test_warnings(self):
+        con = self.connect()
+        cur = con.cursor()
+        cur.execute("DROP TABLE IF EXISTS `no_exists_table`")
+        self.assertEqual(cur.warning_count, 1)
+
+        cur.execute("SHOW WARNINGS")
+        w = cur.fetchone()
+        self.assertEqual(w[1], ER.BAD_TABLE_ERROR)
+        self.assertIn(
+            "no_exists_table",
+            w[2],
+        )
+
+        cur.execute("SELECT 1")
+        self.assertEqual(cur.warning_count, 0)
