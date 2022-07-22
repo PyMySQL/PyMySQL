@@ -23,9 +23,6 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
     def test_setoutputsize_basic(self):
         pass
 
-    def test_nextset(self):
-        pass
-
     """The tests on fetchone and fetchall and rowcount bogusly
     test for an exception if the statement cannot return a
     result set. MySQL always returns a result set; it's just that
