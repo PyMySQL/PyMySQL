@@ -45,9 +45,18 @@ jobs:
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
         options: "--name=mysqld"
+        volumes:
+          - /run/mysqld:/run/mysqld
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Workaround MySQL container permissions
+        if: startsWith(matrix.db, 'mysql')
+        run: |
+          sudo chown 999:999 /run/mysqld
+          /usr/bin/docker ps --all --filter status=exited --no-trunc --format "{{.ID}}" | xargs -r /usr/bin/docker start
+
       - name: Set up Python ${{ matrix.py }}
         uses: actions/setup-python@v2
         with:
