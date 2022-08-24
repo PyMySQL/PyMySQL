@@ -3,6 +3,7 @@
 # Error codes:
 # https://dev.mysql.com/doc/refman/5.5/en/error-handling.html
 import errno
+import functools
 import os
 import socket
 import struct
@@ -10,12 +11,26 @@ import sys
 import traceback
 import warnings
 
+try:
+    import _pymysqlsv
+except ImportError:
+    _pymysqlsv = None
+    warnings.warn(RuntimeError, 'Accelerator extension could not be loaded; '
+                                'running in pure Python mode.')
+
 from . import _auth
 
 from .charset import charset_by_name, charset_by_id
 from .constants import CLIENT, COMMAND, CR, ER, FIELD_TYPE, SERVER_STATUS
 from . import converters
-from .cursors import Cursor
+from .cursors import (
+    Cursor,
+    SSCursor,
+    DictCursor,
+    SSDictCursor,
+    SSCursorSV,
+    SSDictCursorSV,
+)
 from .optionfile import Parser
 from .protocol import (
     dump_packet,
@@ -58,6 +73,7 @@ TEXT_TYPES = {
     FIELD_TYPE.GEOMETRY,
 }
 
+UNSET = "unset"
 
 DEFAULT_CHARSET = "utf8mb4"
 
@@ -151,6 +167,15 @@ class Connection:
     :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
     :param passwd: **DEPRECATED** Alias for password.
+    :param output_type: Type of result to return: tuples, namedtuples, dicts, numpy or pandas.
+    :param parse_json: Parse JSON values into Python objects?
+    :param invalid_date_value: Value to use in place of an invalid date. By default, a string
+        containing the invalid content is returned.
+    :param invalid_time_value: Value to use in place of an invalid time. By default, a string
+        containing the invalid content is returned.
+    :param invalid_datetime_value: Value to use in place of an invalid datetime. By default,
+        a string containing the invalid content is returned.
+    :param pure_python: Should we ignore the C extension even if it's available?
 
     See `Connection <https://www.python.org/dev/peps/pep-0249/#connection-objects>`_ in the
     specification.
@@ -198,6 +223,12 @@ class Connection:
         ssl_key=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
+        output_type='tuples',
+        parse_json=False,
+        invalid_date_value=UNSET,
+        invalid_time_value=UNSET,
+        invalid_datetime_value=UNSET,
+        pure_python=False,
         compress=None,  # not supported
         named_pipe=None,  # not supported
         passwd=None,  # deprecated
@@ -315,7 +346,24 @@ class Connection:
 
         self.client_flag = client_flag
 
+        self.pure_python = pure_python
+        self.unbuffered = False
+        self.output_type = output_type
         self.cursorclass = cursorclass
+        self.resultclass = MySQLResult
+
+        # The C extension handles these types internally.
+        if _pymysqlsv is not None and not self.pure_python:
+            self.resultclass = MySQLResultSV
+            if self.cursorclass is SSCursor:
+                self.cursorclass = SSCursorSV
+                self.unbuffered = True
+            elif self.cursorclass is DictCursor:
+                self.output_type = 'dicts'
+            elif self.cursorclass is SSDictCursor:
+                self.cursorclass = SSDictCursorSV
+                self.unbuffered = True
+                self.output_type = 'dicts'
 
         self._result = None
         self._affected_rows = 0
@@ -326,6 +374,11 @@ class Connection:
 
         if conv is None:
             conv = converters.conversions
+
+        self.invalid_date_value = invalid_date_value
+        self.invalid_time_value = invalid_time_value
+        self.invalid_datetime_value = invalid_datetime_value
+        self.parse_json = parse_json
 
         # Need for MySQLdb compatibility.
         self.encoders = {k: v for (k, v) in conv.items() if type(k) is not int}
@@ -338,7 +391,7 @@ class Connection:
         self.server_public_key = server_public_key
 
         self._connect_attrs = {
-            "_client_name": "pymysql",
+            "_client_name": "pymysqlsv",
             "_pid": str(os.getpid()),
             "_client_version": VERSION_STRING,
         }
@@ -484,7 +537,7 @@ class Connection:
     def show_warnings(self):
         """Send the "SHOW WARNINGS" SQL command."""
         self._execute_command(COMMAND.COM_QUERY, "SHOW WARNINGS")
-        result = MySQLResult(self)
+        result = self.resultclass(self)
         result.read()
         return result.rows
 
@@ -546,11 +599,11 @@ class Connection:
         if isinstance(sql, str):
             sql = sql.encode(self.encoding, "surrogateescape")
         self._execute_command(COMMAND.COM_QUERY, sql)
-        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+        self._affected_rows = self._read_query_result(unbuffered=unbuffered or self.unbuffered)
         return self._affected_rows
 
     def next_result(self, unbuffered=False):
-        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+        self._affected_rows = self._read_query_result(unbuffered=unbuffered or self.unbuffered)
         return self._affected_rows
 
     def affected_rows(self):
@@ -766,16 +819,16 @@ class Connection:
 
     def _read_query_result(self, unbuffered=False):
         self._result = None
-        if unbuffered:
+        if unbuffered or self.unbuffered:
             try:
-                result = MySQLResult(self)
+                result = self.resultclass(self)
                 result.init_unbuffered_query()
             except:
                 result.unbuffered_active = False
                 result.connection = None
                 raise
         else:
-            result = MySQLResult(self)
+            result = self.resultclass(self)
             result.read()
         self._result = result
         if result.server_status is not None:
@@ -1342,6 +1395,20 @@ class MySQLResult:
         assert eof_packet.is_eof_packet(), "Protocol error, expecting EOF"
         self.description = tuple(description)
 
+class MySQLResultSV(MySQLResult):
+    def __init__(self, connection):
+        MySQLResult.__init__(self, connection)
+        self.options = {k: v for k, v in dict(
+            default_converters=converters.decoders,
+            output_type=connection.output_type,
+            parse_json=connection.parse_json,
+            invalid_date_value=connection.invalid_date_value,
+            invalid_time_value=connection.invalid_time_value,
+            invalid_datetime_value=connection.invalid_datetime_value,
+            unbuffered=connection.unbuffered,
+        ).items() if v is not UNSET}
+        self._read_rowdata_packet = functools.partial(_pymysqlsv.read_rowdata_packet, self)
+        self._read_rowdata_packet_unbuffered = functools.partial(_pymysqlsv.read_rowdata_packet, self)
 
 class LoadLocalFile:
     def __init__(self, filename, connection):

@@ -440,6 +440,10 @@ class SSCursor(Cursor):
     def fetchone(self):
         """Fetch next row."""
         self._check_executed()
+        return self._unchecked_fetchone()
+
+    def _unchecked_fetchone(self):
+        """Fetch next row."""
         row = self.read_next()
         if row is None:
             return None
@@ -460,7 +464,8 @@ class SSCursor(Cursor):
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
-        return iter(self.fetchone, None)
+        self._check_executed()
+        return iter(self._unchecked_fetchone, None)
 
     def __iter__(self):
         return self.fetchall_unbuffered()
@@ -505,6 +510,59 @@ class SSCursor(Cursor):
         else:
             raise err.ProgrammingError("unknown scroll mode %s" % mode)
 
+class SSCursorSV(SSCursor):
+    """An unbuffered cursor for use with PyMySQLsv."""
+
+    def _unchecked_fetchone(self):
+        """Fetch next row."""
+        row = self._result._read_rowdata_packet_unbuffered()
+        if row is None:
+            return None
+        self.rownumber += 1
+        return row
+
+    def fetchmany(self, size=None):
+        """Fetch many."""
+        self._check_executed()
+        if size is None:
+            size = self.arraysize
+
+        rows = []
+        for i in range(size):
+            row = self._result._read_rowdata_packet_unbuffered()
+            if row is None:
+                break
+            rows.append(row)
+            self.rownumber += 1
+        return rows
+
+    def scroll(self, value, mode="relative"):
+        self._check_executed()
+
+        if mode == "relative":
+            if value < 0:
+                raise err.NotSupportedError(
+                    "Backwards scrolling not supported by this cursor"
+                )
+
+            for _ in range(value):
+                self._result._read_rowdata_packet_unbuffered()
+            self.rownumber += value
+        elif mode == "absolute":
+            if value < self.rownumber:
+                raise err.NotSupportedError(
+                    "Backwards scrolling not supported by this cursor"
+                )
+
+            end = value - self.rownumber
+            for _ in range(end):
+                self._result._read_rowdata_packet_unbuffered()
+            self.rownumber = value
+        else:
+            raise err.ProgrammingError("unknown scroll mode %s" % mode)
+
+class SSDictCursorSV(SSCursorSV):
+    """An unbuffered cursor for use with PyMySQLsv, which returns results as a dictionary"""
 
 class SSDictCursor(DictCursorMixin, SSCursor):
     """An unbuffered cursor, which returns results as a dictionary"""

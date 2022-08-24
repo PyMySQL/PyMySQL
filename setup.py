@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 version = "1.0.2"
 
@@ -34,6 +34,11 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Database",
+    ],
+    ext_modules=[
+          Extension(
+              '_pymysqlsv', ['src/accel.c'], py_limited_api=True,
+          ),
     ],
     keywords="MySQL",
 )
