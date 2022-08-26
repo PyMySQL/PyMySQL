@@ -2059,13 +2059,13 @@ exit:
             Py_XDECREF(py_n_rows);
         }
         else {
-            // Unbuffered needs a new row every time.
-            py_state->df_buffer = malloc(py_state->df_buffer_row_size);
-            py_state->df_cursor = py_state->df_buffer;
-
             switch (py_state->options.output_type) {
             case MYSQL_ACCEL_OUT_PANDAS:
             case MYSQL_ACCEL_OUT_NUMPY:
+                // Unbuffered needs a new row every time.
+                py_state->df_buffer = malloc(py_state->df_buffer_row_size);
+                py_state->df_cursor = py_state->df_buffer;
+
                 // TODO: reshape?
                 py_out = py_state->py_rows;
                 Py_INCREF(py_out);
@@ -2077,16 +2077,8 @@ exit:
         }
     }
     else {
-        switch (py_state->options.output_type) {
-        case MYSQL_ACCEL_OUT_PANDAS:
-        case MYSQL_ACCEL_OUT_NUMPY:
-            py_out = py_state->py_rows;
-            Py_INCREF(py_out);
-            break;
-        default:
-            py_out = py_state->py_rows;
-            Py_INCREF(py_out);
-        }
+        py_out = py_state->py_rows;
+        Py_INCREF(py_out);
         PyObject *py_n_rows = PyLong_FromSsize_t(py_state->n_rows);
         PyObject_SetAttrString(py_res, "affected_rows", (py_n_rows) ? py_n_rows : Py_None);
         Py_XDECREF(py_n_rows);
