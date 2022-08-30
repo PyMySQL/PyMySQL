@@ -411,6 +411,9 @@ class Connection:
         del exc_info
         self.close()
 
+    def _raise_mysql_exception(self, data):
+        err.raise_mysql_exception(data)
+
     def _create_ssl_ctx(self, sslp):
         if isinstance(sslp, ssl.SSLContext):
             return sslp
