@@ -711,7 +711,7 @@ class Connection:
                 except:  # noqa
                     pass
 
-            if isinstance(e, (OSError, IOError, socket.error)):
+            if isinstance(e, (OSError, IOError)):
                 exc = err.OperationalError(
                     CR.CR_CONN_HOST_ERROR,
                     "Can't connect to MySQL server on %r (%s)" % (self.host, e),
