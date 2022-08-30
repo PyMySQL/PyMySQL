@@ -5,11 +5,11 @@
 #include <Python.h>
 #include <datetime.h>
 
-#define MYSQL_ACCEL_OUT_TUPLES 0
-#define MYSQL_ACCEL_OUT_NAMEDTUPLES 1
-#define MYSQL_ACCEL_OUT_DICTS 2
-#define MYSQL_ACCEL_OUT_NUMPY 3
-#define MYSQL_ACCEL_OUT_PANDAS 4
+#define MYSQLSV_OUT_TUPLES 0
+#define MYSQLSV_OUT_NAMEDTUPLES 1
+#define MYSQLSV_OUT_DICTS 2
+#define MYSQLSV_OUT_NUMPY 3
+#define MYSQLSV_OUT_PANDAS 4
 
 #define MYSQL_FLAG_NOT_NULL 1
 #define MYSQL_FLAG_PRI_KEY 2
@@ -73,12 +73,12 @@
 #define EPOCH_TO_DAYS 719528
 #define SECONDS_PER_DAY (24 * 60 * 60)
 
-#define MYSQL_ACCEL_OPTION_TIME_TYPE_TIMEDELTA 0
-#define MYSQL_ACCEL_OPTION_TIME_TYPE_TIME 1
-#define MYSQL_ACCEL_OPTION_JSON_TYPE_STRING 0
-#define MYSQL_ACCEL_OPTION_JSON_TYPE_OBJ 1
-#define MYSQL_ACCEL_OPTION_BIT_TYPE_BYTES 0
-#define MYSQL_ACCEL_OPTION_BIT_TYPE_INT 1
+#define MYSQLSV_OPTION_TIME_TYPE_TIMEDELTA 0
+#define MYSQLSV_OPTION_TIME_TYPE_TIME 1
+#define MYSQLSV_OPTION_JSON_TYPE_STRING 0
+#define MYSQLSV_OPTION_JSON_TYPE_OBJ 1
+#define MYSQLSV_OPTION_BIT_TYPE_BYTES 0
+#define MYSQLSV_OPTION_BIT_TYPE_INT 1
 
 #define CHR2INT1(x) ((x)[1] - '0')
 #define CHR2INT2(x) ((((x)[0] - '0') * 10) + ((x)[1] - '0'))
@@ -274,15 +274,19 @@ typedef struct {
 } ArrayObject;
 
 static void Array_dealloc(ArrayObject *self) {
+    // Numpy arrays take ownership of our memory. This happens because we are
+    // using the Python API to create our array, rather than the numpy C API.
+#if 0
     if (self->array_interface && PyDict_Check(self->array_interface)) {
         PyObject *data = PyDict_GetItemString(self->array_interface, "data");
         if (data) {
             PyObject *buffer = PyTuple_GetItem(data, 0);
             if (buffer) {
-                free((char*)PyLong_AsUnsignedLongLong(buffer));
+                free((char*)PyLong_AsVoidPtr(buffer));
             }
         }
     }
+#endif
     Py_CLEAR(self->array_interface);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
@@ -392,6 +396,7 @@ typedef struct {
 static void read_options(MySQLAccelOptions *options, PyObject *dict);
 static unsigned long long compute_row_size(StateObject *py_state);
 static void build_array_interface(StateObject *py_state);
+static PyObject *build_array(StateObject *py_state);
 
 #define DESTROY(x) do { if (x) { free(x); (x) = NULL; } } while (0)
 
@@ -613,7 +618,7 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
     }
 
     switch (self->options.output_type) {
-    case MYSQL_ACCEL_OUT_PANDAS:
+    case MYSQLSV_OUT_PANDAS:
         // Import pandas module.
         self->py_pandas_mod = PyImport_ImportModule("pandas");
         if (!self->py_pandas_mod) goto error;
@@ -622,7 +627,7 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
 
         // Fall through
 
-    case MYSQL_ACCEL_OUT_NUMPY:
+    case MYSQLSV_OUT_NUMPY:
         // Import numpy module.
         self->py_numpy_mod = PyImport_ImportModule("numpy");
         if (!self->py_numpy_mod) goto error;
@@ -636,12 +641,18 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
         // Setup dataframe buffer.
         self->df_buffer_n_rows = (self->unbuffered) ? 1 : 500;
         self->df_buffer_row_size = compute_row_size(self);
-        self->df_buffer = malloc(self->df_buffer_row_size * self->df_buffer_n_rows);
+        self->df_buffer = calloc(self->df_buffer_row_size, self->df_buffer_n_rows);
         if (!self->df_buffer) goto error;
         self->df_cursor = self->df_buffer;
+
+        // Construct the array to use for every fetch (it's reused each time).
+        self->py_rows = build_array(self);
+        if (!self->py_rows) goto error;
+
+        PyObject_SetAttrString(py_res, "rows", self->py_rows);
         break;
 
-    case MYSQL_ACCEL_OUT_NAMEDTUPLES:
+    case MYSQLSV_OUT_NAMEDTUPLES:
         self->namedtuple_desc.name = "Row";
         self->namedtuple_desc.doc = "Row of data values";
         self->namedtuple_desc.n_in_sequence = self->n_cols;
@@ -706,20 +717,20 @@ static void read_options(MySQLAccelOptions *options, PyObject *dict) {
         if (PyUnicode_CompareWithASCIIString(key, "output_type") == 0) {
             if (PyUnicode_CompareWithASCIIString(value, "dict") == 0 ||
                 PyUnicode_CompareWithASCIIString(value, "dicts") == 0 ) {
-                options->output_type = MYSQL_ACCEL_OUT_DICTS;
+                options->output_type = MYSQLSV_OUT_DICTS;
             }
             else if (PyUnicode_CompareWithASCIIString(value, "namedtuple") == 0 ||
                      PyUnicode_CompareWithASCIIString(value, "namedtuples") == 0) {
-                options->output_type = MYSQL_ACCEL_OUT_NAMEDTUPLES;
+                options->output_type = MYSQLSV_OUT_NAMEDTUPLES;
             }
             else if (PyUnicode_CompareWithASCIIString(value, "numpy") == 0) {
-                options->output_type = MYSQL_ACCEL_OUT_NUMPY;
+                options->output_type = MYSQLSV_OUT_NUMPY;
             }
             else if (PyUnicode_CompareWithASCIIString(value, "pandas") == 0) {
-                options->output_type = MYSQL_ACCEL_OUT_PANDAS;
+                options->output_type = MYSQLSV_OUT_PANDAS;
             }
             else {
-                options->output_type = MYSQL_ACCEL_OUT_TUPLES;
+                options->output_type = MYSQLSV_OUT_TUPLES;
             }
         } else if (PyUnicode_CompareWithASCIIString(key, "parse_json") == 0) {
             options->parse_json = PyObject_IsTrue(value);
@@ -736,12 +747,12 @@ static void read_options(MySQLAccelOptions *options, PyObject *dict) {
 // mysql, for whatever reason, treats 0 as an actual year, but not
 // a leap year
 //
-inline int is_leap_year(int year)
+static int is_leap_year(int year)
 {
     return (year % 4) == 0 && year != 0 && ((year % 100) != 0 || (year % 400) == 0);
 }
 
-inline int days_in_previous_months(int month, int year)
+static int days_in_previous_months(int month, int year)
 {
     static const int previous_days[13] =
         {
@@ -765,12 +776,12 @@ inline int days_in_previous_months(int month, int year)
 // NOTE: year 0 does not actually exist, but mysql pretends it does (and is NOT
 // a leap year)
 //
-inline int leap_years_before(int year)
+static int leap_years_before(int year)
 {
     return (year - 1) / 4 - (year - 1) / 100 + (year - 1) / 400;
 }
 
-inline int days_in_previous_years(int year)
+static int days_in_previous_years(int year)
 {
     return 365 * year + leap_years_before(year);
 }
@@ -1252,7 +1263,7 @@ error:
     goto exit;
 }
 
-PyObject *build_array(StateObject *py_state) {
+static PyObject *build_array(StateObject *py_state) {
     PyObject *py_out = NULL;
     PyObject *py_data = NULL;
     PyObject *py_array = NULL;
@@ -1262,7 +1273,7 @@ PyObject *build_array(StateObject *py_state) {
     py_data = PyTuple_New(2);
     if (!py_data) goto error;
 
-    PyTuple_SetItem(py_data, 0, PyLong_FromUnsignedLongLong((unsigned long long)py_state->df_buffer));
+    PyTuple_SetItem(py_data, 0, PyLong_FromVoidPtr(py_state->df_buffer));
     PyTuple_SetItem(py_data, 1, Py_False);
     Py_INCREF(Py_False);
 
@@ -1293,12 +1304,11 @@ PyObject *build_array(StateObject *py_state) {
                            py_state->py_array_kwds);
     if (!py_out) goto error;
 
-    if (py_state->options.output_type == MYSQL_ACCEL_OUT_PANDAS) {
-        PyObject *out2 = NULL;
-        out2 = PyObject_CallFunctionObjArgs(py_state->py_pandas_mod, py_out, NULL);
-        if (!out2) goto error;
-        Py_DECREF(py_out);
-        py_out = out2;
+    if (py_state->options.output_type == MYSQLSV_OUT_PANDAS) {
+        PyObject *py_tmp = py_out;
+        py_out = PyObject_CallFunctionObjArgs(py_state->py_pandas_dataframe, py_out, NULL);
+        if (!py_out) goto error;
+        Py_DECREF(py_tmp);
     }
 
 exit:
@@ -1660,12 +1670,12 @@ static PyObject *read_obj_row_from_packet(
     int microsecond = 0;
 
     switch (py_state->options.output_type) {
-    case MYSQL_ACCEL_OUT_NAMEDTUPLES: {
+    case MYSQLSV_OUT_NAMEDTUPLES: {
         if (!py_state->namedtuple) goto error;
         py_result = PyStructSequence_New(py_state->namedtuple);
         break;
         }
-    case MYSQL_ACCEL_OUT_DICTS:
+    case MYSQLSV_OUT_DICTS:
         py_result = PyDict_New();
         break;
     default:
@@ -1889,10 +1899,10 @@ static PyObject *read_obj_row_from_packet(
         }
 
         switch (py_state->options.output_type) {
-        case MYSQL_ACCEL_OUT_NAMEDTUPLES:
+        case MYSQLSV_OUT_NAMEDTUPLES:
             PyStructSequence_SET_ITEM(py_result, i, py_item);
             break;
-        case MYSQL_ACCEL_OUT_DICTS:
+        case MYSQLSV_OUT_DICTS:
             PyDict_SetItem(py_result, py_state->py_names[i], py_item);
             Py_INCREF(py_state->py_names[i]);
             Py_DECREF(py_item);
@@ -1938,11 +1948,12 @@ static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *k
         if (!py_state) { Py_DECREF(py_args); goto error; }
         rc = State_init((StateObject*)py_state, py_args, NULL);
         Py_DECREF(py_args);
-        if (rc != 0) { Py_DECREF(py_state); goto error; }
+        if (rc != 0) { Py_CLEAR(py_state); goto error; }
 
         PyObject_SetAttrString(py_res, "_state", (PyObject*)py_state);
-        Py_DECREF(py_state);
     }
+    // We are depending on the res._state variable to hold a ref count.
+    Py_DECREF(py_state);
 
     while (1) {
         PyObject *py_buff = read_packet(py_state);
@@ -1989,8 +2000,8 @@ static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *k
         py_state->n_rows += 1;
 
         switch (py_state->options.output_type) {
-        case MYSQL_ACCEL_OUT_PANDAS:
-        case MYSQL_ACCEL_OUT_NUMPY:
+        case MYSQLSV_OUT_PANDAS:
+        case MYSQLSV_OUT_NUMPY:
             if (!py_state->unbuffered && py_state->n_rows >= py_state->df_buffer_n_rows) {
                 py_state->df_buffer_n_rows *= 1.7;
                 py_state->df_buffer = realloc(py_state->df_buffer,
@@ -2000,7 +2011,11 @@ static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *k
                                       py_state->df_buffer_row_size * py_state->n_rows;
             }
             read_dataframe_row_from_packet(py_state, data, data_l);
-            py_state->df_cursor += py_state->df_buffer_row_size;
+            if (py_state->unbuffered) {
+                py_state->df_cursor = py_state->df_buffer;
+            } else {
+                py_state->df_cursor += py_state->df_buffer_row_size;
+            }
             break;
 
         default:
@@ -2021,22 +2036,25 @@ static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *k
     }
 
     switch (py_state->options.output_type) {
-    case MYSQL_ACCEL_OUT_PANDAS:
-    case MYSQL_ACCEL_OUT_NUMPY:
-        // Resize the buffer down.
+    case MYSQLSV_OUT_PANDAS:
+    case MYSQLSV_OUT_NUMPY:
+        // Resize the buffer down to be only the required amount needed.
         if (!py_state->unbuffered) {
             py_state->df_buffer = realloc(py_state->df_buffer,
                                           py_state->df_buffer_row_size * py_state->n_rows);
             py_state->df_cursor = py_state->df_buffer + 
                                   py_state->df_buffer_row_size * py_state->n_rows;
+            PyObject *py_tmp = py_state->py_rows;
+            py_state->py_rows = build_array(py_state);
+            if (!py_state->py_rows) goto error;
+            Py_DECREF(py_tmp);
+            PyObject_SetAttrString(py_res, "rows", py_state->py_rows);
         }
-
-        py_state->py_rows = build_array(py_state);
-
-        PyObject_SetAttrString(py_res, "rows", py_state->py_rows);
     }
 
 exit:
+
+    if (!py_state) return NULL;
 
     py_next_seq_id = PyLong_FromUnsignedLongLong(py_state->next_seq_id);
     if (!py_next_seq_id) goto error;
@@ -2047,11 +2065,6 @@ exit:
 
     if (py_state->unbuffered) {
         if (is_eof) {
-            if (py_state->df_buffer) {
-                free(py_state->df_buffer);
-                py_state->df_buffer = NULL;
-                py_state->df_cursor = NULL;
-            }
             Py_INCREF(Py_None);
             py_out = Py_None;
             PyObject *py_n_rows = PyLong_FromSsize_t(py_state->n_rows);
@@ -2060,13 +2073,9 @@ exit:
         }
         else {
             switch (py_state->options.output_type) {
-            case MYSQL_ACCEL_OUT_PANDAS:
-            case MYSQL_ACCEL_OUT_NUMPY:
-                // Unbuffered needs a new row every time.
-                py_state->df_buffer = malloc(py_state->df_buffer_row_size);
-                py_state->df_cursor = py_state->df_buffer;
-
-                // TODO: reshape?
+            case MYSQLSV_OUT_PANDAS:
+            case MYSQLSV_OUT_NUMPY:
+                // TODO: Return single row for fetchone.
                 py_out = py_state->py_rows;
                 Py_INCREF(py_out);
                 break;

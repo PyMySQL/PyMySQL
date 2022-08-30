@@ -278,6 +278,10 @@ class Cursor:
     def fetchone(self):
         """Fetch the next row."""
         self._check_executed()
+        return self._unchecked_fetchone()
+
+    def _unchecked_fetchone(self):
+        """Fetch the next row."""
         if self._rows is None or self.rownumber >= len(self._rows):
             return None
         result = self._rows[self.rownumber]
@@ -346,7 +350,16 @@ class Cursor:
         self._rows = result.rows
 
     def __iter__(self):
-        return iter(self.fetchone, None)
+        self._check_executed()
+        _unchecked_fetchone = self._unchecked_fetchone
+        def fetchall_unbuffered_gen():
+            while True:
+                out =_unchecked_fetchone()
+                if out is not None:
+                    yield out
+                else:
+                    break
+        return fetchall_unbuffered_gen()
 
     Warning = err.Warning
     Error = err.Error
@@ -465,7 +478,15 @@ class SSCursor(Cursor):
         would use ridiculous memory for large result sets.
         """
         self._check_executed()
-        return iter(self._unchecked_fetchone, None)
+        _unchecked_fetchone = self._unchecked_fetchone
+        def fetchall_unbuffered_gen():
+            while True:
+                out =_unchecked_fetchone()
+                if out is not None:
+                    yield out
+                else:
+                    break
+        return fetchall_unbuffered_gen()
 
     def __iter__(self):
         return self.fetchall_unbuffered()
