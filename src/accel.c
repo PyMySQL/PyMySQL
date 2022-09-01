@@ -251,9 +251,7 @@
 typedef struct {
     int output_type;
     int parse_json;
-    PyObject *invalid_date_value;
-    PyObject *invalid_time_value;
-    PyObject *invalid_datetime_value;
+    PyObject *invalid_values;
 } MySQLAccelOptions;
 
 inline int IMAX(int a, int b) { return((a) > (b) ? a : b); }
@@ -282,6 +280,7 @@ typedef struct {
     PyObject *py_default_converters; // Dict of default converters
     PyTypeObject *namedtuple; // Generated namedtuple type
     PyObject **py_encodings; // Encoding for each column as Python string
+    PyObject **py_invalid_values; // Values to use when invalid data exists in a cell
     const char **encodings; // Encoding for each column
     unsigned long long n_cols; // Total number of columns
     unsigned long long n_rows; // Total number of rows read
@@ -330,6 +329,12 @@ static void State_clear_fields(StateObject *self) {
             Py_CLEAR(self->py_encodings[i]);
         }
         DESTROY(self->py_encodings);
+    }
+    if (self->py_invalid_values) {
+        for (unsigned long i = 0; i < self->n_cols; i++) {
+            Py_CLEAR(self->py_invalid_values[i]);
+        }
+        DESTROY(self->py_invalid_values);
     }
     Py_CLEAR(self->namedtuple);
     Py_CLEAR(self->py_default_converters);
@@ -443,6 +448,9 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
     self->py_encodings = calloc(self->n_cols, sizeof(char*));
     if (!self->py_encodings) goto error;
 
+    self->py_invalid_values = calloc(self->n_cols, sizeof(char*));
+    if (!self->py_invalid_values) goto error;
+
     self->py_names = calloc(self->n_cols, sizeof(PyObject*));
     if (!self->py_names) goto error;
 
@@ -469,6 +477,8 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
         self->type_codes[i] = PyLong_AsUnsignedLong(py_field_type);
         PyObject *py_default_converter = (self->py_default_converters) ?
                       PyDict_GetItem(self->py_default_converters, py_field_type) : NULL;
+        PyObject *py_invalid_value = (self->options.invalid_values) ?
+                      PyDict_GetItem(self->options.invalid_values, py_field_type) : NULL;
         Py_XDECREF(py_field_type);
 
         // Get field name.
@@ -489,6 +499,10 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
 
         self->encodings[i] = (!py_encoding || py_encoding == Py_None) ?
                               NULL : PyUnicode_AsUTF8AndSize(py_encoding, NULL);
+
+        self->py_invalid_values[i] = (!py_invalid_value || py_invalid_value == Py_None) ?
+                                      NULL : py_converter;
+        Py_XINCREF(self->py_invalid_values[i]);
 
         self->py_converters[i] = (!py_converter
                                   || py_converter == Py_None
@@ -626,12 +640,10 @@ static void read_options(MySQLAccelOptions *options, PyObject *dict) {
             }
         } else if (PyUnicode_CompareWithASCIIString(key, "parse_json") == 0) {
             options->parse_json = PyObject_IsTrue(value);
-        } else if (PyUnicode_CompareWithASCIIString(key, "invalid_date_value") == 0) {
-            options->invalid_date_value = value;
-        } else if (PyUnicode_CompareWithASCIIString(key, "invalid_time_value") == 0) {
-            options->invalid_time_value = value;
-        } else if (PyUnicode_CompareWithASCIIString(key, "invalid_datetime_value") == 0) {
-            options->invalid_datetime_value = value;
+        } else if (PyUnicode_CompareWithASCIIString(key, "invalid_values") == 0) {
+            if (PyDict_Check(value)) {
+                options->invalid_values = value;
+            }
         }
     }
 }
@@ -1060,8 +1072,8 @@ static PyObject *read_row_from_packet(
                 case MYSQL_TYPE_DATETIME:
                 case MYSQL_TYPE_TIMESTAMP:
                     if (!CHECK_ANY_DATETIME_STR(out, out_l)) {
-                        if (py_state->options.invalid_datetime_value) {
-                            py_item = py_state->options.invalid_datetime_value;
+                        if (py_state->py_invalid_values[i]) {
+                            py_item = py_state->py_invalid_values[i];
                             Py_INCREF(py_item);
                         } else {
                             py_item = PyUnicode_Decode(orig_out, orig_out_l, "utf8", "strict");
@@ -1089,8 +1101,8 @@ static PyObject *read_row_from_packet(
                 case MYSQL_TYPE_NEWDATE:
                 case MYSQL_TYPE_DATE:
                     if (!CHECK_DATE_STR(out, out_l)) {
-                        if (py_state->options.invalid_date_value) {
-                            py_item = py_state->options.invalid_date_value;
+                        if (py_state->py_invalid_values[i]) {
+                            py_item = py_state->py_invalid_values[i];
                             Py_INCREF(py_item);
                         } else {
                             py_item = PyUnicode_Decode(orig_out, orig_out_l, "utf8", "strict");
@@ -1112,8 +1124,8 @@ static PyObject *read_row_from_packet(
                 case MYSQL_TYPE_TIME:
                     sign = CHECK_ANY_TIMEDELTA_STR(out, out_l);
                     if (!sign) {
-                        if (py_state->options.invalid_time_value) {
-                            py_item = py_state->options.invalid_time_value;
+                        if (py_state->py_invalid_values[i]) {
+                            py_item = py_state->py_invalid_values[i];
                             Py_INCREF(py_item);
                         } else {
                             py_item = PyUnicode_Decode(orig_out, orig_out_l, "utf8", "strict");

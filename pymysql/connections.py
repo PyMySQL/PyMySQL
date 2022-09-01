@@ -168,13 +168,13 @@ class Connection:
     :param db: **DEPRECATED** Alias for database.
     :param passwd: **DEPRECATED** Alias for password.
     :param parse_json: Parse JSON values into Python objects?
-    :param invalid_date_value: Value to use in place of an invalid date. By default, a string
-        containing the invalid content is returned.
-    :param invalid_time_value: Value to use in place of an invalid time. By default, a string
-        containing the invalid content is returned.
-    :param invalid_datetime_value: Value to use in place of an invalid datetime. By default,
-        a string containing the invalid content is returned.
+    :param invalid_values: Dictionary of values to use in place of invalid values
+        found during conversion of data. The default is to return the byte content
+        containing the invalid value. The keys are the integers associtated with
+        the column type.
     :param pure_python: Should we ignore the C extension even if it's available?
+        This can be given explicitly using True or False, or if the value is None,
+        the C extension will be loaded if it is available.
 
     See `Connection <https://www.python.org/dev/peps/pep-0249/#connection-objects>`_ in the
     specification.
@@ -223,10 +223,8 @@ class Connection:
         ssl_verify_cert=None,
         ssl_verify_identity=None,
         parse_json=False,
-        invalid_date_value=UNSET,
-        invalid_time_value=UNSET,
-        invalid_datetime_value=UNSET,
-        pure_python=False,
+        invalid_values=None,
+        pure_python=None,
         compress=None,  # not supported
         named_pipe=None,  # not supported
         passwd=None,  # deprecated
@@ -370,10 +368,8 @@ class Connection:
         if conv is None:
             conv = converters.conversions
 
-        self.invalid_date_value = invalid_date_value
-        self.invalid_time_value = invalid_time_value
-        self.invalid_datetime_value = invalid_datetime_value
         self.parse_json = parse_json
+        self.invalid_values = (invalid_values or {}).copy()
 
         # Need for MySQLdb compatibility.
         self.encoders = {k: v for (k, v) in conv.items() if type(k) is not int}
@@ -1401,9 +1397,7 @@ class MySQLResultSV(MySQLResult):
             default_converters=converters.decoders,
             output_type=connection.output_type,
             parse_json=connection.parse_json,
-            invalid_date_value=connection.invalid_date_value,
-            invalid_time_value=connection.invalid_time_value,
-            invalid_datetime_value=connection.invalid_datetime_value,
+            invalid_values=connection.invalid_values,
             unbuffered=unbuffered,
         ).items() if v is not UNSET}
         self._read_rowdata_packet = functools.partial(_pymysqlsv.read_rowdata_packet, self)
