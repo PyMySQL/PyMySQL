@@ -536,7 +536,7 @@ class SSCursorSV(SSCursor):
 
     def _unchecked_fetchone(self):
         """Fetch next row."""
-        row = self._result._read_rowdata_packet_unbuffered()
+        row = self._result._read_rowdata_packet_unbuffered(1)
         if row is None:
             return None
         self.rownumber += 1
@@ -547,15 +547,11 @@ class SSCursorSV(SSCursor):
         self._check_executed()
         if size is None:
             size = self.arraysize
-
-        rows = []
-        for i in range(size):
-            row = self._result._read_rowdata_packet_unbuffered()
-            if row is None:
-                break
-            rows.append(row)
-            self.rownumber += 1
-        return rows
+        out = self._result._read_rowdata_packet_unbuffered(size)
+        if out is None:
+            return []
+        self.rownumber += len(out)
+        return out
 
     def scroll(self, value, mode="relative"):
         self._check_executed()
@@ -566,8 +562,7 @@ class SSCursorSV(SSCursor):
                     "Backwards scrolling not supported by this cursor"
                 )
 
-            for _ in range(value):
-                self._result._read_rowdata_packet_unbuffered()
+            self._result._read_rowdata_packet_unbuffered(value)
             self.rownumber += value
         elif mode == "absolute":
             if value < self.rownumber:
@@ -576,8 +571,7 @@ class SSCursorSV(SSCursor):
                 )
 
             end = value - self.rownumber
-            for _ in range(end):
-                self._result._read_rowdata_packet_unbuffered()
+            self._result._read_rowdata_packet_unbuffered(end)
             self.rownumber = value
         else:
             raise err.ProgrammingError("unknown scroll mode %s" % mode)

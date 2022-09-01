@@ -377,20 +377,22 @@ typedef struct {
     PyTypeObject *namedtuple; // Generated namedtuple type
     PyObject **py_encodings; // Encoding for each column as Python string
     const char **encodings; // Encoding for each column
-    unsigned long long n_cols;
-    unsigned long long n_rows;
+    unsigned long long n_cols; // Total number of columns
+    unsigned long long n_rows; // Total number of rows read
+    unsigned long long n_rows_in_batch; // Number of rows in current batch (fetchmany size)
     unsigned long *type_codes; // Type code for each column
     unsigned long *flags; // Column flags
     unsigned long *scales; // Column scales
     unsigned long *offsets; // Column offsets in buffer
-    unsigned long long next_seq_id;
-    MySQLAccelOptions options;
-    unsigned long long df_buffer_row_size;
-    unsigned long long df_buffer_n_rows;
-    char *df_cursor;
-    char *df_buffer;
+    unsigned long long next_seq_id; // MySQL packet sequence number
+    MySQLAccelOptions options; // Packet reader options
+    unsigned long long df_buffer_row_size; // Size of each df buffer row in bytes
+    unsigned long long df_buffer_n_rows; // Total number of rows in current df buffer
+    char *df_cursor; // Current position to write to in df buffer
+    char *df_buffer; // Head of df buffer
     PyStructSequence_Desc namedtuple_desc;
-    int unbuffered;
+    int unbuffered; // Are we running in unbuffered mode?
+    int is_eof; // Have we hit the eof packet yet?
 } StateObject;
 
 static void read_options(MySQLAccelOptions *options, PyObject *dict);
@@ -466,8 +468,9 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
     PyObject *py_res = NULL;
     PyObject *py_converters = NULL;
     PyObject *py_options = NULL;
+    unsigned long long requested_n_rows = 0;
 
-    if (!PyArg_ParseTuple(args, "O", &py_res)) {
+    if (!PyArg_ParseTuple(args, "OK", &py_res, &requested_n_rows)) {
         return -1;
     }
 
@@ -639,14 +642,24 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
         if (!self->py_array_def || !self->py_array_args || !self->py_array_kwds) goto error;
 
         // Setup dataframe buffer.
-        self->df_buffer_n_rows = (self->unbuffered) ? 1 : 500;
         self->df_buffer_row_size = compute_row_size(self);
+        if (requested_n_rows) {
+            self->df_buffer_n_rows = requested_n_rows;
+        } else if (self->unbuffered) {
+            self->df_buffer_n_rows = 1;
+        } else if (self->df_buffer_row_size > 10e6) {
+            self->df_buffer_n_rows = 1;
+        } else {
+            self->df_buffer_n_rows = 10e6 / self->df_buffer_row_size;
+        }
         self->df_buffer = calloc(self->df_buffer_row_size, self->df_buffer_n_rows);
         if (!self->df_buffer) goto error;
         self->df_cursor = self->df_buffer;
 
         // Construct the array to use for every fetch (it's reused each time).
+        self->n_rows_in_batch = self->df_buffer_n_rows;
         self->py_rows = build_array(self);
+        self->n_rows_in_batch = 0;
         if (!self->py_rows) goto error;
 
         PyObject_SetAttrString(py_res, "rows", self->py_rows);
@@ -671,11 +684,6 @@ static int State_init(StateObject *self, PyObject *args, PyObject *kwds) {
         self->py_rows = PyList_New(0);
         if (!self->py_rows) goto error;
 
-        // Unbuffered results always have exactly 1 row.
-        if (self->unbuffered) {
-            PyList_Append(self->py_rows, Py_None);
-        }
-
         PyObject_SetAttrString(py_res, "rows", self->py_rows);
     }
 
@@ -687,6 +695,31 @@ exit:
 error:
     State_clear_fields(self);
     rc = -1;
+    goto exit;
+}
+
+static int State_reset_batch(StateObject *self, PyObject *py_res) {
+    int rc = 0;
+    PyObject *py_tmp = NULL;
+
+    self->n_rows_in_batch = 0;
+
+    switch (self->options.output_type) {
+    case MYSQLSV_OUT_PANDAS:
+    case MYSQLSV_OUT_NUMPY:
+        break;
+    default:
+        py_tmp = self->py_rows;
+        self->py_rows = PyList_New(0);
+        Py_XDECREF(py_tmp);
+        if (!self->py_rows) { rc = -1; goto error; }
+        rc = PyObject_SetAttrString(py_res, "rows", self->py_rows);
+    }
+
+exit:
+    return rc;
+
+error:
     goto exit;
 }
 
@@ -1112,7 +1145,6 @@ static void read_length_coded_string(
 
 static void build_array_interface(StateObject *py_state) {
     PyObject *py_out = NULL;
-    PyObject *py_shape = NULL;
     PyObject *py_typestr = NULL;
     PyObject *py_descr = NULL;
     PyObject *py_descr_item = NULL;
@@ -1121,13 +1153,6 @@ static void build_array_interface(StateObject *py_state) {
 
     py_out = PyDict_New();
     if (!py_out) goto error;
-
-    py_shape = PyTuple_New(1);
-    if (!py_shape) goto error;
-    // Populated in build_array.
-    PyTuple_SetItem(py_shape, 0, PyLong_FromUnsignedLongLong(1));
-    PyDict_SetItemString(py_out, "shape", py_shape);
-    Py_DECREF(py_shape);
 
     py_typestr = PyUnicode_FromFormat("|V%llu", py_state->df_buffer_row_size);
     if (!py_typestr) goto error;
@@ -1280,12 +1305,11 @@ static PyObject *build_array(StateObject *py_state) {
     py_array_def = PyDict_Copy(py_state->py_array_def);
     if (!py_array_def) goto error;
 
-    if (!py_state->unbuffered) {
-        PyObject *py_shape = PyTuple_New(1);
-        if (!py_shape) goto error;
-        PyTuple_SetItem(py_shape, 0, PyLong_FromUnsignedLongLong(py_state->n_rows));
-        PyDict_SetItemString(py_array_def, "shape", py_shape);
-    }
+    PyObject *py_shape = PyTuple_New(1);
+    if (!py_shape) goto error;
+    PyTuple_SetItem(py_shape, 0, PyLong_FromUnsignedLongLong(py_state->n_rows_in_batch));
+    PyDict_SetItemString(py_array_def, "shape", py_shape);
+    Py_CLEAR(py_shape);
 
     PyDict_SetItemString(py_array_def, "data", py_data);
     Py_CLEAR(py_data);
@@ -1448,6 +1472,9 @@ static void read_dataframe_row_from_packet(
                 item = PyObject_CallFunctionObjArgs(py_state->py_decimal, str, NULL);
                 Py_DECREF(str); str = NULL;
                 if (!item) goto error;
+
+                // Free previous value if we are reusing a buffer.
+                Py_XDECREF(*(PyObject**)loc);
 
                 *(PyObject**)loc = item;
             }
@@ -1625,6 +1652,9 @@ static void read_dataframe_row_from_packet(
                 Py_DECREF(str); str = NULL;
                 if (!item) goto error;
             }
+
+            // Free previous value if we are reusing a buffer.
+            Py_XDECREF(*(PyObject**)loc);
 
             *(PyObject**)loc = item;
             loc += sizeof(PyObject*);
@@ -1921,28 +1951,35 @@ error:
 }
 
 static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *kwargs) {
+    int rc = 0;
     StateObject *py_state = NULL;
     PyObject *py_res = NULL;
     PyObject *py_out = NULL;
     PyObject *py_next_seq_id = NULL;
-    int is_eof = 0;
+    PyObject *py_zero = PyLong_FromUnsignedLong(0);
+    unsigned long long requested_n_rows = 0;
+    unsigned long long row_idx = 0;
+    char *keywords[] = {"result", "size", NULL};
 
     // Parse function args.
-    if (!PyArg_ParseTuple(args, "O", &py_res)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|K", keywords, &py_res, &requested_n_rows)) {
         goto error;
     }
 
     // Get the rowdata state.
     py_state = (StateObject*)PyObject_GetAttrString(py_res, "_state");
     if (!py_state) {
-        int rc = 0;
-
         PyErr_Clear();
 
-        PyObject *py_args = PyTuple_New(1);
+        PyObject *py_requested_n_rows = PyLong_FromUnsignedLongLong(requested_n_rows);
+        if (!py_requested_n_rows) goto error;
+
+        PyObject *py_args = PyTuple_New(2);
         if (!py_args) goto error;
         PyTuple_SET_ITEM(py_args, 0, py_res);
+        PyTuple_SET_ITEM(py_args, 1, py_requested_n_rows);
         Py_INCREF(py_res);
+        Py_INCREF(py_requested_n_rows);
 
         py_state = (StateObject*)State_new(&StateType, py_args, NULL);
         if (!py_state) { Py_DECREF(py_args); goto error; }
@@ -1952,10 +1989,19 @@ static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *k
 
         PyObject_SetAttrString(py_res, "_state", (PyObject*)py_state);
     }
-    // We are depending on the res._state variable to hold a ref count.
-    Py_DECREF(py_state);
+    else if (requested_n_rows > 0) {
+        State_reset_batch(py_state, py_res);
+    }
 
-    while (1) {
+    if (requested_n_rows == 0) {
+        requested_n_rows = UINTMAX_MAX;
+    }
+
+    if (py_state->is_eof) {
+        goto exit;
+    }
+
+    while (row_idx < requested_n_rows) {
         PyObject *py_buff = read_packet(py_state);
         if (!py_buff) goto error;
 
@@ -1966,94 +2012,80 @@ static PyObject *read_rowdata_packet(PyObject *self, PyObject *args, PyObject *k
         int has_next = 0;
 
         if (check_packet_is_eof(&data, &data_l, &warning_count, &has_next)) {
-            is_eof = 1;
+            Py_CLEAR(py_buff);
+
+            py_state->is_eof = 1;
 
             PyObject *py_long = NULL;
 
             py_long = PyLong_FromUnsignedLongLong(warning_count);
-            if (!py_long) goto error;
-            PyObject_SetAttrString(py_res, "warning_count", py_long);
-            Py_DECREF(py_long);
+            PyObject_SetAttrString(py_res, "warning_count", py_long ? py_long : 0);
+            Py_CLEAR(py_long);
 
             py_long = PyLong_FromLong(has_next);
-            if (!py_long) goto error;
-            PyObject_SetAttrString(py_res, "has_next", py_long);
-            Py_DECREF(py_long);
+            PyObject_SetAttrString(py_res, "has_next", py_long ? py_long : 0);
+            Py_CLEAR(py_long);
 
             PyObject_SetAttrString(py_res, "connection", Py_None);
-
-            // Hold a reference until the end of this function.
-            Py_INCREF(py_state);
-            PyObject_DelAttrString(py_res, "_state");
-
-            Py_DECREF(py_buff);
-
-            if (py_state->unbuffered) {
-               PyObject_SetAttrString(py_res, "unbuffered_active", Py_False);
-               PyObject_SetAttrString(py_res, "rows", Py_None);
-               goto exit;
-            }
+            PyObject_SetAttrString(py_res, "unbuffered_active", Py_False);
 
             break;
         }
 
-        py_state->n_rows += 1;
+        py_state->n_rows++;
+        py_state->n_rows_in_batch++;
 
         switch (py_state->options.output_type) {
         case MYSQLSV_OUT_PANDAS:
         case MYSQLSV_OUT_NUMPY:
+            // Add to df_buffer size as needed.
             if (!py_state->unbuffered && py_state->n_rows >= py_state->df_buffer_n_rows) {
                 py_state->df_buffer_n_rows *= 1.7;
                 py_state->df_buffer = realloc(py_state->df_buffer,
                                               py_state->df_buffer_row_size *
                                               py_state->df_buffer_n_rows);
+                if (!py_state->df_buffer) { Py_CLEAR(py_buff); goto error; }
                 py_state->df_cursor = py_state->df_buffer + 
                                       py_state->df_buffer_row_size * py_state->n_rows;
             }
             read_dataframe_row_from_packet(py_state, data, data_l);
-            if (py_state->unbuffered) {
-                py_state->df_cursor = py_state->df_buffer;
-            } else {
-                py_state->df_cursor += py_state->df_buffer_row_size;
-            }
+            py_state->df_cursor += py_state->df_buffer_row_size;
             break;
 
         default:
             py_row = read_obj_row_from_packet(py_state, data, data_l);
-            if (!py_row) { Py_DECREF(py_buff); goto error; }
+            if (!py_row) { Py_CLEAR(py_buff); goto error; }
 
-            if (py_state->unbuffered) {
-                PyList_SetItem(py_state->py_rows, 0, py_row);
-            } else {
-                PyList_Append(py_state->py_rows, py_row);
-                Py_DECREF(py_row);
-            }
+            rc = PyList_Append(py_state->py_rows, py_row);
+            if (rc != 0) { Py_CLEAR(py_buff); goto error; }
+            Py_DECREF(py_row);
         }
 
-        Py_DECREF(py_buff);
+        row_idx++;
 
-        if (py_state->unbuffered) break;
+        Py_CLEAR(py_buff);
     }
 
     switch (py_state->options.output_type) {
     case MYSQLSV_OUT_PANDAS:
     case MYSQLSV_OUT_NUMPY:
         // Resize the buffer down to be only the required amount needed.
-        if (!py_state->unbuffered) {
+        if (py_state->n_rows_in_batch > row_idx) {
             py_state->df_buffer = realloc(py_state->df_buffer,
-                                          py_state->df_buffer_row_size * py_state->n_rows);
+                                          py_state->df_buffer_row_size * py_state->n_rows_in_batch);
+            if (!py_state->df_buffer) goto error;
             py_state->df_cursor = py_state->df_buffer + 
-                                  py_state->df_buffer_row_size * py_state->n_rows;
+                                  py_state->df_buffer_row_size * py_state->n_rows_in_batch;
             PyObject *py_tmp = py_state->py_rows;
             py_state->py_rows = build_array(py_state);
-            if (!py_state->py_rows) goto error;
             Py_DECREF(py_tmp);
-            PyObject_SetAttrString(py_res, "rows", py_state->py_rows);
+            if (!py_state->py_rows) goto error;
+            rc = PyObject_SetAttrString(py_res, "rows", py_state->py_rows);
+            if (rc != 0) goto error;
         }
     }
 
 exit:
-
     if (!py_state) return NULL;
 
     py_next_seq_id = PyLong_FromUnsignedLongLong(py_state->next_seq_id);
@@ -2064,25 +2096,28 @@ exit:
     py_out = NULL;
 
     if (py_state->unbuffered) {
-        if (is_eof) {
+        if (py_state->is_eof && row_idx == 0) {
             Py_INCREF(Py_None);
             py_out = Py_None;
+            PyObject_SetAttrString(py_res, "rows", Py_None);
             PyObject *py_n_rows = PyLong_FromSsize_t(py_state->n_rows);
             PyObject_SetAttrString(py_res, "affected_rows", (py_n_rows) ? py_n_rows : Py_None);
             Py_XDECREF(py_n_rows);
+            PyObject_DelAttrString(py_res, "_state");
+            Py_CLEAR(py_state);
         }
         else {
             switch (py_state->options.output_type) {
             case MYSQLSV_OUT_PANDAS:
             case MYSQLSV_OUT_NUMPY:
-                // TODO: Return single row for fetchone.
-                py_out = py_state->py_rows;
-                Py_INCREF(py_out);
+                py_out = (requested_n_rows == 1) ?
+                         PyObject_GetItem(py_state->py_rows, py_zero) : py_state->py_rows;
                 break;
             default:
-                py_out = PyList_GetItem(py_state->py_rows, 0);
-                Py_INCREF(py_out);
+                py_out = (requested_n_rows == 1) ? 
+                         PyList_GetItem(py_state->py_rows, 0) : py_state->py_rows;
             }
+            Py_XINCREF(py_out);
         }
     }
     else {
@@ -2091,11 +2126,13 @@ exit:
         PyObject *py_n_rows = PyLong_FromSsize_t(py_state->n_rows);
         PyObject_SetAttrString(py_res, "affected_rows", (py_n_rows) ? py_n_rows : Py_None);
         Py_XDECREF(py_n_rows);
+        if (py_state->is_eof) {
+            PyObject_DelAttrString(py_res, "_state");
+            Py_CLEAR(py_state);
+        }
     }
 
-    if (is_eof) {
-        Py_DECREF(py_state);
-    }
+    Py_XDECREF(py_zero);
 
     return py_out;
 
