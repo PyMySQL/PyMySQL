@@ -167,7 +167,6 @@ class Connection:
     :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
     :param passwd: **DEPRECATED** Alias for password.
-    :param output_type: Type of result to return: tuples, namedtuples, dicts, numpy or pandas.
     :param parse_json: Parse JSON values into Python objects?
     :param invalid_date_value: Value to use in place of an invalid date. By default, a string
         containing the invalid content is returned.
@@ -223,7 +222,6 @@ class Connection:
         ssl_key=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
-        output_type='tuples',
         parse_json=False,
         invalid_date_value=UNSET,
         invalid_time_value=UNSET,
@@ -347,8 +345,7 @@ class Connection:
         self.client_flag = client_flag
 
         self.pure_python = pure_python
-        self.unbuffered = False
-        self.output_type = output_type
+        self.output_type = 'tuples'
         self.cursorclass = cursorclass
         self.resultclass = MySQLResult
 
@@ -357,12 +354,10 @@ class Connection:
             self.resultclass = MySQLResultSV
             if self.cursorclass is SSCursor:
                 self.cursorclass = SSCursorSV
-                self.unbuffered = True
             elif self.cursorclass is DictCursor:
                 self.output_type = 'dicts'
             elif self.cursorclass is SSDictCursor:
                 self.cursorclass = SSDictCursorSV
-                self.unbuffered = True
                 self.output_type = 'dicts'
 
         self._result = None
@@ -602,11 +597,11 @@ class Connection:
         if isinstance(sql, str):
             sql = sql.encode(self.encoding, "surrogateescape")
         self._execute_command(COMMAND.COM_QUERY, sql)
-        self._affected_rows = self._read_query_result(unbuffered=unbuffered or self.unbuffered)
+        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
 
     def next_result(self, unbuffered=False):
-        self._affected_rows = self._read_query_result(unbuffered=unbuffered or self.unbuffered)
+        self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
 
     def affected_rows(self):
@@ -822,10 +817,9 @@ class Connection:
 
     def _read_query_result(self, unbuffered=False):
         self._result = None
-        if unbuffered or self.unbuffered:
+        if unbuffered:
             try:
-                result = self.resultclass(self)
-                result.init_unbuffered_query()
+                result = self.resultclass(self, unbuffered=unbuffered)
             except:
                 result.unbuffered_active = False
                 result.connection = None
@@ -1188,7 +1182,7 @@ class Connection:
 
 
 class MySQLResult:
-    def __init__(self, connection):
+    def __init__(self, connection, unbuffered=False):
         """
         :type connection: Connection
         """
@@ -1203,6 +1197,8 @@ class MySQLResult:
         self.rows = None
         self.has_next = None
         self.unbuffered_active = False
+        if unbuffered:
+            self.init_unbuffered_query()
 
     def __del__(self):
         if self.unbuffered_active:
@@ -1399,8 +1395,8 @@ class MySQLResult:
         self.description = tuple(description)
 
 class MySQLResultSV(MySQLResult):
-    def __init__(self, connection):
-        MySQLResult.__init__(self, connection)
+    def __init__(self, connection, unbuffered=False):
+        MySQLResult.__init__(self, connection, unbuffered=unbuffered)
         self.options = {k: v for k, v in dict(
             default_converters=converters.decoders,
             output_type=connection.output_type,
@@ -1408,7 +1404,7 @@ class MySQLResultSV(MySQLResult):
             invalid_date_value=connection.invalid_date_value,
             invalid_time_value=connection.invalid_time_value,
             invalid_datetime_value=connection.invalid_datetime_value,
-            unbuffered=connection.unbuffered,
+            unbuffered=unbuffered,
         ).items() if v is not UNSET}
         self._read_rowdata_packet = functools.partial(_pymysqlsv.read_rowdata_packet, self)
         self._read_rowdata_packet_unbuffered = functools.partial(_pymysqlsv.read_rowdata_packet, self)

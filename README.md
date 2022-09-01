@@ -20,6 +20,30 @@ It increases the perforance of PyMySQL about 10-15%, which still leaves it at
 the second slowest client. It is also based on a PyMySQL codebase from years ago,
 so it does not contain any recent bug fixes or features of that project.
 
+## How fast can it be?
+
+If it's still mostly based on PyMySQL, how fast can it really be? Here's one
+benchmark. We uploaded
+[this data file](http://studiotutorials.s3.amazonaws.com/eCommerce/2019-Dec.csv)
+into a SingleStoreDB table six times to get a total of around 21 million rows of
+data including one datetime column, one float column, and 8 character columns.
+We then used PyMySQL, MySQLdb, and PyMySQLsv to fetch the entire table with `fetchone`,
+`fetchmany(20)`, and `fetchall` using both buffered and unbuffered cursors. 
+Here are the results.
+
+|                          | PyMySQL | MySQLdb | PyMySQLsv |
+|--------------------------|---------|---------|-----------|
+| Buffered fetchone        | 224.8s  | 50.6s   | 19.9s     |
+| Buffered fetchmany(20)   | 217.63s | 50.3s   | 15.5s     |
+| Buffered fetchall        | 217.9s  | 49.6s   | 14.8s     |
+| Unbuffered fetchone      | 230.5s  | 48.3s   | 25.3s     |
+| Unbuffered fetchmany(20) | 224.0s  | 35.0s   | 14.6s     |
+| Unbuffered fetchall      | 232.4s  | 37.7s   | 29.2s     |
+
+As you can see the gains are quite significant for this test case. Even MySQLdb,
+which is based on the MySQL libraries takes twice as long in all but one
+of the categories.
+
 ## Install
 
 This package installs just like any other Python package. Since it includes a C
