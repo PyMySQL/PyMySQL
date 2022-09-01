@@ -33,12 +33,12 @@ Here are the results.
 
 |                          | PyMySQL | MySQLdb | PyMySQLsv |
 |--------------------------|---------|---------|-----------|
-| Buffered fetchone        | 224.8s  | 50.6s   | 19.9s     |
-| Buffered fetchmany(20)   | 217.63s | 50.3s   | 15.5s     |
-| Buffered fetchall        | 217.9s  | 49.6s   | 14.8s     |
-| Unbuffered fetchone      | 230.5s  | 48.3s   | 25.3s     |
-| Unbuffered fetchmany(20) | 224.0s  | 35.0s   | 14.6s     |
-| Unbuffered fetchall      | 232.4s  | 37.7s   | 29.2s     |
+| Buffered fetchone        |  224.8s |   50.6s |     19.9s |
+| Buffered fetchmany(20)   |  217.6s |   50.3s |     15.5s |
+| Buffered fetchall        |  217.9s |   49.6s |     14.8s |
+| Unbuffered fetchone      |  230.5s |   48.3s |     25.3s |
+| Unbuffered fetchmany(20) |  224.0s |   35.0s |     14.6s |
+| Unbuffered fetchall      |  232.4s |   37.7s |     29.2s |
 
 As you can see the gains are quite significant for this test case. Even MySQLdb,
 which is based on the MySQL libraries takes twice as long in all but one
