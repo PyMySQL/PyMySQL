@@ -298,7 +298,7 @@ class Cursor:
         """Fetch all the rows."""
         self._check_executed()
         if self._rows is None:
-            return ()
+            return []
         if self.rownumber:
             result = self._rows[self.rownumber :]
         else:
