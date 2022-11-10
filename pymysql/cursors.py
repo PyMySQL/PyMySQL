@@ -130,8 +130,9 @@ class Cursor:
         """
         conn = self._get_db()
 
-        if args is not None:
-            query = query % self._escape_args(args, conn)
+        if args is not None:            
+            for i in self._escape_args(args, conn):
+                query = re.sub ( "[?]" ,i, query,count = 1)
 
         return query
 
