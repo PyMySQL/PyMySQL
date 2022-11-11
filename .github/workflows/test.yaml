@@ -22,7 +22,7 @@ jobs:
             py: "3.7"
 
           - db: "mariadb:10.7"
-            py: "3.11-dev"
+            py: "3.11"
 
           - db: "mariadb:10.8"
             py: "3.9"
