@@ -6,9 +6,9 @@ from pymysql.pool import Connection, ConnectionPool
 mysql_config = {
     "host": "localhost",
     "port": 3306,
-    "user": "root",
-    "password": "root",
-    "database": "test"
+    "user": "user",
+    "password": "passwd",
+    "database": "db"
 }
 
 
