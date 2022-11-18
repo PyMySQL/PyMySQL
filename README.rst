@@ -113,6 +113,53 @@ The following examples make use of a simple table
             print(result)
 
 
+.. code:: python
+    ## Use Connection Pool
+
+    import pymysql.cursors
+
+    # connect config
+    mysql_settings = dict(
+        host='localhost',
+        user='user',
+        password='passwd',
+        database='db',
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+    ## Create a ConnectionPool object
+    pool = pymysql.pool.ConnectionPool(min_idle=1, max_idle=3, **mysql_settings)
+
+    ## Get a connection object from the connection pool
+    # When the connection is used up, it will be automatically put back into the connection pool
+    # instead of closing the connection.
+
+    # * If you use the `with` statement, you don’t need to manually call the `close()` method.
+    #   When the connection object exits after use, it will be called automatically.
+    # * If you do not use the `with` statement, you need to manually call the `close()` method of the
+    #   connection after using the connection, or call the `return_connection(connection)` method of
+    #   the connection pool to return the connection to the connection pool.
+
+    connection = pool.get_connection()
+
+    with connection:
+        with connection.cursor() as cursor:
+            # Create a new record
+            sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
+            cursor.execute(sql, ('webmaster@python.org', 'very-secret'))
+
+        # connection is not autocommit by default. So you must commit to save
+        # your changes.
+        connection.commit()
+
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `id`, `password` FROM `users` WHERE `email`=%s"
+            cursor.execute(sql, ('webmaster@python.org',))
+            result = cursor.fetchone()
+            print(result)
+
+
 This example will print:
 
 .. code:: python
