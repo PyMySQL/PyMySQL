@@ -118,6 +118,7 @@ The following examples make use of a simple table
     ## Use Connection Pool
 
     import pymysql.cursors
+    import pymysql.pool
 
     # connect config
     mysql_settings = dict(
