@@ -1,3 +1,4 @@
+import threading
 import time
 from collections import deque
 
@@ -142,6 +143,7 @@ class ConnectionPool(object):
         self._min_idle = min_idle
         self._max_idle = max_idle
         self._lifetime = max_lifetime
+        self._lock = threading.Lock()
         self._closed = False
         self._pool = deque(maxlen=self._max_idle)
         self._kwargs = kwargs
@@ -171,7 +173,11 @@ class ConnectionPool(object):
             return self._pool.pop()
         except IndexError:
             if self.connect_num < self.maxsize:
-                return self._create_connection()
+                with self._lock:
+                    if self.connect_num < self.maxsize:
+                        return self._create_connection()
+                    else:
+                        raise CreateConnectionError("Error: the connection pool has reached the threshold.")
             else:
                 raise GetConnectionError(f'There are no idle connections in the connection pool.')
 

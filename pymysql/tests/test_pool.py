@@ -53,7 +53,7 @@ def test_connection_pool_with_mutilThread():
         thread.start()
     for thread in threads:
         thread.join()
-    print('pool size:', pool.size)
+    print('pool size:', pool.size, 'pool connect quantity:', pool.connect_num)
 
 
 def test_connection_pool_with_threadPool():
@@ -64,3 +64,4 @@ def test_connection_pool_with_threadPool():
 
         for result in results:
             pass
+    print('pool size:', pool.size, 'pool connect quantity:', pool.connect_num)
