@@ -114,6 +114,7 @@ The following examples make use of a simple table
 
 
 .. code:: python
+
     ## Use Connection Pool
 
     import pymysql.cursors
