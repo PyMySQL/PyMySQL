@@ -1,3 +1,7 @@
+> **Warning**
+> All work on the accelerated MySQL client has been moved to the
+> [SingleStoreDB Python client](https://github.com/singlestore-labs/singlestoredb-python).
+
 # PyMySQLsv
 
 This project contains classes based on the PyMySQL database client which have
