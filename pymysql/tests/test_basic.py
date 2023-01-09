@@ -320,7 +320,7 @@ class TestBulkInserts(base.PyMySQLTestCase):
         self.conn = conn = self.connect()
         c = conn.cursor(self.cursor_type)
 
-        # create a table ane some data to query
+        # create a table and some data to query
         self.safe_create_table(
             conn,
             "bulkinsert",
