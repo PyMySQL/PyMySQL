@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 version = "1.0.2"
 
-with open("./README.rst", encoding="utf-8") as f:
+with open("./README.md", encoding="utf-8") as f:
     readme = f.read()
 
 setup(
@@ -15,6 +15,7 @@ setup(
     },
     description="Pure Python MySQL Driver",
     long_description=readme,
+    long_description_content_type='text/markdown',
     packages=find_packages(exclude=["tests*", "pymysql.tests*"]),
     python_requires=">=3.7",
     extras_require={
@@ -34,6 +35,11 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Database",
+    ],
+    ext_modules=[
+          Extension(
+              '_pymysqlsv', ['src/accel.c'], py_limited_api=True,
+          ),
     ],
     keywords="MySQL",
 )

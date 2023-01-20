@@ -278,6 +278,10 @@ class Cursor:
     def fetchone(self):
         """Fetch the next row."""
         self._check_executed()
+        return self._unchecked_fetchone()
+
+    def _unchecked_fetchone(self):
+        """Fetch the next row."""
         if self._rows is None or self.rownumber >= len(self._rows):
             return None
         result = self._rows[self.rownumber]
@@ -346,7 +350,16 @@ class Cursor:
         self._rows = result.rows
 
     def __iter__(self):
-        return iter(self.fetchone, None)
+        self._check_executed()
+        _unchecked_fetchone = self._unchecked_fetchone
+        def fetchall_unbuffered_gen():
+            while True:
+                out =_unchecked_fetchone()
+                if out is not None:
+                    yield out
+                else:
+                    break
+        return fetchall_unbuffered_gen()
 
     Warning = err.Warning
     Error = err.Error
@@ -440,6 +453,10 @@ class SSCursor(Cursor):
     def fetchone(self):
         """Fetch next row."""
         self._check_executed()
+        return self._unchecked_fetchone()
+
+    def _unchecked_fetchone(self):
+        """Fetch next row."""
         row = self.read_next()
         if row is None:
             return None
@@ -460,7 +477,16 @@ class SSCursor(Cursor):
         however, it doesn't make sense to return everything in a list, as that
         would use ridiculous memory for large result sets.
         """
-        return iter(self.fetchone, None)
+        self._check_executed()
+        _unchecked_fetchone = self._unchecked_fetchone
+        def fetchall_unbuffered_gen():
+            while True:
+                out =_unchecked_fetchone()
+                if out is not None:
+                    yield out
+                else:
+                    break
+        return fetchall_unbuffered_gen()
 
     def __iter__(self):
         return self.fetchall_unbuffered()
@@ -505,6 +531,53 @@ class SSCursor(Cursor):
         else:
             raise err.ProgrammingError("unknown scroll mode %s" % mode)
 
+class SSCursorSV(SSCursor):
+    """An unbuffered cursor for use with PyMySQLsv."""
+
+    def _unchecked_fetchone(self):
+        """Fetch next row."""
+        row = self._result._read_rowdata_packet_unbuffered(1)
+        if row is None:
+            return None
+        self.rownumber += 1
+        return row
+
+    def fetchmany(self, size=None):
+        """Fetch many."""
+        self._check_executed()
+        if size is None:
+            size = self.arraysize
+        out = self._result._read_rowdata_packet_unbuffered(size)
+        if out is None:
+            return []
+        self.rownumber += len(out)
+        return out
+
+    def scroll(self, value, mode="relative"):
+        self._check_executed()
+
+        if mode == "relative":
+            if value < 0:
+                raise err.NotSupportedError(
+                    "Backwards scrolling not supported by this cursor"
+                )
+
+            self._result._read_rowdata_packet_unbuffered(value)
+            self.rownumber += value
+        elif mode == "absolute":
+            if value < self.rownumber:
+                raise err.NotSupportedError(
+                    "Backwards scrolling not supported by this cursor"
+                )
+
+            end = value - self.rownumber
+            self._result._read_rowdata_packet_unbuffered(end)
+            self.rownumber = value
+        else:
+            raise err.ProgrammingError("unknown scroll mode %s" % mode)
+
+class SSDictCursorSV(SSCursorSV):
+    """An unbuffered cursor for use with PyMySQLsv, which returns results as a dictionary"""
 
 class SSDictCursor(DictCursorMixin, SSCursor):
     """An unbuffered cursor, which returns results as a dictionary"""
