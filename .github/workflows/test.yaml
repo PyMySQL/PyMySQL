@@ -84,6 +84,7 @@ jobs:
       - name: Run test
         run: |
           pytest -v --cov --cov-config .coveragerc pymysql
+          pytest -v --cov --cov-config .coveragerc --doctest-modules pymysql/converters.py
 
       - name: Run MySQL8 auth test
         if: ${{ matrix.mysql_auth }}
