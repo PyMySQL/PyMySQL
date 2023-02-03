@@ -10,7 +10,6 @@ import unittest
 
 
 class DatabaseTest(unittest.TestCase):
-
     db_module = None
     connect_args = ()
     connect_kwargs = dict(use_unicode=True, charset="utf8mb4", binary_prefix=True)

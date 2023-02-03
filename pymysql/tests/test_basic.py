@@ -312,7 +312,6 @@ create table test_json (
 
 
 class TestBulkInserts(base.PyMySQLTestCase):
-
     cursor_type = pymysql.cursors.DictCursor
 
     def setUp(self):
