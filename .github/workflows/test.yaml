@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +49,7 @@ jobs:
           - /run/mysqld:/run/mysqld
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Workaround MySQL container permissions
         if: startsWith(matrix.db, 'mysql')
@@ -58,7 +58,7 @@ jobs:
           /usr/bin/docker ps --all --filter status=exited --no-trunc --format "{{.ID}}" | xargs -r /usr/bin/docker start
 
       - name: Set up Python ${{ matrix.py }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.py }}
           cache: 'pip'
@@ -66,7 +66,7 @@ jobs:
 
       - name: Install dependency
         run: |
-          pip install -U -r requirements-dev.txt
+          pip install --upgrade -r requirements-dev.txt
 
       - name: Set up MySQL
         run: |
@@ -107,16 +107,16 @@ jobs:
   coveralls:
     if: github.repository == 'PyMySQL/PyMySQL'
     name: Finish coveralls
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: test
     steps:
     - name: requirements.
       run: |
         echo coveralls > requirements.txt
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.x'
         cache: 'pip'
 
     - name: Finished
