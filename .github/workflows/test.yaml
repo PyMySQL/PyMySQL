@@ -4,33 +4,38 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - db: "mariadb:10.2"
-            py: "3.9"
-
           - db: "mariadb:10.3"
             py: "3.8"
 
           - db: "mariadb:10.5"
             py: "3.7"
 
-          - db: "mysql:5.6"
-            py: "3.6"
+          - db: "mariadb:10.7"
+            py: "3.11"
+
+          - db: "mariadb:10.8"
+            py: "3.9"
 
           - db: "mysql:5.7"
-            py: "pypy-3.6"
+            py: "pypy-3.8"
 
           - db: "mysql:8.0"
             py: "3.9"
             mysql_auth: true
 
           - db: "mysql:8.0"
-            py: "3.10-dev"
+            py: "3.10"
 
     services:
       mysql:
@@ -40,24 +45,28 @@ jobs:
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
         options: "--name=mysqld"
+        volumes:
+          - /run/mysqld:/run/mysqld
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: Workaround MySQL container permissions
+        if: startsWith(matrix.db, 'mysql')
+        run: |
+          sudo chown 999:999 /run/mysqld
+          /usr/bin/docker ps --all --filter status=exited --no-trunc --format "{{.ID}}" | xargs -r /usr/bin/docker start
+
       - name: Set up Python ${{ matrix.py }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.py }}
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-1
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
 
       - name: Install dependency
         run: |
-          pip install -U cryptography PyNaCl pytest pytest-cov coveralls
+          pip install --upgrade -r requirements-dev.txt
 
       - name: Set up MySQL
         run: |
@@ -75,6 +84,7 @@ jobs:
       - name: Run test
         run: |
           pytest -v --cov --cov-config .coveragerc pymysql
+          pytest -v --cov-append --cov-config .coveragerc --doctest-modules pymysql/converters.py
 
       - name: Run MySQL8 auth test
         if: ${{ matrix.mysql_auth }}
@@ -87,6 +97,7 @@ jobs:
           pytest -v --cov --cov-config .coveragerc tests/test_auth.py;
 
       - name: Report coverage
+        if: github.repository == 'PyMySQL/PyMySQL'
         run: coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,20 +105,19 @@ jobs:
           COVERALLS_PARALLEL: true
 
   coveralls:
+    if: github.repository == 'PyMySQL/PyMySQL'
     name: Finish coveralls
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: test
     steps:
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
+    - name: requirements.
+      run: |
+        echo coveralls > requirements.txt
 
-    - uses: actions/cache@v2
+    - uses: actions/setup-python@v4
       with:
-        path: ~/.cache/pip
-        key: finish-pip-1
-        restore-keys: |
-          finish-pip-
+        python-version: '3.x'
+        cache: 'pip'
 
     - name: Finished
       run: |

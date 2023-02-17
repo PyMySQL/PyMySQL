@@ -45,7 +45,6 @@ class TempUser:
 
 
 class TestAuthentication(base.PyMySQLTestCase):
-
     socket_auth = False
     socket_found = False
     two_questions_found = False
@@ -105,8 +104,6 @@ class TestAuthentication(base.PyMySQLTestCase):
 
     def test_plugin(self):
         conn = self.connect()
-        if not self.mysql_server_is(conn, (5, 5, 0)):
-            pytest.skip("MySQL-5.5 required for plugins")
         cur = conn.cursor()
         cur.execute(
             "select plugin from mysql.user where concat(user, '@', host)=current_user()"
@@ -401,13 +398,7 @@ class TestAuthentication(base.PyMySQLTestCase):
             self.databases[0]["database"],
             "sha256_password",
         ) as u:
-            if self.mysql_server_is(conn, (5, 7, 0)):
-                c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' ='Sh@256Pa33'")
-            else:
-                c.execute("SET old_passwords = 2")
-                c.execute(
-                    "SET PASSWORD FOR 'pymysql_sha256'@'localhost' = PASSWORD('Sh@256Pa33')"
-                )
+            c.execute("SET PASSWORD FOR 'pymysql_sha256'@'localhost' ='Sh@256Pa33'")
             c.execute("FLUSH PRIVILEGES")
             db = self.db.copy()
             db["password"] = "Sh@256Pa33"
@@ -500,7 +491,7 @@ class TestConnection(base.PyMySQLTestCase):
         time.sleep(2)
         with self.assertRaises(pymysql.OperationalError) as cm:
             cur.execute("SELECT 1+1")
-        # error occures while reading, not writing because of socket buffer.
+        # error occurs while reading, not writing because of socket buffer.
         # self.assertEqual(cm.exception.args[0], 2006)
         self.assertIn(cm.exception.args[0], (2006, 2013))
 

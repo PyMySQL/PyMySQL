@@ -46,8 +46,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"PyMySQL"
-copyright = u"2016, Yutaka Matsubara and GitHub contributors"
+project = "PyMySQL"
+copyright = "2016, Yutaka Matsubara and GitHub contributors"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -200,8 +200,8 @@ latex_documents = [
     (
         "index",
         "PyMySQL.tex",
-        u"PyMySQL Documentation",
-        u"Yutaka Matsubara and GitHub contributors",
+        "PyMySQL Documentation",
+        "Yutaka Matsubara and GitHub contributors",
         "manual",
     ),
 ]
@@ -235,8 +235,8 @@ man_pages = [
     (
         "index",
         "pymysql",
-        u"PyMySQL Documentation",
-        [u"Yutaka Matsubara and GitHub contributors"],
+        "PyMySQL Documentation",
+        ["Yutaka Matsubara and GitHub contributors"],
         1,
     )
 ]
@@ -254,8 +254,8 @@ texinfo_documents = [
     (
         "index",
         "PyMySQL",
-        u"PyMySQL Documentation",
-        u"Yutaka Matsubara and GitHub contributors",
+        "PyMySQL Documentation",
+        "Yutaka Matsubara and GitHub contributors",
         "PyMySQL",
         "One line description of project.",
         "Miscellaneous",

@@ -2,7 +2,7 @@ name: 'Lock Threads'
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '30 9 * * 1'
 
 permissions:
   issues: write
@@ -12,5 +12,5 @@ jobs:
   action:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/lock-threads@v2
+      - uses: dessant/lock-threads@v4
 

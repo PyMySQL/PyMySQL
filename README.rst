@@ -2,11 +2,8 @@
     :target: https://pymysql.readthedocs.io/
     :alt: Documentation Status
 
-.. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=master&service=github
-    :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=master
-
-.. image:: https://img.shields.io/lgtm/grade/python/g/PyMySQL/PyMySQL.svg?logo=lgtm&logoWidth=18
-    :target: https://lgtm.com/projects/g/PyMySQL/PyMySQL/context:python
+.. image:: https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=main&service=github
+    :target: https://coveralls.io/github/PyMySQL/PyMySQL?branch=main
 
 
 PyMySQL
@@ -25,13 +22,13 @@ Requirements
 
 * Python -- one of the following:
 
-  - CPython_ : 3.6 and newer
+  - CPython_ : 3.7 and newer
   - PyPy_ : Latest 3.x version
 
 * MySQL Server -- one of the following:
 
-  - MySQL_ >= 5.6
-  - MariaDB_ >= 10.0
+  - MySQL_ >= 5.7
+  - MariaDB_ >= 10.3
 
 .. _CPython: https://www.python.org/
 .. _PyPy: https://pypy.org/

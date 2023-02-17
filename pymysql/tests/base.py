@@ -32,6 +32,11 @@ class PyMySQLTestCase(unittest.TestCase):
         """Return True if the given connection is on the version given or
         greater.
 
+        This only checks the server version string provided when the
+        connection is established, therefore any check for a version tuple
+        greater than (5, 5, 5) will always fail on MariaDB, as it always
+        starts with 5.5.5, e.g. 5.5.5-10.7.1-MariaDB-1:10.7.1+maria~focal.
+
         e.g.::
 
             if self.mysql_server_is(conn, (5, 6, 4)):
