@@ -147,6 +147,7 @@ class Connection:
         (if no authenticate method) for returning a string from the user. (experimental)
     :param server_public_key: SHA256 authentication plugin public key value. (default: None)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
+    :param fetch_table_names: Set to true, table names are always prefixed to column names.
     :param compress: Not supported.
     :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
@@ -198,6 +199,7 @@ class Connection:
         ssl_key=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
+        fetch_table_names=False,
         compress=None,  # not supported
         named_pipe=None,  # not supported
         passwd=None,  # deprecated
@@ -342,6 +344,8 @@ class Connection:
             "_pid": str(os.getpid()),
             "_client_version": VERSION_STRING,
         }
+
+        self.fetch_table_names = fetch_table_names
 
         if program_name:
             self._connect_attrs["program_name"] = program_name

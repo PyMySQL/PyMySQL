@@ -518,6 +518,14 @@ class TestConnection(base.PyMySQLTestCase):
         c.set_charset("utf8mb4")
         # TODO validate setting here
 
+    def test_fetch_table_names(self):
+        conn = self.connect(fetch_table_names=True)
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        cur.execute("SELECT User FROM mysql.user")
+        res = cur.fetchone()
+        self.assertTrue("user.User" in res.keys())
+
     def test_defer_connect(self):
         import socket
 
