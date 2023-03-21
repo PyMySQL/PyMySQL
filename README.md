@@ -9,12 +9,12 @@ This package contains a pure-Python MySQL client library, based on [PEP
 
 ## Requirements
 
--   Python -- one of the following:
-    -   [CPython](https://www.python.org/) : 3.7 and newer
-    -   [PyPy](https://pypy.org/) : Latest 3.x version
--   MySQL Server -- one of the following:
-    -   [MySQL](https://www.mysql.com/) \>= 5.7
-    -   [MariaDB](https://mariadb.org/) \>= 10.3
+- Python -- one of the following:
+  - [CPython](https://www.python.org/) : 3.7 and newer
+  - [PyPy](https://pypy.org/) : Latest 3.x version
+- MySQL Server -- one of the following:
+  - [MySQL](https://www.mysql.com/) \>= 5.7
+  - [MariaDB](https://mariadb.org/) \>= 10.3
 
 ## Installation
 
@@ -91,14 +91,14 @@ This example will print:
 
 ## Resources
 
--   DB-API 2.0: <https://www.python.org/dev/peps/pep-0249/>
--   MySQL Reference Manuals: <https://dev.mysql.com/doc/>
--   MySQL client/server protocol:
-    <https://dev.mysql.com/doc/internals/en/client-server-protocol.html>
--   "Connector" channel in MySQL Community Slack:
-    <https://lefred.be/mysql-community-on-slack/>
--   PyMySQL mailing list:
-    <https://groups.google.com/forum/#!forum/pymysql-users>
+- DB-API 2.0: <https://www.python.org/dev/peps/pep-0249/>
+- MySQL Reference Manuals: <https://dev.mysql.com/doc/>
+- MySQL client/server protocol:
+  <https://dev.mysql.com/doc/internals/en/client-server-protocol.html>
+- "Connector" channel in MySQL Community Slack:
+  <https://lefred.be/mysql-community-on-slack/>
+- PyMySQL mailing list:
+  <https://groups.google.com/forum/#!forum/pymysql-users>
 
 ## License
 
