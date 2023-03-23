@@ -1,6 +1,5 @@
 [project]
 name = "PyMySQL"
-version = "1.0.2"
 description = "Pure Python MySQL Driver"
 authors = [
     {name = "Inada Naoki", email = "songofacandy@gmail.com"},
@@ -26,6 +25,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Topic :: Database",
 ]
+dynamic = ["version"]
 
 [project.optional-dependencies]
 "rsa" = [
@@ -47,3 +47,6 @@ build-backend = "setuptools.build_meta"
 namespaces = false
 include = ["pymysql"]
 exclude = ["tests*", "pymysql.tests*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pymysql.VERSION"}
