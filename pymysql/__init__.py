@@ -47,11 +47,11 @@ from .times import (
 )
 
 
-VERSION = (1, 0, 3, None)
-if VERSION[3] is not None:
+VERSION = (1, 0, 3)
+if len(VERSION) > 3:
     VERSION_STRING = "%d.%d.%d_%s" % VERSION
 else:
-    VERSION_STRING = "%d.%d.%d" % VERSION[:3]
+    VERSION_STRING = "%d.%d.%d" % VERSION
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
