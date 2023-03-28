@@ -113,10 +113,7 @@ Connect = connect = Connection = connections.Connection
 
 
 def get_client_info():  # for MySQLdb compatibility
-    version = VERSION
-    if VERSION[3] is None:
-        version = VERSION[:3]
-    return ".".join(map(str, version))
+    return VERSION_STRING
 
 
 # we include a doctored version_info here for MySQLdb compatibility
