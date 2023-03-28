@@ -40,7 +40,7 @@ dynamic = ["version"]
 "Documentation" = "https://pymysql.readthedocs.io/"
 
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
