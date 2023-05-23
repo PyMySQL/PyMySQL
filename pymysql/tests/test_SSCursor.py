@@ -1,19 +1,8 @@
-import sys
-
 import pytest
 
-try:
-    from pymysql.tests import base
-    import pymysql.cursors
-    from pymysql.constants import CLIENT
-    import pymysql.constants.ER
-except Exception:
-    # For local testing from top-level directory, without installing
-    sys.path.append("../pymysql")
-    from pymysql.tests import base
-    import pymysql.cursors
-    from pymysql.constants import CLIENT
-    import pymysql.constants.ER
+from pymysql.tests import base
+import pymysql.cursors
+from pymysql.constants import CLIENT, ER
 
 
 class TestSSCursor(base.PyMySQLTestCase):
@@ -204,15 +193,42 @@ class TestSSCursor(base.PyMySQLTestCase):
             if db_type == "mysql":
                 # this constant was only introduced in MySQL 5.7, not sure
                 # what was returned before, may have been ER_QUERY_INTERRUPTED
-                self.assertEqual(cm.value.args[0], pymysql.constants.ER.QUERY_TIMEOUT)
+                self.assertEqual(cm.value.args[0], ER.QUERY_TIMEOUT)
             else:
-                self.assertEqual(
-                    cm.value.args[0], pymysql.constants.ER.STATEMENT_TIMEOUT
-                )
+                self.assertEqual(cm.value.args[0], ER.STATEMENT_TIMEOUT)
 
             # connection should still be fine at this point
             cur.execute("SELECT 1")
             self.assertEqual(cur.fetchone(), (1,))
+
+    def test_warnings(self):
+        con = self.connect()
+        cur = con.cursor(pymysql.cursors.SSCursor)
+        cur.execute("DROP TABLE IF EXISTS `no_exists_table`")
+        self.assertEqual(cur.warning_count, 1)
+
+        cur.execute("SHOW WARNINGS")
+        w = cur.fetchone()
+        self.assertEqual(w[1], ER.BAD_TABLE_ERROR)
+        self.assertIn(
+            "no_exists_table",
+            w[2],
+        )
+
+        # ensure unbuffered result is finished
+        self.assertIsNone(cur.fetchone())
+
+        cur.execute("SELECT 1")
+        self.assertEqual(cur.fetchone(), (1,))
+        self.assertIsNone(cur.fetchone())
+
+        self.assertEqual(cur.warning_count, 0)
+
+        cur.execute("SELECT CAST('abc' AS SIGNED)")
+        # this ensures fully retrieving the unbuffered result
+        rows = cur.fetchmany(2)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(cur.warning_count, 1)
 
 
 __all__ = ["TestSSCursor"]

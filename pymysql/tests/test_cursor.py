@@ -1,8 +1,9 @@
-import warnings
-
+from pymysql.constants import ER
 from pymysql.tests import base
 import pymysql.cursors
 import pymysql.constants.ER
+
+import pytest
 
 import pytest
 
@@ -190,12 +191,27 @@ class CursorTest(base.PyMySQLTestCase):
             if db_type == "mysql":
                 # this constant was only introduced in MySQL 5.7, not sure
                 # what was returned before, may have been ER_QUERY_INTERRUPTED
-                self.assertEqual(cm.value.args[0], pymysql.constants.ER.QUERY_TIMEOUT)
+                self.assertEqual(cm.value.args[0], ER.QUERY_TIMEOUT)
             else:
-                self.assertEqual(
-                    cm.value.args[0], pymysql.constants.ER.STATEMENT_TIMEOUT
-                )
+                self.assertEqual(cm.value.args[0], ER.STATEMENT_TIMEOUT)
 
             # connection should still be fine at this point
             cur.execute("SELECT 1")
             self.assertEqual(cur.fetchone(), (1,))
+
+    def test_warnings(self):
+        con = self.connect()
+        cur = con.cursor()
+        cur.execute("DROP TABLE IF EXISTS `no_exists_table`")
+        self.assertEqual(cur.warning_count, 1)
+
+        cur.execute("SHOW WARNINGS")
+        w = cur.fetchone()
+        self.assertEqual(w[1], ER.BAD_TABLE_ERROR)
+        self.assertIn(
+            "no_exists_table",
+            w[2],
+        )
+
+        cur.execute("SELECT 1")
+        self.assertEqual(cur.warning_count, 0)
