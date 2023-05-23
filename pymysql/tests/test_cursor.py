@@ -1,7 +1,6 @@
 from pymysql.constants import ER
 from pymysql.tests import base
 import pymysql.cursors
-import pymysql.constants.ER
 
 import pytest
 
@@ -189,11 +188,9 @@ class CursorTest(base.PyMySQLTestCase):
             if db_type == "mysql":
                 # this constant was only introduced in MySQL 5.7, not sure
                 # what was returned before, may have been ER_QUERY_INTERRUPTED
-                self.assertEqual(cm.value.args[0], pymysql.constants.ER.QUERY_TIMEOUT)
+                self.assertEqual(cm.value.args[0], ER.QUERY_TIMEOUT)
             else:
-                self.assertEqual(
-                    cm.value.args[0], pymysql.constants.ER.STATEMENT_TIMEOUT
-                )
+                self.assertEqual(cm.value.args[0], ER.STATEMENT_TIMEOUT)
 
             # connection should still be fine at this point
             cur.execute("SELECT 1")
