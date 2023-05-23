@@ -465,9 +465,6 @@ class SSCursor(Cursor):
         """
         return iter(self.fetchone, None)
 
-    def __iter__(self):
-        return self.fetchall_unbuffered()
-
     def fetchmany(self, size=None):
         """Fetch many."""
         self._check_executed()
