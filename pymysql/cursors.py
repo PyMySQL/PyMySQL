@@ -342,7 +342,13 @@ class Cursor:
         self._rows = result.rows
 
     def __iter__(self):
-        return iter(self.fetchone, None)
+        return self
+
+    def __next__(self):
+        row = self.fetchone()
+        if row is None:
+            raise StopIteration
+        return row
 
     Warning = err.Warning
     Error = err.Error
@@ -458,9 +464,6 @@ class SSCursor(Cursor):
         would use ridiculous memory for large result sets.
         """
         return iter(self.fetchone, None)
-
-    def __iter__(self):
-        return self.fetchall_unbuffered()
 
     def fetchmany(self, size=None):
         """Fetch many."""
