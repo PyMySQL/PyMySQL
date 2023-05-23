@@ -18,7 +18,8 @@ jobs:
           python-version: 3.x
       - uses: psf/black@stable
         with:
-          args: ". --diff --check"
+          options: "--check --verbose"
+          src: "."
       - name: Setup flake8 annotations
         uses: rbialon/flake8-annotations@v1
       - name: flake8
