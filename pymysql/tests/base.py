@@ -49,6 +49,14 @@ class PyMySQLTestCase(unittest.TestCase):
         )
         return server_version_tuple >= version_tuple
 
+    def get_mysql_vendor(self, conn):
+        server_version = conn.get_server_info()
+
+        if "MariaDB" in server_version:
+            return "mariadb"
+
+        return "mysql"
+
     _connections = None
 
     @property

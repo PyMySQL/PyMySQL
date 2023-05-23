@@ -1,15 +1,8 @@
-import sys
+import pytest
 
-try:
-    from pymysql.tests import base
-    import pymysql.cursors
-    from pymysql.constants import CLIENT, ER
-except Exception:
-    # For local testing from top-level directory, without installing
-    sys.path.append("../pymysql")
-    from pymysql.tests import base
-    import pymysql.cursors
-    from pymysql.constants import CLIENT, ER
+from pymysql.tests import base
+import pymysql.cursors
+from pymysql.constants import CLIENT, ER
 
 
 class TestSSCursor(base.PyMySQLTestCase):
@@ -121,6 +114,92 @@ class TestSSCursor(base.PyMySQLTestCase):
 
         cursor.execute("DROP TABLE IF EXISTS tz_data")
         cursor.close()
+
+    def test_execution_time_limit(self):
+        # this method is similarly implemented in test_cursor
+
+        conn = self.connect()
+
+        # table creation and filling is SSCursor only as it's not provided by self.setUp()
+        self.safe_create_table(
+            conn,
+            "test",
+            "create table test (data varchar(10))",
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into test (data) values "
+                "('row1'), ('row2'), ('row3'), ('row4'), ('row5')"
+            )
+            conn.commit()
+
+        db_type = self.get_mysql_vendor(conn)
+
+        with conn.cursor(pymysql.cursors.SSCursor) as cur:
+            # MySQL MAX_EXECUTION_TIME takes ms
+            # MariaDB max_statement_time takes seconds as int/float, introduced in 10.1
+
+            # this will sleep 0.01 seconds per row
+            if db_type == "mysql":
+                sql = (
+                    "SELECT /*+ MAX_EXECUTION_TIME(2000) */ data, sleep(0.01) FROM test"
+                )
+            else:
+                sql = "SET STATEMENT max_statement_time=2 FOR SELECT data, sleep(0.01) FROM test"
+
+            cur.execute(sql)
+            # unlike Cursor, SSCursor returns a list of tuples here
+            self.assertEqual(
+                cur.fetchall(),
+                [
+                    ("row1", 0),
+                    ("row2", 0),
+                    ("row3", 0),
+                    ("row4", 0),
+                    ("row5", 0),
+                ],
+            )
+
+            if db_type == "mysql":
+                sql = (
+                    "SELECT /*+ MAX_EXECUTION_TIME(2000) */ data, sleep(0.01) FROM test"
+                )
+            else:
+                sql = "SET STATEMENT max_statement_time=2 FOR SELECT data, sleep(0.01) FROM test"
+            cur.execute(sql)
+            self.assertEqual(cur.fetchone(), ("row1", 0))
+
+            # this discards the previous unfinished query and raises an
+            # incomplete unbuffered query warning
+            with pytest.warns(UserWarning):
+                cur.execute("SELECT 1")
+            self.assertEqual(cur.fetchone(), (1,))
+
+            # SSCursor will not read the EOF packet until we try to read
+            # another row. Skipping this will raise an incomplete unbuffered
+            # query warning in the next cur.execute().
+            self.assertEqual(cur.fetchone(), None)
+
+            if db_type == "mysql":
+                sql = "SELECT /*+ MAX_EXECUTION_TIME(1) */ data, sleep(1) FROM test"
+            else:
+                sql = "SET STATEMENT max_statement_time=0.001 FOR SELECT data, sleep(1) FROM test"
+            with pytest.raises(pymysql.err.OperationalError) as cm:
+                # in an unbuffered cursor the OperationalError may not show up
+                # until fetching the entire result
+                cur.execute(sql)
+                cur.fetchall()
+
+            if db_type == "mysql":
+                # this constant was only introduced in MySQL 5.7, not sure
+                # what was returned before, may have been ER_QUERY_INTERRUPTED
+                self.assertEqual(cm.value.args[0], ER.QUERY_TIMEOUT)
+            else:
+                self.assertEqual(cm.value.args[0], ER.STATEMENT_TIMEOUT)
+
+            # connection should still be fine at this point
+            cur.execute("SELECT 1")
+            self.assertEqual(cur.fetchone(), (1,))
 
     def test_warnings(self):
         con = self.connect()
