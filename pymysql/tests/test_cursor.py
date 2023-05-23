@@ -25,6 +25,14 @@ class CursorTest(base.PyMySQLTestCase):
         self.test_connection = pymysql.connect(**self.databases[0])
         self.addCleanup(self.test_connection.close)
 
+    def test_cursor_is_iterator(self):
+        """Test that the cursor is an iterator"""
+        conn = self.test_connection
+        cursor = conn.cursor()
+        cursor.execute("select * from test")
+        self.assertEqual(cursor.__iter__(), cursor)
+        self.assertEqual(cursor.__next__(), ("row1",))
+
     def test_cleanup_rows_unbuffered(self):
         conn = self.test_connection
         cursor = conn.cursor(pymysql.cursors.SSCursor)
