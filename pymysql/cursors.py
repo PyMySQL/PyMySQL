@@ -32,7 +32,7 @@ class Cursor:
 
     def __init__(self, connection):
         self.connection = connection
-        self.warning_count = -1
+        self.warning_count = 0
         self.description = None
         self.rownumber = 0
         self.rowcount = -1
@@ -332,7 +332,7 @@ class Cursor:
         self._result = None
 
         self.rowcount = 0
-        self.warning_count = -1
+        self.warning_count = 0
         self.description = None
         self.lastrowid = None
         self._rows = None

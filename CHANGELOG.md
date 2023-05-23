@@ -1,5 +1,11 @@
 # Changes
 
+## v1.1.0
+
+Release date: TBD
+
+* Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
+
 ## v1.0.3
 
 Release date: TBD
