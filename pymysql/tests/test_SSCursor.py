@@ -204,9 +204,7 @@ class TestSSCursor(base.PyMySQLTestCase):
                 # what was returned before, may have been ER_QUERY_INTERRUPTED
                 self.assertEqual(cm.value.args[0], ER.QUERY_TIMEOUT)
             else:
-                self.assertEqual(
-                    cm.value.args[0], ER.STATEMENT_TIMEOUT
-                )
+                self.assertEqual(cm.value.args[0], ER.STATEMENT_TIMEOUT)
 
             # connection should still be fine at this point
             cur.execute("SELECT 1")
