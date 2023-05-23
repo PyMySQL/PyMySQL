@@ -17,7 +17,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         self.conn = conn = self.connect()
         c = conn.cursor(self.cursor_type)
 
-        # create a table ane some data to query
+        # create a table and some data to query
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             c.execute("drop table if exists dictcursor")

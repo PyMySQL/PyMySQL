@@ -241,7 +241,7 @@ def caching_sha2_password_auth(conn, pkt):
         return pkt
 
     if n != 4:
-        raise OperationalError("caching sha2: Unknwon result for fast auth: %s" % n)
+        raise OperationalError("caching sha2: Unknown result for fast auth: %s" % n)
 
     if DEBUG:
         print("caching sha2: Trying full auth...")

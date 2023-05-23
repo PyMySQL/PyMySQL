@@ -2,15 +2,16 @@ name: 'Lock Threads'
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '30 9 * * 1'
 
 permissions:
   issues: write
   pull-requests: write
 
 jobs:
-  action:
+  lock-threads:
+    if: github.repository == 'PyMySQL/PyMySQL'
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/lock-threads@v2
+      - uses: dessant/lock-threads@v4
 

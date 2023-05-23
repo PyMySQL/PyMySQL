@@ -205,7 +205,7 @@ Release date: 2016-08-30
 Release date: 2016-07-29
 
 * Fix SELECT JSON type cause UnicodeError
-* Avoid float convertion while parsing microseconds
+* Avoid float conversion while parsing microseconds
 * Warning has number
 * SSCursor supports warnings
 

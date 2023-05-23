@@ -1,0 +1,4 @@
+[flake8]
+exclude = tests,build,.venv,docs
+ignore = E203,W503,E722
+max_line_length=129
