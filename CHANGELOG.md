@@ -13,7 +13,6 @@ Release date: TBD
 * Dropped support of end of life MySQL version 5.6
 * Dropped support of end of life MariaDB versions below 10.3
 * Dropped support of end of life Python version 3.6
-* Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
 
 
 ## v1.0.2
