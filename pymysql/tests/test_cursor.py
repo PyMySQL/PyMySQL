@@ -1,7 +1,8 @@
-import warnings
-
+from pymysql.constants import ER
 from pymysql.tests import base
 import pymysql.cursors
+
+import pytest
 
 
 class CursorTest(base.PyMySQLTestCase):
@@ -19,6 +20,7 @@ class CursorTest(base.PyMySQLTestCase):
             "insert into test (data) values "
             "('row1'), ('row2'), ('row3'), ('row4'), ('row5')"
         )
+        conn.commit()
         cursor.close()
         self.test_connection = pymysql.connect(**self.databases[0])
         self.addCleanup(self.test_connection.close)
@@ -129,3 +131,84 @@ class CursorTest(base.PyMySQLTestCase):
             )
         finally:
             cursor.execute("DROP TABLE IF EXISTS percent_test")
+
+    def test_execution_time_limit(self):
+        # this method is similarly implemented in test_SScursor
+
+        conn = self.test_connection
+        db_type = self.get_mysql_vendor(conn)
+
+        with conn.cursor(pymysql.cursors.Cursor) as cur:
+            # MySQL MAX_EXECUTION_TIME takes ms
+            # MariaDB max_statement_time takes seconds as int/float, introduced in 10.1
+
+            # this will sleep 0.01 seconds per row
+            if db_type == "mysql":
+                sql = (
+                    "SELECT /*+ MAX_EXECUTION_TIME(2000) */ data, sleep(0.01) FROM test"
+                )
+            else:
+                sql = "SET STATEMENT max_statement_time=2 FOR SELECT data, sleep(0.01) FROM test"
+
+            cur.execute(sql)
+            # unlike SSCursor, Cursor returns a tuple of tuples here
+            self.assertEqual(
+                cur.fetchall(),
+                (
+                    ("row1", 0),
+                    ("row2", 0),
+                    ("row3", 0),
+                    ("row4", 0),
+                    ("row5", 0),
+                ),
+            )
+
+            if db_type == "mysql":
+                sql = (
+                    "SELECT /*+ MAX_EXECUTION_TIME(2000) */ data, sleep(0.01) FROM test"
+                )
+            else:
+                sql = "SET STATEMENT max_statement_time=2 FOR SELECT data, sleep(0.01) FROM test"
+            cur.execute(sql)
+            self.assertEqual(cur.fetchone(), ("row1", 0))
+
+            # this discards the previous unfinished query
+            cur.execute("SELECT 1")
+            self.assertEqual(cur.fetchone(), (1,))
+
+            if db_type == "mysql":
+                sql = "SELECT /*+ MAX_EXECUTION_TIME(1) */ data, sleep(1) FROM test"
+            else:
+                sql = "SET STATEMENT max_statement_time=0.001 FOR SELECT data, sleep(1) FROM test"
+            with pytest.raises(pymysql.err.OperationalError) as cm:
+                # in a buffered cursor this should reliably raise an
+                # OperationalError
+                cur.execute(sql)
+
+            if db_type == "mysql":
+                # this constant was only introduced in MySQL 5.7, not sure
+                # what was returned before, may have been ER_QUERY_INTERRUPTED
+                self.assertEqual(cm.value.args[0], ER.QUERY_TIMEOUT)
+            else:
+                self.assertEqual(cm.value.args[0], ER.STATEMENT_TIMEOUT)
+
+            # connection should still be fine at this point
+            cur.execute("SELECT 1")
+            self.assertEqual(cur.fetchone(), (1,))
+
+    def test_warnings(self):
+        con = self.connect()
+        cur = con.cursor()
+        cur.execute("DROP TABLE IF EXISTS `no_exists_table`")
+        self.assertEqual(cur.warning_count, 1)
+
+        cur.execute("SHOW WARNINGS")
+        w = cur.fetchone()
+        self.assertEqual(w[1], ER.BAD_TABLE_ERROR)
+        self.assertIn(
+            "no_exists_table",
+            w[2],
+        )
+
+        cur.execute("SELECT 1")
+        self.assertEqual(cur.warning_count, 0)

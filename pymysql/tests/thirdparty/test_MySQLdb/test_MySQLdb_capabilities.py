@@ -8,7 +8,6 @@ warnings.filterwarnings("error")
 
 
 class test_MySQLdb(capabilities.DatabaseTest):
-
     db_module = pymysql
     connect_args = ()
     connect_kwargs = base.PyMySQLTestCase.databases[0].copy()

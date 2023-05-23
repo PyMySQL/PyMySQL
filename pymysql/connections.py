@@ -13,7 +13,7 @@ import warnings
 from . import _auth
 
 from .charset import charset_by_name, charset_by_id
-from .constants import CLIENT, COMMAND, CR, FIELD_TYPE, SERVER_STATUS
+from .constants import CLIENT, COMMAND, CR, ER, FIELD_TYPE, SERVER_STATUS
 from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
@@ -61,7 +61,7 @@ TEXT_TYPES = {
 
 DEFAULT_CHARSET = "utf8mb4"
 
-MAX_PACKET_LEN = 2 ** 24 - 1
+MAX_PACKET_LEN = 2**24 - 1
 
 
 def _pack_int24(n):
@@ -126,7 +126,7 @@ class Connection:
     :param init_command: Initial SQL statement to run when connection is established.
     :param connect_timeout: The timeout for connecting to the database in seconds.
         (default: 10, min: 1, max: 31536000)
-    :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters.
+    :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters or an ssl.SSLContext.
     :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate.
     :param ssl_cert: Path to the file that contains a PEM-formatted client certificate.
     :param ssl_disabled: A boolean value that disables usage of TLS.
@@ -204,12 +204,12 @@ class Connection:
         db=None,  # deprecated
     ):
         if db is not None and database is None:
-            # We will raise warining in 2022 or later.
+            # We will raise warning in 2022 or later.
             # See https://github.com/PyMySQL/PyMySQL/issues/939
             # warnings.warn("'db' is deprecated, use 'database'", DeprecationWarning, 3)
             database = db
         if passwd is not None and not password:
-            # We will raise warining in 2022 or later.
+            # We will raise warning in 2022 or later.
             # See https://github.com/PyMySQL/PyMySQL/issues/939
             # warnings.warn(
             #    "'passwd' is deprecated, use 'password'", DeprecationWarning, 3
@@ -441,7 +441,10 @@ class Connection:
     def _read_ok_packet(self):
         pkt = self._read_packet()
         if not pkt.is_ok_packet():
-            raise err.OperationalError(2014, "Command Out of Sync")
+            raise err.OperationalError(
+                CR.CR_COMMANDS_OUT_OF_SYNC,
+                "Command Out of Sync",
+            )
         ok = OKPacketWrapper(pkt)
         self.server_status = ok.server_status
         return ok
@@ -652,9 +655,10 @@ class Connection:
                 except:  # noqa
                     pass
 
-            if isinstance(e, (OSError, IOError, socket.error)):
+            if isinstance(e, (OSError, IOError)):
                 exc = err.OperationalError(
-                    2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e)
+                    CR.CR_CONN_HOST_ERROR,
+                    "Can't connect to MySQL server on %r (%s)" % (self.host, e),
                 )
                 # Keep original exception and traceback to investigate error.
                 exc.original_exception = e
@@ -920,10 +924,7 @@ class Connection:
             ):
                 auth_packet = self._process_auth(plugin_name, auth_packet)
             else:
-                # send legacy handshake
-                data = _auth.scramble_old_password(self.password, self.salt) + b"\0"
-                self.write_packet(data)
-                auth_packet = self._read_packet()
+                raise err.OperationalError("received unknown auth switch request")
         elif auth_packet.is_extra_auth_data():
             if DEBUG:
                 print("received extra data")
@@ -948,7 +949,7 @@ class Connection:
             except AttributeError:
                 if plugin_name != b"dialog":
                     raise err.OperationalError(
-                        2059,
+                        CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                         "Authentication plugin '%s'"
                         " not loaded: - %r missing authenticate method"
                         % (plugin_name, type(handler)),
@@ -986,23 +987,22 @@ class Connection:
                         self.write_packet(resp + b"\0")
                     except AttributeError:
                         raise err.OperationalError(
-                            2059,
+                            CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                             "Authentication plugin '%s'"
                             " not loaded: - %r missing prompt method"
                             % (plugin_name, handler),
                         )
                     except TypeError:
                         raise err.OperationalError(
-                            2061,
+                            CR.CR_AUTH_PLUGIN_ERR,
                             "Authentication plugin '%s'"
                             " %r didn't respond with string. Returned '%r' to prompt %r"
                             % (plugin_name, handler, resp, prompt),
                         )
                 else:
                     raise err.OperationalError(
-                        2059,
-                        "Authentication plugin '%s' (%r) not configured"
-                        % (plugin_name, handler),
+                        CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
+                        "Authentication plugin '%s' not configured" % (plugin_name,),
                     )
                 pkt = self._read_packet()
                 pkt.check_error()
@@ -1011,7 +1011,8 @@ class Connection:
             return pkt
         else:
             raise err.OperationalError(
-                2059, "Authentication plugin '%s' not configured" % plugin_name
+                CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
+                "Authentication plugin '%s' not configured" % plugin_name,
             )
 
         self.write_packet(data)
@@ -1028,7 +1029,7 @@ class Connection:
                 handler = plugin_class(self)
             except TypeError:
                 raise err.OperationalError(
-                    2059,
+                    CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
                     "Authentication plugin '%s'"
                     " not loaded: - %r cannot be constructed with connection object"
                     % (plugin_name, plugin_class),
@@ -1215,7 +1216,10 @@ class MySQLResult:
         if (
             not ok_packet.is_ok_packet()
         ):  # pragma: no cover - upstream induced protocol error
-            raise err.OperationalError(2014, "Commands Out of Sync")
+            raise err.OperationalError(
+                CR.CR_COMMANDS_OUT_OF_SYNC,
+                "Commands Out of Sync",
+            )
         self._read_ok_packet(ok_packet)
 
     def _check_packet_is_eof(self, packet):
@@ -1258,7 +1262,20 @@ class MySQLResult:
         # in fact, no way to stop MySQL from sending all the data after
         # executing a query, so we just spin, and wait for an EOF packet.
         while self.unbuffered_active:
-            packet = self.connection._read_packet()
+            try:
+                packet = self.connection._read_packet()
+            except err.OperationalError as e:
+                if e.args[0] in (
+                    ER.QUERY_TIMEOUT,
+                    ER.STATEMENT_TIMEOUT,
+                ):
+                    # if the query timed out we can simply ignore this error
+                    self.unbuffered_active = False
+                    self.connection = None
+                    return
+
+                raise
+
             if self._check_packet_is_eof(packet):
                 self.unbuffered_active = False
                 self.connection = None  # release reference to kill cyclic reference.
@@ -1361,7 +1378,10 @@ class LoadLocalFile:
                         break
                     conn.write_packet(chunk)
         except IOError:
-            raise err.OperationalError(1017, f"Can't find file '{self.filename}'")
+            raise err.OperationalError(
+                ER.FILE_NOT_FOUND,
+                f"Can't find file '{self.filename}'",
+            )
         finally:
             # send the empty packet to signify we are done sending data
             conn.write_packet(b"")

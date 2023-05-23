@@ -1,0 +1,12 @@
+To test with a MariaDB or MySQL container image:
+
+docker run -d -p 3306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=1 \
+  --name=mysqld -v ./ci/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:z \
+  mysql:8.0.26 --local-infile=1
+
+cp ci/docker.json pymysql/tests/databases.json
+
+pytest
+
+
+Note: Some authentication tests that don't match the image version will fail.

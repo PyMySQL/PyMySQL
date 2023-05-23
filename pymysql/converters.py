@@ -56,7 +56,7 @@ def escape_int(value, mapping=None):
 
 def escape_float(value, mapping=None):
     s = repr(value)
-    if s in ("inf", "nan"):
+    if s in ("inf", "-inf", "nan"):
         raise ProgrammingError("%s can not be used with MySQL" % s)
     if "e" not in s:
         s += "e0"

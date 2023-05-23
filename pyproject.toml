@@ -1,0 +1,52 @@
+[project]
+name = "PyMySQL"
+description = "Pure Python MySQL Driver"
+authors = [
+    {name = "Inada Naoki", email = "songofacandy@gmail.com"},
+    {name = "Yutaka Matsubara", email = "yutaka.matsubara@gmail.com"}
+]
+dependencies = []
+
+requires-python = ">=3.7"
+readme = "README.md"
+license = {text = "MIT License"}
+keywords = ["MySQL"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Database",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+"rsa" = [
+    "cryptography"
+]
+"ed25519" = [
+    "PyNaCl>=1.4.0"
+]
+
+[project.urls]
+"Project" = "https://github.com/PyMySQL/PyMySQL"
+"Documentation" = "https://pymysql.readthedocs.io/"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+namespaces = false
+include = ["pymysql*"]
+exclude = ["tests*", "pymysql.tests*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pymysql.VERSION"}
