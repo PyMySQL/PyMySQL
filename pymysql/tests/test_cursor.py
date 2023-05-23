@@ -1,9 +1,6 @@
 from pymysql.constants import ER
 from pymysql.tests import base
 import pymysql.cursors
-import pymysql.constants.ER
-
-import pytest
 
 import pytest
 
