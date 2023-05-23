@@ -4,7 +4,9 @@
 
 Release date: TBD
 
+* Fixed SSCursor raising OperationalError for query timeouts on wrong statement (#1032)
 * Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
+
 
 ## v1.0.3
 
