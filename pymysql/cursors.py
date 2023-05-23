@@ -95,13 +95,6 @@ class Cursor:
     def nextset(self):
         return self._nextset(False)
 
-    def _ensure_bytes(self, x, encoding=None):
-        if isinstance(x, str):
-            x = x.encode(encoding)
-        elif isinstance(x, (tuple, list)):
-            x = type(x)(self._ensure_bytes(v, encoding=encoding) for v in x)
-        return x
-
     def _escape_args(self, args, conn):
         if isinstance(args, (tuple, list)):
             return tuple(conn.literal(arg) for arg in args)
