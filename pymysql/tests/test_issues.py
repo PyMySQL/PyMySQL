@@ -149,7 +149,7 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;"""
         "test_issue_17() requires a custom, legacy MySQL configuration and will not be run."
     )
     def test_issue_17(self):
-        """could not connect mysql use passwod"""
+        """could not connect mysql use password"""
         conn = self.connect()
         host = self.databases[0]["host"]
         db = self.databases[0]["database"]

@@ -32,6 +32,7 @@ class Cursor:
 
     def __init__(self, connection):
         self.connection = connection
+        self.warning_count = 0
         self.description = None
         self.rownumber = 0
         self.rowcount = -1
@@ -94,13 +95,6 @@ class Cursor:
 
     def nextset(self):
         return self._nextset(False)
-
-    def _ensure_bytes(self, x, encoding=None):
-        if isinstance(x, str):
-            x = x.encode(encoding)
-        elif isinstance(x, (tuple, list)):
-            x = type(x)(self._ensure_bytes(v, encoding=encoding) for v in x)
-        return x
 
     def _escape_args(self, args, conn):
         if isinstance(args, (tuple, list)):
@@ -331,6 +325,7 @@ class Cursor:
         self._result = None
 
         self.rowcount = 0
+        self.warning_count = 0
         self.description = None
         self.lastrowid = None
         self._rows = None
@@ -341,6 +336,7 @@ class Cursor:
         self._result = result = conn._result
 
         self.rowcount = result.affected_rows
+        self.warning_count = result.warning_count
         self.description = result.description
         self.lastrowid = result.insert_id
         self._rows = result.rows
@@ -442,6 +438,7 @@ class SSCursor(Cursor):
         self._check_executed()
         row = self.read_next()
         if row is None:
+            self.warning_count = self._result.warning_count
             return None
         self.rownumber += 1
         return row
@@ -475,6 +472,7 @@ class SSCursor(Cursor):
         for i in range(size):
             row = self.read_next()
             if row is None:
+                self.warning_count = self._result.warning_count
                 break
             rows.append(row)
             self.rownumber += 1

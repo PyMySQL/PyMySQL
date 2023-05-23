@@ -47,11 +47,11 @@ from .times import (
 )
 
 
-VERSION = (1, 0, 2, None)
-if VERSION[3] is not None:
+VERSION = (1, 0, 3)
+if len(VERSION) > 3:
     VERSION_STRING = "%d.%d.%d_%s" % VERSION
 else:
-    VERSION_STRING = "%d.%d.%d" % VERSION[:3]
+    VERSION_STRING = "%d.%d.%d" % VERSION
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
@@ -113,10 +113,7 @@ Connect = connect = Connection = connections.Connection
 
 
 def get_client_info():  # for MySQLdb compatibility
-    version = VERSION
-    if VERSION[3] is None:
-        version = VERSION[:3]
-    return ".".join(map(str, version))
+    return VERSION_STRING
 
 
 # we include a doctored version_info here for MySQLdb compatibility

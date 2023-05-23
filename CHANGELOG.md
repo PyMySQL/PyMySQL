@@ -1,5 +1,11 @@
 # Changes
 
+## v1.1.0
+
+Release date: TBD
+
+* Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
+
 ## v1.0.3
 
 Release date: TBD
@@ -7,6 +13,7 @@ Release date: TBD
 * Dropped support of end of life MySQL version 5.6
 * Dropped support of end of life MariaDB versions below 10.3
 * Dropped support of end of life Python version 3.6
+* Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
 
 
 ## v1.0.2
@@ -204,7 +211,7 @@ Release date: 2016-08-30
 Release date: 2016-07-29
 
 * Fix SELECT JSON type cause UnicodeError
-* Avoid float convertion while parsing microseconds
+* Avoid float conversion while parsing microseconds
 * Warning has number
 * SSCursor supports warnings
 

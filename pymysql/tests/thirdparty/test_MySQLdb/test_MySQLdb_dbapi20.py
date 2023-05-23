@@ -23,9 +23,6 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
     def test_setoutputsize_basic(self):
         pass
 
-    def test_nextset(self):
-        pass
-
     """The tests on fetchone and fetchall and rowcount bogusly
     test for an exception if the statement cannot return a
     result set. MySQL always returns a result set; it's just that
@@ -95,7 +92,7 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
             self.assertRaises(self.driver.Error, cur.fetchone)
 
             # cursor.fetchone should raise an Error if called after
-            # executing a query that cannnot return rows
+            # executing a query that cannot return rows
             self.executeDDL1(cur)
             ##             self.assertRaises(self.driver.Error,cur.fetchone)
 
@@ -108,7 +105,7 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
             self.assertTrue(cur.rowcount in (-1, 0))
 
             # cursor.fetchone should raise an Error if called after
-            # executing a query that cannnot return rows
+            # executing a query that cannot return rows
             cur.execute(
                 "insert into %sbooze values ('Victoria Bitter')" % (self.table_prefix)
             )
