@@ -14,7 +14,7 @@ class Parser(configparser.RawConfigParser):
         return value
 
     def optionxform(self, key):
-        return key.lower().replace('_', '-')
+        return key.lower().replace("_", "-")
 
     def get(self, section, option):
         value = configparser.RawConfigParser.get(self, section, option)
