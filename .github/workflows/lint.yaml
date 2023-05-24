@@ -2,6 +2,7 @@ name: Lint
 
 on:
   push:
+    branches: ["main"]
     paths:
       - '**.py'
   pull_request:
@@ -13,16 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.x
+
       - uses: psf/black@stable
         with:
           options: "--check --verbose"
           src: "."
-      - name: Setup flake8 annotations
-        uses: rbialon/flake8-annotations@v1
-      - name: flake8
-        run: |
-          pip install flake8
-          flake8 pymysql
+
+      - uses: chartboost/ruff-action@v1
