@@ -50,3 +50,6 @@ exclude = ["tests*", "pymysql.tests*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "pymysql.VERSION"}
+
+[tool.ruff]
+line-length = 129
