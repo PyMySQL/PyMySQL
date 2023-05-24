@@ -7,7 +7,7 @@ class Charset:
         self.is_default = is_default == "Yes"
 
     def __repr__(self):
-        return "Charset(id=%s, name=%r, collation=%r)" % (
+        return "Charset(id={}, name={!r}, collation={!r})".format(
             self.id,
             self.name,
             self.collation,

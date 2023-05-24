@@ -262,7 +262,7 @@ class Cursor:
             )
             self.nextset()
 
-        q = "CALL %s(%s)" % (
+        q = "CALL {}({})".format(
             procname,
             ",".join(["@_%s_%d" % (procname, i) for i in range(len(args))]),
         )
@@ -383,7 +383,7 @@ class DictCursorMixin:
     dict_type = dict
 
     def _do_get_result(self):
-        super(DictCursorMixin, self)._do_get_result()
+        super()._do_get_result()
         fields = []
         if self.description:
             for f in self._result.fields:
