@@ -528,7 +528,9 @@ class Connection:
 
     def _quote_bytes(self, s):
         if self.server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
-            return "'%s'" % (s.replace(b"'", b"''").decode("ascii", "surrogateescape"),)
+            return "'{}'".format(
+                s.replace(b"'", b"''").decode("ascii", "surrogateescape")
+            )
         return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
@@ -621,7 +623,7 @@ class Connection:
                                 (self.host, self.port), self.connect_timeout, **kwargs
                             )
                             break
-                        except (OSError, IOError) as e:
+                        except OSError as e:
                             if e.errno == errno.EINTR:
                                 continue
                             raise
@@ -662,7 +664,7 @@ class Connection:
             if isinstance(e, (OSError, IOError)):
                 exc = err.OperationalError(
                     CR.CR_CONN_HOST_ERROR,
-                    "Can't connect to MySQL server on %r (%s)" % (self.host, e),
+                    f"Can't connect to MySQL server on {self.host!r} ({e})",
                 )
                 # Keep original exception and traceback to investigate error.
                 exc.original_exception = e
@@ -739,13 +741,13 @@ class Connection:
             try:
                 data = self._rfile.read(num_bytes)
                 break
-            except (IOError, OSError) as e:
+            except OSError as e:
                 if e.errno == errno.EINTR:
                     continue
                 self._force_close()
                 raise err.OperationalError(
                     CR.CR_SERVER_LOST,
-                    "Lost connection to MySQL server during query (%s)" % (e,),
+                    f"Lost connection to MySQL server during query ({e})",
                 )
             except BaseException:
                 # Don't convert unknown exception to MySQLError.
@@ -762,10 +764,10 @@ class Connection:
         self._sock.settimeout(self._write_timeout)
         try:
             self._sock.sendall(data)
-        except IOError as e:
+        except OSError as e:
             self._force_close()
             raise err.OperationalError(
-                CR.CR_SERVER_GONE_ERROR, "MySQL server has gone away (%r)" % (e,)
+                CR.CR_SERVER_GONE_ERROR, f"MySQL server has gone away ({e!r})"
             )
 
     def _read_query_result(self, unbuffered=False):
@@ -1006,7 +1008,7 @@ class Connection:
                 else:
                     raise err.OperationalError(
                         CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
-                        "Authentication plugin '%s' not configured" % (plugin_name,),
+                        f"Authentication plugin '{plugin_name}' not configured",
                     )
                 pkt = self._read_packet()
                 pkt.check_error()
@@ -1382,7 +1384,7 @@ class LoadLocalFile:
                     if not chunk:
                         break
                     conn.write_packet(chunk)
-        except IOError:
+        except OSError:
             raise err.OperationalError(
                 ER.FILE_NOT_FOUND,
                 f"Can't find file '{self.filename}'",

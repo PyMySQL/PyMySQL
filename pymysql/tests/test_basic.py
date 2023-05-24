@@ -332,7 +332,7 @@ class TestBulkInserts(base.PyMySQLTestCase):
     cursor_type = pymysql.cursors.DictCursor
 
     def setUp(self):
-        super(TestBulkInserts, self).setUp()
+        super().setUp()
         self.conn = conn = self.connect()
 
         # create a table and some data to query

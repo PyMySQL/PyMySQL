@@ -13,7 +13,7 @@ class TestDictCursor(base.PyMySQLTestCase):
     cursor_type = pymysql.cursors.DictCursor
 
     def setUp(self):
-        super(TestDictCursor, self).setUp()
+        super().setUp()
         self.conn = conn = self.connect()
         c = conn.cursor(self.cursor_type)
 
@@ -36,7 +36,7 @@ class TestDictCursor(base.PyMySQLTestCase):
     def tearDown(self):
         c = self.conn.cursor()
         c.execute("drop table dictcursor")
-        super(TestDictCursor, self).tearDown()
+        super().tearDown()
 
     def _ensure_cursor_expired(self, cursor):
         pass

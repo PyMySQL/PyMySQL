@@ -28,7 +28,7 @@ class TempUser:
             # already exists - TODO need to check the same plugin applies
             self._created = False
         try:
-            c.execute("GRANT SELECT ON %s.* TO %s" % (db, user))
+            c.execute(f"GRANT SELECT ON {db}.* TO {user}")
             self._grant = True
         except pymysql.err.InternalError:
             self._grant = False
@@ -38,7 +38,7 @@ class TempUser:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self._grant:
-            self._c.execute("REVOKE SELECT ON %s.* FROM %s" % (self._db, self._user))
+            self._c.execute(f"REVOKE SELECT ON {self._db}.* FROM {self._user}")
         if self._created:
             self._c.execute("DROP USER %s" % self._user)
 

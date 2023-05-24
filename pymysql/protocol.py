@@ -35,7 +35,7 @@ def dump_packet(data):  # pragma: no cover
     dump_data = [data[i : i + 16] for i in range(0, min(len(data), 256), 16)]
     for d in dump_data:
         print(
-            " ".join("{:02X}".format(x) for x in d)
+            " ".join(f"{x:02X}" for x in d)
             + "   " * (16 - len(d))
             + " " * 2
             + "".join(printable(x) for x in d)
@@ -275,7 +275,7 @@ class FieldDescriptorPacket(MysqlPacket):
         return self.length
 
     def __str__(self):
-        return "%s %r.%r.%r, type=%s, flags=%x" % (
+        return "{} {!r}.{!r}.{!r}, type={}, flags={:x}".format(
             self.__class__,
             self.db,
             self.table_name,

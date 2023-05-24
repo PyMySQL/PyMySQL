@@ -379,8 +379,8 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn = self.connect()
         cur = conn.cursor()
         for length in (200, 300):
-            columns = ", ".join("c{0} integer".format(i) for i in range(length))
-            sql = "create table test_field_count ({0})".format(columns)
+            columns = ", ".join(f"c{i} integer" for i in range(length))
+            sql = f"create table test_field_count ({columns})"
             try:
                 cur.execute(sql)
                 cur.execute("select * from test_field_count")

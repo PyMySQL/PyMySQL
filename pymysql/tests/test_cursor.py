@@ -7,7 +7,7 @@ import pytest
 
 class CursorTest(base.PyMySQLTestCase):
     def setUp(self):
-        super(CursorTest, self).setUp()
+        super().setUp()
 
         conn = self.connect()
         self.safe_create_table(
