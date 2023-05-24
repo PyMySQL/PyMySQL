@@ -56,3 +56,8 @@ line-length = 99
 exclude = [
     "pymysql/tests/thirdparty",
 ]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest-cov>=4.0.0",
+]
