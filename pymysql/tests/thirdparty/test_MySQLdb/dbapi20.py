@@ -225,7 +225,7 @@ class DatabaseAPI20Test(unittest.TestCase):
     def test_cursor(self):
         con = self._connect()
         try:
-            cur = con.cursor()
+            con.cursor()
         finally:
             con.close()
 
@@ -810,28 +810,26 @@ class DatabaseAPI20Test(unittest.TestCase):
             con.close()
 
     def test_Date(self):
-        d1 = self.driver.Date(2002, 12, 25)
-        d2 = self.driver.DateFromTicks(time.mktime((2002, 12, 25, 0, 0, 0, 0, 0, 0)))
+        self.driver.Date(2002, 12, 25)
+        self.driver.DateFromTicks(time.mktime((2002, 12, 25, 0, 0, 0, 0, 0, 0)))
         # Can we assume this? API doesn't specify, but it seems implied
         # self.assertEqual(str(d1),str(d2))
 
     def test_Time(self):
-        t1 = self.driver.Time(13, 45, 30)
-        t2 = self.driver.TimeFromTicks(time.mktime((2001, 1, 1, 13, 45, 30, 0, 0, 0)))
+        self.driver.Time(13, 45, 30)
+        self.driver.TimeFromTicks(time.mktime((2001, 1, 1, 13, 45, 30, 0, 0, 0)))
         # Can we assume this? API doesn't specify, but it seems implied
         # self.assertEqual(str(t1),str(t2))
 
     def test_Timestamp(self):
-        t1 = self.driver.Timestamp(2002, 12, 25, 13, 45, 30)
-        t2 = self.driver.TimestampFromTicks(
-            time.mktime((2002, 12, 25, 13, 45, 30, 0, 0, 0))
-        )
+        self.driver.Timestamp(2002, 12, 25, 13, 45, 30)
+        self.driver.TimestampFromTicks(time.mktime((2002, 12, 25, 13, 45, 30, 0, 0, 0)))
         # Can we assume this? API doesn't specify, but it seems implied
         # self.assertEqual(str(t1),str(t2))
 
     def test_Binary(self):
-        b = self.driver.Binary(b"Something")
-        b = self.driver.Binary(b"")
+        self.driver.Binary(b"Something")
+        self.driver.Binary(b"")
 
     def test_STRING(self):
         self.assertTrue(hasattr(self.driver, "STRING"), "module.STRING must be defined")
