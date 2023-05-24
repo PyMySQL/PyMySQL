@@ -98,7 +98,7 @@ class PyMySQLTestCase(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists `%s`" % (tablename,))
+            cursor.execute(f"drop table if exists `{tablename}`")
         cursor.execute(ddl)
         cursor.close()
         if cleanup:
@@ -108,5 +108,5 @@ class PyMySQLTestCase(unittest.TestCase):
         cursor = connection.cursor()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cursor.execute("drop table if exists `%s`" % (tablename,))
+            cursor.execute(f"drop table if exists `{tablename}`")
         cursor.close()
