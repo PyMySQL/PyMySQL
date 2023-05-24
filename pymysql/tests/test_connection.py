@@ -453,9 +453,9 @@ class TestConnection(base.PyMySQLTestCase):
         self.assertEqual(cur.fetchone(), ("latin1",))
         self.assertEqual(con.encoding, "cp1252")
 
-        con.set_character_set("utf8mb3", "utf8mb3_general_ci")
+        con.set_character_set("utf8mb4", "utf8mb4_general_ci")
         cur.execute("SELECT @@character_set_connection, @@collation_connection")
-        self.assertEqual(cur.fetchone(), ("utf8mb3", "utf8mb3_general_ci"))
+        self.assertEqual(cur.fetchone(), ("utf8mb4", "utf8mb4_general_ci"))
         self.assertEqual(con.encoding, "utf8")
 
     def test_largedata(self):
