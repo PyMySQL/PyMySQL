@@ -13,6 +13,9 @@ class Parser(configparser.RawConfigParser):
                 return value[1:-1]
         return value
 
+    def optionxform(self, key):
+        return key.lower().replace("_", "-")
+
     def get(self, section, option):
         value = configparser.RawConfigParser.get(self, section, option)
         return self.__remove_quotes(value)
