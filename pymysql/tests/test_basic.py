@@ -52,7 +52,8 @@ create table test_datatypes (
                 time.localtime(),
             )
             c.execute(
-                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values"
+                " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 v,
             )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
@@ -68,7 +69,8 @@ create table test_datatypes (
 
             # check nulls
             c.execute(
-                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st)"
+                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 [None] * 12,
             )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
