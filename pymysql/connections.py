@@ -1370,7 +1370,7 @@ class LoadLocalFile:
         """Send data packets from the local file to the server"""
         if not self.connection._sock:
             raise err.InterfaceError(0, "")
-        conn = self.connection
+        conn: Connection = self.connection
 
         try:
             with open(self.filename, "rb") as open_file:
@@ -1388,5 +1388,6 @@ class LoadLocalFile:
                 f"Can't find file '{self.filename}'",
             )
         finally:
-            # send the empty packet to signify we are done sending data
-            conn.write_packet(b"")
+            if not conn._closed:
+                # send the empty packet to signify we are done sending data
+                conn.write_packet(b"")
