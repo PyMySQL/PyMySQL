@@ -1,5 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/pymysql/badge/?version=latest)](https://pymysql.readthedocs.io/)
-[![image](https://coveralls.io/repos/PyMySQL/PyMySQL/badge.svg?branch=main&service=github)](https://coveralls.io/github/PyMySQL/PyMySQL?branch=main)
+[![codecov](https://codecov.io/gh/PyMySQL/PyMySQL/branch/main/graph/badge.svg?token=ppEuaNXBW4)](https://codecov.io/gh/PyMySQL/PyMySQL)
 
 # PyMySQL
 
