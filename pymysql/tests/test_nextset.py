@@ -38,7 +38,7 @@ class TestNextset(base.PyMySQLTestCase):
             self.assertEqual([(i,)], list(cur))
             with self.assertRaises(pymysql.ProgrammingError):
                 cur.nextset()
-            self.assertEqual((), cur.fetchall())
+            self.assertEqual([], cur.fetchall())
 
     def test_ok_and_next(self):
         cur = self.connect(client_flag=CLIENT.MULTI_STATEMENTS).cursor()

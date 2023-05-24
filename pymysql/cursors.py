@@ -282,6 +282,8 @@ class Cursor:
         """Fetch several rows."""
         self._check_executed()
         if self._rows is None:
+            # Django expects () for EOF.
+            # https://github.com/django/django/blob/0c1518ee429b01c145cf5b34eab01b0b92f8c246/django/db/backends/mysql/features.py#L8
             return ()
         end = self.rownumber + (size or self.arraysize)
         result = self._rows[self.rownumber : end]
@@ -292,7 +294,7 @@ class Cursor:
         """Fetch all the rows."""
         self._check_executed()
         if self._rows is None:
-            return ()
+            return []
         if self.rownumber:
             result = self._rows[self.rownumber :]
         else:
@@ -479,6 +481,10 @@ class SSCursor(Cursor):
                 break
             rows.append(row)
             self.rownumber += 1
+        if not rows:
+            # Django expects () for EOF.
+            # https://github.com/django/django/blob/0c1518ee429b01c145cf5b34eab01b0b92f8c246/django/db/backends/mysql/features.py#L8
+            return ()
         return rows
 
     def scroll(self, value, mode="relative"):
