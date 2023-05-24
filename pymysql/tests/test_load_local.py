@@ -1,4 +1,4 @@
-from pymysql import cursors, OperationalError, Warning
+from pymysql import cursors, OperationalError
 from pymysql.constants import ER
 from pymysql.tests import base
 
@@ -36,7 +36,8 @@ class TestLoadLocal(base.PyMySQLTestCase):
         )
         try:
             c.execute(
-                f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE test_load_local FIELDS TERMINATED BY ','"
+                f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE test_load_local"
+                + " FIELDS TERMINATED BY ','"
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
             self.assertEqual(22749, c.fetchone()[0])
@@ -53,7 +54,8 @@ class TestLoadLocal(base.PyMySQLTestCase):
         )
         try:
             c.execute(
-                f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE test_load_local FIELDS TERMINATED BY ','"
+                f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE test_load_local"
+                + " FIELDS TERMINATED BY ','"
             )
             c.execute("SELECT COUNT(*) FROM test_load_local")
             self.assertEqual(22749, c.fetchone()[0])

@@ -1,12 +1,10 @@
 import datetime
 import time
 import warnings
-import sys
 
 import pytest
 
 import pymysql
-from pymysql import cursors
 from pymysql.tests import base
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]

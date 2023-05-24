@@ -1,4 +1,3 @@
-import gc
 import json
 import os
 import re

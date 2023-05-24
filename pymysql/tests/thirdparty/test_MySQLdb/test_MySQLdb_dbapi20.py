@@ -2,8 +2,6 @@ from . import dbapi20
 import pymysql
 from pymysql.tests import base
 
-import unittest
-
 
 class test_MySQLdb(dbapi20.DatabaseAPI20Test):
     driver = pymysql
@@ -181,8 +179,6 @@ class test_MySQLdb(dbapi20.DatabaseAPI20Test):
         cur.execute("drop procedure deleteme")
 
     def test_nextset(self):
-        from warnings import warn
-
         con = self._connect()
         try:
             cur = con.cursor()

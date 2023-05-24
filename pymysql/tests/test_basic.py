@@ -6,7 +6,6 @@ import pytest
 
 import pymysql.cursors
 from pymysql.tests import base
-from pymysql.err import ProgrammingError
 
 
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
@@ -18,7 +17,22 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         c.execute(
-            "create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)"
+            """
+create table test_datatypes (
+    b bit,
+    i int,
+    l bigint,
+    f real,
+    s varchar(32),
+    u varchar(32),
+    bb blob,
+    d date,
+    dt datetime,
+    ts timestamp,
+    td time,
+    t time,
+    st datetime)
+"""
         )
         try:
             # insert values
@@ -38,7 +52,8 @@ class TestConversion(base.PyMySQLTestCase):
                 time.localtime(),
             )
             c.execute(
-                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values"
+                " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 v,
             )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
@@ -54,7 +69,8 @@ class TestConversion(base.PyMySQLTestCase):
 
             # check nulls
             c.execute(
-                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "insert into test_datatypes (b,i,l,f,s,u,bb,d,dt,td,t,st)"
+                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 [None] * 12,
             )
             c.execute("select b,i,l,f,s,u,bb,d,dt,td,t,st from test_datatypes")
@@ -156,7 +172,8 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         c.execute(
-            "select time('12:30'), time('23:12:59'), time('23:12:59.05100'), time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')"
+            "select time('12:30'), time('23:12:59'), time('23:12:59.05100'),"
+            + " time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')"
         )
         self.assertEqual(
             (
@@ -317,7 +334,6 @@ class TestBulkInserts(base.PyMySQLTestCase):
     def setUp(self):
         super(TestBulkInserts, self).setUp()
         self.conn = conn = self.connect()
-        c = conn.cursor(self.cursor_type)
 
         # create a table and some data to query
         self.safe_create_table(

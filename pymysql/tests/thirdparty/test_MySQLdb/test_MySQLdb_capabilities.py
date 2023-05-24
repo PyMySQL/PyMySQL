@@ -1,5 +1,4 @@
 from . import capabilities
-import unittest
 import pymysql
 from pymysql.tests import base
 import warnings
