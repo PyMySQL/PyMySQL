@@ -53,3 +53,6 @@ version = {attr = "pymysql.VERSION"}
 
 [tool.ruff]
 line-length = 129
+exclude = [
+    "pymysql/tests/thirdparty",
+]

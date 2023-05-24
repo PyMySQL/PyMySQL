@@ -17,7 +17,22 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         c.execute(
-            "create table test_datatypes (b bit, i int, l bigint, f real, s varchar(32), u varchar(32), bb blob, d date, dt datetime, ts timestamp, td time, t time, st datetime)"
+            """
+create table test_datatypes (
+    b bit,
+    i int,
+    l bigint,
+    f real,
+    s varchar(32),
+    u varchar(32),
+    bb blob,
+    d date,
+    dt datetime,
+    ts timestamp,
+    td time,
+    t time,
+    st datetime)
+"""
         )
         try:
             # insert values
@@ -155,7 +170,8 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connect()
         c = conn.cursor()
         c.execute(
-            "select time('12:30'), time('23:12:59'), time('23:12:59.05100'), time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')"
+            "select time('12:30'), time('23:12:59'), time('23:12:59.05100'),"
+            + " time('-12:30'), time('-23:12:59'), time('-23:12:59.05100'), time('-00:30')"
         )
         self.assertEqual(
             (

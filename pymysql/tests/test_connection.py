@@ -401,7 +401,8 @@ class TestAuthentication(base.PyMySQLTestCase):
             c.execute("FLUSH PRIVILEGES")
             db = self.db.copy()
             db["password"] = "Sh@256Pa33"
-            # Although SHA256 is supported, need the configuration of public key of the mysql server. Currently will get error by this test.
+            # Although SHA256 is supported, need the configuration of public key of
+            # the mysql server. Currently will get error by this test.
             with self.assertRaises(pymysql.err.OperationalError):
                 pymysql.connect(user="pymysql_sha256", **db)
 
