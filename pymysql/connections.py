@@ -528,7 +528,9 @@ class Connection:
 
     def _quote_bytes(self, s):
         if self.server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
-            return "'{}'".format(s.replace(b"'", b"''").decode("ascii", "surrogateescape"))
+            return "'{}'".format(
+                s.replace(b"'", b"''").decode("ascii", "surrogateescape")
+            )
         return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
