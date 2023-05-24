@@ -604,6 +604,12 @@ class Connection:
         self.set_character_set(charset)
 
     def set_character_set(self, charset, collation=None):
+        """
+        Set charaset (and collation)
+
+        Send "SET NAMES charset [COLLATE collation]" query.
+        Update Connection.encoding based on charset.
+        """
         # Make sure charset is supported.
         encoding = charset_by_name(charset).encoding
 
@@ -615,6 +621,7 @@ class Connection:
         self._read_packet()
         self.charset = charset
         self.encoding = encoding
+        self.collation = collation
 
     def connect(self, sock=None):
         self._closed = False
