@@ -4,7 +4,6 @@
     Adapted from a script by M-A Lemburg.
 
 """
-import sys
 from time import time
 import unittest
 

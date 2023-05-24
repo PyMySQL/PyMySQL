@@ -1,4 +1,4 @@
-from pymysql import cursors, OperationalError, Warning
+from pymysql import cursors, OperationalError
 from pymysql.constants import ER
 from pymysql.tests import base
 

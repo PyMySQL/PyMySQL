@@ -1,6 +1,5 @@
 import datetime
 import ssl
-import sys
 import pytest
 import time
 from unittest import mock

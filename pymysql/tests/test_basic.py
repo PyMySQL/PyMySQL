@@ -6,7 +6,6 @@ import pytest
 
 import pymysql.cursors
 from pymysql.tests import base
-from pymysql.err import ProgrammingError
 
 
 __all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
