@@ -1,4 +1,5 @@
 import re
+import warnings
 from . import err
 
 
@@ -352,16 +353,29 @@ class Cursor:
             raise StopIteration
         return row
 
-    Warning = err.Warning
-    Error = err.Error
-    InterfaceError = err.InterfaceError
-    DatabaseError = err.DatabaseError
-    DataError = err.DataError
-    OperationalError = err.OperationalError
-    IntegrityError = err.IntegrityError
-    InternalError = err.InternalError
-    ProgrammingError = err.ProgrammingError
-    NotSupportedError = err.NotSupportedError
+    def __getattr__(self, name):
+        # DB-API 2.0 optional extension says these errors can be accessed
+        # via Connection object. But MySQLdb had defined them on Cursor object.
+        if name in (
+            "Warning",
+            "Error",
+            "InterfaceError",
+            "DatabaseError",
+            "DataError",
+            "OperationalError",
+            "IntegrityError",
+            "InternalError",
+            "ProgrammingError",
+            "NotSupportedError",
+        ):
+            # Deprecated since v1.1
+            warnings.warn(
+                "PyMySQL errors hould be accessed from `pymysql` package",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return getattr(err, name)
+        raise AttributeError(name)
 
 
 class DictCursorMixin:
