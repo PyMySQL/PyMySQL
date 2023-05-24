@@ -112,7 +112,8 @@ class Connection:
         (default: None - no timeout)
     :param write_timeout: The timeout for writing to the connection in seconds.
         (default: None - no timeout)
-    :param charset: Charset to use.
+    :param str charset: Charset to use.
+    :param str collation: Collation name to use.
     :param sql_mode: Default SQL_MODE to use.
     :param read_default_file:
         Specifies  my.cnf file to read these parameters from under the [client] section.
@@ -174,6 +175,7 @@ class Connection:
         unix_socket=None,
         port=0,
         charset="",
+        collation=None,
         sql_mode=None,
         read_default_file=None,
         conv=None,
@@ -308,6 +310,7 @@ class Connection:
         self._write_timeout = write_timeout
 
         self.charset = charset or DEFAULT_CHARSET
+        self.collation = collation
         self.use_unicode = use_unicode
 
         self.encoding = charset_by_name(self.charset).encoding
@@ -593,10 +596,22 @@ class Connection:
                 raise
 
     def set_charset(self, charset):
+        """Deprecated. Use set_character_set() instead."""
+        # This function has been implemented in old PyMySQL.
+        # But this name is different from MySQLdb.
+        # So we keep this function for compatibility and add
+        # new set_character_set() function.
+        self.set_character_set(charset)
+
+    def set_character_set(self, charset, collation=None):
         # Make sure charset is supported.
         encoding = charset_by_name(charset).encoding
 
-        self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" % self.escape(charset))
+        if collation:
+            query = f"SET NAMES {charset} COLLATE {collation}"
+        else:
+            query = f"SET NAMES {charset}"
+        self._execute_command(COMMAND.COM_QUERY, query)
         self._read_packet()
         self.charset = charset
         self.encoding = encoding
@@ -641,15 +656,30 @@ class Connection:
             self._get_server_information()
             self._request_authentication()
 
+            # Send "SET NAMES" query on init for:
+            # - Ensure charaset (and collation) is set to the server.
+            #   - collation_id in handshake packet may be ignored.
+            # - If collation is not specified, we don't know what is server's
+            #   default collation for the charset. For example, default collation
+            #   of utf8mb4 is:
+            #   - MySQL 5.7, MariaDB 10.x: utf8mb4_general_ci
+            #   - MySQL 8.0: utf8mb4_0900_ai_ci
+            #
+            # Reference:
+            # - https://github.com/PyMySQL/PyMySQL/issues/1092
+            # - https://github.com/wagtail/wagtail/issues/9477
+            # - https://zenn.dev/methane/articles/2023-mysql-collation (Japanese)
+            self.set_character_set(self.charset, self.collation)
+
             if self.sql_mode is not None:
                 c = self.cursor()
                 c.execute("SET sql_mode=%s", (self.sql_mode,))
+                c.close()
 
             if self.init_command is not None:
                 c = self.cursor()
                 c.execute(self.init_command)
                 c.close()
-                self.commit()
 
             if self.autocommit_mode is not None:
                 self.autocommit(self.autocommit_mode)
