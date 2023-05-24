@@ -370,7 +370,8 @@ class TestAuthentication(base.PyMySQLTestCase):
                     )
             except pymysql.OperationalError as e:
                 self.assertEqual(1045, e.args[0])
-                # we had 'bad guess at password' work with pam. Well at least we get a permission denied here
+                # we had 'bad guess at password' work with pam. Well at least we get
+                # a permission denied here
                 with self.assertRaises(pymysql.err.OperationalError):
                     pymysql.connect(
                         user=TestAuthentication.osuser,

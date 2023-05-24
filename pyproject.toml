@@ -52,7 +52,7 @@ exclude = ["tests*", "pymysql.tests*"]
 version = {attr = "pymysql.VERSION"}
 
 [tool.ruff]
-line-length = 119
+line-length = 99
 exclude = [
     "pymysql/tests/thirdparty",
 ]

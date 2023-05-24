@@ -108,8 +108,10 @@ class Connection:
         the interface from which to connect to the host. Argument can be
         a hostname or an IP address.
     :param unix_socket: Use a unix socket rather than TCP/IP.
-    :param read_timeout: The timeout for reading from the connection in seconds (default: None - no timeout)
-    :param write_timeout: The timeout for writing to the connection in seconds (default: None - no timeout)
+    :param read_timeout: The timeout for reading from the connection in seconds.
+        (default: None - no timeout)
+    :param write_timeout: The timeout for writing to the connection in seconds.
+        (default: None - no timeout)
     :param charset: Charset to use.
     :param sql_mode: Default SQL_MODE to use.
     :param read_default_file:
@@ -130,7 +132,8 @@ class Connection:
     :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate.
     :param ssl_cert: Path to the file that contains a PEM-formatted client certificate.
     :param ssl_disabled: A boolean value that disables usage of TLS.
-    :param ssl_key: Path to the file that contains a PEM-formatted private key for the client certificate.
+    :param ssl_key: Path to the file that contains a PEM-formatted private key for
+        the client certificate.
     :param ssl_verify_cert: Set to true to check the server certificate's validity.
     :param ssl_verify_identity: Set to true to check the server's identity.
     :param read_default_group: Group to read from in the configuration file.
@@ -533,7 +536,8 @@ class Connection:
         Create a new cursor to execute queries with.
 
         :param cursor: The type of cursor to create. None means use Cursor.
-        :type cursor: :py:class:`Cursor`, :py:class:`SSCursor`, :py:class:`DictCursor`, or :py:class:`SSDictCursor`.
+        :type cursor: :py:class:`Cursor`, :py:class:`SSCursor`, :py:class:`DictCursor`,
+            or :py:class:`SSDictCursor`.
         """
         if cursor:
             return cursor(self)
@@ -1228,7 +1232,8 @@ class MySQLResult:
         # TODO: Support CLIENT.DEPRECATE_EOF
         # 1) Add DEPRECATE_EOF to CAPABILITIES
         # 2) Mask CAPABILITIES with server_capabilities
-        # 3) if server_capabilities & CLIENT.DEPRECATE_EOF: use OKPacketWrapper instead of EOFPacketWrapper
+        # 3) if server_capabilities & CLIENT.DEPRECATE_EOF:
+        #    use OKPacketWrapper instead of EOFPacketWrapper
         wp = EOFPacketWrapper(packet)
         self.warning_count = wp.warning_count
         self.has_next = wp.has_next
