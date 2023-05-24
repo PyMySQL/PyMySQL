@@ -444,6 +444,20 @@ class TestConnection(base.PyMySQLTestCase):
         arg["charset"] = "utf8mb4"
         pymysql.connect(**arg)
 
+    def test_set_character_set(self):
+        con = self.connect()
+        cur = con.cursor()
+
+        con.set_character_set("latin1")
+        cur.execute("SELECT @@character_set_connection")
+        self.assertEqual(cur.fetchone(), ("latin1",))
+        self.assertEqual(con.encoding, "cp1252")
+
+        con.set_character_set("utf8mb4", "utf8mb4_general_ci")
+        cur.execute("SELECT @@character_set_connection, @@collation_connection")
+        self.assertEqual(cur.fetchone(), ("utf8mb4", "utf8mb4_general_ci"))
+        self.assertEqual(con.encoding, "utf8")
+
     def test_largedata(self):
         """Large query and response (>=16MB)"""
         cur = self.connect().cursor()
