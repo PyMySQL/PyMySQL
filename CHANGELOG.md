@@ -10,11 +10,17 @@ Release date: TBD
 
 ## v1.0.3
 
-Release date: TBD
+Release date: 2023-03-28
 
 * Dropped support of end of life MySQL version 5.6
 * Dropped support of end of life MariaDB versions below 10.3
 * Dropped support of end of life Python version 3.6
+* Removed _last_executed because of duplication with _executed by @rajat315315 in https://github.com/PyMySQL/PyMySQL/pull/948
+* Fix generating authentication response with long strings by @netch80 in https://github.com/PyMySQL/PyMySQL/pull/988
+* update pymysql.constants.CR by @Nothing4You in https://github.com/PyMySQL/PyMySQL/pull/1029
+* Document that the ssl connection parameter can be an SSLContext by @cakemanny in https://github.com/PyMySQL/PyMySQL/pull/1045
+* Raise ProgrammingError on -np.inf in addition to np.inf by @cdcadman in https://github.com/PyMySQL/PyMySQL/pull/1067
+* Use Python 3.11 release instead of -dev in tests by @Nothing4You in https://github.com/PyMySQL/PyMySQL/pull/1076
 
 
 ## v1.0.2
