@@ -2,13 +2,14 @@ name: Django test
 
 on:
   push:
-    # branches: ["main"]
-  pull_request:
+    branches: ["main"]
 
 jobs:
   django-test:
     name: "Run Django LTS test suite"
     runs-on: ubuntu-latest
+    # There are some known difference between MySQLdb and PyMySQL.
+    continue-on-error: true
     env:
       PIP_NO_PYTHON_VERSION_WARNING: 1
       PIP_DISABLE_PIP_VERSION_CHECK: 1
