@@ -62,10 +62,10 @@ def get_client_info():  # for MySQLdb compatibility
 
 def install_as_MySQLdb():
     """
-    After this function is called, any application that imports MySQLdb or
-    _mysql will unwittingly actually use pymysql.
+    After this function is called, any application that imports MySQLdb
+    will unwittingly actually use pymysql.
     """
-    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
+    sys.modules["MySQLdb"] = sys.modules["pymysql"]
 
 
 # end of mysqlclient compatibility code

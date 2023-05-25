@@ -57,4 +57,5 @@ jobs:
       - name: Run Django test
         run: |
           cd django-${{ matrix.django }}/tests/
+          rm -rf test_runner  # test_runner does not using our test_mysql.py
           python ./runtests.py --settings=test_mysql
