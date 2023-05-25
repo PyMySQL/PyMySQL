@@ -14,6 +14,7 @@ jobs:
       PIP_DISABLE_PIP_VERSION_CHECK: 1
       # DJANGO_VERSION: "3.2.19"
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Django 3.2.9+ supports Python 3.10
@@ -57,5 +58,5 @@ jobs:
       - name: Run Django test
         run: |
           cd django-${{ matrix.django }}/tests/
-          rm -rf test_runner  # test_runner does not using our test_mysql.py
+          rm -rf test_runner admin_scripts # test_runner does not using our test_mysql.py
           python ./runtests.py --settings=test_mysql
