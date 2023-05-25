@@ -6,6 +6,14 @@ Release date: TBD
 
 * Fixed SSCursor raising OperationalError for query timeouts on wrong statement (#1032)
 * Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
+* Make Cursor iterator (#995)
+* Support '_' in key name in my.cnf (#1114)
+* `Cursor.fetchall()` returns empty list instead of tuple (#1115). Note that `Cursor.fetchmany()` still return empty tuple after reading all rows for compatibility with Django.
+* Deprecate Error classes in Cursor class (#1117)
+* Add `Connection.set_character_set(charset, collation=None)` (#1119)
+* Deprecate `Connection.set_charset(charset)` (#1119)
+* New connection always send "SET NAMES charset [COLLATE collation]" query. (#1119)
+  Since collation table is vary on MySQL server versions, collation in handshake is fragile.
 
 
 ## v1.0.3
