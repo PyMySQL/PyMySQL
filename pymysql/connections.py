@@ -25,7 +25,7 @@ from .protocol import (
     EOFPacketWrapper,
     LoadLocalPacketWrapper,
 )
-from . import err, __version__
+from . import err, VERSION
 
 try:
     import ssl
@@ -346,7 +346,7 @@ class Connection:
         self._connect_attrs = {
             "_client_name": "pymysql",
             "_pid": str(os.getpid()),
-            "_client_version": __version__,
+            "_client_version": VERSION,
         }
 
         if program_name:
