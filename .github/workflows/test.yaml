@@ -15,16 +15,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - db: "mariadb:10.3"
+          - db: "mariadb:10.4"
             py: "3.8"
 
           - db: "mariadb:10.5"
             py: "3.7"
 
-          - db: "mariadb:10.7"
+          - db: "mariadb:10.6"
             py: "3.11"
 
-          - db: "mariadb:10.8"
+          - db: "mariadb:lts"
             py: "3.9"
 
           - db: "mysql:5.7"

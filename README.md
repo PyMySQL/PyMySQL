@@ -13,7 +13,7 @@ This package contains a pure-Python MySQL client library, based on [PEP
   - [PyPy](https://pypy.org/) : Latest 3.x version
 - MySQL Server -- one of the following:
   - [MySQL](https://www.mysql.com/) \>= 5.7
-  - [MariaDB](https://mariadb.org/) \>= 10.3
+  - [MariaDB](https://mariadb.org/) \>= 10.4
 
 ## Installation
 
