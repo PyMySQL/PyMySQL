@@ -46,6 +46,9 @@ from .times import (
     TimestampFromTicks,
 )
 
+# PyMySQL version.
+# Used by setuptools.
+VERSION = (1, 1, 0, "dev", 1)
 
 ### for mysqlclient compatibility
 ### Django checks mysqlclient version.
