@@ -1,0 +1,66 @@
+name: Django test
+
+on:
+  push:
+    # branches: ["main"]
+  # pull_request:
+
+jobs:
+  django-test:
+    name: "Run Django LTS test suite"
+    runs-on: ubuntu-latest
+    # There are some known difference between MySQLdb and PyMySQL.
+    continue-on-error: true
+    env:
+      PIP_NO_PYTHON_VERSION_WARNING: 1
+      PIP_DISABLE_PIP_VERSION_CHECK: 1
+      # DJANGO_VERSION: "3.2.19"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Django 3.2.9+ supports Python 3.10
+          # https://docs.djangoproject.com/ja/3.2/releases/3.2/
+          - django: "3.2.19"
+            python: "3.10"
+
+          - django: "4.2.1"
+            python: "3.11"
+
+    steps:
+      - name: Start MySQL
+        run: |
+          sudo systemctl start mysql.service
+          mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -uroot -proot mysql
+          mysql -uroot -proot -e "set global innodb_flush_log_at_trx_commit=0;"
+          mysql -uroot -proot -e "CREATE USER 'scott'@'%' IDENTIFIED BY 'tiger'; GRANT ALL ON *.* TO scott;"
+          mysql -uroot -proot -e "CREATE DATABASE django_default; CREATE DATABASE django_other;"
+
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install mysqlclient
+        run: |
+          #pip install mysqlclient  # Use stable version
+          pip install .[rsa]
+
+      - name: Setup Django
+        run: |
+          sudo apt-get install libmemcached-dev
+          wget https://github.com/django/django/archive/${{ matrix.django }}.tar.gz
+          tar xf ${{ matrix.django }}.tar.gz
+          cp ci/test_mysql.py django-${{ matrix.django }}/tests/
+          cd django-${{ matrix.django }}
+          pip install . -r tests/requirements/py3.txt
+
+      - name: Run Django test
+        run: |
+          cd django-${{ matrix.django }}/tests/
+          # test_runner does not using our test_mysql.py
+          # We can't run whole django test suite for now.
+          # Run olly backends test
+          DJANGO_SETTINGS_MODULE=test_mysql python runtests.py backends
