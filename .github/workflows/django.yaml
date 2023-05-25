@@ -38,7 +38,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python }}}
+          python-version: ${{ matrix.python }}
 
       - name: Install mysqlclient
         run: |
