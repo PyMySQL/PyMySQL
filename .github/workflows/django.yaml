@@ -58,5 +58,7 @@ jobs:
       - name: Run Django test
         run: |
           cd django-${{ matrix.django }}/tests/
-          rm -rf test_runner admin_scripts # test_runner does not using our test_mysql.py
-          python ./runtests.py --settings=test_mysql
+          # test_runner does not using our test_mysql.py
+          # We can't run whole django test suite for now.
+          # Run olly backends test
+          DJANGO_SETTINGS_MODULE=test_mysql python runtests.py backends
