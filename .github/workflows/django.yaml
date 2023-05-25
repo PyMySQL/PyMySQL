@@ -12,7 +12,7 @@ jobs:
     env:
       PIP_NO_PYTHON_VERSION_WARNING: 1
       PIP_DISABLE_PIP_VERSION_CHECK: 1
-      DJANGO_VERSION: "3.2.19"
+      # DJANGO_VERSION: "3.2.19"
     strategy:
       matrix:
         include:
