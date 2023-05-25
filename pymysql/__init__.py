@@ -50,10 +50,7 @@ from .times import (
 ### for mysqlclient compatibility
 ### Django checks mysqlclient version.
 version_info = (1, 4, 3, "final", 0)
-if len(version_info) > 3:
-    __version__ = "%d.%d.%d_%s" % version_info
-else:
-    __version__ = "%d.%d.%d" % version_info
+__version__ = "1.4.3"
 
 
 def get_client_info():  # for MySQLdb compatibility
