@@ -13,6 +13,7 @@
 # file for each of the backends you test against.
 
 import pymysql
+
 pymysql.install_as_MySQLdb()
 
 DATABASES = {

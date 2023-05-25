@@ -47,11 +47,29 @@ from .times import (
 )
 
 
-VERSION = (1, 0, 3)
-if len(VERSION) > 3:
-    VERSION_STRING = "%d.%d.%d_%s" % VERSION
+### for mysqlclient compatibility
+### Django checks mysqlclient version.
+version_info = (1, 4, 3, "final", 0)
+if len(version_info) > 3:
+    __version__ = "%d.%d.%d_%s" % version_info
 else:
-    VERSION_STRING = "%d.%d.%d" % VERSION
+    __version__ = "%d.%d.%d" % version_info
+
+
+def get_client_info():  # for MySQLdb compatibility
+    return __version__
+
+
+def install_as_MySQLdb():
+    """
+    After this function is called, any application that imports MySQLdb or
+    _mysql will unwittingly actually use pymysql.
+    """
+    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
+
+
+# end of mysqlclient compatibility code
+
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
@@ -109,31 +127,12 @@ def Binary(x):
     return bytes(x)
 
 
-Connect = connect = Connection = connections.Connection
-
-
-def get_client_info():  # for MySQLdb compatibility
-    return VERSION_STRING
-
-
-# we include a doctored version_info here for MySQLdb compatibility
-version_info = (1, 4, 0, "final", 0)
-
-NULL = "NULL"
-
-__version__ = get_client_info()
-
-
 def thread_safe():
     return True  # match MySQLdb.thread_safe()
 
 
-def install_as_MySQLdb():
-    """
-    After this function is called, any application that imports MySQLdb or
-    _mysql will unwittingly actually use pymysql.
-    """
-    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"]
+Connect = connect = Connection = connections.Connection
+NULL = "NULL"
 
 
 __all__ = [
