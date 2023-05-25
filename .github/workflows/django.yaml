@@ -43,7 +43,7 @@ jobs:
       - name: Install mysqlclient
         run: |
           #pip install mysqlclient  # Use stable version
-          pip install .
+          pip install .[rsa]
 
       - name: Setup Django
         run: |
