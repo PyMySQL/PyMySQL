@@ -9,7 +9,9 @@ class Charset:
         self.is_default = is_default
 
     def __repr__(self):
-        return f"Charset(id={self.id}, name={self.name!r}, collation={self.collation!r})"
+        return (
+            f"Charset(id={self.id}, name={self.name!r}, collation={self.collation!r})"
+        )
 
     @property
     def encoding(self):
