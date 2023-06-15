@@ -1,0 +1,7 @@
+# https://docs.codecov.com/docs/common-recipe-list
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 3%
