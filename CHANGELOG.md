@@ -14,6 +14,7 @@ Release date: TBD
 * Deprecate `Connection.set_charset(charset)` (#1119)
 * New connection always send "SET NAMES charset [COLLATE collation]" query. (#1119)
   Since collation table is vary on MySQL server versions, collation in handshake is fragile.
+* Support `charset="utf8mb3"` option (#1127)
 
 
 ## v1.0.3
