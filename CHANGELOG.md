@@ -1,8 +1,15 @@
 # Changes
 
+## Backward incompatible changes planned in the future.
+
+* Error classes in Cursor class will be removed after 2024-06
+* `Connection.set_charset(charset)` will be removed after 2024-06
+* `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
+
+
 ## v1.1.0
 
-Release date: TBD
+Release date: 2023-06-26
 
 * Fixed SSCursor raising OperationalError for query timeouts on wrong statement (#1032)
 * Exposed `Cursor.warning_count` to check for warnings without additional query (#1056)
@@ -10,7 +17,7 @@ Release date: TBD
 * Support '_' in key name in my.cnf (#1114)
 * `Cursor.fetchall()` returns empty list instead of tuple (#1115). Note that `Cursor.fetchmany()` still return empty tuple after reading all rows for compatibility with Django.
 * Deprecate Error classes in Cursor class (#1117)
-* Add `Connection.set_character_set(charset, collation=None)` (#1119)
+* Add `Connection.set_character_set(charset, collation=None)`. This method is compatible with mysqlclient. (#1119)
 * Deprecate `Connection.set_charset(charset)` (#1119)
 * New connection always send "SET NAMES charset [COLLATE collation]" query. (#1119)
   Since collation table is vary on MySQL server versions, collation in handshake is fragile.
@@ -24,7 +31,7 @@ Release date: 2023-03-28
 * Dropped support of end of life MySQL version 5.6
 * Dropped support of end of life MariaDB versions below 10.3
 * Dropped support of end of life Python version 3.6
-* Removed _last_executed because of duplication with _executed by @rajat315315 in https://github.com/PyMySQL/PyMySQL/pull/948
+* Removed `_last_executed` because of duplication with `_executed` by @rajat315315 in https://github.com/PyMySQL/PyMySQL/pull/948
 * Fix generating authentication response with long strings by @netch80 in https://github.com/PyMySQL/PyMySQL/pull/988
 * update pymysql.constants.CR by @Nothing4You in https://github.com/PyMySQL/PyMySQL/pull/1029
 * Document that the ssl connection parameter can be an SSLContext by @cakemanny in https://github.com/PyMySQL/PyMySQL/pull/1045
