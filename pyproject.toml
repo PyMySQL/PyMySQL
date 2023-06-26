@@ -49,7 +49,7 @@ include = ["pymysql*"]
 exclude = ["tests*", "pymysql.tests*"]
 
 [tool.setuptools.dynamic]
-version = {attr = "pymysql.VERSION"}
+version = {attr = "pymysql.VERSION_STRING"}
 
 [tool.ruff]
 line-length = 99
