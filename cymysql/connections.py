@@ -21,7 +21,7 @@ from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from cymysql.readpacket import recv_packet
+from cymysql.recv import recv_packet
 from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
