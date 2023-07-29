@@ -21,6 +21,7 @@ from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
+from cymysql.readpacket import recv_packet
 from cymysql.packet import MysqlPacket, MySQLResult
 
 PYTHON3 = sys.version_info[0] > 2
@@ -415,7 +416,7 @@ class Connection(object):
     def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results."""
-        return MysqlPacket(self)
+        return MysqlPacket(recv_packet(self.socket), self.charset, self.encoding, self.use_unicode)
 
     def insert_id(self):
         if self._result:

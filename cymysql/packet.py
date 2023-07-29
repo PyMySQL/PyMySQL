@@ -7,6 +7,7 @@ from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS, FLAG
 from cymysql.converters import convert_characters, convert_json
 from cymysql.charset import charset_by_id, encoding_by_charset
+from cymysql.readpacket import recv_packet
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -51,48 +52,17 @@ class MysqlPacket(object):
     from the network socket, removes packet header and provides an interface
     for reading/parsing the packet results."""
 
-    def __init__(self, connection):
-        self.connection = connection
-        self._socket = connection.socket
-        self._charset = connection.charset
-        self._encoding = connection.encoding
-        self._use_unicode = connection.use_unicode
+    def __init__(self, data, charset, encoding, use_unicode):
+        self._charset = charset
+        self._encoding = encoding
+        self._use_unicode = use_unicode
         self.__position = 0
-        self.__recv_packet()
+        self.__data = data
         is_error = self.__data[0] == (0xff if PYTHON3 else b'\xff')
         if is_error:
             self.__position += 1  # field_count == error (we already know that)
             unpack_uint16(self._read(2))    # errno
             raise_mysql_exception(self.__data)
-
-    def __recv_from_socket(self, size):
-        r = b''
-        while size:
-            recv_data = self._socket.recv(size)
-            if not recv_data:
-                raise OperationalError(2013, "Lost connection to MySQL server during query")
-            size -= len(recv_data)
-            r += recv_data
-        return r
-
-    def __recv_packet(self):
-        """Parse the packet header and read entire packet payload into buffer."""
-        recv_data = b''
-        while True:
-            packet_header = self.__recv_from_socket(4)
-            if len(packet_header) < 4:
-                raise OperationalError(2013, "Lost connection to MySQL server during query")
-
-            bytes_to_read = unpack_uint24(packet_header)
-            # TODO: check packet_num is correct (+1 from last packet)
-            # self.packet_number = ord(packet_header[3:])
-
-            recv_data += self.__recv_from_socket(bytes_to_read)
-            if len(recv_data) < bytes_to_read:
-                raise OperationalError(2013, "Lost connection to MySQL server during query")
-            if recv_data[:3] != b'\xff\xff\xff':
-                break
-        self.__data = recv_data
 
     def get_all_data(self):
         return self.__data
@@ -209,7 +179,7 @@ class FieldDescriptorPacket(MysqlPacket):
         self.db = self._read_length_coded_string()
         self.table_name = self._read_length_coded_string()
         self.org_table = self._read_length_coded_string()
-        self.name = self._read_length_coded_string().decode(self.connection.encoding)
+        self.name = self._read_length_coded_string().decode(self._encoding)
         self.org_name = self._read_length_coded_string()
         self._skip(1)  # non-null filler
         self.charsetnr = unpack_uint16(self._read(2))
@@ -268,7 +238,12 @@ class MySQLResult(object):
         self.has_result = False
         self.rest_rows = None
         self.rest_row_index = 0
-        self.first_packet = MysqlPacket(self.connection)
+        self.first_packet = MysqlPacket(
+            recv_packet(self.connection.socket),
+            self.connection.charset,
+            self.connection.encoding,
+            self.connection.use_unicode,
+        )
 
         if self.first_packet.is_ok_packet():
             (self.affected_rows, self.insert_id,
@@ -288,7 +263,12 @@ class MySQLResult(object):
         rest_rows = []
         decoder = self.connection.conv
         while True:
-            packet = MysqlPacket(self.connection)
+            packet = MysqlPacket(
+                recv_packet(self.connection.socket),
+                self.connection.charset,
+                self.connection.encoding,
+                self.connection.use_unicode,
+            )
             is_eof, warning_count, server_status = packet.is_eof_and_status()
             if is_eof:
                 self.warning_count = warning_count
@@ -304,11 +284,21 @@ class MySQLResult(object):
         self.fields = []
         description = []
         for i in range(self.field_count):
-            field = FieldDescriptorPacket(self.connection)
+            field = FieldDescriptorPacket(
+                recv_packet(self.connection.socket),
+                self.connection.charset,
+                self.connection.encoding,
+                self.connection.use_unicode,
+            )
             self.fields.append(field)
             description.append(field.description())
 
-        eof_packet = MysqlPacket(self.connection)
+        eof_packet = MysqlPacket(
+            recv_packet(self.connection.socket),
+            self.connection.charset,
+            self.connection.encoding,
+            self.connection.use_unicode,
+        )
         assert eof_packet.is_eof_packet(), 'Protocol error, expecting EOF'
         self.description = tuple(description)
 
@@ -316,7 +306,12 @@ class MySQLResult(object):
         if not self.has_result:
             return None
         if self.rest_rows is None:
-            packet = MysqlPacket(self.connection)
+            packet = MysqlPacket(
+                recv_packet(self.connection.socket),
+                self.connection.charset,
+                self.connection.encoding,
+                self.connection.use_unicode,
+            )
             is_eof, warning_count, server_status = packet.is_eof_and_status()
             if is_eof:
                 self.warning_count = warning_count
