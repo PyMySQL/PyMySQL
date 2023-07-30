@@ -117,7 +117,7 @@ cdef class MysqlPacket(object):
             return None
         return self._read(length)
 
-    cdef read_decode_data(self, fields, decoders):
+    cpdef read_decode_data(self, fields, decoders):
         return tuple([
             None if value is None
             else decoder(value, self._encoding, field, self._use_unicode)
