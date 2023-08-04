@@ -345,9 +345,11 @@ class Connection(object):
     def query(self, sql):
         self._execute_command(COMMAND.COM_QUERY, sql)
         self._result = MySQLResult(self)
+        self._result.read_result()
 
     def next_result(self):
         self._result = MySQLResult(self)
+        self._result.read_result()
 
     def affected_rows(self):
         if self._result:
