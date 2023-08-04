@@ -260,7 +260,7 @@ class Connection(object):
 
         if self.sql_mode is not None:
             c = self.cursor()
-            c.execute("SET sql_mode=%s", (sql_mode,))
+            c.execute("SET sql_mode=%s", (self.sql_mode,))
 
         if self.init_command is not None:
             c = self.cursor()
