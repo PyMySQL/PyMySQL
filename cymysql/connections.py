@@ -245,24 +245,26 @@ class Connection(object):
 
         self.cursorclass = cursorclass
         self.connect_timeout = connect_timeout
+        self.messages = []
+        self._result = None
 
         self._connect()
 
-        self.messages = []
-        self.set_charset(charset)
+        self.sql_mode = sql_mode
+        self.init_command = init_command
 
-        self._result = None
-        self.host_info = "Not connected"
+    def _initialize(self):
+        self.set_charset(self.charset)
 
         self.autocommit(False)
 
-        if sql_mode is not None:
+        if self.sql_mode is not None:
             c = self.cursor()
             c.execute("SET sql_mode=%s", (sql_mode,))
 
-        if init_command is not None:
+        if self.init_command is not None:
             c = self.cursor()
-            c.execute(init_command)
+            c.execute(self.init_command)
 
             self.commit()
 

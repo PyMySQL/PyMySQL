@@ -79,27 +79,23 @@ def Binary(x):
     return bytes(x)
 
 
-def Connect(*args, **kwargs):
-    """
-    Connect to the database; see connections.Connection.__init__() for
-    more information.
-    """
-    return Connection(*args, **kwargs)
+def connect(*args, **kwargs):
+    conn = Connection(*args, **kwargs)
+    conn._initialize()
+    return conn
 
-
-connect = Connect
 
 NULL = "NULL"
 
 __version__ = '%s.%s.%s' % VERSION
 
 __all__ = [
-    'BINARY', 'Binary', 'Connect', 'Connection', 'DATE', 'Date',
+    'BINARY', 'Binary', 'Connection', 'DATE', 'Date',
     'Time', 'Timestamp', 'DateFromTicks', 'TimeFromTicks', 'TimestampFromTicks',
     'DataError', 'DatabaseError', 'Error', 'FIELD_TYPE', 'IntegrityError',
     'InterfaceError', 'InternalError', 'MySQLError', 'NULL', 'NUMBER',
     'NotSupportedError', 'DBAPISet', 'OperationalError', 'ProgrammingError',
     'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel', 'connect',
     'constants', 'converters', 'cursors', 'escape_dict', 'escape_sequence',
-    'escape_string', 'paramstyle', 'threadsafety', "NULL", "__version__",
+    'escape_string', 'paramstyle', 'threadsafety', "__version__",
 ]
