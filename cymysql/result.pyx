@@ -29,7 +29,7 @@ cdef class MySQLResult(object):
         self.rest_rows = None
         self.rest_row_index = 0
 
-    def read_result(self)
+    def read_result(self):
         self.first_packet = MysqlPacket(
             recv_packet(self.connection.socket),
             self.connection.charset,
