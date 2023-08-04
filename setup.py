@@ -9,6 +9,7 @@ try:
     from Cython.Build import cythonize
     ext_modules = cythonize([
             Extension("cymysql.packet", ["cymysql/packet.pyx"]),
+            Extension("cymysql.result", ["cymysql/result.pyx"]),
             Extension("cymysql.charset", ["cymysql/charset.py"]),
             Extension("cymysql.converters", ["cymysql/converters.py"]),
             Extension("cymysql.connections", ["cymysql/connections.py"]),
