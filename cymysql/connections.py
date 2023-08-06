@@ -248,8 +248,6 @@ class Connection(object):
         self.messages = []
         self._result = None
 
-        self._connect()
-
         self.sql_mode = sql_mode
         self.init_command = init_command
 

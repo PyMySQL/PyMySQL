@@ -81,6 +81,7 @@ def Binary(x):
 
 def connect(*args, **kwargs):
     conn = Connection(*args, **kwargs)
+    conn._connect()
     conn._initialize()
     return conn
 
