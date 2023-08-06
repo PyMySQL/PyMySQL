@@ -252,6 +252,8 @@ class Connection(object):
         self.init_command = init_command
 
     def _initialize(self):
+        self._get_server_information()
+        self._request_authentication()
         self.set_charset(self.charset)
 
         self.autocommit(False)
@@ -413,8 +415,6 @@ class Connection(object):
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0])
             )
         self.socket = sock
-        self._get_server_information()
-        self._request_authentication()
 
     def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
