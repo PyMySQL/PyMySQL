@@ -271,7 +271,7 @@ class Connection(object):
     def close(self):
         ''' Send the quit message and close the socket '''
         if self.socket is None:
-            raise Error("Already closed")
+            return
         send_data = b'\x01\x00\x00\x00' + int2byte(COMMAND.COM_QUIT)
         self.socket.sendall(send_data)
         self.socket.close()
