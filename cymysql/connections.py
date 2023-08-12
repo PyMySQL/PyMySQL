@@ -16,7 +16,7 @@ except ImportError:
 
 from cymysql.charset import charset_by_name, encoding_by_charset
 from cymysql.cursors import Cursor
-from cymysql.constants import CLIENT, COMMAND
+from cymysql.constants import CLIENT, COMMAND, SERVER_STATUS
 from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
@@ -276,6 +276,10 @@ class Connection(object):
         self.socket.sendall(send_data)
         self.socket.close()
         self.socket = None
+
+    @property
+    def closed(self):
+        return self.socket is None
 
     def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
@@ -601,6 +605,9 @@ class Connection(object):
                 self.salt += data[i:i+rest_salt_len-1]
                 i += rest_salt_len
             self.auth_plugin_name = data[i:data.find(int2byte(0), i)].decode('utf-8')
+
+    def get_transaction_status(self):
+        return bool(self.server_status & SERVER_STATUS.SERVER_STATUS_IN_TRANS)
 
     def get_server_info(self):
         return self.server_version
