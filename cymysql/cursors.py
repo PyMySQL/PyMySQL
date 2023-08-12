@@ -26,10 +26,10 @@ class Cursor(object):
         self.messages = []
         self._result = None
 
-    def __del__(self):
-        '''
-        When this gets GC'd close it.
-        '''
+    def __enter__(self):
+        return self
+
+    def __exit__(self)
         self.close()
 
     def errorhandler(self, errorclass, errorvalue):

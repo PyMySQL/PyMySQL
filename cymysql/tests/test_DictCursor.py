@@ -47,6 +47,12 @@ class TestDictCursor(base.PyMySQLTestCase):
             c.execute("SELECT * from dictcursor")
             r = c.fetchmany(2)
             self.assertEqual((bob, jim), r, "fetchmany failed via DictCursor")
+
+            with conn.cursor(cymysql.cursors.DictCursor) as c2:
+                c2.execute("SELECT * from dictcursor")
+                r = c2.fetchall()
+                self.assertEqual((bob, jim, fred), r, "fetchall failed via DictCursor context manager")
+
         finally:
             c.execute("drop table dictcursor")
 
