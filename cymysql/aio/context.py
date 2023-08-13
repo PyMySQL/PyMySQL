@@ -56,45 +56,10 @@ class _ContextManager(Coroutine):
         self._obj = None
 
 
-class _ConnectionContextManager(_ContextManager):
-    async def __aexit__(self, exc_type, exc, tb):
-        if exc_type is not None:
-            self._obj.close()
-        else:
-            await self._obj.ensure_closed()
-        self._obj = None
-
-
 class _PoolContextManager(_ContextManager):
     async def __aexit__(self, exc_type, exc, tb):
         self._obj.close()
         await self._obj.wait_closed()
-        self._obj = None
-
-
-class _SAConnectionContextManager(_ContextManager):
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if self._obj is None:
-            self._obj = await self._coro
-
-        try:
-            return await self._obj.__anext__()
-        except StopAsyncIteration:
-            await self._obj.close()
-            self._obj = None
-            raise
-
-
-class _TransactionContextManager(_ContextManager):
-    async def __aexit__(self, exc_type, exc, tb):
-        if exc_type:
-            await self._obj.rollback()
-        else:
-            if self._obj.is_active:
-                await self._obj.commit()
         self._obj = None
 
 

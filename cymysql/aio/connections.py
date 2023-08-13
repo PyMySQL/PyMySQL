@@ -18,7 +18,7 @@ from ..constants import CLIENT, COMMAND
 from ..err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from .context import _ConnectionContextManager, _ContextManager
+from .context import _ContextManager
 from .recv import recv_packet
 
 
