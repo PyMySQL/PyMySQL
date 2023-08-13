@@ -155,7 +155,7 @@ class AsyncCursor(Cursor):
             return None
         result = []
         for i in range(size):
-            r = self._result.fetchone()
+            r = await self._result.fetchone()
             if not r:
                 break
             result.append(r)
@@ -171,7 +171,7 @@ class AsyncCursor(Cursor):
         r = await self._result.fetchone()
         while r:
             result.append(r)
-            r = self._result.fetchone()
+            r = await self._result.fetchone()
 
         return result
 
