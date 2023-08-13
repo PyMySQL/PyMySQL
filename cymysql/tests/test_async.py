@@ -1,0 +1,59 @@
+import os
+import asyncio
+import unittest
+import cymysql
+from cymysql.tests import base
+
+class AsyncTestCase(base.PyMySQLTestCase):
+    def test_select(self):
+        async def _test_select(loop):
+            pool = await cymysql.aio.create_pool(
+                host=self.test_host,
+                user="root",
+                passwd=self.test_passwd,
+                db="mysql",
+                loop=loop,
+            )
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute("SELECT 42")
+                    self.assertEqual(
+                        cur.description,
+                        (('42', 8, None, 3, 3, 0, 0),),
+                    )
+                    (r,) = await cur.fetchone()
+                    self.assertEqual(r, 42)
+            pool.close()
+            await pool.wait_closed()
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(_test_select(loop))
+
+    def test_dict_cursor(self):
+        async def _test_select(loop):
+            pool = await cymysql.aio.create_pool(
+                host=self.test_host,
+                user="root",
+                passwd=self.test_passwd,
+                db="mysql",
+                loop=loop,
+            )
+            async with pool.acquire() as conn:
+                async with conn.cursor(cymysql.aio.AsyncCursor) as cur:
+                    await cur.execute("SELECT 42 a")
+                    self.assertEqual(
+                        cur.description,
+                        (('a', 8, None, 3, 3, 0, 0),),
+                    )
+                    (r,) = await cur.fetchone()
+                    self.assertEqual(r, 42)
+            pool.close()
+            await pool.wait_closed()
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(_test_select(loop))
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main()
