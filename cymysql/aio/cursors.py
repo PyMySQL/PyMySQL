@@ -190,7 +190,7 @@ class AsyncDictCursor(AsyncCursor):
     """A cursor which returns results as a dictionary"""
 
     async def execute(self, query, args=None):
-        result = super(DictCursor, self).execute(query, args)
+        result = await super().execute(query, args)
         if self.description:
             self._fields = [field[0] for field in self.description]
         return result
@@ -200,7 +200,7 @@ class AsyncDictCursor(AsyncCursor):
         self._check_executed()
         if self._result is None:
             return None
-        r = super(DictCursor, self).fetchone()
+        r = await super().fetchone()
         if not r:
             return None
         return dict(zip(self._fields, r))
@@ -210,7 +210,7 @@ class AsyncDictCursor(AsyncCursor):
         self._check_executed()
         if self._result is None:
             return None
-        result = [dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchmany(size)]
+        result = [dict(zip(self._fields, r)) for r in await super().fetchmany(size)]
         return tuple(result)
 
     async def fetchall(self):
@@ -219,5 +219,5 @@ class AsyncDictCursor(AsyncCursor):
         if self._result is None:
             return None
         return tuple([
-            dict(zip(self._fields, r)) for r in super(DictCursor, self).fetchall()
+            dict(zip(self._fields, r)) for r in await super().fetchall()
         ])

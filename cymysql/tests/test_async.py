@@ -39,14 +39,13 @@ class AsyncTestCase(base.PyMySQLTestCase):
                 loop=loop,
             )
             async with pool.acquire() as conn:
-                async with conn.cursor(cymysql.aio.AsyncCursor) as cur:
+                async with conn.cursor(cymysql.aio.AsyncDictCursor) as cur:
                     await cur.execute("SELECT 42 a")
                     self.assertEqual(
                         cur.description,
                         (('a', 8, None, 3, 3, 0, 0),),
                     )
-                    (r,) = await cur.fetchone()
-                    self.assertEqual(r, 42)
+                    self.assertEqual(await cur.fetchone(), {'a': 42})
             pool.close()
             await pool.wait_closed()
 
