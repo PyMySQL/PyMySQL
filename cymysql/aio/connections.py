@@ -18,7 +18,6 @@ from ..constants import CLIENT, COMMAND
 from ..err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from .context import _ContextManager
 from .recv import recv_packet
 
 
@@ -90,15 +89,12 @@ class AsyncConnection(Connection):
             self.errorhandler(None, exc, value)
 
     def cursor(self, cursor=None):
+        self._last_usage = self.loop.time()
         if cursor is None:
             cursor = self.cursorclass
         if cursor is None:
             cursor = AsyncCursor
-        cur = cursor(self)
-        self._last_usage = self.loop.time()
-        fut = self.loop.create_future()
-        fut.set_result(cur)
-        return _ContextManager(fut)
+        return cursor(self)
 
     async def __aenter__(self):
         return self
