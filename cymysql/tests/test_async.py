@@ -36,7 +36,6 @@ class AsyncTestCase(base.PyMySQLTestCase):
             async with conn.cursor(cursor=cymysql.aio.AsyncDictCursor) as cur:
                 await cur.execute("SELECT 42")
                 result = await cur.fetchall()
-                await cur.close()
             conn.close()
         loop.run_until_complete(_test_select())
         loop.close()
