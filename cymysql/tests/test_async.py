@@ -23,6 +23,24 @@ class AsyncTestCase(base.PyMySQLTestCase):
         loop.run_until_complete(_test_select())
         loop.close()
 
+    def test_aio_with_cursor(self):
+        loop = asyncio.new_event_loop()
+        async def _test_select():
+            conn = await cymysql.aio.connect(
+                host=self.test_host,
+                user="root",
+                passwd=self.test_passwd,
+                db="mysql",
+                loop=loop,
+            )
+            async with conn.cursor(cursor=cymysql.aio.AsyncDictCursor) as cur:
+                await cur.execute("SELECT 42")
+                result = await cur.fetchall()
+                await cur.close()
+            conn.close()
+        loop.run_until_complete(_test_select())
+        loop.close()
+
     def test_create_pool(self):
         async def _test_select(loop):
             pool = await cymysql.aio.create_pool(
