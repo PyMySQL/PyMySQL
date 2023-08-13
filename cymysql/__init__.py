@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 '''
+import sys
 from cymysql import converters
 from cymysql.converters import escape_dict, escape_sequence, escape_string
 from cymysql.err import (
@@ -34,6 +35,8 @@ from cymysql.times import (
 )
 from cymysql.connections import Connection
 from cymysql.constants import FIELD_TYPE
+if sys.version_info[0] > 2:
+    from cymysql import aio
 
 VERSION = (0, 9, 19)
 threadsafety = 1
@@ -99,4 +102,5 @@ __all__ = [
     'ROWID', 'STRING', 'TIME', 'TIMESTAMP', 'Warning', 'apilevel', 'connect',
     'constants', 'converters', 'cursors', 'escape_dict', 'escape_sequence',
     'escape_string', 'paramstyle', 'threadsafety', "__version__",
+    'aio',
 ]
