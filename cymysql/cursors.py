@@ -29,6 +29,9 @@ class Cursor(object):
     def __enter__(self):
         return self
 
+    def __iter__(self):
+        return iter(self.fetchone, None)
+
     def __exit__(self, exc, value, traceback):
         self.close()
 
@@ -243,9 +246,6 @@ class Cursor(object):
     def _do_get_result(self):
         conn = self._get_db()
         self._result = conn._result
-
-    def __iter__(self):
-        return iter(self.fetchone, None)
 
     Warning = Warning
     Error = Error

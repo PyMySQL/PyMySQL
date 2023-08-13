@@ -123,7 +123,7 @@ class Connection(object):
                  db=None, port=3306, unix_socket=None,
                  charset='', sql_mode=None,
                  read_default_file=None, use_unicode=None,
-                 client_flag=0, cursorclass=Cursor, init_command=None,
+                 client_flag=0, cursorclass=None, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
                  compress=None, named_pipe=None,
                  conv=decoders, encoders=encoders):
@@ -322,9 +322,11 @@ class Connection(object):
 
     def cursor(self, cursor=None):
         ''' Create a new cursor to execute queries with '''
-        if cursor:
-            return cursor(self)
-        return self.cursorclass(self)
+        if cursor is None:
+            cursor = self.cursorclass
+        if cursor is None:
+            cursor = Cursor
+        return cursor(self)
 
     def __enter__(self):
         ''' Context manager that returns a Cursor '''
