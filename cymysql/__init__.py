@@ -38,7 +38,7 @@ from cymysql.constants import FIELD_TYPE
 if sys.version_info[0] > 2:
     from cymysql import aio
 
-VERSION = (0, 9, 19)
+VERSION = (0, 9, 20)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
