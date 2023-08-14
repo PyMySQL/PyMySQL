@@ -48,15 +48,6 @@ class AsyncConnection(Connection):
 
             self.commit()
 
-    def close(self):
-        ''' Send the quit message and close the socket '''
-        if self.socket is None:
-            raise Error("Already closed")
-        send_data = b'\x01\x00\x00\x00' + int2byte(COMMAND.COM_QUIT)
-        self.socket.sendall(send_data)
-        self.socket.close()
-        self.socket = None
-
     async def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
         if value:
@@ -102,14 +93,6 @@ class AsyncConnection(Connection):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.socket is not None:
             self.close()
-
-    def __del__(self):
-        if hasattr(self, 'socket') and self.socket:
-            self.socket.close()
-            self.socket = None
-
-    def _is_connect(self):
-        return bool(self.socket)
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     async def query(self, sql):
@@ -165,58 +148,10 @@ class AsyncConnection(Connection):
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
-    def _connect(self):
-        sock = None
-        try:
-            if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                t = sock.gettimeout()
-                sock.settimeout(self.connect_timeout)
-                sock.connect(self.unix_socket)
-                sock.settimeout(t)
-                self.host_info = "Localhost via UNIX socket"
-            else:
-                sock = socket.create_connection((self.host, self.port), self.connect_timeout)
-                self.host_info = "socket %s:%d" % (self.host, self.port)
-        except socket.error as e:
-            if sock:
-                sock.close()
-            raise OperationalError(
-                2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0])
-            )
-        self.socket = sock
-
     async def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results."""
         return MysqlPacket(await recv_packet(self.socket, self.loop), self.charset, self.encoding, self.use_unicode)
-
-    def _execute_command(self, command, sql):
-        if not self.socket:
-            self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
-            sql = sql.encode(self.encoding)
-        sql = sql.encode(self.encoding)
-        if len(sql) + 1 > 0xffffff:
-            raise ValueError('Sending query packet is too large')
-        prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
-        self.socket.sendall(prelude + sql)
-
-    def _scramble(self):
-        if self.auth_plugin_name in ('', 'mysql_native_password'):
-            data = _mysql_native_password_scramble(
-                self.password.encode(self.encoding), self.salt
-            )
-        elif self.auth_plugin_name == 'caching_sha2_password':
-            data = _caching_sha2_password_scramble(
-                self.password.encode(self.encoding), self.salt
-            )
-        elif self.auth_plugin_name == 'mysql_clear_password':
-            data = self.password.encode(self.encoding) + b'\x00'
-        else:
-            raise NotImplementedError(
-                "%s authentication plugin is not implemented" % (self.auth_plugin_name, )
-            )
-        return data
 
     async def _request_authentication(self):
         if self.user is None:
@@ -306,19 +241,6 @@ class AsyncConnection(Connection):
         self.socket.sendall(data)
 
         await self.read_packet()
-
-    # _mysql support
-    def thread_id(self):
-        return self.server_thread_id[0]
-
-    def character_set_name(self):
-        return self.charset
-
-    def get_host_info(self):
-        return self.host_info
-
-    def get_proto_info(self):
-        return self.protocol_version
 
     async def _get_server_information(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake

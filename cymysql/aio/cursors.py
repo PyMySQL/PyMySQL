@@ -10,9 +10,6 @@ class AsyncCursor(Cursor):
     async def __aenter__(self):
         return self
 
-    def __aiter__(self):
-        return self
-
     async def __anext__(self):
         ret = await self.fetchone()
         if ret is not None:
@@ -180,10 +177,6 @@ class AsyncCursor(Cursor):
         self._last_executed = q
         await conn.query(q)
         self._do_get_result()
-
-    def _do_get_result(self):
-        conn = self._get_db()
-        self._result = conn._result
 
 
 class AsyncDictCursor(AsyncCursor):
