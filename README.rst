@@ -66,6 +66,9 @@ asyncio
 
 In Python3, you can use asyncio to write the following.
 
+This API is experimental.
+If there are any mistakes, please correct them in the pull request and send.
+
 Use connect
 ::
 
@@ -108,6 +111,3 @@ Use pool
    loop = asyncio.get_event_loop()
    loop.run_until_complete(pool_example(loop))
    loop.close()
-
-This API is experimental.
-If there are any mistakes, please correct them in the pull request and send.
