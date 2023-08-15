@@ -52,6 +52,11 @@ and connect with 'not ssl and not unix_socket' you shoud install pycryptodome
 Example
 ---------------
 
+Python Database API Specification v2.0
++++++++++++++++++++++++++++++++++++++++++
+
+https://peps.python.org/pep-0249/
+
 ::
 
    import cymysql
