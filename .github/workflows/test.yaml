@@ -8,6 +8,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+env:
+  FORCE_COLOR: 1
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,6 +26,9 @@ jobs:
 
           - db: "mariadb:10.6"
             py: "3.11"
+
+          - db: "mariadb:10.6"
+            py: "3.12"
 
           - db: "mariadb:lts"
             py: "3.9"
@@ -62,6 +68,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.py }}
+          allow-prereleases: true
           cache: 'pip'
           cache-dependency-path: 'requirements-dev.txt'
 
