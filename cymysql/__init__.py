@@ -35,7 +35,7 @@ from cymysql.times import (
 from cymysql.connections import Connection
 from cymysql.constants import FIELD_TYPE
 
-VERSION = (0, 9, 20)
+VERSION = (1, 0, 0)
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
