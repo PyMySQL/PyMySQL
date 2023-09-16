@@ -10,8 +10,9 @@ SERVER_MORE_RESULTS_EXISTS = SERVER_STATUS.SERVER_MORE_RESULTS_EXISTS
 cdef class MySQLResult(object):
     cdef public object affected_rows, insert_id, rest_rows, has_result
     cdef public object message, description
-    cdef object connection, first_packet, fields
+    cdef public object connection
     cdef public int has_next
+    cdef object first_packet, fields
     cdef int rest_row_index, server_status, warning_count, field_count
 
     def __init__(self, connection):
