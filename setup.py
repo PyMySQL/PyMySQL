@@ -73,7 +73,7 @@ setup(
     description='Python MySQL Driver using Cython',
     long_description=open('README.rst').read(),
     license="MIT",
-    packages=['cymysql', 'cymysql.constants', 'cymysql.tests'],
+    packages=['cymysql', 'cymysql.aio', 'cymysql.constants', 'cymysql.tests'],
     cmdclass=cmdclass,
     ext_modules=ext_modules,
 )
