@@ -5,7 +5,7 @@
 * Error classes in Cursor class will be removed after 2024-06
 * `Connection.set_charset(charset)` will be removed after 2024-06
 * `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
-
+* `Connection.ping(reconnect)` change the default to not reconnect.
 
 ## v1.1.0
 
