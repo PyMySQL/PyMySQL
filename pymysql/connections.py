@@ -264,7 +264,7 @@ class Connection:
             if not ssl:
                 ssl = {}
             if isinstance(ssl, dict):
-                for key in ["ca", "capath", "cert", "key", "cipher"]:
+                for key in ["ca", "capath", "cert", "key", "password", "cipher"]:
                     value = _config("ssl-" + key, ssl.get(key))
                     if value:
                         ssl[key] = value
@@ -393,7 +393,9 @@ class Connection:
             else:
                 ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if "cert" in sslp:
-            ctx.load_cert_chain(sslp["cert"], keyfile=sslp.get("key"), password=sslp.get("password"))
+            ctx.load_cert_chain(
+                sslp["cert"], keyfile=sslp.get("key"), password=sslp.get("password")
+            )
         if "cipher" in sslp:
             ctx.set_ciphers(sslp["cipher"])
         ctx.options |= ssl.OP_NO_SSLv2
