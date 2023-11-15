@@ -135,6 +135,7 @@ class Connection:
     :param ssl_disabled: A boolean value that disables usage of TLS.
     :param ssl_key: Path to the file that contains a PEM-formatted private key for
         the client certificate.
+    :param ssl_key_password: The password for the client certificate private key.
     :param ssl_verify_cert: Set to true to check the server certificate's validity.
     :param ssl_verify_identity: Set to true to check the server's identity.
     :param read_default_group: Group to read from in the configuration file.
@@ -201,6 +202,7 @@ class Connection:
         ssl_cert=None,
         ssl_disabled=None,
         ssl_key=None,
+        ssl_key_password=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
         compress=None,  # not supported
@@ -281,6 +283,8 @@ class Connection:
                     ssl["cert"] = ssl_cert
                 if ssl_key is not None:
                     ssl["key"] = ssl_key
+                if ssl_key_password is not None:
+                    ssl["password"] = ssl_key_password
             if ssl:
                 if not SSL_ENABLED:
                     raise NotImplementedError("ssl module not found")
@@ -389,7 +393,7 @@ class Connection:
             else:
                 ctx.verify_mode = ssl.CERT_NONE if hasnoca else ssl.CERT_REQUIRED
         if "cert" in sslp:
-            ctx.load_cert_chain(sslp["cert"], keyfile=sslp.get("key"))
+            ctx.load_cert_chain(sslp["cert"], keyfile=sslp.get("key"), password=sslp.get("password"))
         if "cipher" in sslp:
             ctx.set_ciphers(sslp["cipher"])
         ctx.options |= ssl.OP_NO_SSLv2
