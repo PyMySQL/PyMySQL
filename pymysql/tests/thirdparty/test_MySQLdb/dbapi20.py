@@ -299,7 +299,7 @@ class DatabaseAPI20Test(unittest.TestCase):
             self.assertEqual(
                 cur.rowcount,
                 -1,
-                "cursor.rowcount should be -1 after executing no-result " "statements",
+                "cursor.rowcount should be -1 after executing no-result statements",
             )
             cur.execute(
                 "insert into %sbooze values ('Victoria Bitter')" % (self.table_prefix)
@@ -409,12 +409,12 @@ class DatabaseAPI20Test(unittest.TestCase):
         self.assertEqual(
             beers[0],
             "Cooper's",
-            "cursor.fetchall retrieved incorrect data, or data inserted " "incorrectly",
+            "cursor.fetchall retrieved incorrect data, or data inserted incorrectly",
         )
         self.assertEqual(
             beers[1],
             "Victoria Bitter",
-            "cursor.fetchall retrieved incorrect data, or data inserted " "incorrectly",
+            "cursor.fetchall retrieved incorrect data, or data inserted incorrectly",
         )
 
     def test_executemany(self):
@@ -482,7 +482,7 @@ class DatabaseAPI20Test(unittest.TestCase):
             self.assertEqual(
                 cur.fetchone(),
                 None,
-                "cursor.fetchone should return None if a query retrieves " "no rows",
+                "cursor.fetchone should return None if a query retrieves no rows",
             )
             self.assertTrue(cur.rowcount in (-1, 0))
 

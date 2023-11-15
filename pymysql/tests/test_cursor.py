@@ -17,8 +17,7 @@ class CursorTest(base.PyMySQLTestCase):
         )
         cursor = conn.cursor()
         cursor.execute(
-            "insert into test (data) values "
-            "('row1'), ('row2'), ('row3'), ('row4'), ('row5')"
+            "insert into test (data) values ('row1'), ('row2'), ('row3'), ('row4'), ('row5')"
         )
         conn.commit()
         cursor.close()

@@ -75,7 +75,7 @@ class TestNextset(base.PyMySQLTestCase):
         cursor = con.cursor()
 
         try:
-            cursor.execute("DROP TABLE IF EXISTS a; " "DROP TABLE IF EXISTS b;")
+            cursor.execute("DROP TABLE IF EXISTS a; DROP TABLE IF EXISTS b;")
         except TypeError:
             self.fail()
 
