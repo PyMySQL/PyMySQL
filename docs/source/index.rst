@@ -1,5 +1,5 @@
-Welcome to PyMySQL's documentation!
-===================================
+PyMySQL documentation
+=====================
 
 .. toctree::
   :maxdepth: 2
