@@ -57,6 +57,7 @@ line-length = 99
 exclude = [
     "pymysql/tests/thirdparty",
 ]
+ignore = ["E721"]
 
 [tool.pdm.dev-dependencies]
 dev = [
