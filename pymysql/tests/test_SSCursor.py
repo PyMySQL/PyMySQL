@@ -27,10 +27,7 @@ class TestSSCursor(base.PyMySQLTestCase):
 
         # Create table
         cursor.execute(
-            "CREATE TABLE tz_data ("
-            "region VARCHAR(64),"
-            "zone VARCHAR(64),"
-            "name VARCHAR(64))"
+            "CREATE TABLE tz_data (region VARCHAR(64), zone VARCHAR(64), name VARCHAR(64))"
         )
 
         conn.begin()

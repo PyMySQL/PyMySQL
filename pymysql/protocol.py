@@ -89,8 +89,8 @@ class MysqlPacket:
         new_position = self._position + length
         if new_position < 0 or new_position > len(self._data):
             raise Exception(
-                "Invalid advance amount (%s) for cursor.  "
-                "Position=%s" % (length, new_position)
+                "Invalid advance amount (%s) for cursor.  Position=%s"
+                % (length, new_position)
             )
         self._position = new_position
 

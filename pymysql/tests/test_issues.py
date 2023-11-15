@@ -401,10 +401,9 @@ class TestGitHubIssues(base.PyMySQLTestCase):
 
         sql_insert = "insert into issue321 (value_1, value_2) values (%s, %s)"
         sql_dict_insert = (
-            "insert into issue321 (value_1, value_2) "
-            "values (%(value_1)s, %(value_2)s)"
+            "insert into issue321 (value_1, value_2) values (%(value_1)s, %(value_2)s)"
         )
-        sql_select = "select * from issue321 where " "value_1 in %s and value_2=%s"
+        sql_select = "select * from issue321 where value_1 in %s and value_2=%s"
         data = [
             [("a",), "\u0430"],
             [["b"], "\u0430"],

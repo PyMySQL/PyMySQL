@@ -364,7 +364,7 @@ PRIMARY KEY (id)
 
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
         cursor.executemany(
-            "insert into bulkinsert (id, name, age, height) " "values (%s,%s,%s,%s)",
+            "insert into bulkinsert (id, name, age, height) values (%s,%s,%s,%s)",
             data,
         )
         self.assertEqual(
@@ -414,14 +414,14 @@ values (0,
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123)]
         cursor.executemany(
-            "insert into bulkinsert (id, name, age, height) " "values (%s,%s,%s,%s)",
+            "insert into bulkinsert (id, name, age, height) values (%s,%s,%s,%s)",
             data,
         )
         cursor.execute("commit")
         self._verify_records(data)
 
     def test_issue_288(self):
-        """executemany should work with "insert ... on update" """
+        """executemany should work with "insert ... on update"""
         conn = self.connect()
         cursor = conn.cursor()
         data = [(0, "bob", 21, 123), (1, "jim", 56, 45), (2, "fred", 100, 180)]
