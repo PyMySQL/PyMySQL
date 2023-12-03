@@ -1,9 +1,5 @@
 import sys
-try:
-    from setuptools import setup, Command, Extension
-except ImportError:
-    from distutils.core import setup, Command
-    from distutils.extension import Extension
+from setuptools import setup, Command, Extension
 
 try:
     from Cython.Build import cythonize
