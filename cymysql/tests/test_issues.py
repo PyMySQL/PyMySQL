@@ -4,13 +4,6 @@ import unittest
 from time import sleep
 
 import sys
-
-try:
-    import imp
-    reload = imp.reload
-except AttributeError:
-    pass
-
 import datetime
 
 # backwards compatibility:
@@ -97,13 +90,6 @@ KEY (`station`,`dh`,`echeance`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;""")
             c.execute("SELECT * FROM test")
         finally:
             c.execute("drop table test")
-
-    def test_issue_9(self):
-        """ sets DeprecationWarning in Python 2.6 """
-        try:
-            reload(cymysql)
-        except DeprecationWarning:
-            self.fail()
 
     def test_issue_10(self):
         """ Allocate a variable to return when the exception handler is permissive """
