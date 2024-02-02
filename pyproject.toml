@@ -56,6 +56,8 @@ version = {attr = "pymysql.VERSION_STRING"}
 exclude = [
     "pymysql/tests/thirdparty",
 ]
+
+[tool.ruff.lint]
 ignore = ["E721"]
 
 [tool.pdm.dev-dependencies]
