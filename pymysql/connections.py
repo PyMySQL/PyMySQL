@@ -765,8 +765,6 @@ class Connection:
                 dump_packet(recv_data)
             buff += recv_data
             # https://dev.mysql.com/doc/internals/en/sending-more-than-16mbyte.html
-            if bytes_to_read == 0xFFFFFF:
-                continue
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
