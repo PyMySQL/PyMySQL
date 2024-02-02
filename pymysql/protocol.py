@@ -65,8 +65,7 @@ class MysqlPacket:
         if len(result) != size:
             error = (
                 "Result length not requested length:\n"
-                "Expected=%s.  Actual=%s.  Position: %s.  Data Length: %s"
-                % (size, len(result), self._position, len(self._data))
+                f"Expected={size}.  Actual={len(result)}.  Position: {self._position}.  Data Length: {len(self._data)}"
             )
             if DEBUG:
                 print(error)
@@ -89,8 +88,7 @@ class MysqlPacket:
         new_position = self._position + length
         if new_position < 0 or new_position > len(self._data):
             raise Exception(
-                "Invalid advance amount (%s) for cursor.  Position=%s"
-                % (length, new_position)
+                f"Invalid advance amount ({length}) for cursor.  Position={new_position}"
             )
         self._position = new_position
 

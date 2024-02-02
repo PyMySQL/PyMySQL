@@ -84,8 +84,7 @@ def _lenenc_int(i):
         return b"\xfe" + struct.pack("<Q", i)
     else:
         raise ValueError(
-            "Encoding %x is larger than %x - no representation in LengthEncodedInteger"
-            % (i, (1 << 64))
+            f"Encoding {i:x} is larger than {1 << 64:x} - no representation in LengthEncodedInteger"
         )
 
 
@@ -999,9 +998,8 @@ class Connection:
                 if plugin_name != b"dialog":
                     raise err.OperationalError(
                         CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
-                        "Authentication plugin '%s'"
-                        " not loaded: - %r missing authenticate method"
-                        % (plugin_name, type(handler)),
+                        f"Authentication plugin '{plugin_name}'"
+                        f" not loaded: - {type(handler)!r} missing authenticate method",
                     )
         if plugin_name == b"caching_sha2_password":
             return _auth.caching_sha2_password_auth(self, auth_packet)
@@ -1037,16 +1035,14 @@ class Connection:
                     except AttributeError:
                         raise err.OperationalError(
                             CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
-                            "Authentication plugin '%s'"
-                            " not loaded: - %r missing prompt method"
-                            % (plugin_name, handler),
+                            f"Authentication plugin '{plugin_name}'"
+                            f" not loaded: - {handler!r} missing prompt method",
                         )
                     except TypeError:
                         raise err.OperationalError(
                             CR.CR_AUTH_PLUGIN_ERR,
-                            "Authentication plugin '%s'"
-                            " %r didn't respond with string. Returned '%r' to prompt %r"
-                            % (plugin_name, handler, resp, prompt),
+                            f"Authentication plugin '{plugin_name}'"
+                            f" {handler!r} didn't respond with string. Returned '{resp!r}' to prompt {prompt!r}",
                         )
                 else:
                     raise err.OperationalError(
@@ -1079,9 +1075,8 @@ class Connection:
             except TypeError:
                 raise err.OperationalError(
                     CR.CR_AUTH_PLUGIN_CANNOT_LOAD,
-                    "Authentication plugin '%s'"
-                    " not loaded: - %r cannot be constructed with connection object"
-                    % (plugin_name, plugin_class),
+                    f"Authentication plugin '{plugin_name}'"
+                    f" not loaded: - {plugin_class!r} cannot be constructed with connection object",
                 )
         else:
             handler = None

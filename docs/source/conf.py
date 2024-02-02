@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # PyMySQL documentation build configuration file, created by
 # sphinx-quickstart on Tue May 17 12:01:11 2016.
 #
