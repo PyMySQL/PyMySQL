@@ -1,14 +1,16 @@
-import unittest
-
+import pytest
 from pymysql import err
 
 
-__all__ = ["TestRaiseException"]
+def test_raise_mysql_exception():
+    data = b"\xff\x15\x04#28000Access denied"
+    with pytest.raises(err.OperationalError) as cm:
+        err.raise_mysql_exception(data)
+    assert cm.type == err.OperationalError
+    assert cm.value.args == (1045, "Access denied")
 
-
-class TestRaiseException(unittest.TestCase):
-    def test_raise_mysql_exception(self):
-        data = b"\xff\x15\x04#28000Access denied"
-        with self.assertRaises(err.OperationalError) as cm:
-            err.raise_mysql_exception(data)
-        self.assertEqual(cm.exception.args, (1045, "Access denied"))
+    data = b"\xff\x10\x04Too many connections"
+    with pytest.raises(err.OperationalError) as cm:
+        err.raise_mysql_exception(data)
+    assert cm.type == err.OperationalError
+    assert cm.value.args == (1040, "Too many connections")
