@@ -35,6 +35,9 @@ dynamic = ["version"]
 "ed25519" = [
     "PyNaCl>=1.4.0"
 ]
+"charset" = [
+    "charset-normalizer"
+]
 
 [project.urls]
 "Project" = "https://github.com/PyMySQL/PyMySQL"

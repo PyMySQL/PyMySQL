@@ -1,5 +1,7 @@
 To test with a MariaDB or MySQL container image:
 
+For Apple Silicon, add `--platform linux/amd64` to `docker run` parameters
+
 docker run -d -p 3306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=1 \
   --name=mysqld -v ./ci/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:z \
   mysql:8.0.26 --local-infile=1

@@ -10,6 +10,11 @@ import sys
 import traceback
 import warnings
 
+try:
+    from charset_normalizer import from_bytes as cn_decode
+except ImportError:
+    cn_decode = None
+
 from . import _auth
 
 from .charset import charset_by_name, charset_by_id
@@ -123,6 +128,9 @@ class Connection:
     :param use_unicode:
         Whether or not to default to unicode strings.
         This option defaults to true.
+    :param auto_decode:
+        Automatically detect results encoding (requires charset-normalizer package).
+        Cannot be used with use_unicode.
     :param client_flag: Custom flags to send to MySQL. Find potential values in constants.CLIENT.
     :param cursorclass: Custom cursor class to use.
     :param init_command: Initial SQL statement to run when connection is established.
@@ -180,6 +188,7 @@ class Connection:
         read_default_file=None,
         conv=None,
         use_unicode=True,
+        auto_decode=False,
         client_flag=0,
         cursorclass=Cursor,
         init_command=None,
@@ -314,7 +323,12 @@ class Connection:
 
         self.charset = charset or DEFAULT_CHARSET
         self.collation = collation
+        if use_unicode and auto_decode:
+            raise ValueError("cannot use both unicode and auto_decode")
+        elif auto_decode and cn_decode is None:
+            raise ValueError("auto_decode used, but charset-normalizer package is missing")
         self.use_unicode = use_unicode
+        self.auto_decode = auto_decode
 
         self.encoding = charset_by_name(self.charset).encoding
 
@@ -1348,6 +1362,13 @@ class MySQLResult:
             if data is not None:
                 if encoding is not None:
                     data = data.decode(encoding)
+                else:
+                    if self.connection.auto_decode and (not converter or converter == converters.through):
+                        data = str(
+                            cn_decode(
+                                data
+                            ).best()
+                        )
                 if DEBUG:
                     print("DEBUG: DATA = ", data)
                 if converter is not None:
