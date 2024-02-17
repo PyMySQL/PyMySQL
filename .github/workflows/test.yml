@@ -25,7 +25,7 @@ jobs:
       matrix:
         python-version: ['pypy2.7', 3.7, 3.8, 3.9, '3.10', '3.11', '3.12']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up MySQL
       run: |
         mysql -h 127.0.0.1 -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS test_cymysql DEFAULT CHARACTER SET utf8mb4;'
