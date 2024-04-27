@@ -48,10 +48,10 @@ class AsyncTestCase(base.PyMySQLTestCase):
                 db="mysql",
                 loop=loop,
             )
-            async with conn.cursor(cursor=cymysql.aio.AsyncDictCursor) as cur:
+            async with conn.cursor(cursor=cymysql.aio.AsyncCursor) as cur:
                 await cur.execute("SELECT 42 a")
                 result = await cur.fetchall()
-                self.assertEqual(result, ({'a': 42},))
+                self.assertEqual(result, [(42,)])
             conn.close()
         loop.run_until_complete(_test_select())
         loop.close()
