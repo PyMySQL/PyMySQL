@@ -1,14 +1,14 @@
-import os
 import asyncio
 import unittest
 import cymysql
 from cymysql.tests import base
 
+
 class AsyncTestCase(base.PyMySQLTestCase):
     def test_aio_connect(self):
         async def _test_select():
             conn = await cymysql.aio.connect(
-               host=self.test_host,
+                host=self.test_host,
                 user="root",
                 passwd=self.test_passwd,
                 db="mysql",
@@ -21,6 +21,7 @@ class AsyncTestCase(base.PyMySQLTestCase):
 
     def test_aio_connect_with_loop(self):
         loop = asyncio.new_event_loop()
+
         async def _test_select():
             conn = await cymysql.aio.connect(
                 host=self.test_host,
@@ -40,6 +41,7 @@ class AsyncTestCase(base.PyMySQLTestCase):
 
     def test_aio_with_cursor(self):
         loop = asyncio.new_event_loop()
+
         async def _test_select():
             conn = await cymysql.aio.connect(
                 host=self.test_host,
@@ -107,5 +109,4 @@ class AsyncTestCase(base.PyMySQLTestCase):
 
 
 if __name__ == "__main__":
-    import unittest
     unittest.main()
