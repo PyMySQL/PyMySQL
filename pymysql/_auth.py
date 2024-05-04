@@ -1,6 +1,7 @@
 """
 Implements auth methods
 """
+
 from .err import OperationalError
 
 
