@@ -848,12 +848,15 @@ class TestEscape(base.PyMySQLTestCase):
 
         self.assertRaises(TypeError, con.escape, 42, {})
 
-    def test_escape_dict_value(self):
+    def test_escape_dict_raise_typeerror(self):
+        """con.escape(dict) should raise TypeError"""
         con = self.connect()
 
         mapping = con.encoders.copy()
         mapping[Foo] = escape_foo
-        self.assertEqual(con.escape({"foo": Foo()}, mapping), {"foo": "bar"})
+        #self.assertEqual(con.escape({"foo": Foo()}, mapping), {"foo": "bar"})
+        with self.assertRaises(TypeError):
+            con.escape({"foo": Foo()})
 
     def test_escape_list_item(self):
         con = self.connect()

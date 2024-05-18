@@ -27,11 +27,7 @@ def escape_item(val, charset, mapping=None):
 
 
 def escape_dict(val, charset, mapping=None):
-    n = {}
-    for k, v in val.items():
-        quoted = escape_item(v, charset, mapping)
-        n[k] = quoted
-    return n
+    raise TypeError("dict can not be used as parameter")
 
 
 def escape_sequence(val, charset, mapping=None):
