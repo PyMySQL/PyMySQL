@@ -2,4 +2,3 @@ cryptography
 PyNaCl>=1.4.0
 pytest
 pytest-cov
-coveralls
