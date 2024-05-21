@@ -854,7 +854,7 @@ class TestEscape(base.PyMySQLTestCase):
 
         mapping = con.encoders.copy()
         mapping[Foo] = escape_foo
-        #self.assertEqual(con.escape({"foo": Foo()}, mapping), {"foo": "bar"})
+        # self.assertEqual(con.escape({"foo": Foo()}, mapping), {"foo": "bar"})
         with self.assertRaises(TypeError):
             con.escape({"foo": Foo()})
 
