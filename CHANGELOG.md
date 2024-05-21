@@ -7,6 +7,21 @@
 * `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
 * `Connection.ping(reconnect)` change the default to not reconnect.
 
+## v1.1.1
+
+Release date: 2024-05-21
+
+> [!WARNING]
+> This release fixes a vulnerability (CVE-2024-36039).
+> All users are recommended to update to this version.
+>
+> If you can not update soon, check the input value from
+> untrusted source has an expected type. Only dict input
+> from untrusted source can be an attack vector.
+
+* Prohibit dict parameter for `Cursor.execute()`. It didn't produce valid SQL
+  and might cause SQL injection. (CVE-2024-36039)
+
 ## v1.1.0
 
 Release date: 2023-06-26
