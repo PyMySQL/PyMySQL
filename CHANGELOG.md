@@ -21,6 +21,7 @@ Release date: 2024-05-21
 
 * Prohibit dict parameter for `Cursor.execute()`. It didn't produce valid SQL
   and might cause SQL injection. (CVE-2024-36039)
+* Added ssl_key_password param. #1145
 
 ## v1.1.0
 
