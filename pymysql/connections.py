@@ -812,16 +812,15 @@ class Connection:
 
     def _read_query_result(self, unbuffered=False):
         self._result = None
+        result = MySQLResult(self)
         if unbuffered:
             try:
-                result = MySQLResult(self)
                 result.init_unbuffered_query()
             except:
                 result.unbuffered_active = False
                 result.connection = None
                 raise
         else:
-            result = MySQLResult(self)
             result.read()
         self._result = result
         if result.server_status is not None:
