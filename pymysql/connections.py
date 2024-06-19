@@ -1206,15 +1206,16 @@ class MySQLResult:
         :raise OperationalError: If the connection to the MySQL server is lost.
         :raise InternalError:
         """
-        conn = self.connection
-        self.connection = None
-
-        first_packet = conn._read_packet()
+        first_packet = self.connection._read_packet()
 
         if first_packet.is_ok_packet():
+            self.connection = None
             self._read_ok_packet(first_packet)
         elif first_packet.is_load_local_packet():
-            self._read_load_local_packet(first_packet)
+            try:
+                self._read_load_local_packet(first_packet)
+            finally:
+                self.connection = None
         else:
             self.field_count = first_packet.read_length_encoded_integer()
             self._get_descriptions()
@@ -1223,7 +1224,6 @@ class MySQLResult:
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
             # we set it to this instead of None, which would be preferred.
             self.affected_rows = 18446744073709551615
-            self.connection = conn
             self.unbuffered_active = True
 
     def _read_ok_packet(self, first_packet):
