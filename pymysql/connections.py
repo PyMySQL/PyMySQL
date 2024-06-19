@@ -812,16 +812,10 @@ class Connection:
 
     def _read_query_result(self, unbuffered=False):
         self._result = None
+        result = MySQLResult(self)
         if unbuffered:
-            try:
-                result = MySQLResult(self)
-                result.init_unbuffered_query()
-            except:
-                result.unbuffered_active = False
-                result.connection = None
-                raise
+            result.init_unbuffered_query()
         else:
-            result = MySQLResult(self)
             result.read()
         self._result = result
         if result.server_status is not None:
@@ -1212,17 +1206,16 @@ class MySQLResult:
         :raise OperationalError: If the connection to the MySQL server is lost.
         :raise InternalError:
         """
-        self.unbuffered_active = True
         first_packet = self.connection._read_packet()
 
         if first_packet.is_ok_packet():
+            self.connection = None
             self._read_ok_packet(first_packet)
-            self.unbuffered_active = False
-            self.connection = None
         elif first_packet.is_load_local_packet():
-            self._read_load_local_packet(first_packet)
-            self.unbuffered_active = False
-            self.connection = None
+            try:
+                self._read_load_local_packet(first_packet)
+            finally:
+                self.connection = None
         else:
             self.field_count = first_packet.read_length_encoded_integer()
             self._get_descriptions()
@@ -1231,6 +1224,7 @@ class MySQLResult:
             # value of a 64bit unsigned integer. Since we're emulating MySQLdb,
             # we set it to this instead of None, which would be preferred.
             self.affected_rows = 18446744073709551615
+            self.unbuffered_active = True
 
     def _read_ok_packet(self, first_packet):
         ok_packet = OKPacketWrapper(first_packet)
