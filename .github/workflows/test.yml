@@ -31,7 +31,7 @@ jobs:
         mysql -h 127.0.0.1 -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS test_cymysql DEFAULT CHARACTER SET utf8mb4;'
         mysql -h 127.0.0.1 -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS test_cymysql2 DEFAULT CHARACTER SET utf8mb4;'
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
