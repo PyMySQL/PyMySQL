@@ -7,7 +7,7 @@ cdef  uint32_t unpack_uint24(bytes s):
     return n[0] + (n[1] << 8) + (n[2] << 16)
 
 
-class SocketWrapper():
+cdef class SocketWrapper():
     cdef object _socket
 
     def __init__(self, sock):
