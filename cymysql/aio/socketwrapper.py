@@ -1,6 +1,15 @@
+import sys
 from ..socketwrapper import SocketWrapper
 from ..err import OperationalError
-from ..packet import unpack_uint24
+
+PYTHON3 = sys.version_info[0] > 2
+
+
+def unpack_uint24(n):
+    if PYTHON3:
+        return n[0] + (n[1] << 8) + (n[2] << 16)
+    else:
+        return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
 
 
 class AsyncSocketWrapper(SocketWrapper):
