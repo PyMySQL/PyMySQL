@@ -14,7 +14,7 @@ cdef class SocketWrapper():
     def __init__(self, sock):
         self._sock = sock
 
-    cdef recv(self, size):
+    cdef public recv(self, size):
         r = b''
         while size:
             recv_data = self._sock.recv(size)
@@ -24,7 +24,7 @@ cdef class SocketWrapper():
             r += recv_data
         return r
 
-    cdef recv_packet(self):
+    cdef public recv_packet(self):
         """Read entire mysql packet."""
         recv_data = b''
         while True:
@@ -33,11 +33,11 @@ cdef class SocketWrapper():
                 break
         return recv_data
 
-    cdef sendall(self, data):
+    cdef public sendall(self, data):
         self._sock.sendall(data)
 
-    cdef setblocking(self, b):
+    cdef public setblocking(self, b):
         self._sock.setblocking(b)
 
-    cdef close(self):
+    cdef public close(self):
         self._sock.close()
