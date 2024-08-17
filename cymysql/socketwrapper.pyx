@@ -1,8 +1,9 @@
 import sys
 from cymysql.err import OperationalError
+from libc.stdint cimport uint16_t, uint32_t
 
 
-cdef  uint32_t unpack_uint24(bytes s):
+cdef uint32_t unpack_uint24(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8) + (n[2] << 16)
 
