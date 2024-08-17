@@ -9,7 +9,7 @@ cdef uint32_t unpack_uint24(bytes s):
 
 
 cdef class SocketWrapper():
-    cdef object _sock
+    cdef public object _sock
 
     def __init__(self, sock):
         self._sock = sock
