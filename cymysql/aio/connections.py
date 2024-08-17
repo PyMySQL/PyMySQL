@@ -169,7 +169,7 @@ class AsyncConnection(Connection):
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
-            self.socket.sendall(data)
+            await self.socket.sendall(data, self.loop)
             next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
@@ -192,7 +192,7 @@ class AsyncConnection(Connection):
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
-        self.socket.sendall(data)
+        await self.socket.sendall(data, self.loop)
         auth_packet = await self.read_packet()
 
         if auth_packet.is_eof_packet():
@@ -202,7 +202,7 @@ class AsyncConnection(Connection):
             data = self._scramble()
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.sendall(data)
+            await self.socket.sendall(data, self.loop)
             auth_packet = await self.read_packet()
 
         if self.auth_plugin_name == 'caching_sha2_password':
@@ -224,7 +224,7 @@ class AsyncConnection(Connection):
             data = b'\x02'
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.sendall(data)
+            await self.socket.sendall(data, self.loop)
             response = await self.read_packet()
             public_pem = response.get_all_data()[1:]
 
@@ -237,7 +237,7 @@ class AsyncConnection(Connection):
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
-        self.socket.sendall(data)
+        await self.socket.sendall(data, self.loop)
 
         await self.read_packet()
 
