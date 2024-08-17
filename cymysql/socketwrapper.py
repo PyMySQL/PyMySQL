@@ -27,3 +27,9 @@ class SocketWrapper():
 
     def sendall(self, data):
         self._sock.sendall(data)
+
+    def setblocking(self, b):
+        self._sock.setblocking(b)
+
+    def close(self):
+        self._sock.close()

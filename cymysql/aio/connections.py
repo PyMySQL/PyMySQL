@@ -18,7 +18,6 @@ from ..constants import CLIENT, COMMAND
 from ..err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from .recv import recv_packet
 
 
 class AsyncConnection(Connection):
@@ -151,7 +150,7 @@ class AsyncConnection(Connection):
     async def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results."""
-        return MysqlPacket(await recv_packet(self.socket, self.loop), self.charset, self.encoding, self.use_unicode)
+        return MysqlPacket(await self.socket.recv_packet(self.loop), self.charset, self.encoding, self.use_unicode)
 
     async def _request_authentication(self):
         if self.user is None:

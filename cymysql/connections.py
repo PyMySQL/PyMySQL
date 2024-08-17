@@ -21,9 +21,9 @@ from cymysql.converters import decoders, encoders, escape_item
 from cymysql.err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
      IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from cymysql.recv import recv_packet
 from cymysql.packet import MysqlPacket
 from cymysql.result import MySQLResult
+from cymysql.socketwrapper import SocketWrapper
 
 PYTHON3 = sys.version_info[0] > 2
 
@@ -406,10 +406,8 @@ class Connection(object):
         try:
             if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                t = sock.gettimeout()
                 sock.settimeout(self.connect_timeout)
                 sock.connect(self.unix_socket)
-                sock.settimeout(t)
                 self.host_info = "Localhost via UNIX socket"
             else:
                 sock = socket.create_connection((self.host, self.port), self.connect_timeout)
@@ -420,12 +418,12 @@ class Connection(object):
             raise OperationalError(
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0])
             )
-        self.socket = sock
+        self.socket = SocketWrapper(sock)
 
     def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results."""
-        return MysqlPacket(recv_packet(self.socket), self.charset, self.encoding, self.use_unicode)
+        return MysqlPacket(self.socket.recv_packet(), self.charset, self.encoding, self.use_unicode)
 
     def insert_id(self):
         if self._result:

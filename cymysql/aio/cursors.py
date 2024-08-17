@@ -1,6 +1,5 @@
 import weakref
 from ..cursors import Cursor
-from .recv import recv_packet
 
 
 class AsyncCursor(Cursor):
