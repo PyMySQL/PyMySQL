@@ -1,15 +1,5 @@
-import sys
 from ..socketwrapper import SocketWrapper
 from ..err import OperationalError
-
-PYTHON3 = sys.version_info[0] > 2
-
-
-def unpack_uint24(n):
-    if PYTHON3:
-        return n[0] + (n[1] << 8) + (n[2] << 16)
-    else:
-        return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
 
 
 class AsyncSocketWrapper(SocketWrapper):
@@ -30,7 +20,7 @@ class AsyncSocketWrapper(SocketWrapper):
         """Read entire mysql packet."""
         recv_data = b''
         while True:
-            ln = unpack_uint24(await self.recv(4, loop))
+            ln = int.from_bytes((await self.recv(4, loop))[:3], "little")
             recv_data += await self.recv(ln, loop)
             if recv_data[:3] != b'\xff\xff\xff':
                 break
