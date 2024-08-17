@@ -6,6 +6,7 @@ try:
     ext_modules = cythonize([
             Extension("cymysql.packet", ["cymysql/packet.pyx"]),
             Extension("cymysql.result", ["cymysql/result.pyx"]),
+            Extension("cymysql.socketwrapper", ["cymysql/socketwrapper.pyx"]),
             Extension("cymysql.charset", ["cymysql/charset.py"]),
             Extension("cymysql.converters", ["cymysql/converters.py"]),
             Extension("cymysql.connections", ["cymysql/connections.py"]),
