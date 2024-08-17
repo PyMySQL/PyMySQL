@@ -1,14 +1,13 @@
 import sys
-import socket
+import ssl
 import asyncio
 import struct
 from ..connections import (
     Connection,
     byte2int,
     int2byte,
-    _caching_sha2_password_scramble,
-    _mysql_native_password_scramble,
     pack_int24,
+    _xor,
 )
 from .cursors import AsyncCursor
 from ..charset import  charset_by_name
@@ -16,9 +15,6 @@ from ..packet import MysqlPacket
 from .result import AsyncMySQLResult
 from .socketwrapper import AsyncSocketWrapper
 from ..constants import CLIENT, COMMAND
-from ..err import Warning, Error, \
-     InterfaceError, DataError, DatabaseError, OperationalError, \
-     IntegrityError, InternalError, NotSupportedError, ProgrammingError
 
 
 class AsyncConnection(Connection):
