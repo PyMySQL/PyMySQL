@@ -28,7 +28,7 @@ cdef uint16_t unpack_uint16(bytes s):
     return n[0] + (n[1] << 8)
 
 
-cdef uint32_t unpack_uint24(bytes s):
+cdef public uint32_t unpack_uint24(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8) + (n[2] << 16)
 
