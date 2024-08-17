@@ -15,6 +15,7 @@ from ..packet import MysqlPacket
 from .result import AsyncMySQLResult
 from .socketwrapper import AsyncSocketWrapper
 from ..constants import CLIENT, COMMAND
+from ..err import InterfaceError
 
 
 class AsyncConnection(Connection):
@@ -47,6 +48,15 @@ class AsyncConnection(Connection):
 
             self.commit()
 
+    async def close(self):
+        ''' Send the quit message and close the socket '''
+        if self.socket is None:
+            return
+        send_data = b'\x01\x00\x00\x00' + int2byte(COMMAND.COM_QUIT)
+        await self.socket.sendall(send_data, self.loop)
+        self.socket.close()
+        self.socket = None
+
     async def autocommit(self, value):
         ''' Set whether or not to commit after every execute() '''
         if value:
@@ -54,7 +64,7 @@ class AsyncConnection(Connection):
         else:
             q = "SET AUTOCOMMIT = 0"
         try:
-            self._execute_command(COMMAND.COM_QUERY, q)
+            await self._execute_command(COMMAND.COM_QUERY, q)
             await self.read_packet()
         except:
             exc, value, tb = sys.exc_info()
@@ -63,7 +73,7 @@ class AsyncConnection(Connection):
     async def commit(self):
         ''' Commit changes to stable storage '''
         try:
-            self._execute_command(COMMAND.COM_QUERY, "COMMIT")
+            await self._execute_command(COMMAND.COM_QUERY, "COMMIT")
             await self.read_packet()
         except:
             exc, value, tb = sys.exc_info()
@@ -72,7 +82,7 @@ class AsyncConnection(Connection):
     async def rollback(self):
         ''' Roll back the current transaction '''
         try:
-            self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
+            await self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
             await self.read_packet()
         except:
             exc, value, tb = sys.exc_info()
@@ -91,11 +101,11 @@ class AsyncConnection(Connection):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.socket is not None:
-            self.close()
+            await self.close()
 
     # The following methods are INTERNAL USE ONLY (called from Cursor)
     async def query(self, sql):
-        self._execute_command(COMMAND.COM_QUERY, sql)
+        await self._execute_command(COMMAND.COM_QUERY, sql)
         self._result = AsyncMySQLResult(self)
         await self._result.read_result()
 
@@ -112,7 +122,7 @@ class AsyncConnection(Connection):
     async def kill(self, thread_id):
         arg = struct.pack('<I', thread_id)
         try:
-            self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
+            await self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
             pkt = await self.read_packet()
             return pkt.is_ok_packet()
         except:
@@ -123,7 +133,7 @@ class AsyncConnection(Connection):
     async def ping(self, reconnect=True):
         ''' Check if the server is alive '''
         try:
-            self._execute_command(COMMAND.COM_PING, "")
+            await self._execute_command(COMMAND.COM_PING, "")
         except:
             if reconnect:
                 self._connect()
@@ -139,7 +149,7 @@ class AsyncConnection(Connection):
     async def set_charset(self, charset):
         try:
             if charset:
-                self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" %
+                await self._execute_command(COMMAND.COM_QUERY, "SET NAMES %s" %
                                       self.escape(charset))
                 await self.read_packet()
                 self.charset = charset
@@ -207,6 +217,17 @@ class AsyncConnection(Connection):
 
         if self.auth_plugin_name == 'caching_sha2_password':
             await self._caching_sha2_authentication2(auth_packet, next_packet)
+
+    async def _execute_command(self, command, sql):
+        if not self.socket:
+            self.errorhandler(None, InterfaceError, (-1, 'socket not found'))
+
+        sql = sql.encode(self.encoding)
+
+        if len(sql) + 1 > 0xffffff:
+            raise ValueError('Sending query packet is too large')
+        prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
+        await self.socket.sendall(prelude + sql, self.loop)
 
     async def _caching_sha2_authentication2(self, auth_packet, next_packet):
         # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html

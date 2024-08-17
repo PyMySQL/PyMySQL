@@ -35,7 +35,7 @@ class AsyncTestCase(base.PyMySQLTestCase):
             result = await cur.fetchall()
             self.assertEqual(result, [(42,),])
             await cur.close()
-            conn.close()
+            await conn.close()
         loop.run_until_complete(_test_select())
         loop.close()
 
@@ -54,7 +54,7 @@ class AsyncTestCase(base.PyMySQLTestCase):
                 await cur.execute("SELECT 42 a")
                 result = await cur.fetchall()
                 self.assertEqual(result, [(42,)])
-            conn.close()
+            await conn.close()
         loop.run_until_complete(_test_select())
         loop.close()
 
