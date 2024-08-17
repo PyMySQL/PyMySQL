@@ -401,7 +401,7 @@ class Connection(object):
             exc, value, tb = sys.exc_info()
             self.errorhandler(None, exc, value)
 
-    def _connect(self):
+    def _get_socket(self):
         sock = None
         try:
             if self.unix_socket and (self.host == 'localhost' or self.host == '127.0.0.1'):
@@ -418,7 +418,11 @@ class Connection(object):
             raise OperationalError(
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0])
             )
-        self.socket = SocketWrapper(sock)
+
+        return sock
+
+    def _connect(self):
+        self.socket = SocketWrapper(self._get_socket())
 
     def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network

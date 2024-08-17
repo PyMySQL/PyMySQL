@@ -14,6 +14,7 @@ from .cursors import AsyncCursor
 from ..charset import  charset_by_name
 from ..packet import MysqlPacket
 from .result import AsyncMySQLResult
+from .socketwrapper import AsyncSocketWrapper
 from ..constants import CLIENT, COMMAND
 from ..err import Warning, Error, \
      InterfaceError, DataError, DatabaseError, OperationalError, \
@@ -28,6 +29,9 @@ class AsyncConnection(Connection):
         else:
             self.loop = asyncio.get_event_loop()
         super().__init__(*args, **kwargs)
+
+    def _connect(self):
+        self.socket = AsyncSocketWrapper(self._get_socket())
 
     async def _initialize(self):
         self.socket.setblocking(False)
