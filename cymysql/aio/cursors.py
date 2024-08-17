@@ -1,6 +1,5 @@
 import weakref
 from ..cursors import Cursor
-from .recv import recv_packet
 
 
 class AsyncCursor(Cursor):
@@ -57,7 +56,6 @@ class AsyncCursor(Cursor):
         if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
             await conn._last_execute_cursor()._flush()
 
-        encoding = conn.encoding
         del self.messages[:]
 
         if args is not None:

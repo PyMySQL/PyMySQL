@@ -1,5 +1,4 @@
 from cymysql.packet import MysqlPacket, FieldDescriptorPacket
-from cymysql.recv import recv_packet
 
 from cymysql.constants import SERVER_STATUS, FLAG
 
@@ -32,7 +31,7 @@ cdef class MySQLResult(object):
 
     def read_result(self):
         self.first_packet = MysqlPacket(
-            recv_packet(self.connection.socket),
+            self.connection.socket.recv_packet(),
             self.connection.charset,
             self.connection.encoding,
             self.connection.use_unicode,
@@ -58,7 +57,7 @@ cdef class MySQLResult(object):
         decoder = self.connection.conv
         while True:
             packet = MysqlPacket(
-                recv_packet(self.connection.socket),
+                self.connection.socket.recv_packet(),
                 self.connection.charset,
                 self.connection.encoding,
                 self.connection.use_unicode,
@@ -81,7 +80,7 @@ cdef class MySQLResult(object):
         description = []
         for i in range(self.field_count):
             field = FieldDescriptorPacket(
-                recv_packet(self.connection.socket),
+                self.connection.socket.recv_packet(),
                 self.connection.charset,
                 self.connection.encoding,
                 self.connection.use_unicode,
@@ -90,7 +89,7 @@ cdef class MySQLResult(object):
             description.append(field.description())
 
         eof_packet = MysqlPacket(
-            recv_packet(self.connection.socket),
+            self.connection.socket.recv_packet(),
             self.connection.charset,
             self.connection.encoding,
             self.connection.use_unicode,
@@ -104,7 +103,7 @@ cdef class MySQLResult(object):
             return None
         if self.rest_rows is None:
             packet = MysqlPacket(
-                recv_packet(self.connection.socket),
+                self.connection.socket.recv_packet(),
                 self.connection.charset,
                 self.connection.encoding,
                 self.connection.use_unicode,

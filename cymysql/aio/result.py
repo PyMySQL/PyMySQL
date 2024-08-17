@@ -1,5 +1,4 @@
 from ..packet import MysqlPacket, FieldDescriptorPacket
-from .recv import recv_packet
 from ..result import MySQLResult
 
 from ..constants import SERVER_STATUS
@@ -14,7 +13,7 @@ class AsyncMySQLResult(MySQLResult):
 
     async def read_result(self):
         self.first_packet = MysqlPacket(
-            await recv_packet(self.connection.socket, self.connection.loop),
+            await self.connection.socket.recv_packet(self.connection.loop),
             self.connection.charset,
             self.connection.encoding,
             self.connection.use_unicode,
@@ -39,7 +38,7 @@ class AsyncMySQLResult(MySQLResult):
         decoder = self.connection.conv
         while True:
             packet = MysqlPacket(
-                await recv_packet(self.connection.socket, self.connection.loop),
+                await self.connection.socket.recv_packet(self.connection.loop),
                 self.connection.charset,
                 self.connection.encoding,
                 self.connection.use_unicode,
@@ -60,7 +59,7 @@ class AsyncMySQLResult(MySQLResult):
         description = []
         for i in range(self.field_count):
             field = FieldDescriptorPacket(
-                await recv_packet(self.connection.socket, self.connection.loop),
+                await self.connection.socket.recv_packet(self.connection.loop),
                 self.connection.charset,
                 self.connection.encoding,
                 self.connection.use_unicode,
@@ -69,7 +68,7 @@ class AsyncMySQLResult(MySQLResult):
             description.append(field.description())
 
         eof_packet = MysqlPacket(
-            await recv_packet(self.connection.socket, self.connection.loop),
+            await self.connection.socket.recv_packet(self.connection.loop),
             self.connection.charset,
             self.connection.encoding,
             self.connection.use_unicode,
@@ -82,7 +81,7 @@ class AsyncMySQLResult(MySQLResult):
             return None
         if self.rest_rows is None:
             packet = MysqlPacket(
-                await recv_packet(self.connection.socket, self.connection.loop),
+                await self.connection.socket.recv_packet(self.connection.loop),
                 self.connection.charset,
                 self.connection.encoding,
                 self.connection.use_unicode,

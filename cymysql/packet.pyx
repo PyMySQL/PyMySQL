@@ -7,10 +7,7 @@ from cymysql.err import raise_mysql_exception, OperationalError
 from cymysql.constants import SERVER_STATUS, FLAG
 from cymysql.converters import convert_characters, convert_json
 from cymysql.charset import charset_by_id, encoding_by_charset
-from cymysql.recv import recv_packet
-
 from libc.stdint cimport uint16_t, uint32_t
-cdef int PYTHON3 = sys.version_info[0] > 2
 
 
 cdef int FIELD_TYPE_VAR_STRING = 253
@@ -28,7 +25,7 @@ cdef uint16_t unpack_uint16(bytes s):
     return n[0] + (n[1] << 8)
 
 
-cdef uint32_t unpack_uint24(bytes s):
+cdef  uint32_t unpack_uint24(bytes s):
     cdef unsigned char* n = s
     return n[0] + (n[1] << 8) + (n[2] << 16)
 

@@ -1,24 +1,20 @@
 import sys
-import socket
+import ssl
 import asyncio
 import struct
 from ..connections import (
     Connection,
     byte2int,
     int2byte,
-    _caching_sha2_password_scramble,
-    _mysql_native_password_scramble,
     pack_int24,
+    _xor,
 )
 from .cursors import AsyncCursor
 from ..charset import  charset_by_name
 from ..packet import MysqlPacket
 from .result import AsyncMySQLResult
+from .socketwrapper import AsyncSocketWrapper
 from ..constants import CLIENT, COMMAND
-from ..err import Warning, Error, \
-     InterfaceError, DataError, DatabaseError, OperationalError, \
-     IntegrityError, InternalError, NotSupportedError, ProgrammingError
-from .recv import recv_packet
 
 
 class AsyncConnection(Connection):
@@ -29,6 +25,9 @@ class AsyncConnection(Connection):
         else:
             self.loop = asyncio.get_event_loop()
         super().__init__(*args, **kwargs)
+
+    def _connect(self):
+        self.socket = AsyncSocketWrapper(self._get_socket())
 
     async def _initialize(self):
         self.socket.setblocking(False)
@@ -151,7 +150,7 @@ class AsyncConnection(Connection):
     async def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
         and return a MysqlPacket type that represents the results."""
-        return MysqlPacket(await recv_packet(self.socket, self.loop), self.charset, self.encoding, self.use_unicode)
+        return MysqlPacket(await self.socket.recv_packet(self.loop), self.charset, self.encoding, self.use_unicode)
 
     async def _request_authentication(self):
         if self.user is None:
