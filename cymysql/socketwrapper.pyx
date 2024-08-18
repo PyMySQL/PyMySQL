@@ -35,7 +35,7 @@ cdef class SocketWrapper():
                 break
         return recv_data
 
-    def sendall(self, data):
+    def send_packet(self, data):
         self._sock.sendall(data)
 
     def setblocking(self, b):

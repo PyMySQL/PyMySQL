@@ -27,5 +27,5 @@ class AsyncSocketWrapper(SocketWrapper):
 
         return recv_data
 
-    async def sendall(self, data, loop):
+    async def send_packet(self, data, loop):
         await loop.sock_sendall(self._sock, data)
