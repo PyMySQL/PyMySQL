@@ -148,19 +148,20 @@ class Connection(object):
         connect_timeout: Timeout before throwing an exception when connecting.
         ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
         read_default_group: Group to read from in the configuration file.
-        compress; Not supported
+        compress: Enable protocol compression.
         named_pipe: Not supported
         """
 
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
 
-        if compress or named_pipe:
-            raise NotImplementedError("compress and named_pipe arguments are not supported")
+        if named_pipe:
+            raise NotImplementedError("named_pipe arguments are not supported")
 
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
+        self.compress = compress
         self.socket = None
         self.ssl = False
         if ssl:
@@ -240,7 +241,9 @@ class Connection(object):
         client_flag |= CLIENT.MULTI_STATEMENTS
         if self.db:
             client_flag |= CLIENT.CONNECT_WITH_DB
-        # self.client_flag |= CLIENT.CLIENT_DEPRECATE_EOF
+        # self.client_flag |= CLIENT.DEPRECATE_EOF
+        if self.compress:
+            self.client_flag |= CLIENT.COMPRESS
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -422,7 +425,7 @@ class Connection(object):
         return sock
 
     def _connect(self):
-        self.socket = SocketWrapper(self._get_socket())
+        self.socket = SocketWrapper(self._get_socket(), self.compress)
 
     def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network

@@ -28,7 +28,7 @@ class AsyncConnection(Connection):
         super().__init__(*args, **kwargs)
 
     def _connect(self):
-        self.socket = AsyncSocketWrapper(self._get_socket())
+        self.socket = AsyncSocketWrapper(self._get_socket(), self.compress)
 
     async def _initialize(self):
         self.socket.setblocking(False)

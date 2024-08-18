@@ -10,8 +10,9 @@ def unpack_uint24(n):
         return ord(n[0]) + (ord(n[1]) << 8) + (ord(n[2]) << 16)
 
 class SocketWrapper():
-    def __init__(self, sock):
+    def __init__(self, sock, compress):
         self._sock = sock
+        self._compress = compress
 
     def recv(self, size):
         r = b''
