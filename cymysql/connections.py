@@ -243,7 +243,7 @@ class Connection(object):
             client_flag |= CLIENT.CONNECT_WITH_DB
         # self.client_flag |= CLIENT.DEPRECATE_EOF
         if self.compress:
-            self.client_flag |= CLIENT.COMPRESS
+            client_flag |= CLIENT.COMPRESS
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
