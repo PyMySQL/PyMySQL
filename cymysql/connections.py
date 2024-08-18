@@ -273,7 +273,7 @@ class Connection(object):
         if self.socket is None:
             return
         send_data = b'\x01\x00\x00\x00' + int2byte(COMMAND.COM_QUIT)
-        self.socket.sendall(send_data)
+        self.socket.send_packet(send_data)
         self.socket.close()
         self.socket = None
 
@@ -448,7 +448,7 @@ class Connection(object):
         if len(sql) + 1 > 0xffffff:
             raise ValueError('Sending query packet is too large')
         prelude = struct.pack('<i', len(sql)+1) + int2byte(command)
-        self.socket.sendall(prelude + sql)
+        self.socket.send_packet(prelude + sql)
 
     def _scramble(self):
         if self.auth_plugin_name in ('', 'mysql_native_password'):
@@ -484,7 +484,7 @@ class Connection(object):
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
-            self.socket.sendall(data)
+            self.socket.send_packet(data)
             next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
@@ -507,7 +507,7 @@ class Connection(object):
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
-        self.socket.sendall(data)
+        self.socket.send_packet(data)
         auth_packet = self.read_packet()
 
         if auth_packet.is_eof_packet():
@@ -517,7 +517,7 @@ class Connection(object):
             data = self._scramble()
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.sendall(data)
+            self.socket.send_packet(data)
             auth_packet = self.read_packet()
 
         if self.auth_plugin_name == 'caching_sha2_password':
@@ -539,7 +539,7 @@ class Connection(object):
             data = b'\x02'
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.sendall(data)
+            self.socket.send_packet(data)
             response = self.read_packet()
             public_pem = response.get_all_data()[1:]
 
@@ -552,7 +552,7 @@ class Connection(object):
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
-        self.socket.sendall(data)
+        self.socket.send_packet(data)
 
         self.read_packet()
 
