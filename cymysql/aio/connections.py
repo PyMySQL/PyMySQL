@@ -203,7 +203,7 @@ class AsyncConnection(Connection):
         next_packet += 2
 
         await self.socket.send_uncompress_packet(data, self.loop)
-        auth_packet = await self.socket.recv_uncompress_packet()
+        auth_packet = await self.socket.recv_uncompress_packet(self.loop)
 
         if auth_packet[0] == 0xfe:  # EOF packet
             # AuthSwitchRequest
@@ -216,7 +216,7 @@ class AsyncConnection(Connection):
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
             await self.socket.send_uncompress_packet(data, self.loop)
-            auth_packet = await self.read_uncompress_packet()
+            auth_packet = await self.socket.recv_uncompress_packet(self.loop)
 
         if self.auth_plugin_name == 'caching_sha2_password':
             await self._caching_sha2_authentication2(auth_packet, next_packet)
@@ -268,7 +268,7 @@ class AsyncConnection(Connection):
     async def _get_server_information(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         i = 0
-        data = await self.socket.recv_uncompress_packet()
+        data = await self.socket.recv_uncompress_packet(self.loop)
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
