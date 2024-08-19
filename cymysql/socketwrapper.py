@@ -69,7 +69,19 @@ class SocketWrapper():
 
     def send_packet(self, data):
         if self._compress:
-            data = pack_int24(len(data)) + b'\x00' + pack_int24(0) + data
+            uncompressed_length = len(data)
+            if uncompressed_length < 50:
+                compressed = data
+                compressed_length = len(compressed)
+                uncompressed_length = 0
+            else:
+                compressed = zlib.compress(data)
+                compressed_length = len(compressed)
+                if len(data) < compressed_length:
+                    compressed = data
+                    compressed_length = len(compressed)
+                    uncompressed_length = 0
+            data = pack_int24(compressed_length) + b'\x00' + pack_int24(uncompressed_length) + compressed
         self._sock.sendall(data)
 
     def setblocking(self, b):
