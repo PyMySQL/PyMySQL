@@ -1,5 +1,5 @@
 import sys
-import zlip
+import zlib
 from cymysql.err import OperationalError
 from libc.stdint cimport uint16_t, uint32_t
 
@@ -15,8 +15,8 @@ cdef uint32_t unpack_uint24(bytes s):
 
 cdef class SocketWrapper():
     cdef public object _sock
-    cdef public bool _compress
-    cdef public bool _decompressed
+    cdef public object _compress
+    cdef public object _decompressed
 
     def __init__(self, sock, compress):
         self._sock = sock
