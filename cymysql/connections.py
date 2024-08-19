@@ -487,7 +487,7 @@ class Connection(object):
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
-            self.socket.send_packet(data)
+            self.socket.send_uncompress_packet(data)
             next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
@@ -510,30 +510,33 @@ class Connection(object):
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
-        self.socket.send_packet(data)
-        auth_packet = self.read_packet()
+        self.socket.send_uncompress_packet(data)
+        auth_packet = self.socket.recv_uncompress_packet()
 
-        if auth_packet.is_eof_packet():
+        if auth_packet[0] == (0xfe if PYTHON3 else b'\xfe'):  # EOF packet
             # AuthSwitchRequest
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-            self.auth_plugin_name, self.salt = auth_packet.read_auth_switch_request()
+            i = auth_packet.find(b'\0', 1)
+            self.auth_plugin_name = auth_packet[1:i].decode('utf-8')
+            j = auth_packet.find(b'\0', i + 1)
+            self.salt = auth_packet[i + 1:j]
             data = self._scramble()
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.send_packet(data)
-            auth_packet = self.read_packet()
+            self.socket.send_uncompress_packet(data)
+            auth_packet = self.socket.recv_uncompress_packet()
 
         if self.auth_plugin_name == 'caching_sha2_password':
             self._caching_sha2_authentication2(auth_packet, next_packet)
 
     def _caching_sha2_authentication2(self, auth_packet, next_packet):
         # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
-        if auth_packet.get_all_data() == b'\x01\x03':   # fast_auth_success
+        if auth_packet == b'\x01\x03':   # fast_auth_success
             self.read_packet()
             return
 
         # perform_full_authentication
-        assert auth_packet.get_all_data() == b'\x01\x04'
+        assert auth_packet == b'\x01\x04'
 
         if self.ssl or self.unix_socket:
             data = self.password.encode(self.encoding) + b'\x00'
@@ -542,7 +545,7 @@ class Connection(object):
             data = b'\x02'
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.send_packet(data)
+            self.socket.send_uncompress_packet(data)
             response = self.read_packet()
             public_pem = response.get_all_data()[1:]
 
@@ -555,7 +558,7 @@ class Connection(object):
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
-        self.socket.send_packet(data)
+        self.socket.send_uncompress_packet(data)
 
         self.read_packet()
 
@@ -575,8 +578,7 @@ class Connection(object):
     def _get_server_information(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         i = 0
-        packet = self.read_packet()
-        data = packet.get_all_data()
+        data =  self.socket.recv_uncompress_packet()
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
