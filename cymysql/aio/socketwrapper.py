@@ -1,6 +1,13 @@
 import zlib
-from ..socketwrapper import SocketWrapper, pack_int24, unpack_uint24
+from ..socketwrapper import SocketWrapper
 from ..err import OperationalError
+
+def pack_int24(n):
+    return bytes([n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF])
+
+
+def unpack_uint24(n):
+    return n[0] + (n[1] << 8) + (n[2] << 16)
 
 
 class AsyncSocketWrapper(SocketWrapper):
