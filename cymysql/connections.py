@@ -125,7 +125,7 @@ class Connection(object):
                  read_default_file=None, use_unicode=None,
                  client_flag=0, cursorclass=None, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress=None, named_pipe=None,
+                 compress="", named_pipe=None,
                  conv=decoders, encoders=encoders):
         """
         Establish a connection to the MySQL database. Accepts several
@@ -148,19 +148,23 @@ class Connection(object):
         connect_timeout: Timeout before throwing an exception when connecting.
         ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
         read_default_group: Group to read from in the configuration file.
-        compress; Not supported
+        compress: Compression algorithm.
         named_pipe: Not supported
         """
 
         if use_unicode is None and sys.version_info[0] > 2:
             use_unicode = True
 
-        if compress or named_pipe:
-            raise NotImplementedError("compress and named_pipe arguments are not supported")
+        if named_pipe:
+            raise NotImplementedError("named_pipe argument are not supported")
 
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
+        if compress and compress != "zlib":
+            raise NotImplementedError('compress argument support zlib only')
+
+        self.compress = compress
         self.socket = None
         self.ssl = False
         if ssl:
@@ -240,7 +244,9 @@ class Connection(object):
         client_flag |= CLIENT.MULTI_STATEMENTS
         if self.db:
             client_flag |= CLIENT.CONNECT_WITH_DB
-        # self.client_flag |= CLIENT.CLIENT_DEPRECATE_EOF
+        # self.client_flag |= CLIENT.DEPRECATE_EOF
+        if self.compress:
+            client_flag |= CLIENT.COMPRESS
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -422,7 +428,7 @@ class Connection(object):
         return sock
 
     def _connect(self):
-        self.socket = SocketWrapper(self._get_socket())
+        self.socket = SocketWrapper(self._get_socket(), self.compress)
 
     def read_packet(self):
         """Read an entire "mysql packet" in its entirety from the network
@@ -484,7 +490,7 @@ class Connection(object):
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
-            self.socket.send_packet(data)
+            self.socket.send_uncompress_packet(data)
             next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
@@ -507,30 +513,33 @@ class Connection(object):
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
-        self.socket.send_packet(data)
-        auth_packet = self.read_packet()
+        self.socket.send_uncompress_packet(data)
+        auth_packet = self.socket.recv_uncompress_packet()
 
-        if auth_packet.is_eof_packet():
+        if auth_packet[0] == (0xfe if PYTHON3 else b'\xfe'):  # EOF packet
             # AuthSwitchRequest
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-            self.auth_plugin_name, self.salt = auth_packet.read_auth_switch_request()
+            i = auth_packet.find(b'\0', 1)
+            self.auth_plugin_name = auth_packet[1:i].decode('utf-8')
+            j = auth_packet.find(b'\0', i + 1)
+            self.salt = auth_packet[i + 1:j]
             data = self._scramble()
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.send_packet(data)
-            auth_packet = self.read_packet()
+            self.socket.send_uncompress_packet(data)
+            auth_packet = self.socket.recv_uncompress_packet()
 
         if self.auth_plugin_name == 'caching_sha2_password':
             self._caching_sha2_authentication2(auth_packet, next_packet)
 
     def _caching_sha2_authentication2(self, auth_packet, next_packet):
         # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
-        if auth_packet.get_all_data() == b'\x01\x03':   # fast_auth_success
+        if auth_packet == b'\x01\x03':   # fast_auth_success
             self.read_packet()
             return
 
         # perform_full_authentication
-        assert auth_packet.get_all_data() == b'\x01\x04'
+        assert auth_packet == b'\x01\x04'
 
         if self.ssl or self.unix_socket:
             data = self.password.encode(self.encoding) + b'\x00'
@@ -539,7 +548,7 @@ class Connection(object):
             data = b'\x02'
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            self.socket.send_packet(data)
+            self.socket.send_uncompress_packet(data)
             response = self.read_packet()
             public_pem = response.get_all_data()[1:]
 
@@ -552,7 +561,7 @@ class Connection(object):
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
-        self.socket.send_packet(data)
+        self.socket.send_uncompress_packet(data)
 
         self.read_packet()
 
@@ -572,8 +581,7 @@ class Connection(object):
     def _get_server_information(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         i = 0
-        packet = self.read_packet()
-        data = packet.get_all_data()
+        data =  self.socket.recv_uncompress_packet()
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1

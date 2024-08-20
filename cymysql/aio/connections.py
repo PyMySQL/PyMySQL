@@ -28,7 +28,7 @@ class AsyncConnection(Connection):
         super().__init__(*args, **kwargs)
 
     def _connect(self):
-        self.socket = AsyncSocketWrapper(self._get_socket())
+        self.socket = AsyncSocketWrapper(self._get_socket(), self.compress)
 
     async def _initialize(self):
         self.socket.setblocking(False)
@@ -179,7 +179,7 @@ class AsyncConnection(Connection):
 
         if self.ssl and self.server_capabilities & CLIENT.SSL:
             data = pack_int24(len(data_init)) + int2byte(next_packet) + data_init
-            await self.socket.send_packet(data, self.loop)
+            await self.socket.send_uncompress_packet(data, self.loop)
             next_packet += 1
             self.socket = ssl.wrap_socket(self.socket, keyfile=self.key,
                                           certfile=self.cert,
@@ -202,18 +202,21 @@ class AsyncConnection(Connection):
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
 
-        await self.socket.send_packet(data, self.loop)
-        auth_packet = await self.read_packet()
+        await self.socket.send_uncompress_packet(data, self.loop)
+        auth_packet = await self.socket.recv_uncompress_packet(self.loop)
 
-        if auth_packet.is_eof_packet():
+        if auth_packet[0] == 0xfe:  # EOF packet
             # AuthSwitchRequest
             # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-            self.auth_plugin_name, self.salt = auth_packet.read_auth_switch_request()
+            i = auth_packet.find(b'\0', 1)
+            self.auth_plugin_name = auth_packet[1:i].decode('utf-8')
+            j = auth_packet.find(b'\0', i + 1)
+            self.salt = auth_packet[i + 1:j]
             data = self._scramble()
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            await self.socket.send_packet(data, self.loop)
-            auth_packet = await self.read_packet()
+            await self.socket.send_uncompress_packet(data, self.loop)
+            auth_packet = await self.socket.recv_uncompress_packet(self.loop)
 
         if self.auth_plugin_name == 'caching_sha2_password':
             await self._caching_sha2_authentication2(auth_packet, next_packet)
@@ -231,12 +234,12 @@ class AsyncConnection(Connection):
 
     async def _caching_sha2_authentication2(self, auth_packet, next_packet):
         # https://dev.mysql.com/doc/dev/mysql-server/latest/page_caching_sha2_authentication_exchanges.html
-        if auth_packet.get_all_data() == b'\x01\x03':   # fast_auth_success
+        if auth_packet == b'\x01\x03':   # fast_auth_success
             await self.read_packet()
             return
 
         # perform_full_authentication
-        assert auth_packet.get_all_data() == b'\x01\x04'
+        assert auth_packet == b'\x01\x04'
 
         if self.ssl or self.unix_socket:
             data = self.password.encode(self.encoding) + b'\x00'
@@ -245,7 +248,7 @@ class AsyncConnection(Connection):
             data = b'\x02'
             data = pack_int24(len(data)) + int2byte(next_packet) + data
             next_packet += 2
-            await self.socket.send_packet(data, self.loop)
+            await self.socket.send_uncompress_packet(data, self.loop)
             response = await self.read_packet()
             public_pem = response.get_all_data()[1:]
 
@@ -265,8 +268,7 @@ class AsyncConnection(Connection):
     async def _get_server_information(self):
         # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
         i = 0
-        packet = await self.read_packet()
-        data = packet.get_all_data()
+        data = await self.socket.recv_uncompress_packet(self.loop)
 
         self.protocol_version = byte2int(data[i:i+1])
         i += 1
