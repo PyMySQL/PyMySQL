@@ -156,13 +156,13 @@ class Connection(object):
             use_unicode = True
 
         if named_pipe:
-            raise NotImplementedError("named_pipe arguments are not supported")
+            raise NotImplementedError("named_pipe argument are not supported")
 
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
         if compress and compress != "zlib":
-            raise NotImplementedError('compress support zlib only')
+            raise NotImplementedError('compress argument support zlib only')
 
         self.compress = compress
         self.socket = None
