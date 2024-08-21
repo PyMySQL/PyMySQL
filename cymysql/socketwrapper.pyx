@@ -1,5 +1,9 @@
 import sys
 import zlib
+try:
+    import pyzstd
+except ImportError:
+    pyzstd = None
 from cymysql.err import OperationalError
 from libc.stdint cimport uint16_t, uint32_t
 
@@ -43,7 +47,10 @@ cdef class SocketWrapper():
             uncompressed_length = unpack_uint24(self.recv(3))
             data = self.recv(compressed_length)
             if uncompressed_length != 0:
-                data = zlib.decompress(data)
+                if self._compress == "zlib":
+                    data = zlib.decompress(data)
+                elif self._compress == "zstd":
+                    data = pyzstd.decompress(data)
                 assert len(data) == uncompressed_length
             self._decompressed += data
         recv_data, self._decompressed = self._decompressed[:size], self._decompressed[size:]
@@ -76,7 +83,10 @@ cdef class SocketWrapper():
                 compressed_length = len(compressed)
                 uncompressed_length = 0
             else:
-                compressed = zlib.compress(data)
+                if self._compress == "zlib":
+                    compressed = zlib.compress(data)
+                elif self._compress == "pyzstd":
+                    compressed = pyzstd.compress(data)
                 compressed_length = len(compressed)
                 if len(data) < compressed_length:
                     compressed = data

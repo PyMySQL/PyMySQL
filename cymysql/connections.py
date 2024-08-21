@@ -125,7 +125,7 @@ class Connection(object):
                  read_default_file=None, use_unicode=None,
                  client_flag=0, cursorclass=None, init_command=None,
                  connect_timeout=None, ssl=None, read_default_group=None,
-                 compress="", named_pipe=None,
+                 compress="", zstd_compression_level=3, named_pipe=None,
                  conv=decoders, encoders=encoders):
         """
         Establish a connection to the MySQL database. Accepts several
@@ -149,6 +149,7 @@ class Connection(object):
         ssl: A dict of arguments similar to mysql_ssl_set()'s parameters. For now the capath and cipher arguments are not supported.
         read_default_group: Group to read from in the configuration file.
         compress: Compression algorithm.
+        zstd_compression_level: zstd compression leve (1-22), default is 3.
         named_pipe: Not supported
         """
 
@@ -161,10 +162,11 @@ class Connection(object):
         if ssl and ('capath' in ssl or 'cipher' in ssl):
             raise NotImplementedError('ssl options capath and cipher are not supported')
 
-        if compress and compress != "zlib":
-            raise NotImplementedError('compress argument support zlib only')
+        if compress and compress not in ("zlib", "zstd"):
+            raise NotImplementedError('compress argument can set zlib or zstd')
 
         self.compress = compress
+        self.zstd_compression_level = zstd_compression_level
         self.socket = None
         self.ssl = False
         if ssl:
@@ -245,8 +247,10 @@ class Connection(object):
         if self.db:
             client_flag |= CLIENT.CONNECT_WITH_DB
         # self.client_flag |= CLIENT.DEPRECATE_EOF
-        if self.compress:
+        if self.compress == "zlib":
             client_flag |= CLIENT.COMPRESS
+        elif self.compress == "zstd":
+            client_flag |= CLIENT.ZSTD_COMPRESSION_ALGORITHM
         self.client_flag = client_flag
 
         self.cursorclass = cursorclass
@@ -509,6 +513,9 @@ class Connection(object):
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH:
             data += self.auth_plugin_name.encode(self.encoding) + int2byte(0)
+
+        if self.server_capabilities & CLIENT.ZSTD_COMPRESSION_ALGORITHM:
+            data += int2byte(self.zstd_compression_level)
 
         data = pack_int24(len(data)) + int2byte(next_packet) + data
         next_packet += 2
