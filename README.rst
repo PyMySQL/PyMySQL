@@ -19,7 +19,7 @@ Requirements
 -------------
 
 - Python 2.7, 3.8+
-- MySQL 5.5 or higher
+- MySQL 5.7 or higher
     
 Installation
 --------------

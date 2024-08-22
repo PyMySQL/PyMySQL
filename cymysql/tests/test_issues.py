@@ -230,10 +230,11 @@ class TestNewIssues(base.PyMySQLTestCase):
         # now nuke the connection
         try:
             conn.kill(kill_id)
-        except cymysql.InternalError:   # MySQL 5.6
+        except cymysql.InternalError:   # MySQL 9.0
             exc, value, tb = sys.exc_info()
-            self.assertEqual(value.errno, 1317)
-            self.assertEqual(value.errmsg, 'Query execution was interrupted')
+            self.assertEqual(value.errno, 1047)
+            self.assertEqual(value.errmsg, 'Unknown command')
+            return
         # make sure this connection has broken
         try:
             c.execute("show tables")
