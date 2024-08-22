@@ -232,13 +232,12 @@ class TestNewIssues(base.PyMySQLTestCase):
             conn.kill(kill_id)
         except cymysql.InternalError:
             exc, value, tb = sys.exc_info()
-            # MySQL 8.0
+            if value.errno == 1047:
+                # MySQL 9.0
+                self.assertEqual(value.errmsg, 'Unknown command')
+                return
             if value.errno == 1317:
                 self.assertEqual(value.errmsg, 'Query execution was interrupted')
-            # MySQL 9.0
-            elif value.errno == 1047:
-                self.assertEqual(value.errmsg, 'Unknown command')
-            return
         # make sure this connection has broken
         try:
             c.execute("show tables")
