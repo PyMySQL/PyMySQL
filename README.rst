@@ -38,7 +38,7 @@ Install cymysql
 
    # pip install cymysql
 
-Install pycryptodome(depending on the situation)
+Install pycryptodome(depending on a situation)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ::
@@ -47,7 +47,7 @@ Install pycryptodome(depending on the situation)
 
 If you use caching_sha2_password authentication plugin
 and connect with 'not ssl and not unix_socket' you shoud install pycryptodome.
-(It means that if the following error occur)
+It means that if the following error occur).
 
 ::
 
