@@ -38,15 +38,21 @@ Install cymysql
 
    # pip install cymysql
 
-MySQL 8.0 and insecure connection
-+++++++++++++++++++++++++++++++++++
-
-If you use caching_sha2_password authentication plugin (MySQL 8.0 default)
-and connect with 'not ssl and not unix_socket' you shoud install pycryptodome
+Install pycryptodome(depending on the situation)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ::
 
    # pip install pycryptodome
+
+If you use caching_sha2_password authentication plugin
+and connect with 'not ssl and not unix_socket' you shoud install pycryptodome.
+(It means that if the following error occur)
+
+::
+
+   ModuleNotFoundError: No module named 'Crypto'
+
 
 
 Example
