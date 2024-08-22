@@ -233,10 +233,10 @@ class TestNewIssues(base.PyMySQLTestCase):
         except cymysql.InternalError:
             exc, value, tb = sys.exc_info()
             # MySQL 8.0
-            if value.error == 1317:
+            if value.errno == 1317:
                 self.assertEqual(value.errmsg, 'Query execution was interrupted')
             # MySQL 9.0
-            elif value.error == 1047:
+            elif value.errno == 1047:
                 self.assertEqual(value.errmsg, 'Unknown command')
             return
         # make sure this connection has broken
