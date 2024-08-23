@@ -284,6 +284,11 @@ def convert_characters(data, encoding=None, field=None, use_unicode=None):
     return data
 
 
+def convert_vector(data, encoding=None, field=None, use_unicode=None):
+    import numpy as np
+    return np.frombuffer(data, dtype=np.float32)
+
+
 def convert_json(data, encoding=None, field=None, use_unicode=None):
     if use_unicode or PYTHON3:
         return data.decode(encoding)
@@ -322,6 +327,7 @@ decoders = {
         FIELD_TYPE.STRING: convert_characters,
         FIELD_TYPE.VAR_STRING: convert_characters,
         FIELD_TYPE.VARCHAR: convert_characters,
+        FIELD_TYPE.VECTOR: convert_vector,
         FIELD_TYPE.JSON: convert_json,
 }
 
