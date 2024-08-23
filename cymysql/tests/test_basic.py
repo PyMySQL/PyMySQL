@@ -96,10 +96,13 @@ class TestConversion(base.PyMySQLTestCase):
         conn = self.connections[0]
         c = conn.cursor()
         c.execute("create table test_vec (id int unsigned auto_increment primary key, vec1 vector)")
-        c.execute("insert into test_vec(vec1) values (%s)", [np.array([2, 3, 5, 7])])
-        c.execute("select * from vec_table")
-        r = c.fetchall()
-        self.assertEqual([(np.array([2, 3, 5, 7], dtype=np.float32), )], r)
+        try:
+            c.execute("insert into test_vec(vec1) values (%s)", [np.array([2, 3, 5, 7])])
+            c.execute("select * from test_vec")
+            r = c.fetchone()
+            self.assertEqual(str(r[1]), str(np.array([2, 3, 5, 7], dtype=np.float32)))
+        finally:
+            c.execute("drop table test_vec")
 
     def test_dict(self):
         """ test dict escaping """
