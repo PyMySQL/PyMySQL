@@ -6,14 +6,6 @@ from time import sleep
 import sys
 import datetime
 
-# backwards compatibility:
-if not hasattr(unittest, "skip"):
-    def _empty(func):
-        pass
-
-    def _skip(message):
-        return _empty
-    unittest.skip = _skip
 
 PYTHON3 = sys.version_info[0] > 2
 if PYTHON3:
