@@ -5,6 +5,7 @@ import time
 import datetime
 import struct
 import sys
+import unittest
 
 
 def u(x):
@@ -88,6 +89,17 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual([(4, ), (8, )], r)
         finally:
             c.execute("drop table test_datatypes")
+
+    @unittest.skip("MySQL9")
+    def test_vec(self):
+        import numpy as np
+        conn = self.connections[0]
+        c = conn.cursor()
+        c.execute("create table test_vec (id int unsigned auto_increment primary key, vec1 vector)")
+        c.execute("insert into test_vec(vec1) values (%s)", [np.array([2, 3, 5, 7])])
+        c.execute("select * from vec_table")
+        r = c.fetchall()
+        self.assertEqual([(np.array([2, 3, 5, 7], dtype=np.float32), )], r)
 
     def test_dict(self):
         """ test dict escaping """
