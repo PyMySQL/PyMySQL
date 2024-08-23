@@ -100,7 +100,7 @@ class TestConversion(base.PyMySQLTestCase):
             c.execute("insert into test_vec(vec1) values (%s)", [np.array([2, 3, 5, 7])])
             c.execute("select * from test_vec")
             r = c.fetchone()
-            self.assertEqual(str(r[1]), str(np.array([2, 3, 5, 7], dtype=np.float32)))
+            self.assertEqual(r[1].all(), np.array([2, 3, 5, 7], dtype=np.float32).all())
         finally:
             c.execute("drop table test_vec")
 
