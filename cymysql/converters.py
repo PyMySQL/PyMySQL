@@ -92,6 +92,11 @@ def escape_decimal(obj):
     return str(obj)
 
 
+def escape_vector(obj):
+    import numpy as np
+    return escape_bytes(obj.astype(np.float32).tobytes())
+
+
 def convert_datetime(obj):
     """Returns a DATETIME or TIMESTAMP column value as a datetime object:
 
@@ -354,6 +359,12 @@ if PYTHON3:
 else:
     encoders[unicode] = escape_string
     encoders[long] = escape_long
+
+try:
+    import numpy as np
+    encoders[np.ndarray] = escape_vector
+except ImportError:
+    pass
 
 
 def escape_item(val, charset, encoders=encoders):
