@@ -28,7 +28,7 @@ and edit the new file to match your MySQL configuration::
     $ cp ci/database.json pymysql/tests/databases.json
     $ $EDITOR pymysql/tests/databases.json
 
-To run all the tests, execute the script ``runtests.py``::
+To run all the tests, you can use pytest::
 
-    $ pip install pytest
+    $ pip install -r requirements-dev.txt
     $ pytest -v pymysql
