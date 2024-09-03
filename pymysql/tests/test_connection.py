@@ -883,3 +883,14 @@ class TestEscape(base.PyMySQLTestCase):
         con.commit()
         cur.execute("SELECT 3")
         self.assertEqual(cur.fetchone()[0], 3)
+
+    def test_force_close_closes_socketio(self):
+        con = self.connect()
+        sock = con._sock
+        fileno = sock.fileno()
+        rfile = con._rfile
+
+        con._force_close()
+        assert rfile.closed
+        assert sock._closed
+        assert sock.fileno() != fileno # should be set to -1
