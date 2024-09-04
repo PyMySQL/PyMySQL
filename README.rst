@@ -31,6 +31,11 @@ Install cython (optional)
 
    # pip install cython
 
+Installation of cython is optional.
+CyMySQL will run faster if installed, but will also run without it.
+
+Since the bottleneck is often in MySQL queries, installing cython may not be effective in many cases.
+
 Install cymysql
 ++++++++++++++++++++++++++++++
 
