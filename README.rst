@@ -53,8 +53,8 @@ It means that if the following error occur).
 
    ModuleNotFoundError: No module named 'Crypto'
 
-Install pyzstd
-++++++++++++++++++++++++++++++
+Install pyzstd (compress="zstd")
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ::
 
