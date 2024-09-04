@@ -67,7 +67,18 @@ Install pyzstd (compress="zstd")
 
 connect() has a `compress` parameter, and it can be set either "zlib" or "zstd".
 
-If "zstd" is specified, `pyzstd` must be installed
+If "zstd" is specified, `pyzstd` must be installed.
+
+Install numpy (VECTOR type)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+::
+
+   # pip install numpy
+
+If you fetch a VECTOR type (MySQL 9.0), you can get the result in ndarray.
+
+The value type returned by the VECTOR type may change in future versions of CyMySQL.
 
 Example
 ---------------
