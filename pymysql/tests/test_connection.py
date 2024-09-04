@@ -909,6 +909,7 @@ class TestEscape(base.PyMySQLTestCase):
             rfile = con._rfile
             assert rfile is not None
             raise TypeError
+
         con._request_authentication = _request_authentication
 
         with pytest.raises(TypeError):
