@@ -699,14 +699,7 @@ class Connection:
             if self.autocommit_mode is not None:
                 self.autocommit(self.autocommit_mode)
         except BaseException as e:
-            if self._rfile:
-                self._rfile.close()
-            self._rfile = None
-            if sock is not None:
-                try:
-                    sock.close()
-                except:  # noqa
-                    pass
+            self._force_close()
 
             if isinstance(e, (OSError, IOError)):
                 exc = err.OperationalError(
