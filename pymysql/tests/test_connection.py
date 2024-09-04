@@ -893,4 +893,4 @@ class TestEscape(base.PyMySQLTestCase):
         con._force_close()
         assert rfile.closed
         assert sock._closed
-        assert sock.fileno() != fileno # should be set to -1
+        assert sock.fileno() != fileno  # should be set to -1
