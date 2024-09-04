@@ -53,7 +53,16 @@ It means that if the following error occur).
 
    ModuleNotFoundError: No module named 'Crypto'
 
+Install pyzstd
+++++++++++++++++++++++++++++++
 
+::
+
+   # pip install pyzstd
+
+connect() has a `compress` parameter, and it can be set either "zlib" or "zstd".
+
+If "zstd" is specified, `pyzstd` must be installed
 
 Example
 ---------------
