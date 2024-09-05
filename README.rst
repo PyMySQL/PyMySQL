@@ -50,13 +50,14 @@ Install pycryptodome(depending on a situation)
 
    # pip install pycryptodome
 
-If you use caching_sha2_password authentication plugin
-and connect with 'not ssl and not unix_socket' you shoud install pycryptodome.
-It means that if the following error occur).
+If you use caching_sha2_password authentication plugin and connect with 'not ssl and not unix_socket',
+it means that if the following error occur ...
 
 ::
 
    ModuleNotFoundError: No module named 'Crypto'
+
+you shoud install pycryptodome.
 
 Install pyzstd (compress="zstd")
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
