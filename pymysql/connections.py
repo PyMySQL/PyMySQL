@@ -161,6 +161,7 @@ class Connection:
     """
 
     _sock = None
+    _rfile = None
     _auth_plugin_name = ""
     _closed = False
     _secure = False
@@ -430,6 +431,8 @@ class Connection:
 
     def _force_close(self):
         """Close connection without QUIT message."""
+        if self._rfile:
+            self._rfile.close()
         if self._sock:
             try:
                 self._sock.close()
@@ -696,12 +699,7 @@ class Connection:
             if self.autocommit_mode is not None:
                 self.autocommit(self.autocommit_mode)
         except BaseException as e:
-            self._rfile = None
-            if sock is not None:
-                try:
-                    sock.close()
-                except:  # noqa
-                    pass
+            self._force_close()
 
             if isinstance(e, (OSError, IOError)):
                 exc = err.OperationalError(

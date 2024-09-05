@@ -883,3 +883,40 @@ class TestEscape(base.PyMySQLTestCase):
         con.commit()
         cur.execute("SELECT 3")
         self.assertEqual(cur.fetchone()[0], 3)
+
+    def test_force_close_closes_socketio(self):
+        con = self.connect()
+        sock = con._sock
+        fileno = sock.fileno()
+        rfile = con._rfile
+
+        con._force_close()
+        assert rfile.closed
+        assert sock._closed
+        assert sock.fileno() != fileno  # should be set to -1
+
+    def test_socket_closed_on_exception_in_connect(self):
+        con = self.connect(defer_connect=True)
+        sock = None
+        rfile = None
+        fileno = -1
+
+        def _request_authentication():
+            nonlocal sock, rfile, fileno
+            sock = con._sock
+            assert sock is not None
+            fileno = sock.fileno()
+            rfile = con._rfile
+            assert rfile is not None
+            raise TypeError
+
+        con._request_authentication = _request_authentication
+
+        with pytest.raises(TypeError):
+            con.connect()
+        assert not con.open
+        assert con._rfile is None
+        assert con._sock is None
+        assert rfile.closed
+        assert sock._closed
+        assert sock.fileno() != fileno  # should be set to -1
