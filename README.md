@@ -3,7 +3,7 @@
 
 # PyMySQL
 
-This package contains a pure-Python MySQL client library, based on [PEP
+This package contains a pure-Python MySQL and MariaDB client library, based on [PEP
 249](https://www.python.org/dev/peps/pep-0249/).
 
 ## Requirements
@@ -64,14 +64,13 @@ connection = pymysql.connect(host='localhost',
                              database='db',
                              cursorclass=pymysql.cursors.DictCursor)
 
-with connection:
+try:
     with connection.cursor() as cursor:
         # Create a new record
         sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
         cursor.execute(sql, ('webmaster@python.org', 'very-secret'))
 
-    # connection is not autocommit by default. So you must commit to save
-    # your changes.
+    # Commit to save changes
     connection.commit()
 
     with connection.cursor() as cursor:
@@ -80,6 +79,12 @@ with connection:
         cursor.execute(sql, ('webmaster@python.org',))
         result = cursor.fetchone()
         print(result)
+
+except pymysql.MySQLError as e:
+    print(f"Error: {e}")
+
+finally:
+    connection.close()
 ```
 
 This example will print:
