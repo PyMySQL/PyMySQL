@@ -3,7 +3,7 @@
 
 # PyMySQL
 
-This package contains a pure-Python MySQL client library, based on [PEP
+This package contains a pure-Python MySQL and MariaDB client library, based on [PEP
 249](https://www.python.org/dev/peps/pep-0249/).
 
 ## Requirements
