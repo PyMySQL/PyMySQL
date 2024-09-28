@@ -55,6 +55,8 @@ classifiers = [
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
     'Topic :: Database',
+    'Topic :: Database :: Front-Ends',
+    'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 
 setup(
