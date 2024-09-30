@@ -38,7 +38,8 @@ from cymysql.constants import FIELD_TYPE
 if sys.version_info[0] > 2:
     from cymysql import aio
 
-VERSION = (1, 0, 2)
+from .__version__ import VERSION, __version__
+
 threadsafety = 1
 apilevel = "2.0"
 paramstyle = "format"
@@ -90,8 +91,6 @@ def connect(*args, **kwargs):
 
 
 NULL = "NULL"
-
-__version__ = '%s.%s.%s' % VERSION
 
 __all__ = [
     'BINARY', 'Binary', 'Connection', 'DATE', 'Date',

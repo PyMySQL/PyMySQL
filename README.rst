@@ -9,8 +9,7 @@ This package contains a python MySQL client library.
 
 It is a fork project from PyMySQL https://pymysql.readthedocs.io/en/latest/.
 
-CyMySQL accerarates by Cython, and support not only python 2 but also python 3.
-It still can work without Cython as a pure python driver.
+CyMySQL is accerarated by Cython and supports Python versions 2 and 3.
 
 Documentation on the MySQL client/server protocol can be found here:
 http://dev.mysql.com/doc/internals/en/client-server-protocol.html
@@ -18,23 +17,32 @@ http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 Requirements
 -------------
 
-- Python 2.7, 3.8+
-- MySQL 5.7 or higher
-    
+- Python 2.7, 3.5+
+- MySQL 5.7 or higher, MariaDB
+
 Installation
 --------------
 
-Install cython (optional)
-++++++++++++++++++++++++++++++
+Install Cython (optional)
++++++++++++++++++++++++++
+
+Installation of Cython is optional.
+CyMySQL will run faster if installed, but will also run without it.
+
+Since the bottleneck is often in MySQL queries, installing Cython may not be effective in many cases.
+
+For most versions of pip and setuptools installation of Cython is not
+required as it's listed in pyproject.tompl as a required build-time
+dependency and will be installed automatically in the isolated build
+environemnt. This means it's not possible to install CyMySQL in
+pure-Python mode without cythonized extensions.
+
+For older versions of pip and setuptools that don't obey pyproject.tompl
+install Cython yourself:
 
 ::
 
    # pip install cython
-
-Installation of cython is optional.
-CyMySQL will run faster if installed, but will also run without it.
-
-Since the bottleneck is often in MySQL queries, installing cython may not be effective in many cases.
 
 Install cymysql
 ++++++++++++++++++++++++++++++
