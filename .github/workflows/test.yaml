@@ -30,6 +30,9 @@ jobs:
           - db: "mariadb:10.6"
             py: "3.12"
 
+          - db: "mariadb:10.6"
+            py: "3.13"
+
           - db: "mariadb:lts"
             py: "3.9"
 
