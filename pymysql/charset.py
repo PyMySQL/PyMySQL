@@ -45,9 +45,10 @@ class Charsets:
         return self._by_id[id]
 
     def by_name(self, name):
-        if name == "utf8":
-            name = "utf8mb4"
-        return self._by_name.get(name.lower())
+        lowercase_name = name.lower()
+        if lowercase_name == "utf8":
+            return self._by_name.get("utf8mb4")
+        return self._by_name.get(lowercase_name)
 
 
 _charsets = Charsets()
