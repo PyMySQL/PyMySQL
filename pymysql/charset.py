@@ -47,7 +47,7 @@ class Charsets:
     def by_name(self, name):
         name = name.lower()
         if name == "utf8":
-            return self._by_name.get("utf8mb4")
+            name = "utf8mb4"
         return self._by_name.get(name)
 
 
