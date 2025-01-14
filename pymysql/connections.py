@@ -576,9 +576,9 @@ class Connection:
         return self._affected_rows
 
     def kill(self, thread_id):
-        arg = struct.pack("<I", thread_id)
-        self._execute_command(COMMAND.COM_PROCESS_KILL, arg)
-        return self._read_ok_packet()
+        if not isinstance(thread_id, int):
+            raise TypeError("thread_id must be an integer")
+        self.query(f"KILL {thread_id:d}")
 
     def ping(self, reconnect=True):
         """
