@@ -19,29 +19,30 @@ jobs:
       matrix:
         include:
           - db: "mariadb:10.4"
-            py: "3.8"
+            py: "3.13"
 
           - db: "mariadb:10.5"
-            py: "3.7"
-
-          - db: "mariadb:10.6"
             py: "3.11"
 
           - db: "mariadb:10.6"
-            py: "3.12"
+            py: "3.10"
+
+          - db: "mariadb:10.6"
+            py: "3.9"
 
           - db: "mariadb:lts"
-            py: "3.9"
+            py: "3.8"
 
           - db: "mysql:5.7"
-            py: "pypy-3.8"
+            py: "pypy-3.10"
 
           - db: "mysql:8.0"
-            py: "3.9"
+            py: "3.13"
             mysql_auth: true
 
-          - db: "mysql:8.0"
-            py: "3.10"
+          - db: "mysql:8.4"
+            py: "3.8"
+            mysql_auth: true
 
     services:
       mysql:
@@ -106,4 +107,4 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: github.repository == 'PyMySQL/PyMySQL'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
