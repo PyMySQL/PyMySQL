@@ -44,6 +44,10 @@ jobs:
             py: "3.10"
             mysql_auth: true
 
+          - db: "mysql:8.4"
+            py: "3.13"
+            mysql_auth: true
+
     services:
       mysql:
         image: "${{ matrix.db }}"
