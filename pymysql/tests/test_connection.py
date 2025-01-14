@@ -558,7 +558,7 @@ class TestConnection(base.PyMySQLTestCase):
         sock.close()
 
     def test_ssl_connect(self):
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -581,7 +581,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             dummy_ssl_context.set_ciphers.assert_called_with("cipher")
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -603,7 +603,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             dummy_ssl_context.set_ciphers.assert_not_called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -626,7 +626,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             dummy_ssl_context.set_ciphers.assert_not_called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -640,7 +640,7 @@ class TestConnection(base.PyMySQLTestCase):
             dummy_ssl_context.load_cert_chain.assert_not_called
             dummy_ssl_context.set_ciphers.assert_not_called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -661,7 +661,7 @@ class TestConnection(base.PyMySQLTestCase):
             dummy_ssl_context.set_ciphers.assert_not_called
 
         for ssl_verify_cert in (True, "1", "yes", "true"):
-            dummy_ssl_context = mock.Mock(options=0)
+            dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
             with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
                 "pymysql.connections.ssl.create_default_context",
                 new=mock.Mock(return_value=dummy_ssl_context),
@@ -682,7 +682,7 @@ class TestConnection(base.PyMySQLTestCase):
                 dummy_ssl_context.set_ciphers.assert_not_called
 
         for ssl_verify_cert in (None, False, "0", "no", "false"):
-            dummy_ssl_context = mock.Mock(options=0)
+            dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
             with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
                 "pymysql.connections.ssl.create_default_context",
                 new=mock.Mock(return_value=dummy_ssl_context),
@@ -704,7 +704,7 @@ class TestConnection(base.PyMySQLTestCase):
 
         for ssl_ca in ("ca", None):
             for ssl_verify_cert in ("foo", "bar", ""):
-                dummy_ssl_context = mock.Mock(options=0)
+                dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
                 with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
                     "pymysql.connections.ssl.create_default_context",
                     new=mock.Mock(return_value=dummy_ssl_context),
@@ -727,7 +727,7 @@ class TestConnection(base.PyMySQLTestCase):
                     )
                     dummy_ssl_context.set_ciphers.assert_not_called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -748,7 +748,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             dummy_ssl_context.set_ciphers.assert_not_called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -770,7 +770,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             dummy_ssl_context.set_ciphers.assert_not_called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
@@ -785,7 +785,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             assert not create_default_context.called
 
-        dummy_ssl_context = mock.Mock(options=0)
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch("pymysql.connections.Connection.connect"), mock.patch(
             "pymysql.connections.ssl.create_default_context",
             new=mock.Mock(return_value=dummy_ssl_context),
