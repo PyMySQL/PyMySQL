@@ -19,33 +19,29 @@ jobs:
       matrix:
         include:
           - db: "mariadb:10.4"
-            py: "3.8"
+            py: "3.13"
 
           - db: "mariadb:10.5"
-            py: "3.8"
-
-          - db: "mariadb:10.6"
             py: "3.11"
 
           - db: "mariadb:10.6"
-            py: "3.13"
+            py: "3.10"
+
+          - db: "mariadb:10.6"
+            py: "3.9"
 
           - db: "mariadb:lts"
-            py: "3.9"
+            py: "3.8"
 
           - db: "mysql:5.7"
             py: "pypy-3.10"
 
           - db: "mysql:8.0"
-            py: "3.8"
-            mysql_auth: true
-
-          - db: "mysql:8.0"
-            py: "3.10"
+            py: "3.13"
             mysql_auth: true
 
           - db: "mysql:8.4"
-            py: "3.13"
+            py: "3.8"
             mysql_auth: true
 
     services:
