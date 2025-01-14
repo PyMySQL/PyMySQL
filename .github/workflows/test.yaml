@@ -22,13 +22,10 @@ jobs:
             py: "3.8"
 
           - db: "mariadb:10.5"
-            py: "3.7"
+            py: "3.8"
 
           - db: "mariadb:10.6"
             py: "3.11"
-
-          - db: "mariadb:10.6"
-            py: "3.12"
 
           - db: "mariadb:10.6"
             py: "3.13"
@@ -37,14 +34,15 @@ jobs:
             py: "3.9"
 
           - db: "mysql:5.7"
-            py: "pypy-3.8"
+            py: "pypy-3.10"
 
           - db: "mysql:8.0"
-            py: "3.9"
+            py: "3.8"
             mysql_auth: true
 
           - db: "mysql:8.0"
             py: "3.10"
+            mysql_auth: true
 
     services:
       mysql:
