@@ -3,8 +3,8 @@
 
 # PyMySQL
 
-This package contains a pure-Python MySQL and MariaDB client library, based on [PEP
-249](https://www.python.org/dev/peps/pep-0249/).
+This package contains a pure-Python MySQL and MariaDB client library, based on
+[PEP 249](https://www.python.org/dev/peps/pep-0249/).
 
 ## Requirements
 
@@ -92,6 +92,7 @@ This example will print:
 
 - DB-API 2.0: <https://www.python.org/dev/peps/pep-0249/>
 - MySQL Reference Manuals: <https://dev.mysql.com/doc/>
+- Getting Help With MariaDB <https://mariadb.com/kb/en/getting-help-with-mariadb/>
 - MySQL client/server protocol:
   <https://dev.mysql.com/doc/internals/en/client-server-protocol.html>
 - "Connector" channel in MySQL Community Slack:
