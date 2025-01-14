@@ -30,6 +30,7 @@ def test_utf8():
     assert uppercase_utf8 == lowercase_utf8
     assert mixedcase_utf8 == lowercase_utf8
 
+
 def test_case_sensitivity():
     lowercase_latin1 = pymysql.charset.charset_by_name("latin1")
     assert lowercase_latin1 is not None
