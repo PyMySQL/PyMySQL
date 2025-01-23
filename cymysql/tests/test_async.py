@@ -5,6 +5,12 @@ from cymysql.tests import base
 
 
 class AsyncTestCase(base.PyMySQLTestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
     def test_aio_connect(self):
         async def _test_select():
             conn = await cymysql.aio.connect(
@@ -106,6 +112,29 @@ class AsyncTestCase(base.PyMySQLTestCase):
         loop = asyncio.new_event_loop()
         loop.run_until_complete(_test_select(loop))
         loop.close()
+
+    def test_executemany(self):
+        async def _test_executemany():
+            try:
+                conn = await cymysql.aio.connect(
+                    host=self.test_host,
+                    user="root",
+                    passwd=self.test_passwd,
+                    db="test_cymysql",
+                )
+                cur = conn.cursor()
+                await cur.execute("CREATE TABLE async_executemany(a varchar(1))")
+                await cur.executemany(
+                    "insert into async_executemany values (%s)",
+                    [("A", ), ("B", ), ("C", )]
+                )
+                await cur.execute("SELECT * FROM async_executemany")
+                result = await cur.fetchall()
+                self.assertEqual(result, [("A", ), ("B", ), ("C", )])
+            finally:
+               await cur.execute("drop table async_executemany")
+
+        asyncio.run(_test_executemany())
 
 
 if __name__ == "__main__":

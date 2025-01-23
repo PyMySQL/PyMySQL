@@ -87,7 +87,7 @@ class AsyncCursor(Cursor):
 
         rowcount = 0
         for params in args:
-            self.execute(query, params)
+            await self.execute(query, params)
             if self.rowcount != -1:
                 rowcount += self.rowcount
         self._result = None
