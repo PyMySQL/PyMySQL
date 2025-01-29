@@ -47,6 +47,7 @@ except (ImportError, KeyError, OSError):
     DEFAULT_USER = None
 
 DEBUG = False
+_DEFAULT_AUTH_PLUGIN = None  # if this is not None, use it instead of server's default.
 
 TEXT_TYPES = {
     FIELD_TYPE.BIT,
@@ -1157,6 +1158,9 @@ class Connection:
                 self._auth_plugin_name = data[i:].decode("utf-8")
             else:
                 self._auth_plugin_name = data[i:server_end].decode("utf-8")
+
+        if _DEFAULT_AUTH_PLUGIN is not None:  # for tests
+            self._auth_plugin_name = _DEFAULT_AUTH_PLUGIN
 
     def get_server_info(self):
         return self.server_version

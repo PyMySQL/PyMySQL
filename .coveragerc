@@ -2,6 +2,7 @@
 branch = True
 source =
     pymysql
+    tests
 omit = pymysql/tests/*
        pymysql/tests/thirdparty/test_MySQLdb/*
 
