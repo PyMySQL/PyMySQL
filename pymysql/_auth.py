@@ -166,6 +166,8 @@ def sha256_password_auth(conn, pkt):
 
     if pkt.is_auth_switch_request():
         conn.salt = pkt.read_all()
+        if conn.salt.endswith(b"\0"):
+            conn.salt = conn.salt[:-1]
         if not conn.server_public_key and conn.password:
             # Request server public key
             if DEBUG:
@@ -215,9 +217,11 @@ def caching_sha2_password_auth(conn, pkt):
 
     if pkt.is_auth_switch_request():
         # Try from fast auth
-        if DEBUG:
-            print("caching sha2: Trying fast path")
         conn.salt = pkt.read_all()
+        if conn.salt.endswith(b"\0"):  # str.removesuffix is available in 3.9
+            conn.salt = conn.salt[:-1]
+        if DEBUG:
+            print(f"caching sha2: Trying fast path. salt={conn.salt.hex()!r}")
         scrambled = scramble_caching_sha2(conn.password, conn.salt)
         pkt = _roundtrip(conn, scrambled)
     # else: fast auth is tried in initial handshake
