@@ -71,6 +71,19 @@ def test_caching_sha2_password():
     con.query("FLUSH PRIVILEGES")
     con.close()
 
+    # Fast path after auth_switch_request
+    pymysql.connections._DEFAULT_AUTH_PLUGIN = "mysql_native_password"
+    con = pymysql.connect(
+        user="user_caching_sha2",
+        password=pass_caching_sha2,
+        host=host,
+        port=port,
+        ssl=ssl,
+    )
+    con.query("FLUSH PRIVILEGES")
+    con.close()
+    pymysql.connections._DEFAULT_AUTH_PLUGIN = None
+
 
 def test_caching_sha2_password_ssl():
     con = pymysql.connect(
@@ -88,7 +101,20 @@ def test_caching_sha2_password_ssl():
         password=pass_caching_sha2,
         host=host,
         port=port,
-        ssl=None,
+        ssl=ssl,
     )
     con.query("FLUSH PRIVILEGES")
     con.close()
+
+    # Fast path after auth_switch_request
+    pymysql.connections._DEFAULT_AUTH_PLUGIN = "mysql_native_password"
+    con = pymysql.connect(
+        user="user_caching_sha2",
+        password=pass_caching_sha2,
+        host=host,
+        port=port,
+        ssl=ssl,
+    )
+    con.query("FLUSH PRIVILEGES")
+    con.close()
+    pymysql.connections._DEFAULT_AUTH_PLUGIN = None
