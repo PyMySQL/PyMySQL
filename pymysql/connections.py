@@ -154,6 +154,7 @@ class Connection:
         (if no authenticate method) for returning a string from the user. (experimental)
     :param server_public_key: SHA256 authentication plugin public key value. (default: None)
     :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
+    :param timeout_on_ping: Set to true to re-use the connect_timeout for ping (default: False)
     :param compress: Not supported.
     :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
@@ -208,6 +209,7 @@ class Connection:
         ssl_key_password=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
+        timeout_on_ping=False,
         compress=None,  # not supported
         named_pipe=None,  # not supported
         passwd=None,  # deprecated
@@ -315,6 +317,7 @@ class Connection:
         if write_timeout is not None and write_timeout <= 0:
             raise ValueError("write_timeout should be > 0")
         self._write_timeout = write_timeout
+        self._timeout_on_ping = timeout_on_ping
 
         self.charset = charset or DEFAULT_CHARSET
         self.collation = collation
@@ -602,7 +605,15 @@ class Connection:
                 reconnect = False
             else:
                 raise err.Error("Already closed")
+
+        read_timeout = self._read_timeout
+        write_timeout = self._write_timeout
+
         try:
+            if self._timeout_on_ping:
+                self._read_timeout = self.connect_timeout
+                self._write_timeout = self.connect_timeout
+
             self._execute_command(COMMAND.COM_PING, "")
             self._read_ok_packet()
         except Exception:
@@ -611,6 +622,10 @@ class Connection:
                 self.ping(False)
             else:
                 raise
+        finally:
+            if self._timeout_on_ping:
+                self._read_timeout = read_timeout
+                self._write_timeout = write_timeout
 
     def set_charset(self, charset):
         """Deprecated. Use set_character_set() instead."""
