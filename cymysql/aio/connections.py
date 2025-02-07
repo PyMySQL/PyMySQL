@@ -137,7 +137,7 @@ class AsyncConnection(Connection):
         except:
             if reconnect:
                 self._connect()
-                return self.ping(False)
+                return await self.ping(False)
             else:
                 exc, value, tb = sys.exc_info()
                 self.errorhandler(None, exc, value)
