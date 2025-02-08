@@ -26,6 +26,7 @@ class AsyncConnection(Connection):
         else:
             self.loop = asyncio.get_event_loop()
         super().__init__(*args, **kwargs)
+        self.last_usage = self.loop.time()
 
     def _connect(self):
         self.socket = AsyncSocketWrapper(self._get_socket(), self.compress)
@@ -89,7 +90,7 @@ class AsyncConnection(Connection):
             self.errorhandler(None, exc, value)
 
     def cursor(self, cursor=None):
-        self._last_usage = self.loop.time()
+        self.last_usage = self.loop.time()
         if cursor is None:
             cursor = self.cursorclass
         if cursor is None:
