@@ -429,6 +429,8 @@ class Connection(object):
                 2003, "Can't connect to MySQL server on %r (%s)" % (self.host, e.args[0])
             )
 
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         return sock
 
     def _connect(self):
