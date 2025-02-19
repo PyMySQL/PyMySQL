@@ -295,7 +295,27 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             c.execute("drop table issue66")
 
 
-__all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues"]
+class TestCyMySQLIssues(base.PyMySQLTestCase):
+    def test_issue_43(self):
+        b_values = [b"'", b'\\', b'\000', b'\b', b'\n', b'\r', b'\t']
+        s_values = ["'", '\\', '\000', '\b', '\n', '\r', '\t']
+        conn = self.connections[0]
+        c = conn.cursor()
+        try:
+            c.execute("create table issue43 (name varchar(255), value blob not null)")
+            for param in b_values:
+                c.execute("insert into issue43 (name, value) values ('b', %s)", [param])
+            for param in s_values:
+                c.execute("insert into issue43 (name, value) values ('s', %s)", param)
+            c.execute("select value from issue43 where name='b'")
+            self.assertEqual([r[0] for r in c.fetchall()], b_values)
+            c.execute("select value from issue43 where name='s'")
+            self.assertEqual([r[0] for r in c.fetchall()], b_values)
+        finally:
+            c.execute("drop table issue43")
+
+
+__all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues", "TestCyMySQLIssues"]
 
 if __name__ == "__main__":
     import unittest
