@@ -137,5 +137,29 @@ class AsyncTestCase(base.PyMySQLTestCase):
         asyncio.run(_test_executemany())
 
 
+    def test_rowcount(self):
+        async def _test_rowcount():
+            try:
+                conn = await cymysql.aio.connect(
+                    host=self.test_host,
+                    user="root",
+                    passwd=self.test_passwd,
+                    db="test_cymysql",
+                )
+                cur = conn.cursor()
+                await cur.execute("CREATE TABLE async_rowcount(a varchar(1))")
+                await cur.executemany(
+                    "insert into async_rowcount values (%s)",
+                    [("A", ), ("B", ), ("C", )]
+                )
+                self.assertEqual(cur.rowcount, 3)
+                await cur.execute("update async_rowcount set a = NULL")
+                self.assertEqual(cur.rowcount, 3)
+            finally:
+               await cur.execute("drop table async_rowcount")
+
+        asyncio.run(_test_rowcount())
+
+
 if __name__ == "__main__":
     unittest.main()
