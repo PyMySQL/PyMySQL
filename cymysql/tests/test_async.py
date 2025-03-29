@@ -148,11 +148,12 @@ class AsyncTestCase(base.PyMySQLTestCase):
                 )
                 cur = conn.cursor()
                 await cur.execute("CREATE TABLE async_rowcount(a varchar(1))")
-                await cur.executemany(
+                rowcount = await cur.executemany(
                     "insert into async_rowcount values (%s)",
                     [("A", ), ("B", ), ("C", )]
                 )
-                self.assertEqual(cur.rowcount, 3)
+                self.assertEqual(rowcount, 3)
+                self.assertEqual(cur.rowcount, -1)
                 await cur.execute("update async_rowcount set a = NULL")
                 self.assertEqual(cur.rowcount, 3)
             finally:
