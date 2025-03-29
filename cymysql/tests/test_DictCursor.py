@@ -24,9 +24,11 @@ class TestDictCursor(base.PyMySQLTestCase):
             self.assertEqual(c.rowcount, -1)
             # try an update which should return no rows
             c.execute("update dictcursor set age=20 where name='bob'")
+            self.assertEqual(c.rowcount, 1)
             bob['age'] = 20
             # pull back the single row dict for bob and check
             c.execute("SELECT * from dictcursor where name='bob'")
+            self.assertEqual(c.rowcount, -1)
             r = c.fetchone()
             self.assertEqual(bob, r, "fetchone via DictCursor failed")
             # same again, but via fetchall => tuple)

@@ -156,6 +156,8 @@ class AsyncTestCase(base.PyMySQLTestCase):
                 self.assertEqual(cur.rowcount, -1)
                 await cur.execute("update async_rowcount set a = NULL")
                 self.assertEqual(cur.rowcount, 3)
+                await cur.execute("select * from async_rowcount")
+                self.assertEqual(cur.rowcount, -1)
             finally:
                await cur.execute("drop table async_rowcount")
 
