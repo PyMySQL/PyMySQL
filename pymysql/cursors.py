@@ -252,20 +252,13 @@ class Cursor:
         disconnected.
         """
         conn = self._get_db()
+        server_params = {f'`@_{procname}_{index:d}`': arg for index,arg in enumerate(args)}
+        
         if args:
-            fmt = f"`@_{procname}_%d`=%s"
-            self._query(
-                "SET %s"
-                % ",".join(
-                    fmt % (index, conn.escape(arg)) for index, arg in enumerate(args)
-                )
-            )
+            self._query("SET {}".format(",".join("{k}={v}" for k,v in server_params.items())))
             self.nextset()
 
-        q = "CALL `{}`({})".format(
-            procname,
-            ",".join(["`@_%s_%d`" % (procname, i) for i in range(len(args))]),
-        )
+        q = f"CALL `{procname}`({{}})".format(",".join(server_params.keys()))
         self._query(q)
         self._executed = q
         return args
