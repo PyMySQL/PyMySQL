@@ -253,7 +253,7 @@ class Cursor:
         """
         conn = self._get_db()
         if args:
-            fmt = f"@_{procname}_%d=%s"
+            fmt = f"`@_{procname}_%d`=%s"
             self._query(
                 "SET %s"
                 % ",".join(
@@ -262,9 +262,9 @@ class Cursor:
             )
             self.nextset()
 
-        q = "CALL {}({})".format(
+        q = "CALL `{}`({})".format(
             procname,
-            ",".join(["@_%s_%d" % (procname, i) for i in range(len(args))]),
+            ",".join(["`@_%s_%d`" % (procname, i) for i in range(len(args))]),
         )
         self._query(q)
         self._executed = q
