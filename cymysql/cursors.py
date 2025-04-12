@@ -25,6 +25,7 @@ class Cursor(object):
         self._executed = None
         self.messages = []
         self._result = None
+        self._rowcount = None
 
     def __enter__(self):
         return self
@@ -45,6 +46,8 @@ class Cursor(object):
     def rowcount(self):
         if self._result and self._result.affected_rows is not None:
             return self._result.affected_rows
+        if self._rowcount is not None:
+            return self._rowcount
         return -1
 
     @property
@@ -103,7 +106,7 @@ class Cursor(object):
 
     def execute(self, query, args=None):
         ''' Execute a query '''
-        from sys import exc_info
+        self._rowcount = None
 
         conn = self._get_db()
         if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
@@ -132,7 +135,7 @@ class Cursor(object):
         try:
             self._query(query)
         except:
-            exc, value, tb = exc_info()
+            exc, value, tb = sys.exc_info()
             del tb
             self.messages.append((exc, value))
             self.errorhandler(exc, value)
@@ -150,6 +153,7 @@ class Cursor(object):
             if self.rowcount != -1:
                 rowcount += self.rowcount
         self._result = None
+        self._rowcount = rowcount
         return rowcount
 
     def callproc(self, procname, args=()):

@@ -21,7 +21,7 @@ class TestDictCursor(base.PyMySQLTestCase):
         try:
             rowcount = c.executemany("insert into dictcursor values (%s,%s,%s)", data)
             self.assertEqual(rowcount, 3)
-            self.assertEqual(c.rowcount, -1)
+            self.assertEqual(c.rowcount, 3)
             # try an update which should return no rows
             c.execute("update dictcursor set age=20 where name='bob'")
             self.assertEqual(c.rowcount, 1)
