@@ -1,4 +1,5 @@
 import weakref
+import sys
 from ..cursors import Cursor
 
 
@@ -50,7 +51,7 @@ class AsyncCursor(Cursor):
 
     async def execute(self, query, args=None):
         ''' Execute a query '''
-        from sys import exc_info
+        self._rowcount = None
 
         conn = self._get_db()
         if hasattr(conn, '_last_execute_cursor') and not conn._last_execute_cursor() is None:
@@ -73,7 +74,7 @@ class AsyncCursor(Cursor):
         try:
             await self._query(query)
         except:
-            exc, value, tb = exc_info()
+            exc, value, tb = sys.exc_info()
             del tb
             self.messages.append((exc, value))
             self.errorhandler(exc, value)
@@ -91,6 +92,7 @@ class AsyncCursor(Cursor):
             if self.rowcount != -1:
                 rowcount += self.rowcount
         self._result = None
+        self._rowcount = rowcount
         return rowcount
 
     async def callproc(self, procname, args=()):

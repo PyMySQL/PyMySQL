@@ -19,12 +19,16 @@ class TestDictCursor(base.PyMySQLTestCase):
         jim = {'name': 'jim', 'age': 56, 'DOB': datetime.datetime(1955, 5, 9, 13, 12, 45)}
         fred = {'name': 'fred', 'age': 100, 'DOB': datetime.datetime(1911, 9, 12, 1, 1, 1)}
         try:
-            c.executemany("insert into dictcursor values (%s,%s,%s)", data)
+            rowcount = c.executemany("insert into dictcursor values (%s,%s,%s)", data)
+            self.assertEqual(rowcount, 3)
+            self.assertEqual(c.rowcount, 3)
             # try an update which should return no rows
             c.execute("update dictcursor set age=20 where name='bob'")
+            self.assertEqual(c.rowcount, 1)
             bob['age'] = 20
             # pull back the single row dict for bob and check
             c.execute("SELECT * from dictcursor where name='bob'")
+            self.assertEqual(c.rowcount, -1)
             r = c.fetchone()
             self.assertEqual(bob, r, "fetchone via DictCursor failed")
             # same again, but via fetchall => tuple)
