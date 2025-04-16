@@ -173,7 +173,7 @@ class TestConversion(base.PyMySQLTestCase):
             self.assertEqual((
                 datetime.timedelta(0, 45000),
                 datetime.timedelta(0, 83579),
-                datetime.timedelta(0, 83579, 5100)
+                datetime.timedelta(0, 83579, 51000)
                 ),
                 c.fetchone()
             )

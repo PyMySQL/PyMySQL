@@ -323,7 +323,7 @@ class TestCyMySQLIssues(base.PyMySQLTestCase):
             c.execute("select * from issue46")
             r = c.fetchone()
             self.assertEqual(str(r[0]), "19:04:59")
-            self.assertEqual(str(r[1]), "19:04:59.09")
+            self.assertEqual(str(r[1]), "19:04:59.090000")
         finally:
             c.execute("drop table issue46")
 
