@@ -156,7 +156,7 @@ def convert_timedelta(obj):
         microseconds = 0
         if "." in obj:
             (obj, tail) = obj.split('.')
-            microseconds = int(tail)
+            microseconds = int(tail.ljust(6, "0"))
         hours, minutes, seconds = obj.split(':')
         return datetime.timedelta(
             hours=int(hours),
