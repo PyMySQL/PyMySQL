@@ -314,6 +314,19 @@ class TestCyMySQLIssues(base.PyMySQLTestCase):
         finally:
             c.execute("drop table issue43")
 
+    def test_issue_46(self):
+        conn = self.connections[0]
+        c = conn.cursor()
+        try:
+            c.execute("create table issue46 ( a time, b time(2))")
+            c.execute("insert into issue46 values ('19:04:59.09','19:04:59.09')")
+            c.execute("select * from issue46")
+            r = c.fetchone()
+            self.assertEqual(str(r[0]), "19:04:59")
+            self.assertEqual(str(r[1]), "19:04:59.09")
+        finally:
+            c.execute("drop table issue46")
+
 
 __all__ = ["TestOldIssues", "TestNewIssues", "TestGitHubIssues", "TestCyMySQLIssues"]
 
