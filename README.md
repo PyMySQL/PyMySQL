@@ -1,5 +1,6 @@
 [![Documentation Status](https://readthedocs.org/projects/pymysql/badge/?version=latest)](https://pymysql.readthedocs.io/)
 [![codecov](https://codecov.io/gh/PyMySQL/PyMySQL/branch/main/graph/badge.svg?token=ppEuaNXBW4)](https://codecov.io/gh/PyMySQL/PyMySQL)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/PyMySQL/PyMySQL)
 
 # PyMySQL
 
