@@ -273,7 +273,8 @@ class Connection:
                         ssl[key] = value
 
         self.ssl = False
-        if not ssl_disabled:
+        self.ssl_disabled = ssl_disabled
+        if not self.ssl_disabled:
             if ssl_ca or ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
                 ssl = {
                     "ca": ssl_ca,
@@ -889,6 +890,11 @@ class Connection:
         charset_id = charset_by_name(self.charset).id
         if isinstance(self.user, str):
             self.user = self.user.encode(self.encoding)
+
+        if self.server_capabilities & CLIENT.SSL and SSL_ENABLED and not self.ssl and not self.ssl_disabled:
+            self.ssl = True
+            self.client_flag |= CLIENT.SSL
+            self.ctx = self._create_ssl_ctx({})
 
         data_init = struct.pack(
             "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
