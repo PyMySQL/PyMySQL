@@ -10,11 +10,11 @@ This package contains a pure-Python MySQL and MariaDB client library, based on
 ## Requirements
 
 - Python -- one of the following:
-  - [CPython](https://www.python.org/) : 3.7 and newer
+  - [CPython](https://www.python.org/) : 3.9 and newer
   - [PyPy](https://pypy.org/) : Latest 3.x version
 - MySQL Server -- one of the following:
-  - [MySQL](https://www.mysql.com/) \>= 5.7
-  - [MariaDB](https://mariadb.org/) \>= 10.4
+  - [MySQL](https://www.mysql.com/) LTS versions
+  - [MariaDB](https://mariadb.org/) LTS versions
 
 ## Installation
 
