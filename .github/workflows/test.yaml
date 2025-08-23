@@ -19,19 +19,21 @@ jobs:
       matrix:
         include:
           - db: "mariadb:12"  # rolling release
-            py: "3.14"
+            py: "3.13"
+            # pynacl 1.5 doesn't support Python 3.14 yet.
+            # https://github.com/pyca/pynacl/commit/d33028e43b814615a33e231925eaddb0f679fa2b
 
           - db: "mariadb:11.8"
-            py: "3.13"
-
-          - db: "mariadb:11.4"
             py: "3.12"
 
-          - db: "mariadb:10.11"
+          - db: "mariadb:11.4"
             py: "3.11"
 
-          - db: "mariadb:10.6"
+          - db: "mariadb:10.11"
             py: "3.10"
+
+          - db: "mariadb:10.6"
+            py: "3.9"
 
           - db: "mysql:8.0"
             py: "pypy3.11"
