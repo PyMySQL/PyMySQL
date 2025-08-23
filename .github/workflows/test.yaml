@@ -18,30 +18,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - db: "mariadb:10.4"
+          - db: "mariadb:12"  # rolling release
+            py: "3.14"
+
+          - db: "mariadb:11.8"
             py: "3.13"
 
-          - db: "mariadb:10.5"
+          - db: "mariadb:11.4"
+            py: "3.12"
+
+          - db: "mariadb:10.11"
             py: "3.11"
 
           - db: "mariadb:10.6"
             py: "3.10"
 
-          - db: "mariadb:10.6"
-            py: "3.9"
-
-          - db: "mariadb:lts"
-            py: "3.8"
-
-          - db: "mysql:5.7"
-            py: "pypy-3.10"
-
           - db: "mysql:8.0"
-            py: "3.13"
+            py: "pypy3.11"
+            mysql_auth: true
+
+          - db: "mysql:9"
+            py: "3.14"
             mysql_auth: true
 
           - db: "mysql:8.4"
-            py: "3.8"
+            py: "3.9"
             mysql_auth: true
 
     services:
@@ -57,7 +58,7 @@ jobs:
           - /run/mysqld:/run/mysqld
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Workaround MySQL container permissions
         if: startsWith(matrix.db, 'mysql')
