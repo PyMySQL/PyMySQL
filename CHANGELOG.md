@@ -7,6 +7,19 @@
 * `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
 * `Connection.ping(reconnect)` change the default to not reconnect.
 
+## v1.1.2
+
+Release date: 2025-08-24
+
+* Prevent UnboundLocalError in very rare situation. https://github.com/PyMySQL/PyMySQL/pull/1174
+* Close underlying `SocketIO` soon when Connection is closed for PyPy. https://github.com/PyMySQL/PyMySQL/issues/1183
+* Fix importing PyMySQL fail on CPython 3.13 when `getpass.getuser()` raises OSEError. https://github.com/PyMySQL/PyMySQL/pull/1190
+* Make charset name "utf8" case insensitive. https://github.com/PyMySQL/PyMySQL/pull/1195
+* `Connection.kill()` uses `KILL` query instead of `COM_KILL`command to support MySQL 8.4. https://github.com/PyMySQL/PyMySQL/pull/1197
+* Fix SSL error on CPython 3.13 caused by strict TLS default setting. https://github.com/PyMySQL/PyMySQL/pull/1198
+* Fix auth switch request handling. https://github.com/PyMySQL/PyMySQL/pull/1200
+
+
 ## v1.1.1
 
 Release date: 2024-05-21

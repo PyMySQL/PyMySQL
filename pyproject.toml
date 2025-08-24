@@ -7,24 +7,15 @@ authors = [
 ]
 dependencies = []
 
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 readme = "README.md"
-license = {text = "MIT License"}
+license = "MIT"
 keywords = ["MySQL"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Topic :: Database",
 ]
 dynamic = ["version"]
@@ -40,9 +31,10 @@ dynamic = ["version"]
 [project.urls]
 "Project" = "https://github.com/PyMySQL/PyMySQL"
 "Documentation" = "https://pymysql.readthedocs.io/"
+"Changelog" = "https://github.com/PyMySQL/PyMySQL/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
