@@ -502,14 +502,18 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         conn = pymysql.connect(charset="utf8", **self.databases[0])
 
         cur = conn.cursor()
-        cur.execute(
-            dedent("""\
-            create procedure `foo.bar` (arg1 int)
-            begin
-                select arg1*2;
-            end
-        """)
-        )
+        cur.execute("DROP PROCEDURE IF EXISTS `foo.bar`")
+        try:
+            cur.execute(
+                dedent("""\
+                create procedure `foo.bar` (arg1 int)
+                begin
+                    select arg1*2;
+                end
+            """)
+            )
 
-        cur.callproc("foo.bar", args=(123,))
-        self.assertEqual(cur.fetchone()[0], 246)
+            cur.callproc("foo.bar", args=(123,))
+            self.assertEqual(cur.fetchone()[0], 246)
+        finally:
+            cur.execute("DROP PROCEDURE IF EXISTS `foo.bar`")
