@@ -14,6 +14,10 @@ RE_INSERT_VALUES = re.compile(
 )
 
 
+def _backquote_escape(s):
+    return s.replace("`", "``")
+
+
 class Cursor:
     """
     This is the object used to interact with the database.
@@ -251,9 +255,11 @@ class Cursor:
         to advance through all result sets; otherwise you may get
         disconnected.
         """
+        procname_escaped = _backquote_escape(procname)
         conn = self._get_db()
+
         if args:
-            fmt = f"@_{procname}_%d=%s"
+            fmt = f"@`_{procname_escaped}_%d`=%s"
             self._query(
                 "SET %s"
                 % ",".join(
@@ -262,9 +268,9 @@ class Cursor:
             )
             self.nextset()
 
-        q = "CALL {}({})".format(
-            procname,
-            ",".join(["@_%s_%d" % (procname, i) for i in range(len(args))]),
+        q = "CALL `{}`({})".format(
+            procname_escaped,
+            ",".join([f"@`_{procname_escaped}_{i}`" for i in range(len(args))]),
         )
         self._query(q)
         self._executed = q
