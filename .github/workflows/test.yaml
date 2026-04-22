@@ -113,4 +113,4 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: github.repository == 'PyMySQL/PyMySQL'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
