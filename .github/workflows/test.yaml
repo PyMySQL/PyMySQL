@@ -63,7 +63,7 @@ jobs:
           - /run/mysqld:/run/mysqld
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Workaround MySQL container permissions
         if: startsWith(matrix.db, 'mysql')
