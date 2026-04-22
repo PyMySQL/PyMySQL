@@ -929,6 +929,15 @@ class Connection:
                 authresp = b"\1"  # request public key
             else:
                 authresp = b"\0"  # empty password
+        elif self._auth_plugin_name == "mysql_clear_password":
+            plugin_name = b"mysql_clear_password"
+            authresp = self.password + b"\0"
+        elif self._auth_plugin_name == "authentication_openid_connect_client":
+            plugin_name = b"authentication_openid_connect_client"
+            # OpenID Connect: [1 byte capability][length-encoded token length][token]
+            capability = b"\x01"
+            token_len = len(self.password)
+            authresp = capability + _lenenc_int(token_len) + self.password
 
         if self.server_capabilities & CLIENT.PLUGIN_AUTH_LENENC_CLIENT_DATA:
             data += _lenenc_int(len(authresp)) + authresp
@@ -1016,6 +1025,14 @@ class Connection:
         elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
             data = self.password + b"\0"
+        elif plugin_name == b"authentication_openid_connect_client":
+            # OpenID Connect authentication
+            # Protocol: [1 byte capability][length-encoded token length][token]
+            # Based on MySQL's authentication_openid_connect_client_plugin.cc
+            _ = auth_packet.read_all()  # discard auth switch data
+            capability = b"\x01"  # capability flag
+            token_len = len(self.password)
+            data = capability + _lenenc_int(token_len) + self.password
         elif plugin_name == b"dialog":
             pkt = auth_packet
             while True:
