@@ -72,7 +72,7 @@ jobs:
           /usr/bin/docker ps --all --filter status=exited --no-trunc --format "{{.ID}}" | xargs -r /usr/bin/docker start
 
       - name: Set up Python ${{ matrix.py }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py }}
           allow-prereleases: true
