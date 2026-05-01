@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = []
 
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 readme = "README.md"
 license = "MIT"
 keywords = ["MySQL"]
@@ -22,10 +22,10 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 "rsa" = [
-    "cryptography"
+    "cryptography>=46.0.7"
 ]
 "ed25519" = [
-    "PyNaCl>=1.4.0"
+    "PyNaCl>=1.6.2"
 ]
 
 [project.urls]

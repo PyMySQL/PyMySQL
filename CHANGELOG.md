@@ -7,6 +7,17 @@
 * `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
 * `Connection.ping(reconnect)` change the default to not reconnect.
 
+## v1.1.3
+
+Release date: 2026-05-01
+
+### Security
+
+* Fix `Cursor.callproc()` didn't escape procedure name. (#1206)
+  There was a possibility of SQL injection when calling a procedure with a string received from an untrusted source as the procedure name.
+
+  NOTICE: This change may cause backward compatibility issues. If you specified a procedure name like `"dbname.funcname"`, the previous version called `CALL dbname.funcname`, but from this version, it will call ``CALL `dbname.funcname` `` so you cannot specify procedure name with database name anymore.
+
 ## v1.1.2
 
 Release date: 2025-08-24
