@@ -54,7 +54,7 @@ VERSION_STRING = "1.1.3"
 
 ### for mysqlclient compatibility
 ### Django checks mysqlclient version.
-version_info = (2, 2, 8, "final")
+version_info = (2, 2, 8, "final", 1)
 __version__ = "2.2.8"
 
 
