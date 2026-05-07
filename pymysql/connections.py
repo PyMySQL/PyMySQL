@@ -903,21 +903,20 @@ class Connection:
         # CLIENT.SSL is added conditionally: for REQUIRED mode it is already set in
         # self.client_flag, but for PREFERRED mode it is only added when the server
         # also advertises SSL support.
+        # _do_ssl is set here and checked below for sha256_password auth.
         client_flags = self.client_flag
         if self.ssl:
             if self.server_capabilities & CLIENT.SSL:
                 # SSL upgrade: include CLIENT.SSL flag and wrap the socket.
-                # _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = True
                 client_flags |= CLIENT.SSL
             elif self._ssl_required:
                 raise err.OperationalError(
                     CR.CR_SSL_CONNECTION_ERROR,
-                    "SSL connection error: SSL is required but the server doesn't support it",
+                    "SSL is required but the server doesn't support it",
                 )
             else:
                 # PREFERRED mode: server doesn't support SSL, fall back to non-SSL.
-                # _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = False
         else:
             _do_ssl = False
