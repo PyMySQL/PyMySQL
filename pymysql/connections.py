@@ -899,13 +899,9 @@ class Connection:
         if isinstance(self.user, str):
             self.user = self.user.encode(self.encoding)
 
-        data_init = struct.pack(
-            "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
-        )
-
         if self.ssl:
             if self.server_capabilities & CLIENT.SSL:
-                # Upgrade to SSL: send SSL request packet with CLIENT.SSL flag set,
+                # SSL upgrade: send SSL request packet with CLIENT.SSL flag set,
                 # then wrap the socket. _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = True
                 data_init = struct.pack(
@@ -928,8 +924,14 @@ class Connection:
                 # PREFERRED mode: server doesn't support SSL, fall back to non-SSL.
                 # _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = False
+                data_init = struct.pack(
+                    "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
+                )
         else:
             _do_ssl = False
+            data_init = struct.pack(
+                "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
+            )
 
         data = data_init + self.user + b"\0"
 
