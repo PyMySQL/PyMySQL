@@ -134,7 +134,8 @@ class Connection:
     :param ssl: A dict of arguments similar to mysql_ssl_set()'s parameters or an ssl.SSLContext.
     :param ssl_ca: Path to the file that contains a PEM-formatted CA certificate.
     :param ssl_cert: Path to the file that contains a PEM-formatted client certificate.
-    :param ssl_disabled: A boolean value that disables usage of TLS.
+    :param ssl_disabled: A boolean value that disables usage of TLS. Unlike other SSL options,
+        setting this to True explicitly prohibits the use of TLS, even if the server supports it.
     :param ssl_key: Path to the file that contains a PEM-formatted private key for
         the client certificate.
     :param ssl_key_password: The password for the client certificate private key.
@@ -273,6 +274,7 @@ class Connection:
                         ssl[key] = value
 
         self.ssl = False
+        self._ssl_required = False
         if not ssl_disabled:
             if ssl_ca or ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
                 ssl = {
@@ -292,8 +294,15 @@ class Connection:
                 if not SSL_ENABLED:
                     raise NotImplementedError("ssl module not found")
                 self.ssl = True
+                self._ssl_required = True
                 client_flag |= CLIENT.SSL
                 self.ctx = self._create_ssl_ctx(ssl)
+            elif SSL_ENABLED:
+                # No explicit SSL options specified: use PREFERRED mode.
+                # Attempt SSL but fall back gracefully if the server doesn't support it.
+                self.ssl = True
+                self._ssl_required = False
+                self.ctx = self._create_ssl_ctx({})
 
         self.host = host or "localhost"
         self.port = port or 3306
@@ -894,12 +903,32 @@ class Connection:
             "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
         )
 
-        if self.ssl and self.server_capabilities & CLIENT.SSL:
-            self.write_packet(data_init)
-
-            self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
-            self._rfile = self._sock.makefile("rb")
-            self._secure = True
+        if self.ssl:
+            if self.server_capabilities & CLIENT.SSL:
+                # Upgrade to SSL: send SSL request packet with CLIENT.SSL flag set,
+                # then wrap the socket.
+                _do_ssl = True
+                data_init = struct.pack(
+                    "<iIB23s",
+                    self.client_flag | CLIENT.SSL,
+                    MAX_PACKET_LEN,
+                    charset_id,
+                    b"",
+                )
+                self.write_packet(data_init)
+                self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
+                self._rfile = self._sock.makefile("rb")
+                self._secure = True
+            elif self._ssl_required:
+                raise err.OperationalError(
+                    CR.CR_SSL_CONNECTION_ERROR,
+                    "SSL connection error: SSL is required but the server doesn't support it",
+                )
+            else:
+                # PREFERRED mode: server doesn't support SSL, fall back to non-SSL.
+                _do_ssl = False
+        else:
+            _do_ssl = False
 
         data = data_init + self.user + b"\0"
 
@@ -923,7 +952,7 @@ class Connection:
                     print("caching_sha2: empty password")
         elif self._auth_plugin_name == "sha256_password":
             plugin_name = b"sha256_password"
-            if self.ssl and self.server_capabilities & CLIENT.SSL:
+            if _do_ssl:
                 authresp = self.password + b"\0"
             elif self.password:
                 authresp = b"\1"  # request public key

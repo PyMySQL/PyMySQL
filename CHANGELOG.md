@@ -18,6 +18,18 @@ Release date: 2026-05-01
 
   NOTICE: This change may cause backward compatibility issues. If you specified a procedure name like `"dbname.funcname"`, the previous version called `CALL dbname.funcname`, but from this version, it will call ``CALL `dbname.funcname` `` so you cannot specify procedure name with database name anymore.
 
+### Changes
+
+* Reorganize TLS connection behavior. (#1xxx)
+
+  * `ssl_disabled=True` now explicitly prohibits SSL, even if the server supports it.
+  * When `ssl_verify_cert=True`, `ssl_verify_identity=True`, an `ssl.SSLContext` is passed,
+    or any other SSL option is configured, the connection **requires** SSL and raises
+    `OperationalError` (CR_SSL_CONNECTION_ERROR) if the server doesn't support it.
+  * When no SSL options are specified (`ssl_mode=PREFERRED` behavior), PyMySQL now
+    **attempts** an SSL connection if the server supports it, and falls back to a plain
+    connection otherwise. Previously, no SSL was attempted in this case.
+
 ## v1.1.2
 
 Release date: 2025-08-24
