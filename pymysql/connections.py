@@ -899,24 +899,17 @@ class Connection:
         if isinstance(self.user, str):
             self.user = self.user.encode(self.encoding)
 
+        # Determine flags for the initial handshake packet.
+        # CLIENT.SSL is added conditionally: for REQUIRED mode it is already set in
+        # self.client_flag, but for PREFERRED mode it is only added when the server
+        # also advertises SSL support.
+        client_flags = self.client_flag
         if self.ssl:
             if self.server_capabilities & CLIENT.SSL:
-                # SSL upgrade: send SSL request packet with CLIENT.SSL flag set,
-                # then wrap the socket. _do_ssl is also checked below for sha256_password auth.
-                # Use `| CLIENT.SSL` to ensure the flag is set: for REQUIRED mode it is
-                # already set in self.client_flag, but for PREFERRED mode it is not.
+                # SSL upgrade: include CLIENT.SSL flag and wrap the socket.
+                # _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = True
-                data_init = struct.pack(
-                    "<iIB23s",
-                    self.client_flag | CLIENT.SSL,
-                    MAX_PACKET_LEN,
-                    charset_id,
-                    b"",
-                )
-                self.write_packet(data_init)
-                self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
-                self._rfile = self._sock.makefile("rb")
-                self._secure = True
+                client_flags |= CLIENT.SSL
             elif self._ssl_required:
                 raise err.OperationalError(
                     CR.CR_SSL_CONNECTION_ERROR,
@@ -926,14 +919,18 @@ class Connection:
                 # PREFERRED mode: server doesn't support SSL, fall back to non-SSL.
                 # _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = False
-                data_init = struct.pack(
-                    "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
-                )
         else:
             _do_ssl = False
-            data_init = struct.pack(
-                "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
-            )
+
+        data_init = struct.pack(
+            "<iIB23s", client_flags, MAX_PACKET_LEN, charset_id, b""
+        )
+
+        if _do_ssl:
+            self.write_packet(data_init)
+            self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
+            self._rfile = self._sock.makefile("rb")
+            self._secure = True
 
         data = data_init + self.user + b"\0"
 
