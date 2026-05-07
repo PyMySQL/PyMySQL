@@ -903,6 +903,8 @@ class Connection:
             if self.server_capabilities & CLIENT.SSL:
                 # SSL upgrade: send SSL request packet with CLIENT.SSL flag set,
                 # then wrap the socket. _do_ssl is also checked below for sha256_password auth.
+                # Use `| CLIENT.SSL` to ensure the flag is set: for REQUIRED mode it is
+                # already set in self.client_flag, but for PREFERRED mode it is not.
                 _do_ssl = True
                 data_init = struct.pack(
                     "<iIB23s",

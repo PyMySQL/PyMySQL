@@ -826,11 +826,14 @@ class TestConnection(base.PyMySQLTestCase):
     def test_ssl_required_error(self):
         """REQUIRED mode raises OperationalError when server doesn't support SSL."""
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
+        mock_create_ctx = mock.Mock(return_value=dummy_ssl_context)
         with mock.patch(
             "pymysql.connections.ssl.create_default_context",
-            new=mock.Mock(return_value=dummy_ssl_context),
+            new=mock_create_ctx,
         ):
             conn = pymysql.connect(ssl_ca="ca", defer_connect=True)
+            # Verify the context was created with the CA certificate
+            mock_create_ctx.assert_called_once_with(cafile="ca", capath=None)
 
         assert conn.ssl is True
         assert conn._ssl_required is True
