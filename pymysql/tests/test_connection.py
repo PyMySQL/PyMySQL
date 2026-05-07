@@ -825,8 +825,6 @@ class TestConnection(base.PyMySQLTestCase):
 
     def test_ssl_required_error(self):
         """REQUIRED mode raises OperationalError when server doesn't support SSL."""
-        from pymysql.constants import CR
-
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
             "pymysql.connections.ssl.create_default_context",
@@ -853,8 +851,6 @@ class TestConnection(base.PyMySQLTestCase):
 
     def test_ssl_preferred_no_server_ssl(self):
         """PREFERRED mode falls back silently when server doesn't support SSL."""
-        from pymysql.constants import CR
-
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
             "pymysql.connections.ssl.create_default_context",

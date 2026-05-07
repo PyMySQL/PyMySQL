@@ -906,7 +906,7 @@ class Connection:
         if self.ssl:
             if self.server_capabilities & CLIENT.SSL:
                 # Upgrade to SSL: send SSL request packet with CLIENT.SSL flag set,
-                # then wrap the socket.
+                # then wrap the socket. _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = True
                 data_init = struct.pack(
                     "<iIB23s",
@@ -926,6 +926,7 @@ class Connection:
                 )
             else:
                 # PREFERRED mode: server doesn't support SSL, fall back to non-SSL.
+                # _do_ssl is also checked below for sha256_password auth.
                 _do_ssl = False
         else:
             _do_ssl = False
