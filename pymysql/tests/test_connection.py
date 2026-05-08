@@ -877,9 +877,10 @@ class TestConnection(base.PyMySQLTestCase):
         conn.db = None
 
         # Mock the socket write/read so we don't need a real server
-        with mock.patch.object(conn, "_write_bytes"), mock.patch.object(
-            conn, "_read_packet"
-        ) as mock_read:
+        with (
+            mock.patch.object(conn, "_write_bytes"),
+            mock.patch.object(conn, "_read_packet") as mock_read,
+        ):
             mock_pkt = mock.Mock()
             mock_pkt.is_auth_switch_request.return_value = False
             mock_pkt.is_extra_auth_data.return_value = False
