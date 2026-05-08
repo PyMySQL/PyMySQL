@@ -9,17 +9,15 @@
 
 ## v1.2.0
 
-### Changes
+### Breaking changes
 
-* Reorganize TLS connection behavior. (#1xxx)
+* Reorganize TLS connection behavior. (#1233)
 
-  * `ssl_disabled=True` now explicitly prohibits SSL, even if the server supports it.
+  * PyMySQL uses TLS by default when server supports it. (#1213)
+    Use `ssl_disabled=True` to prohibits SSL, even if the server supports it.
   * When `ssl_verify_cert=True`, `ssl_verify_identity=True`, an `ssl.SSLContext` is passed,
     or any other SSL option is configured, the connection **requires** SSL and raises
     `OperationalError` (CR_SSL_CONNECTION_ERROR) if the server doesn't support it.
-  * When no SSL options are specified (`ssl_mode=PREFERRED` behavior), PyMySQL now
-    **attempts** an SSL connection if the server supports it, and falls back to a plain
-    connection otherwise. Previously, no SSL was attempted in this case.
 
 ## v1.1.3
 
