@@ -7,6 +7,18 @@
 * `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
 * `Connection.ping(reconnect)` change the default to not reconnect.
 
+## v1.2.0
+
+### Breaking changes
+
+* Reorganize TLS connection behavior. (#1233)
+
+  * PyMySQL uses TLS by default when server supports it. (#1213)
+    Use `ssl_disabled=True` to prohibits SSL, even if the server supports it.
+  * When `ssl_verify_cert=True`, `ssl_verify_identity=True`, an `ssl.SSLContext` is passed,
+    or any other SSL option is configured, the connection **requires** SSL and raises
+    `OperationalError` (CR_SSL_CONNECTION_ERROR) if the server doesn't support it.
+
 ## v1.1.3
 
 Release date: 2026-05-01

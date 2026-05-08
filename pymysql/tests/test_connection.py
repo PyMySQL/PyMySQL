@@ -810,6 +810,87 @@ class TestConnection(base.PyMySQLTestCase):
             )
             assert not create_default_context.called
 
+        # PREFERRED mode: no SSL options specified → attempt SSL but don't require it
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
+        with mock.patch(
+            "pymysql.connections.ssl.create_default_context",
+            new=mock.Mock(return_value=dummy_ssl_context),
+        ) as create_default_context:
+            conn = pymysql.connect(defer_connect=True)
+            assert create_default_context.called
+            assert conn.ssl is True
+            assert conn._ssl_required is False
+            assert not dummy_ssl_context.check_hostname
+            assert dummy_ssl_context.verify_mode == ssl.CERT_NONE
+
+    def test_ssl_required_error(self):
+        """REQUIRED mode raises OperationalError when server doesn't support SSL."""
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
+        mock_create_ctx = mock.Mock(return_value=dummy_ssl_context)
+        with mock.patch(
+            "pymysql.connections.ssl.create_default_context",
+            new=mock_create_ctx,
+        ):
+            conn = pymysql.connect(ssl_ca="ca", defer_connect=True)
+            # Verify the context was created with the CA certificate
+            mock_create_ctx.assert_called_once_with(cafile="ca", capath=None)
+
+        assert conn.ssl is True
+        assert conn._ssl_required is True
+
+        # Simulate a server that doesn't advertise SSL support
+        conn.server_version = "8.0.0"
+        conn.server_capabilities = 0  # no CLIENT.SSL bit
+        conn.client_flag = 0
+        conn.charset = "utf8mb4"
+        conn.user = "root"
+        conn.encoding = "utf8"
+
+        with pytest.raises(
+            pymysql.err.OperationalError,
+            match="SSL is required but the server doesn't support it",
+        ):
+            conn._request_authentication()
+
+    def test_ssl_preferred_no_server_ssl(self):
+        """PREFERRED mode falls back silently when server doesn't support SSL."""
+        dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
+        with mock.patch(
+            "pymysql.connections.ssl.create_default_context",
+            new=mock.Mock(return_value=dummy_ssl_context),
+        ):
+            conn = pymysql.connect(defer_connect=True)
+
+        assert conn.ssl is True
+        assert conn._ssl_required is False
+
+        # Simulate a server that doesn't advertise SSL support
+        conn.server_version = "8.0.0"
+        conn.server_capabilities = 0  # no CLIENT.SSL bit
+        conn.client_flag = 0
+        conn.charset = "utf8mb4"
+        conn.user = "root"
+        conn.encoding = "utf8"
+        conn.salt = b"12345678901234567890"
+        conn._auth_plugin_name = ""
+        conn._next_seq_id = 0
+        conn.db = None
+
+        # Mock the socket write/read so we don't need a real server
+        with (
+            mock.patch.object(conn, "_write_bytes"),
+            mock.patch.object(conn, "_read_packet") as mock_read,
+        ):
+            mock_pkt = mock.Mock()
+            mock_pkt.is_auth_switch_request.return_value = False
+            mock_pkt.is_extra_auth_data.return_value = False
+            mock_read.return_value = mock_pkt
+            # Should NOT raise OperationalError for SSL
+            conn._request_authentication()
+
+        # Connection is not secure (no SSL upgrade happened)
+        assert not conn._secure
+
 
 # A custom type and function to escape it
 class Foo:
