@@ -5,6 +5,37 @@ import pymysql.cursors
 import pytest
 
 
+def test_re_insert_values_with_on_duplicate_key_alias():
+    m = pymysql.cursors.RE_INSERT_VALUES.match(
+        "INSERT INTO t1 (a,b,c) VALUES (%s,%s,%s) AS new "
+        "ON DUPLICATE KEY UPDATE c = new.a + new.b"
+    )
+    assert m is not None
+    assert m.group(1) == "INSERT INTO t1 (a,b,c) VALUES "
+    assert m.group(2) == "(%s,%s,%s)"
+    assert m.group(3) == " AS new ON DUPLICATE KEY UPDATE c = new.a + new.b"
+
+    m = pymysql.cursors.RE_INSERT_VALUES.match(
+        "INSERT INTO t1 (a,b,c) VALUES (%s,%s,%s) AS new(n1,n2,n3) "
+        "ON DUPLICATE KEY UPDATE c = n1 + n2"
+    )
+    assert m is not None
+    assert (
+        m.group(3)
+        == " AS new(n1,n2,n3) ON DUPLICATE KEY UPDATE c = n1 + n2"
+    )
+
+    m = pymysql.cursors.RE_INSERT_VALUES.match(
+        "INSERT INTO t1 (a,b,c) VALUES (%s,%s,%s) "
+        "ON DUPLICATE KEY UPDATE c=VALUES(a)+VALUES(b)"
+    )
+    assert m is not None
+    assert (
+        m.group(3)
+        == " ON DUPLICATE KEY UPDATE c=VALUES(a)+VALUES(b)"
+    )
+
+
 class CursorTest(base.PyMySQLTestCase):
     def setUp(self):
         super().setUp()
