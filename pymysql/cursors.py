@@ -8,8 +8,11 @@ from . import err
 #: You can use it to load large dataset.
 RE_INSERT_VALUES = re.compile(
     r"\s*((?:INSERT|REPLACE)\b.+\bVALUES?\s*)"
-    + r"(\(\s*(?:%s|%\(.+\)s)\s*(?:,\s*(?:%s|%\(.+\)s)\s*)*\))"
-    + r"(\s*(?:ON DUPLICATE.*)?);?\s*\Z",
+    + r"(\(\s*(?:%s|%\([^)]+\)s)\s*(?:,\s*(?:%s|%\([^)]+\)s)\s*)*\))"
+    + r'(\s*(?:AS\s+(?:`[^`]+`|"[^"]+"|[0-9A-Za-z_$]+)\s*'
+    + r'(?:\(\s*(?:`[^`]+`|"[^"]+"|[0-9A-Za-z_$]+)\s*'
+    + r'(?:,\s*(?:`[^`]+`|"[^"]+"|[0-9A-Za-z_$]+)\s*)*\))?\s*)?'
+    + r"(?:ON DUPLICATE.*)?);?\s*\Z",
     re.IGNORECASE | re.DOTALL,
 )
 
