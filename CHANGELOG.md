@@ -9,15 +9,23 @@
 
 ## v1.2.0
 
+Release date: TBD
+
 ### Breaking changes
 
-* Reorganize TLS connection behavior. (#1233)
+* Reorganize TLS connection behavior. (#1234)
 
   * PyMySQL uses TLS by default when server supports it. (#1213)
     Use `ssl_disabled=True` to prohibits SSL, even if the server supports it.
   * When `ssl_verify_cert=True`, `ssl_verify_identity=True`, an `ssl.SSLContext` is passed,
     or any other SSL option is configured, the connection **requires** SSL and raises
     `OperationalError` (CR_SSL_CONNECTION_ERROR) if the server doesn't support it.
+
+### Other changes
+
+* Support MySQL 8 row/column alias syntax in `executemany` INSERT regex. (#1235)
+* Expose SQLSTATE on MySQL protocol exceptions without changing exception formatting. (#1236)
+* Reject non-finite `decimal.Decimal` query parameters (`NaN`, `sNaN`, `±Infinity`). (#1237)
 
 ## v1.1.3
 
