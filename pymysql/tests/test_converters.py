@@ -1,6 +1,8 @@
 import datetime
+from decimal import Decimal
 from unittest import TestCase
 from pymysql import converters
+from pymysql.err import ProgrammingError
 
 
 __all__ = ["TestConverter"]
@@ -52,3 +54,16 @@ class TestConverter(TestCase):
         expected = datetime.time(23, 6, 20, 511581)
         time_obj = converters.convert_time("23:06:20.511581")
         self.assertEqual(time_obj, expected)
+
+    def test_decimal_special_values(self):
+        values = (
+            Decimal("NaN"),
+            Decimal("sNaN"),
+            Decimal("Infinity"),
+            Decimal("-Infinity"),
+        )
+        for value in values:
+            with self.assertRaisesRegex(
+                ProgrammingError, f"{str(value).lower()} can not be used with MySQL"
+            ):
+                converters.Decimal2Literal(value, None)
