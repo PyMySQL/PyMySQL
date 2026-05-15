@@ -135,6 +135,8 @@ def escape_struct_time(obj, mapping=None):
 
 
 def Decimal2Literal(o, d):
+    if not o.is_finite():
+        raise ProgrammingError("%s can not be used with MySQL" % str(o).lower())
     return format(o, "f")
 
 
