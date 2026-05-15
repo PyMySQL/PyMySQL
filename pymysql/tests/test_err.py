@@ -8,9 +8,11 @@ def test_raise_mysql_exception():
         err.raise_mysql_exception(data)
     assert cm.type == err.OperationalError
     assert cm.value.args == (1045, "Access denied")
+    assert cm.value.sqlstate == "28000"
 
     data = b"\xff\x10\x04Too many connections"
     with pytest.raises(err.OperationalError) as cm:
         err.raise_mysql_exception(data)
     assert cm.type == err.OperationalError
     assert cm.value.args == (1040, "Too many connections")
+    assert cm.value.sqlstate is None
