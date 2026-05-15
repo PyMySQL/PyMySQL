@@ -18,7 +18,7 @@ Requirements
 
 * Python -- one of the following:
 
-  - CPython_ >= 3.7
+  - CPython_ >= 3.9
   - Latest PyPy_ 3
 
 * MySQL Server -- one of the following:
@@ -26,7 +26,7 @@ Requirements
   - MySQL_ >= 5.7
   - MariaDB_ >= 10.3
 
-.. _CPython: http://www.python.org/
-.. _PyPy: http://pypy.org/
-.. _MySQL: http://www.mysql.com/
+.. _CPython: https://www.python.org/
+.. _PyPy: https://pypy.org/
+.. _MySQL: https://www.mysql.com/
 .. _MariaDB: https://mariadb.org/
