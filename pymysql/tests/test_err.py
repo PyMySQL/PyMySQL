@@ -2,6 +2,16 @@ import pytest
 from pymysql import err
 
 
+def test_error_init_sqlstate():
+    error = err.Error(1234, "boom", sqlstate="42000")
+    assert error.args == (1234, "boom")
+    assert error.sqlstate == "42000"
+
+    error = err.Error(1234, "boom")
+    assert error.args == (1234, "boom")
+    assert error.sqlstate is None
+
+
 def test_raise_mysql_exception():
     data = b"\xff\x15\x04#28000Access denied"
     with pytest.raises(err.OperationalError) as cm:

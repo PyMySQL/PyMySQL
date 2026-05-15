@@ -16,7 +16,9 @@ class Error(MySQLError):
     """Exception that is the base class of all other error exceptions
     (not Warning)."""
 
-    sqlstate = None
+    def __init__(self, *args, sqlstate=None):
+        super().__init__(*args)
+        self.sqlstate = sqlstate
 
 
 class InterfaceError(Error):
@@ -149,6 +151,4 @@ def raise_mysql_exception(data):
     errorclass = error_map.get(errno)
     if errorclass is None:
         errorclass = InternalError if errno < 1000 else OperationalError
-    error = errorclass(errno, errval)
-    error.sqlstate = sqlstate
-    raise error
+    raise errorclass(errno, errval, sqlstate=sqlstate)
