@@ -16,6 +16,10 @@ class Error(MySQLError):
     """Exception that is the base class of all other error exceptions
     (not Warning)."""
 
+    def __init__(self, *args, sqlstate=None):
+        super().__init__(*args)
+        self.sqlstate = sqlstate
+
 
 class InterfaceError(Error):
     """Exception raised for errors that are related to the database
@@ -138,13 +142,13 @@ def raise_mysql_exception(data):
     errno = struct.unpack("<h", data[1:3])[0]
     # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_err_packet.html
     # Error packet has optional sqlstate that is 5 bytes and starts with '#'.
+    sqlstate = None
     if data[3] == 0x23:  # '#'
-        # sqlstate = data[4:9].decode()
-        # TODO: Append (sqlstate) in the error message. This will be come in next minor release.
+        sqlstate = data[4:9].decode()
         errval = data[9:].decode("utf-8", "replace")
     else:
         errval = data[3:].decode("utf-8", "replace")
     errorclass = error_map.get(errno)
     if errorclass is None:
         errorclass = InternalError if errno < 1000 else OperationalError
-    raise errorclass(errno, errval)
+    raise errorclass(errno, errval, sqlstate=sqlstate)
