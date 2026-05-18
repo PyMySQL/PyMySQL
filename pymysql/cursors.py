@@ -1,5 +1,4 @@
 import re
-import warnings
 from . import err
 
 
