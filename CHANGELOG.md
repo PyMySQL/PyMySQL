@@ -2,9 +2,7 @@
 
 ## Backward incompatible changes planned in the future.
 
-* Error classes in Cursor class will be removed after 2024-06
 * `Connection.set_charset(charset)` will be removed after 2024-06
-* `db` and `passwd` will emit DeprecationWarning in v1.2. See #933.
 * `Connection.ping(reconnect)` change the default to not reconnect.
 
 ## v1.2.0
@@ -13,13 +11,19 @@ Release date: TBD
 
 ### Breaking changes
 
-* Reorganize TLS connection behavior. (#1234)
+* Error classes in Cursor class are removed. (#1240)
 
-  * PyMySQL uses TLS by default when server supports it. (#1213)
-    Use `ssl_disabled=True` to prohibits SSL, even if the server supports it.
+* `connect()` arguments `db` and `passwd` now emit DeprecationWarning.
+  Use `database` and `password` instead. (#1240)
+
+* Reorganize TLS connection behavior.
+
+  * PyMySQL uses TLS by default when server supports it.
+    Use `ssl_disabled=True` to prohibit SSL. (#1213)
+
   * When `ssl_verify_cert=True`, `ssl_verify_identity=True`, an `ssl.SSLContext` is passed,
-    or any other SSL option is configured, the connection **requires** SSL and raises
-    `OperationalError` (CR_SSL_CONNECTION_ERROR) if the server doesn't support it.
+    or when any other SSL option is configured, the connection **requires** SSL and raises
+    `OperationalError` (CR_SSL_CONNECTION_ERROR) if the server doesn't support it. (#1234)
 
 ### Other changes
 
