@@ -217,16 +217,12 @@ class Connection:
         db=None,  # deprecated
     ):
         if db is not None and database is None:
-            # We will raise warning in 2022 or later.
-            # See https://github.com/PyMySQL/PyMySQL/issues/939
-            # warnings.warn("'db' is deprecated, use 'database'", DeprecationWarning, 3)
+            warnings.warn("'db' is deprecated, use 'database'", DeprecationWarning, 3)
             database = db
         if passwd is not None and not password:
-            # We will raise warning in 2022 or later.
-            # See https://github.com/PyMySQL/PyMySQL/issues/939
-            # warnings.warn(
-            #    "'passwd' is deprecated, use 'password'", DeprecationWarning, 3
-            # )
+            warnings.warn(
+                "'passwd' is deprecated, use 'password'", DeprecationWarning, 3
+            )
             password = passwd
 
         if compress or named_pipe:
