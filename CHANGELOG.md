@@ -11,7 +11,7 @@ Release date: TBD
 ### Breaking changes
 
 * `Connection.ping()` change the default to not reconnect and deprecate `reconnect` argument.
-  Create a new connection if you want to reconnect.
+  Create a new connection if you want to reconnect. (#1241)
 
 * Error classes in Cursor class are removed. (#1240)
 

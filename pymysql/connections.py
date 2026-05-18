@@ -605,6 +605,13 @@ class Connection:
 
         :raise Error: If the connection is closed and reconnect=False.
         """
+        # emit deprecation warning for reconnect.
+        if reconnect:
+            warnings.warn(
+                "The 'reconnect' argument is deprecated. Create a new connection if you want to reconnect.",
+                DeprecationWarning,
+                2,
+            )
         if self._sock is None:
             if reconnect:
                 self.connect()
