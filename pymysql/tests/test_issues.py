@@ -358,7 +358,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
         conn.close()
-        conn.ping()
+        conn.ping(reconnect=True)  # reconnect is deprecated, but don't emit DeprecationWarning yet.
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
         conn.close()
@@ -369,7 +369,7 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
         conn.close()
-        conn.ping()
+        conn.ping(reconnect=True)  # reconnect is deprecated, but don't emit DeprecationWarning yet.
         conn.autocommit(True)
         c.execute("""select @@autocommit;""")
         self.assertTrue(c.fetchone()[0])
