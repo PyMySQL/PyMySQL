@@ -594,15 +594,24 @@ class Connection:
             raise TypeError("thread_id must be an integer")
         self.query(f"KILL {thread_id:d}")
 
-    def ping(self, reconnect=True):
+    def ping(self, reconnect=False):
         """
         Check if the server is alive.
+
+        `reconnect` is deprecated. Create a new connection if you want to reconnect.
 
         :param reconnect: If the connection is closed, reconnect.
         :type reconnect: boolean
 
         :raise Error: If the connection is closed and reconnect=False.
         """
+        # emit deprecation warning for reconnect.
+        if reconnect:
+            warnings.warn(
+                "The 'reconnect' argument is deprecated. Create a new connection if you want to reconnect.",
+                DeprecationWarning,
+                2,
+            )
         if self._sock is None:
             if reconnect:
                 self.connect()

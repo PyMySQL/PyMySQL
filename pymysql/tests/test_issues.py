@@ -358,7 +358,9 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
         conn.close()
-        conn.ping()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            conn.ping(reconnect=True)
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
         conn.close()
@@ -369,7 +371,9 @@ class TestGitHubIssues(base.PyMySQLTestCase):
         c.execute("""select @@autocommit;""")
         self.assertFalse(c.fetchone()[0])
         conn.close()
-        conn.ping()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            conn.ping(reconnect=True)
         conn.autocommit(True)
         c.execute("""select @@autocommit;""")
         self.assertTrue(c.fetchone()[0])

@@ -3,13 +3,15 @@
 ## Backward incompatible changes planned in the future.
 
 * `Connection.set_charset(charset)` will be removed after 2024-06
-* `Connection.ping(reconnect)` change the default to not reconnect.
 
 ## v1.2.0
 
 Release date: TBD
 
 ### Breaking changes
+
+* `Connection.ping()` change the default to not reconnect and deprecate `reconnect` argument.
+  Create a new connection if you want to reconnect. (#1241)
 
 * Error classes in Cursor class are removed. (#1240)
 
