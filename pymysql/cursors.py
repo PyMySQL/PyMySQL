@@ -362,30 +362,6 @@ class Cursor:
             raise StopIteration
         return row
 
-    def __getattr__(self, name):
-        # DB-API 2.0 optional extension says these errors can be accessed
-        # via Connection object. But MySQLdb had defined them on Cursor object.
-        if name in (
-            "Warning",
-            "Error",
-            "InterfaceError",
-            "DatabaseError",
-            "DataError",
-            "OperationalError",
-            "IntegrityError",
-            "InternalError",
-            "ProgrammingError",
-            "NotSupportedError",
-        ):
-            # Deprecated since v1.1
-            warnings.warn(
-                "PyMySQL errors hould be accessed from `pymysql` package",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            return getattr(err, name)
-        raise AttributeError(name)
-
 
 class DictCursorMixin:
     # You can override this to use OrderedDict or other dict-like types.
