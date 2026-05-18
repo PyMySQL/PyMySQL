@@ -1,6 +1,8 @@
 import pytest
+from unittest import mock
 
 from pymysql import err
+from pymysql.connections import Connection
 
 
 def test_error_init_sqlstate():
@@ -27,3 +29,13 @@ def test_raise_mysql_exception():
     assert cm.type == err.OperationalError
     assert cm.value.args == (1040, "Too many connections")
     assert cm.value.sqlstate is None
+
+
+def test_set_charset_deprecated():
+    con = mock.Mock(spec=Connection)
+    with pytest.warns(
+        DeprecationWarning,
+        match="'set_charset' is deprecated, use 'set_character_set' instead",
+    ):
+        Connection.set_charset(con, "utf8mb4")
+    con.set_character_set.assert_called_once_with("utf8mb4")
