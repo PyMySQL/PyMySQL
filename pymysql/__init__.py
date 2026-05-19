@@ -49,8 +49,8 @@ from .times import (
 
 # PyMySQL version.
 # Used by setuptools and connection_attrs
-VERSION = (1, 1, 3, "final")
-VERSION_STRING = "1.1.3"
+VERSION = (1, 1, 4, "final")
+VERSION_STRING = "1.1.4"
 
 ### for mysqlclient compatibility
 ### Django checks mysqlclient version.
