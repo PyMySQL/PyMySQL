@@ -630,6 +630,11 @@ class Connection:
 
     def set_charset(self, charset):
         """Deprecated. Use set_character_set() instead."""
+        warnings.warn(
+            "'set_charset' is deprecated, use 'set_character_set' instead",
+            DeprecationWarning,
+            2,
+        )
         # This function has been implemented in old PyMySQL.
         # But this name is different from MySQLdb.
         # So we keep this function for compatibility and add

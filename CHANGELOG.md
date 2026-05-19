@@ -32,6 +32,7 @@ Release date: TBD
 * Support MySQL 8 row/column alias syntax in `executemany` INSERT regex. (#1235)
 * Expose SQLSTATE on MySQL protocol exceptions without changing exception formatting. (#1236)
 * Reject non-finite `decimal.Decimal` query parameters (`NaN`, `sNaN`, `±Infinity`). (#1237)
+* `Connection.set_charset(charset)` now emits `DeprecationWarning`.
 
 ## v1.1.3
 
