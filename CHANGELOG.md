@@ -1,12 +1,8 @@
 # Changes
 
-## Backward incompatible changes planned in the future.
-
-* `Connection.set_charset(charset)` will be removed after 2024-06
-
 ## v1.2.0
 
-Release date: TBD
+Release date: 2026-05-19
 
 ### Breaking changes
 
@@ -33,6 +29,7 @@ Release date: TBD
 * Expose SQLSTATE on MySQL protocol exceptions without changing exception formatting. (#1236)
 * Reject non-finite `decimal.Decimal` query parameters (`NaN`, `sNaN`, `±Infinity`). (#1237)
 * `Connection.set_charset(charset)` now emits `DeprecationWarning`.
+
 
 ## v1.1.3
 
