@@ -56,7 +56,7 @@ jobs:
     needs: ["build"]
     permissions:
       id-token: write
-    runs-on: "ubuntu-slim"
+    runs-on: "ubuntu-latest"
     environment:
       name: "publish"
 
@@ -78,7 +78,7 @@ jobs:
     needs: ["build"]
     permissions:
       id-token: write
-    runs-on: "ubuntu-slim"
+    runs-on: "ubuntu-latest"
     environment:
       name: "testpypi"
 
