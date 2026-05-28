@@ -1447,7 +1447,15 @@ class MySQLResult:
 
 class LoadLocalFile:
     def __init__(self, filename, connection):
-        self.filename = filename
+        # Security: prevent path traversal via malicious server-provided filenames.
+        # Resolve to absolute path and reject traversal attempts.
+        self.filename = os.path.realpath(os.path.expanduser(filename))
+        cwd = os.path.realpath(os.getcwd())
+        if not self.filename.startswith(cwd + os.path.sep) and self.filename != cwd:
+            raise err.OperationalError(
+                CR.CR_LOAD_DATA_LOCAL_INFILE_REALPATH_FAIL,
+                f"File '{filename}' is outside the current working directory",
+            )
         self.connection = connection
 
     def send_data(self):
