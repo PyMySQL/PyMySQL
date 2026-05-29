@@ -146,6 +146,7 @@ class Connection:
     :param read_default_group: Group to read from in the configuration file.
     :param autocommit: Autocommit mode. None means use server default. (default: False)
     :param local_infile: Boolean to enable the use of LOAD DATA LOCAL command. (default: False)
+        When set to ``"only_args"``, only files passed as query arguments are allowed.
     :param max_allowed_packet: Max size of packet sent to server in bytes. (default: 16MB)
         Only used to limit size of "LOAD LOCAL INFILE" data packet smaller than default (16KB).
     :param defer_connect: Don't explicitly connect on construction - wait for connect call.
@@ -230,9 +231,13 @@ class Connection:
                 "compress and named_pipe arguments are not supported"
             )
 
-        self._local_infile = bool(local_infile)
-        if self._local_infile:
+        if local_infile == "only_args":
+            self._local_infile = local_infile
             client_flag |= CLIENT.LOCAL_FILES
+        else:
+            self._local_infile = bool(local_infile)
+            if self._local_infile:
+                client_flag |= CLIENT.LOCAL_FILES
 
         if read_default_group and not read_default_file:
             if sys.platform.startswith("win"):
@@ -1293,7 +1298,15 @@ class MySQLResult:
                 "**WARN**: Received LOAD_LOCAL packet but local_infile option is false."
             )
         load_packet = LoadLocalPacketWrapper(first_packet)
-        sender = LoadLocalFile(load_packet.filename, self.connection)
+        filename = load_packet.filename
+        if self.connection._local_infile == "only_args":
+            allowed = getattr(self.connection, "_local_infile_allowed_files", set())
+            if filename not in allowed:
+                raise err.OperationalError(
+                    CR.CR_LOAD_DATA_LOCAL_INFILE_REJECTED,
+                    f"LOAD DATA LOCAL INFILE file '{filename.decode(self.connection.encoding, errors='replace')}' is not in query arguments",
+                )
+        sender = LoadLocalFile(filename, self.connection)
         try:
             sender.send_data()
         except:

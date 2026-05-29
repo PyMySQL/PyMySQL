@@ -97,6 +97,47 @@ class TestLoadLocal(base.PyMySQLTestCase):
             c.execute("DROP TABLE test_load_local")
             c.close()
 
+    def test_load_file_only_args_allows_arg(self):
+        """Test load local infile with local_infile='only_args' allows file from args."""
+        conn = self.connect(local_infile="only_args")
+        c = conn.cursor()
+        c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
+        filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "load_local_data.txt"
+        )
+        try:
+            c.execute(
+                "LOAD DATA LOCAL INFILE %s INTO TABLE test_load_local"
+                + " FIELDS TERMINATED BY ','",
+                (filename,),
+            )
+            c.execute("SELECT COUNT(*) FROM test_load_local")
+            self.assertEqual(22749, c.fetchone()[0])
+        finally:
+            c.execute("DROP TABLE test_load_local")
+            c.close()
+
+    def test_load_file_only_args_rejects_literal(self):
+        """Test load local infile with local_infile='only_args' rejects literal filename."""
+        conn = self.connect(local_infile="only_args")
+        c = conn.cursor()
+        c.execute("CREATE TABLE test_load_local (a INTEGER, b INTEGER)")
+        filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "load_local_data.txt"
+        )
+        try:
+            self.assertRaises(
+                OperationalError,
+                c.execute,
+                (
+                    f"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE "
+                    + "test_load_local FIELDS TERMINATED BY ','"
+                ),
+            )
+        finally:
+            c.execute("DROP TABLE test_load_local")
+            c.close()
+
 
 if __name__ == "__main__":
     import unittest
