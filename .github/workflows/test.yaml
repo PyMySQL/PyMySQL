@@ -63,7 +63,7 @@ jobs:
           - /run/mysqld:/run/mysqld
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Workaround MySQL container permissions
         if: startsWith(matrix.db, 'mysql')
@@ -72,7 +72,7 @@ jobs:
           /usr/bin/docker ps --all --filter status=exited --no-trunc --format "{{.ID}}" | xargs -r /usr/bin/docker start
 
       - name: Set up Python ${{ matrix.py }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.py }}
           allow-prereleases: true
@@ -113,4 +113,4 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: github.repository == 'PyMySQL/PyMySQL'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
