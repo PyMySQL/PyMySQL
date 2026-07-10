@@ -643,7 +643,7 @@ class Connection:
 
     def set_character_set(self, charset, collation=None):
         """
-        Set charaset (and collation)
+        Set charset (and collation)
 
         Send "SET NAMES charset [COLLATE collation]" query.
         Update Connection.encoding based on charset.
@@ -702,7 +702,7 @@ class Connection:
             self._request_authentication()
 
             # Send "SET NAMES" query on init for:
-            # - Ensure charaset (and collation) is set to the server.
+            # - Ensure charset (and collation) is set to the server.
             #   - collation_id in handshake packet may be ignored.
             # - If collation is not specified, we don't know what is server's
             #   default collation for the charset. For example, default collation
