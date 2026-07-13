@@ -156,9 +156,35 @@ class Cursor:
 
         query = self.mogrify(query, args)
 
-        result = self._query(query)
-        self._executed = query
-        return result
+        conn = self._get_db()
+        if conn._local_infile == "only_args" and args is not None:
+            allowed = set()
+            if isinstance(args, (tuple, list)):
+                for arg in args:
+                    if isinstance(arg, str):
+                        allowed.add(arg.encode(conn.encoding))
+                    elif isinstance(arg, bytes):
+                        allowed.add(arg)
+            elif isinstance(args, dict):
+                for arg in args.values():
+                    if isinstance(arg, str):
+                        allowed.add(arg.encode(conn.encoding))
+                    elif isinstance(arg, bytes):
+                        allowed.add(arg)
+            elif isinstance(args, str):
+                allowed.add(args.encode(conn.encoding))
+            elif isinstance(args, bytes):
+                allowed.add(args)
+            conn._local_infile_allowed_files = allowed
+        else:
+            conn._local_infile_allowed_files = set()
+
+        try:
+            result = self._query(query)
+            self._executed = query
+            return result
+        finally:
+            conn._local_infile_allowed_files = set()
 
     def executemany(self, query, args):
         """Run several data against one query.
