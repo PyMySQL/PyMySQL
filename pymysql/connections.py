@@ -1296,7 +1296,7 @@ class MySQLResult:
         sender = LoadLocalFile(load_packet.filename, self.connection)
         try:
             sender.send_data()
-        except:
+        except Exception:
             self.connection._read_packet()  # skip ok packet
             raise
 
