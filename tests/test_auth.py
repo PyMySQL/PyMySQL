@@ -13,7 +13,7 @@ ca = os.path.expanduser("~/ca.pem")
 ssl = {"ca": ca, "check_hostname": False}
 
 pass_sha256 = "pass_sha256_01234567890123456789"
-pass_caching_sha2 = "pass_caching_sha2_01234567890123456789"
+pass_caching_sha2 = "pass_caching_sha2_密码"
 
 
 def test_sha256_no_password():

@@ -309,7 +309,7 @@ class Connection:
         self.user = user or DEFAULT_USER
         self.password = password or b""
         if isinstance(self.password, str):
-            self.password = self.password.encode("latin1")
+            self.password = self.password.encode("utf-8")
         self.db = database
         self.unix_socket = unix_socket
         self.bind_address = bind_address
