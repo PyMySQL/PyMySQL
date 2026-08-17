@@ -45,6 +45,26 @@ class TestConverter(TestCase):
         self._test_convert_timedelta(with_negate=False, with_fsp=True)
         self._test_convert_timedelta(with_negate=False, with_fsp=True)
 
+    def test_escape_timedelta(self):
+        # MySQL TIME allows negatives, and a timedelta is the registered param
+        # encoder, so a negative value must escape to its real magnitude with a
+        # single leading sign -- not with complemented sub-hour fields.
+        cases = {
+            datetime.timedelta(hours=1, minutes=30): "'01:30:00'",
+            datetime.timedelta(days=1, hours=2): "'26:00:00'",
+            -datetime.timedelta(minutes=30): "'-00:30:00'",
+            -datetime.timedelta(hours=1, minutes=30): "'-01:30:00'",
+            datetime.timedelta(seconds=83579, microseconds=51000): "'23:12:59.051000'",
+            -datetime.timedelta(seconds=83579, microseconds=51000): "'-23:12:59.051000'",
+        }
+        for tdelta, expected in cases.items():
+            self.assertEqual(converters.escape_timedelta(tdelta), expected)
+            # the escaped literal must re-parse to the same duration
+            self.assertEqual(
+                converters.convert_timedelta(converters.escape_timedelta(tdelta).strip("'")),
+                tdelta,
+            )
+
     def test_convert_time(self):
         expected = datetime.time(23, 6, 20)
         time_obj = converters.convert_time("23:06:20")
