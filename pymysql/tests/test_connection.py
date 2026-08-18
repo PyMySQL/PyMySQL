@@ -603,7 +603,7 @@ class TestConnection(base.PyMySQLTestCase):
                 keyfile="key",
                 password=None,
             )
-            dummy_ssl_context.set_ciphers.assert_not_called
+            dummy_ssl_context.set_ciphers.assert_not_called()
 
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
@@ -627,7 +627,7 @@ class TestConnection(base.PyMySQLTestCase):
                 keyfile="key",
                 password="password",
             )
-            dummy_ssl_context.set_ciphers.assert_not_called
+            dummy_ssl_context.set_ciphers.assert_not_called()
 
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
@@ -641,8 +641,8 @@ class TestConnection(base.PyMySQLTestCase):
             assert create_default_context.called
             assert not dummy_ssl_context.check_hostname
             assert dummy_ssl_context.verify_mode == ssl.CERT_NONE
-            dummy_ssl_context.load_cert_chain.assert_not_called
-            dummy_ssl_context.set_ciphers.assert_not_called
+            dummy_ssl_context.load_cert_chain.assert_not_called()
+            dummy_ssl_context.set_ciphers.assert_not_called()
 
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
@@ -663,7 +663,7 @@ class TestConnection(base.PyMySQLTestCase):
                 keyfile="key",
                 password=None,
             )
-            dummy_ssl_context.set_ciphers.assert_not_called
+            dummy_ssl_context.set_ciphers.assert_not_called()
 
         for ssl_verify_cert in (True, "1", "yes", "true"):
             dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
@@ -685,7 +685,7 @@ class TestConnection(base.PyMySQLTestCase):
                     keyfile="key",
                     password=None,
                 )
-                dummy_ssl_context.set_ciphers.assert_not_called
+                dummy_ssl_context.set_ciphers.assert_not_called()
 
         for ssl_verify_cert in (None, False, "0", "no", "false"):
             dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
@@ -707,7 +707,7 @@ class TestConnection(base.PyMySQLTestCase):
                     keyfile="key",
                     password=None,
                 )
-                dummy_ssl_context.set_ciphers.assert_not_called
+                dummy_ssl_context.set_ciphers.assert_not_called()
 
         for ssl_ca in ("ca", None):
             for ssl_verify_cert in ("foo", "bar", ""):
@@ -733,7 +733,7 @@ class TestConnection(base.PyMySQLTestCase):
                         keyfile="key",
                         password=None,
                     )
-                    dummy_ssl_context.set_ciphers.assert_not_called
+                    dummy_ssl_context.set_ciphers.assert_not_called()
 
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
@@ -755,7 +755,7 @@ class TestConnection(base.PyMySQLTestCase):
                 keyfile="key",
                 password=None,
             )
-            dummy_ssl_context.set_ciphers.assert_not_called
+            dummy_ssl_context.set_ciphers.assert_not_called()
 
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(
@@ -778,7 +778,7 @@ class TestConnection(base.PyMySQLTestCase):
                 keyfile="key",
                 password="password",
             )
-            dummy_ssl_context.set_ciphers.assert_not_called
+            dummy_ssl_context.set_ciphers.assert_not_called()
 
         dummy_ssl_context = mock.Mock(options=0, verify_flags=0)
         with mock.patch(

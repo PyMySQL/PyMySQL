@@ -60,7 +60,7 @@ ignore = [
     "UP031",
 ]
 
-[tool.pdm.dev-dependencies]
-dev = [
-    "pytest-cov>=4.0.0",
-]
+[tool.ruff.lint.per-file-ignores]
+"pymysql/protocol.py" = ["TRY002"]
+"pymysql/tests/test_DictCursor.py" = ["RUF012"]
+"pymysql/tests/test_connection.py" = ["PIE794"]

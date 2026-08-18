@@ -2,6 +2,7 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 # Error codes:
 # https://dev.mysql.com/doc/refman/5.5/en/error-handling.html
+import contextlib
 import errno
 import os
 import socket
@@ -431,9 +432,8 @@ class Connection:
             return
         send_data = struct.pack("<iB", 1, COMMAND.COM_QUIT)
         try:
-            self._write_bytes(send_data)
-        except Exception:
-            pass
+            with contextlib.suppress(Exception):
+                self._write_bytes(send_data)
         finally:
             self._force_close()
 

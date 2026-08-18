@@ -222,11 +222,8 @@ class TestNewIssues(base.PyMySQLTestCase):
         # now nuke the connection
         self.connections[0].kill(kill_id)
         # make sure this connection has broken
-        try:
+        with pytest.raises(pymysql.Error):
             c.execute("show tables")
-            self.fail()
-        except Exception:
-            pass
         c.close()
         conn.close()
 
