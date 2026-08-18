@@ -24,6 +24,7 @@ Code:
 
 ```py
 import pymysql
+
 con = pymysql.connect(...)
 ```
 

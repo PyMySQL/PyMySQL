@@ -100,9 +100,9 @@ def escape_timedelta(obj, mapping=None):
     # non-negative and the sign lives entirely in days, so the signed magnitude
     # must be reconstructed before it is split into hours/minutes/seconds --
     # otherwise a negative TIME comes out with complemented sub-hour fields.
-    sign = ''
+    sign = ""
     if obj.days < 0:
-        sign = '-'
+        sign = "-"
         obj = abs(obj)
 
     micros = obj.microseconds

@@ -55,13 +55,17 @@ class TestConverter(TestCase):
             -datetime.timedelta(minutes=30): "'-00:30:00'",
             -datetime.timedelta(hours=1, minutes=30): "'-01:30:00'",
             datetime.timedelta(seconds=83579, microseconds=51000): "'23:12:59.051000'",
-            -datetime.timedelta(seconds=83579, microseconds=51000): "'-23:12:59.051000'",
+            -datetime.timedelta(
+                seconds=83579, microseconds=51000
+            ): "'-23:12:59.051000'",
         }
         for tdelta, expected in cases.items():
             self.assertEqual(converters.escape_timedelta(tdelta), expected)
             # the escaped literal must re-parse to the same duration
             self.assertEqual(
-                converters.convert_timedelta(converters.escape_timedelta(tdelta).strip("'")),
+                converters.convert_timedelta(
+                    converters.escape_timedelta(tdelta).strip("'")
+                ),
                 tdelta,
             )
 
