@@ -1,13 +1,12 @@
 # Python implementation of low level MySQL client-server protocol
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 
-from .charset import MBLENGTH
-from .constants import FIELD_TYPE, SERVER_STATUS
-from . import err
-
 import struct
 import sys
 
+from . import err
+from .charset import MBLENGTH
+from .constants import FIELD_TYPE, SERVER_STATUS
 
 DEBUG = False
 
@@ -50,7 +49,7 @@ class MysqlPacket:
     Provides an interface for reading/parsing the packet results.
     """
 
-    __slots__ = ("_position", "_data")
+    __slots__ = ("_data", "_position")
 
     def __init__(self, data, encoding):
         self._position = 0
@@ -273,14 +272,7 @@ class FieldDescriptorPacket(MysqlPacket):
         return self.length
 
     def __str__(self):
-        return "{} {!r}.{!r}.{!r}, type={}, flags={:x}".format(
-            self.__class__,
-            self.db,
-            self.table_name,
-            self.name,
-            self.type_code,
-            self.flags,
-        )
+        return f"{self.__class__} {self.db!r}.{self.table_name!r}.{self.name!r}, type={self.type_code}, flags={self.flags:x}"
 
 
 class OKPacketWrapper:

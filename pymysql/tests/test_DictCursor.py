@@ -1,8 +1,8 @@
-from pymysql.tests import base
-import pymysql.cursors
-
 import datetime
 import warnings
+
+import pymysql.cursors
+from pymysql.tests import base
 
 
 class TestDictCursor(base.PyMySQLTestCase):

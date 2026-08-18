@@ -51,9 +51,16 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-ignore = ["E721"]
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "pytest-cov>=4.0.0",
+ignore = [
+    "BLE001",
+    "DTZ001",
+    "E721",
+    "ISC004",
+    "N999",
+    "UP031",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"pymysql/protocol.py" = ["TRY002"]
+"pymysql/tests/test_DictCursor.py" = ["RUF012"]
+"pymysql/tests/test_connection.py" = ["PIE794"]

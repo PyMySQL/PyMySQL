@@ -26,24 +26,24 @@ import sys
 
 from .constants import FIELD_TYPE
 from .err import (
-    Warning,
-    Error,
-    InterfaceError,
-    DataError,
     DatabaseError,
-    OperationalError,
+    DataError,
+    Error,
     IntegrityError,
+    InterfaceError,
     InternalError,
-    NotSupportedError,
-    ProgrammingError,
     MySQLError,
+    NotSupportedError,
+    OperationalError,
+    ProgrammingError,
+    Warning,
 )
 from .times import (
     Date,
-    Time,
-    Timestamp,
     DateFromTicks,
+    Time,
     TimeFromTicks,
+    Timestamp,
     TimestampFromTicks,
 )
 
@@ -76,7 +76,7 @@ threadsafety = 1
 apilevel = "2.0"
 paramstyle = "pyformat"
 
-from . import connections  # noqa: E402
+from . import connections
 
 
 class DBAPISet(frozenset):
@@ -139,35 +139,36 @@ NULL = "NULL"
 
 __all__ = [
     "BINARY",
-    "Binary",
-    "Connect",
-    "Connection",
     "DATE",
-    "Date",
-    "Time",
-    "Timestamp",
-    "DateFromTicks",
-    "TimeFromTicks",
-    "TimestampFromTicks",
-    "DataError",
-    "DatabaseError",
-    "Error",
     "FIELD_TYPE",
-    "IntegrityError",
-    "InterfaceError",
-    "InternalError",
-    "MySQLError",
     "NULL",
     "NUMBER",
-    "NotSupportedError",
-    "DBAPISet",
-    "OperationalError",
-    "ProgrammingError",
     "ROWID",
     "STRING",
     "TIME",
     "TIMESTAMP",
+    "Binary",
+    "Connect",
+    "Connection",
+    "DBAPISet",
+    "DataError",
+    "DatabaseError",
+    "Date",
+    "DateFromTicks",
+    "Error",
+    "IntegrityError",
+    "InterfaceError",
+    "InternalError",
+    "MySQLError",
+    "NotSupportedError",
+    "OperationalError",
+    "ProgrammingError",
+    "Time",
+    "TimeFromTicks",
+    "Timestamp",
+    "TimestampFromTicks",
     "Warning",
+    "__version__",
     "apilevel",
     "connect",
     "connections",
@@ -175,9 +176,8 @@ __all__ = [
     "converters",
     "cursors",
     "get_client_info",
+    "install_as_MySQLdb",
     "paramstyle",
     "threadsafety",
     "version_info",
-    "install_as_MySQLdb",
-    "__version__",
 ]

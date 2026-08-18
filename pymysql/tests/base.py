@@ -1,8 +1,8 @@
 import json
 import os
 import re
-import warnings
 import unittest
+import warnings
 
 import pymysql
 

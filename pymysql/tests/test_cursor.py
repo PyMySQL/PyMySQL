@@ -1,8 +1,8 @@
+import pytest
+
+import pymysql.cursors
 from pymysql.constants import ER
 from pymysql.tests import base
-import pymysql.cursors
-
-import pytest
 
 
 def test_re_insert_values_with_on_duplicate_key_alias():

@@ -1,6 +1,6 @@
 import re
-from . import err
 
+from . import err
 
 #: Regular expression for :meth:`Cursor.executemany`.
 #: executemany only supports simple bulk insert.

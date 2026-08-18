@@ -4,19 +4,17 @@ Implements auth methods
 
 from .err import OperationalError
 
-
 try:
     from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import serialization, hashes
+    from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding
 
     _have_cryptography = True
 except ImportError:
     _have_cryptography = False
 
-from functools import partial
 import hashlib
-
+from functools import partial
 
 DEBUG = False
 SCRAMBLE_LENGTH = 20

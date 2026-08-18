@@ -1,7 +1,7 @@
 from io import StringIO
 from unittest import TestCase
-from pymysql.optionfile import Parser
 
+from pymysql.optionfile import Parser
 
 __all__ = ["TestParser"]
 

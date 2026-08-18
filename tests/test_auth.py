@@ -1,6 +1,7 @@
 """Test for auth methods supported by MySQL 8"""
 
 import os
+
 import pymysql
 
 # pymysql.connections.DEBUG = True

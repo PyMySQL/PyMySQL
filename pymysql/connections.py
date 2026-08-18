@@ -2,6 +2,7 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 # Error codes:
 # https://dev.mysql.com/doc/refman/5.5/en/error-handling.html
+import contextlib
 import errno
 import os
 import socket
@@ -10,22 +11,19 @@ import sys
 import traceback
 import warnings
 
-from . import _auth
-
-from .charset import charset_by_name, charset_by_id
+from . import VERSION_STRING, _auth, converters, err
+from .charset import charset_by_id, charset_by_name
 from .constants import CLIENT, COMMAND, CR, ER, FIELD_TYPE, SERVER_STATUS
-from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
 from .protocol import (
-    dump_packet,
-    MysqlPacket,
-    FieldDescriptorPacket,
-    OKPacketWrapper,
     EOFPacketWrapper,
+    FieldDescriptorPacket,
     LoadLocalPacketWrapper,
+    MysqlPacket,
+    OKPacketWrapper,
+    dump_packet,
 )
-from . import err, VERSION_STRING
 
 try:
     import ssl
@@ -434,9 +432,8 @@ class Connection:
             return
         send_data = struct.pack("<iB", 1, COMMAND.COM_QUIT)
         try:
-            self._write_bytes(send_data)
-        except Exception:
-            pass
+            with contextlib.suppress(Exception):
+                self._write_bytes(send_data)
         finally:
             self._force_close()
 
