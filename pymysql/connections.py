@@ -728,7 +728,7 @@ class Connection:
         except BaseException as e:
             self._force_close()
 
-            if isinstance(e, (OSError, IOError)):
+            if isinstance(e, OSError):
                 exc = err.OperationalError(
                     CR.CR_CONN_HOST_ERROR,
                     f"Can't connect to MySQL server on {self.host!r} ({e})",
@@ -1275,8 +1275,8 @@ class MySQLResult:
             self.affected_rows = 18446744073709551615
             self.unbuffered_active = True
 
-    def _read_ok_packet(self, first_packet):
-        ok_packet = OKPacketWrapper(first_packet)
+    def _read_ok_packet(self, packet):
+        ok_packet = OKPacketWrapper(packet)
         self.affected_rows = ok_packet.affected_rows
         self.insert_id = ok_packet.insert_id
         self.server_status = ok_packet.server_status
@@ -1285,25 +1285,24 @@ class MySQLResult:
         self.has_next = ok_packet.has_next
 
     def _read_load_local_packet(self, first_packet):
-        if not self.connection._local_infile:
+        conn: Connection = self.connection
+        if not conn._local_infile:
             raise RuntimeError(
                 "**WARN**: Received LOAD_LOCAL packet but local_infile option is false."
             )
         load_packet = LoadLocalPacketWrapper(first_packet)
-        sender = LoadLocalFile(load_packet.filename, self.connection)
         try:
-            sender.send_data()
-        except:
-            self.connection._read_packet()  # skip ok packet
-            raise
+            _send_local_file(load_packet.filename, conn)
+        finally:
+            # send the empty packet to signify we are done sending data
+            conn.write_packet(b"")
+            ok_packet = conn._read_packet()
+            # If an error occurs while sending the file, exit here without handling
+            # the OK packet.
 
-        ok_packet = self.connection._read_packet()
-        if (
-            not ok_packet.is_ok_packet()
-        ):  # pragma: no cover - upstream induced protocol error
+        if not ok_packet.is_ok_packet():
             raise err.OperationalError(
-                CR.CR_COMMANDS_OUT_OF_SYNC,
-                "Commands Out of Sync",
+                CR.CR_COMMANDS_OUT_OF_SYNC, "Commands Out of Sync"
             )
         self._read_ok_packet(ok_packet)
 
@@ -1442,33 +1441,20 @@ class MySQLResult:
         self.description = tuple(description)
 
 
-class LoadLocalFile:
-    def __init__(self, filename, connection):
-        self.filename = filename
-        self.connection = connection
+def _send_local_file(filename: str, conn: Connection):
+    """Send data packets from the local file to the server"""
+    packet_size = min(conn.max_allowed_packet, 16 * 1024)
 
-    def send_data(self):
-        """Send data packets from the local file to the server"""
-        if not self.connection._sock:
-            raise err.InterfaceError(0, "")
-        conn: Connection = self.connection
-
-        try:
-            with open(self.filename, "rb") as open_file:
-                packet_size = min(
-                    conn.max_allowed_packet, 16 * 1024
-                )  # 16KB is efficient enough
-                while True:
-                    chunk = open_file.read(packet_size)
-                    if not chunk:
-                        break
-                    conn.write_packet(chunk)
-        except OSError:
-            raise err.OperationalError(
-                ER.FILE_NOT_FOUND,
-                f"Can't find file '{self.filename}'",
-            )
-        finally:
-            if not conn._closed:
-                # send the empty packet to signify we are done sending data
-                conn.write_packet(b"")
+    try:
+        with open(filename, "rb") as file:
+            # 16KB is efficient enough
+            while True:
+                chunk = file.read(packet_size)
+                if not chunk:
+                    break
+                conn.write_packet(chunk)
+    except OSError as e:
+        raise err.OperationalError(
+            ER.FILE_NOT_FOUND,
+            f"Can't open file '{filename}': {e}",
+        )
