@@ -96,14 +96,23 @@ def escape_None(value, mapping=None):
 
 
 def escape_timedelta(obj, mapping=None):
-    seconds = int(obj.seconds) % 60
-    minutes = int(obj.seconds // 60) % 60
-    hours = int(obj.seconds // 3600) % 24 + int(obj.days) * 24
-    if obj.microseconds:
-        fmt = "'{0:02d}:{1:02d}:{2:02d}.{3:06d}'"
-    else:
-        fmt = "'{0:02d}:{1:02d}:{2:02d}'"
-    return fmt.format(hours, minutes, seconds, obj.microseconds)
+    # timedelta normalizes a negative value so that seconds/microseconds are
+    # non-negative and the sign lives entirely in days, so the signed magnitude
+    # must be reconstructed before it is split into hours/minutes/seconds --
+    # otherwise a negative TIME comes out with complemented sub-hour fields.
+    sign = ''
+    if obj.days < 0:
+        sign = '-'
+        obj = abs(obj)
+
+    micros = obj.microseconds
+    minutes, seconds = divmod(obj.seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    hours += obj.days * 24
+
+    if micros:
+        return f"'{sign}{hours:02d}:{minutes:02d}:{seconds:02d}.{micros:06d}'"
+    return f"'{sign}{hours:02d}:{minutes:02d}:{seconds:02d}'"
 
 
 def escape_time(obj, mapping=None):
