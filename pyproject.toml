@@ -51,7 +51,14 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-ignore = ["E721"]
+ignore = [
+    "BLE001",
+    "DTZ001",
+    "E721",
+    "ISC004",
+    "N999",
+    "UP031",
+]
 
 [tool.pdm.dev-dependencies]
 dev = [

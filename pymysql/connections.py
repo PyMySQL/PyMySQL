@@ -10,22 +10,19 @@ import sys
 import traceback
 import warnings
 
-from . import _auth
-
-from .charset import charset_by_name, charset_by_id
+from . import VERSION_STRING, _auth, converters, err
+from .charset import charset_by_id, charset_by_name
 from .constants import CLIENT, COMMAND, CR, ER, FIELD_TYPE, SERVER_STATUS
-from . import converters
 from .cursors import Cursor
 from .optionfile import Parser
 from .protocol import (
-    dump_packet,
-    MysqlPacket,
-    FieldDescriptorPacket,
-    OKPacketWrapper,
     EOFPacketWrapper,
+    FieldDescriptorPacket,
     LoadLocalPacketWrapper,
+    MysqlPacket,
+    OKPacketWrapper,
+    dump_packet,
 )
-from . import err, VERSION_STRING
 
 try:
     import ssl

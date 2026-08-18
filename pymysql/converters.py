@@ -1,10 +1,10 @@
 import datetime
-from decimal import Decimal
 import re
 import time
+from decimal import Decimal
 
-from .err import ProgrammingError
 from .constants import FIELD_TYPE
+from .err import ProgrammingError
 
 
 def escape_item(val, charset, mapping=None):

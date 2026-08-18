@@ -1,9 +1,9 @@
 import datetime
 from decimal import Decimal
 from unittest import TestCase
+
 from pymysql import converters
 from pymysql.err import ProgrammingError
-
 
 __all__ = ["TestConverter"]
 

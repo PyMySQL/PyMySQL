@@ -1,5 +1,6 @@
-import pytest
 from unittest import mock
+
+import pytest
 
 from pymysql import err
 from pymysql.connections import Connection

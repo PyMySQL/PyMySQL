@@ -7,8 +7,7 @@ import pytest
 import pymysql.cursors
 from pymysql.tests import base
 
-
-__all__ = ["TestConversion", "TestCursor", "TestBulkInserts"]
+__all__ = ["TestBulkInserts", "TestConversion", "TestCursor"]
 
 
 class TestConversion(base.PyMySQLTestCase):
@@ -275,11 +274,11 @@ class TestCursor(base.PyMySQLTestCase):
         c = conn.cursor()
         try:
             c.execute("create table test_aggregates (i integer)")
-            for i in range(0, 10):
+            for i in range(10):
                 c.execute("insert into test_aggregates (i) values (%s)", (i,))
             c.execute("select sum(i) from test_aggregates")
             (r,) = c.fetchone()
-            self.assertEqual(sum(range(0, 10)), r)
+            self.assertEqual(sum(range(10)), r)
         finally:
             c.execute("drop table test_aggregates")
 

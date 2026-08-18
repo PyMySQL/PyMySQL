@@ -1,12 +1,13 @@
 import datetime
 import ssl
-import pytest
 import time
 from unittest import mock
 
+import pytest
+
 import pymysql
-from pymysql.tests import base
 from pymysql.constants import CLIENT
+from pymysql.tests import base
 
 
 class TempUser:
@@ -152,7 +153,6 @@ class TestAuthentication(base.PyMySQLTestCase):
 
         def __init__(self, con):
             self.fail = TestAuthentication.Dialog.fail
-            pass
 
         def prompt(self, echo, prompt):
             if self.fail:

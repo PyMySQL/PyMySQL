@@ -1,8 +1,8 @@
 import pytest
 
 import pymysql
-from pymysql.tests import base
 from pymysql.constants import CLIENT
+from pymysql.tests import base
 
 
 class TestNextset(base.PyMySQLTestCase):

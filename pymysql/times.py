@@ -1,6 +1,5 @@
-from time import localtime
 from datetime import date, datetime, time, timedelta
-
+from time import localtime
 
 Date = date
 Time = time
