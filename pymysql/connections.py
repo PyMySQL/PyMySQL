@@ -765,6 +765,13 @@ class Connection:
         :raise OperationalError: If the connection to the MySQL server is lost.
         :raise InternalError: If the packet sequence number is wrong.
         """
+        # Although `socket.settimeout()` may appear fast, it temporarily releases
+        # the GIL, which can hurt performance in multithreaded applications.
+        # Avoid calling it repeatedly at high frequency.
+        if self._current_timeout != self._read_timeout:
+            self._sock.settimeout(self._read_timeout)
+            self._current_timeout = self._read_timeout
+
         buff = []
         while True:
             packet_header = self._read_bytes(4)
@@ -802,9 +809,8 @@ class Connection:
         return packet
 
     def _read_bytes(self, num_bytes):
-        if self._current_timeout != self._read_timeout:
-            self._sock.settimeout(self._read_timeout)
-            self._current_timeout = self._read_timeout
+        # NOTE: caller should call self._sock.settimeout(self._read_timeout)
+        # before first read.
         while True:
             try:
                 data = self._rfile.read(num_bytes)
