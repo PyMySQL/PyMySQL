@@ -147,7 +147,8 @@ class MysqlPacket:
         Length coded numbers can be anywhere from 1 to 9 bytes depending
         on the value of the first byte.
         """
-        c = self.read_uint8()
+        c = self._data[self._position]
+        self._position += 1
         if c == NULL_COLUMN:
             return None
         if c < UNSIGNED_CHAR_COLUMN:
