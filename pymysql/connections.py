@@ -689,9 +689,10 @@ class Connection:
                         print("connected using socket")
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                sock.settimeout(None)
 
             self._sock = sock
+            sock.settimeout(self._read_timeout)
+            self._current_timeout = self._read_timeout
             self._rfile = sock.makefile("rb")
             self._next_seq_id = 0
 
@@ -764,7 +765,14 @@ class Connection:
         :raise OperationalError: If the connection to the MySQL server is lost.
         :raise InternalError: If the packet sequence number is wrong.
         """
-        buff = bytearray()
+        # Although `socket.settimeout()` may appear fast, it temporarily releases
+        # the GIL, which can hurt performance in multithreaded applications.
+        # Avoid calling it repeatedly at high frequency.
+        if self._current_timeout != self._read_timeout:
+            self._sock.settimeout(self._read_timeout)
+            self._current_timeout = self._read_timeout
+
+        buff = []
         while True:
             packet_header = self._read_bytes(4)
             # if DEBUG: dump_packet(packet_header)
@@ -788,12 +796,12 @@ class Connection:
             recv_data = self._read_bytes(bytes_to_read)
             if DEBUG:
                 dump_packet(recv_data)
-            buff += recv_data
+            buff.append(recv_data)
             # https://dev.mysql.com/doc/internals/en/sending-more-than-16mbyte.html
             if bytes_to_read < MAX_PACKET_LEN:
                 break
 
-        packet = packet_type(bytes(buff), self.encoding)
+        packet = packet_type(b"".join(buff), self.encoding)
         if packet.is_error_packet():
             if self._result is not None and self._result.unbuffered_active is True:
                 self._result.unbuffered_active = False
@@ -801,7 +809,8 @@ class Connection:
         return packet
 
     def _read_bytes(self, num_bytes):
-        self._sock.settimeout(self._read_timeout)
+        # NOTE: caller should call self._sock.settimeout(self._read_timeout)
+        # before first read.
         while True:
             try:
                 data = self._rfile.read(num_bytes)
@@ -826,7 +835,9 @@ class Connection:
         return data
 
     def _write_bytes(self, data):
-        self._sock.settimeout(self._write_timeout)
+        if self._current_timeout != self._write_timeout:
+            self._sock.settimeout(self._write_timeout)
+            self._current_timeout = self._write_timeout
         try:
             self._sock.sendall(data)
         except OSError as e:
