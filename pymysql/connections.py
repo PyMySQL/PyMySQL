@@ -689,9 +689,10 @@ class Connection:
                         print("connected using socket")
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                sock.settimeout(None)
 
             self._sock = sock
+            sock.settimeout(self._read_timeout)
+            self._current_timeout = self._read_timeout
             self._rfile = sock.makefile("rb")
             self._next_seq_id = 0
 
@@ -801,7 +802,9 @@ class Connection:
         return packet
 
     def _read_bytes(self, num_bytes):
-        self._sock.settimeout(self._read_timeout)
+        if self._current_timeout != self._read_timeout:
+            self._sock.settimeout(self._read_timeout)
+            self._current_timeout = self._read_timeout
         while True:
             try:
                 data = self._rfile.read(num_bytes)
@@ -826,7 +829,9 @@ class Connection:
         return data
 
     def _write_bytes(self, data):
-        self._sock.settimeout(self._write_timeout)
+        if self._current_timeout != self._write_timeout:
+            self._sock.settimeout(self._write_timeout)
+            self._current_timeout = self._write_timeout
         try:
             self._sock.sendall(data)
         except OSError as e:
