@@ -1,3 +1,4 @@
+import pymysql
 import pymysql.charset
 
 
@@ -42,3 +43,8 @@ def test_case_sensitivity():
     # lowercase and mixed case should resolve to the same charset
     mixedcase_latin1 = pymysql.charset.charset_by_name("LaTiN1")
     assert mixedcase_latin1 == lowercase_latin1
+
+
+def test_password_encoded_as_utf8():
+    conn = pymysql.connect(defer_connect=True, password="café")
+    assert conn.password == "café".encode("utf-8")

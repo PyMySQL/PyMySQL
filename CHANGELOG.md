@@ -1,5 +1,9 @@
 # Changes
 
+## Unreleased
+
+* Encode string passwords as UTF-8 instead of Latin-1. (#1252)
+
 ## v1.2.0
 
 Release date: 2026-05-19
