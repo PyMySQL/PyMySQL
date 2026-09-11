@@ -1007,39 +1007,74 @@ class Connection:
         self.write_packet(data)
         auth_packet = self._read_packet()
 
-        # if authentication method isn't accepted the first byte
-        # will have the octet 254
-        if auth_packet.is_auth_switch_request():
-            if DEBUG:
-                print("received auth switch")
-            # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-            auth_packet.read_uint8()  # 0xfe packet identifier
-            plugin_name = auth_packet.read_string()
-            if (
-                self.server_capabilities & CLIENT.PLUGIN_AUTH
-                and plugin_name is not None
-            ):
-                auth_packet = self._process_auth(plugin_name, auth_packet)
-            else:
+        # Authentication is a state machine. An authentication plugin can return
+        # another transition packet (for example, MySQL Router can request full
+        # caching_sha2_password authentication and then switch to the backend's
+        # mysql_native_password plugin), so keep dispatching until the server
+        # sends a terminal packet.
+        auth_plugin_name = self._auth_plugin_name
+        if isinstance(auth_plugin_name, str):
+            auth_plugin_name = auth_plugin_name.encode("ascii")
+        auth_plugin_handler = self._get_auth_plugin_handler(auth_plugin_name)
+        auth_switch_received = False
+
+        while True:
+            # Custom authentication handlers historically did not need to return
+            # the final OK packet after consuming the complete exchange.
+            if auth_packet is None and auth_plugin_handler:
+                break
+
+            # if authentication method isn't accepted the first byte
+            # will have the octet 254
+            if auth_packet.is_auth_switch_request():
+                if auth_switch_received:
+                    raise err.OperationalError("received multiple auth switch requests")
+                auth_switch_received = True
+                if DEBUG:
+                    print("received auth switch")
+                # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+                auth_packet.read_uint8()  # 0xfe packet identifier
+                plugin_name = auth_packet.read_string()
+                if (
+                    self.server_capabilities & CLIENT.PLUGIN_AUTH
+                    and plugin_name is not None
+                ):
+                    auth_plugin_name = plugin_name
+                    auth_plugin_handler = self._get_auth_plugin_handler(plugin_name)
+                    auth_packet = self._process_auth(
+                        plugin_name, auth_packet, auth_plugin_handler
+                    )
+                    continue
                 raise err.OperationalError("received unknown auth switch request")
-        elif auth_packet.is_extra_auth_data():
-            if DEBUG:
-                print("received extra data")
-            # https://dev.mysql.com/doc/internals/en/successful-authentication.html
-            if self._auth_plugin_name == "caching_sha2_password":
-                auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
-            elif self._auth_plugin_name == "sha256_password":
-                auth_packet = _auth.sha256_password_auth(self, auth_packet)
-            else:
+
+            if auth_packet.is_extra_auth_data():
+                if DEBUG:
+                    print("received extra data")
+                # https://dev.mysql.com/doc/internals/en/successful-authentication.html
+                if auth_plugin_handler:
+                    auth_packet = auth_plugin_handler.authenticate(auth_packet)
+                    continue
+                elif auth_plugin_name in (
+                    b"caching_sha2_password",
+                    "caching_sha2_password",
+                ):
+                    auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
+                    continue
+                if auth_plugin_name in (b"sha256_password", "sha256_password"):
+                    auth_packet = _auth.sha256_password_auth(self, auth_packet)
+                    continue
                 raise err.OperationalError(
-                    "Received extra packet for auth method %r", self._auth_plugin_name
+                    "Received extra packet for auth method %r", auth_plugin_name
                 )
+
+            if auth_packet.is_ok_packet():
+                break
+            raise err.OperationalError("unexpected packet during authentication")
 
         if DEBUG:
             print("Succeed to auth")
 
-    def _process_auth(self, plugin_name, auth_packet):
-        handler = self._get_auth_plugin_handler(plugin_name)
+    def _process_auth(self, plugin_name, auth_packet, handler=None):
         if handler:
             try:
                 return handler.authenticate(auth_packet)
