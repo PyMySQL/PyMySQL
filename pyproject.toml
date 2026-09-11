@@ -62,5 +62,5 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "pymysql/protocol.py" = ["TRY002"]
-"pymysql/tests/test_DictCursor.py" = ["RUF012"]
+"pymysql/tests/**" = ["RUF012"]
 "pymysql/tests/test_connection.py" = ["PIE794"]
