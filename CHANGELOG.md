@@ -1,5 +1,15 @@
 # Changes
 
+## v1.2.2
+
+Release date: 2026-09-17
+
+Restored the ability to import `pymysql.converters.escape_dict` for
+compatibility with aiomysql.
+This function does not escape dictionaries and is entirely unnecessary.
+Unless you use aiomysql, there is no need to upgrade from v1.2.1.
+
+
 ## v1.2.1 (security fix)
 
 Release date: 2026-09-17
