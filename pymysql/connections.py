@@ -47,7 +47,12 @@ except (ImportError, KeyError, OSError):
     DEFAULT_USER = None
 
 DEBUG = False
-_MYSQLDB_ESCAPE_COMPAT = False
+
+
+def _mysqldb_compat_mode_enabled() -> bool:
+    return sys.modules.get("MySQLdb") is sys.modules.get("pymysql")
+
+
 _DEFAULT_AUTH_PLUGIN = None  # if this is not None, use it instead of server's default.
 
 TEXT_TYPES = {
@@ -533,7 +538,7 @@ class Connection:
 
         Non-standard, for internal use; do not use this in your applications.
         """
-        if _MYSQLDB_ESCAPE_COMPAT and mapping is not None:
+        if _mysqldb_compat_mode_enabled() and mapping is not None:
             if isinstance(obj, bool):
                 return str(int(obj)).encode()
             if isinstance(obj, (bytes, bytearray)):
