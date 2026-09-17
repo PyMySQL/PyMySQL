@@ -14,3 +14,4 @@ def test_escape_with_encoders_mysqldb_compat():
     finally:
         pymysql.connections._MYSQLDB_ESCAPE_COMPAT = prev
     assert con.escape(b"bytes") == "X'6279746573'"
+    assert con.escape(False, con.encoders) == "0"
