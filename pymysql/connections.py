@@ -538,7 +538,7 @@ class Connection:
 
         Non-standard, for internal use; do not use this in your applications.
         """
-        if _mysqldb_compat_mode_enabled() and mapping is not None:
+        if _mysqldb_compat_mode_enabled() and mapping is self.encoders:
             if isinstance(obj, bool):
                 return str(int(obj)).encode()
             if isinstance(obj, (bytes, bytearray)):
