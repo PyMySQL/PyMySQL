@@ -1,5 +1,15 @@
 # Changes
 
+## v1.2.3
+
+Release date: 2026-09-17
+
+Restored the ability to import `pymysql.converters.escape_bytes_prefixed` for
+compatibility with aiomysql.
+
+Use `pymysql.converters` at your own risk.
+It's internal functions. No backward compatibility are guaranteed.
+
 ## v1.2.2
 
 Release date: 2026-09-17
