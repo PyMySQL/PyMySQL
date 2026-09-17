@@ -7,7 +7,6 @@ from decimal import Decimal
 from .constants import FIELD_TYPE
 from .err import ProgrammingError
 
-
 # This silly alias is needed for aiomysql compatibility for now. It is scheduled for removal in 1.3.0.
 # https://github.com/PyMySQL/PyMySQL/issues/1274
 escape_dict = escape_bytes_prefixed = "DO NOT IMPORT THIS!!!"
