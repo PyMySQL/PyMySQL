@@ -8,6 +8,11 @@ from .constants import FIELD_TYPE
 from .err import ProgrammingError
 
 
+# This silly alias is needed for aiomysql compatibility for now. It is scheduled for removal in 1.3.0.
+# https://github.com/PyMySQL/PyMySQL/issues/1274
+escape_dict = escape_bytes_prefixed = "DO NOT IMPORT THIS!!!"
+
+
 def escape_item(val, charset=None, mapping=None):
     if mapping is None:
         mapping = encoders
@@ -29,11 +34,6 @@ def escape_item(val, charset=None, mapping=None):
 
 def escape_not_supported(val, charset=None, mapping=None):
     raise TypeError(f"{type(val).__name__} can not be used as parameter")
-
-
-# This silly alias is needed for aiomysql compatibility for now. It is scheduled for removal in 1.3.0.
-# https://github.com/PyMySQL/PyMySQL/issues/1274
-escape_dict = escape_not_supported
 
 
 def escape_sequence(val, charset=None, mapping=None):
