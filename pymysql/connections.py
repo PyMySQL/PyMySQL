@@ -47,7 +47,6 @@ except (ImportError, KeyError, OSError):
     DEFAULT_USER = None
 
 DEBUG = False
-_MYSQLDB_MODE = False
 
 
 _DEFAULT_AUTH_PLUGIN = None  # if this is not None, use it instead of server's default.
@@ -360,7 +359,9 @@ class Connection:
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map or {}
         self.server_public_key = server_public_key
-        self._mysqldb_compatible_escape = _MYSQLDB_MODE
+        self._mysqldb_compatible_escape = sys.modules.get("MySQLdb") is sys.modules.get(
+            "pymysql"
+        )
 
         self._connect_attrs = {
             "_client_name": "pymysql",
