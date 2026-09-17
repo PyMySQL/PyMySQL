@@ -67,6 +67,7 @@ def install_as_MySQLdb():
     After this function is called, any application that imports MySQLdb
     will unwittingly actually use pymysql.
     """
+    connections._MYSQLDB_MODE = True
     sys.modules["MySQLdb"] = sys.modules["pymysql"]
 
 
