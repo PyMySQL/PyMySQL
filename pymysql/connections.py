@@ -547,9 +547,11 @@ class Connection:
 
         Non-standard, for internal use; do not use this in your applications.
         """
-        warnings.warn("literal() is deprecated and will be removed in the next version.",
-                      DeprecationWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "literal() is deprecated and will be removed in the next version.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.escape(obj)
 
     def _escape_string(self, s: str):

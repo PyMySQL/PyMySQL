@@ -118,7 +118,8 @@ class Cursor:
             warnings.warn(
                 "single argument is deprecated and will be removed in the next version.",
                 DeprecationWarning,
-                stacklevel=3)
+                stacklevel=3,
+            )
             args = escape(args)
         try:
             return query % args
