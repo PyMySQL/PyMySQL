@@ -527,11 +527,17 @@ class Connection:
         self._execute_command(COMMAND.COM_INIT_DB, db)
         self._read_ok_packet()
 
-    def escape(self, obj, mapping=None) -> str:
+    def escape(self, obj, mapping=None) -> str | bytes:
         """Escape whatever value is passed.
 
         Non-standard, for internal use; do not use this in your applications.
         """
+        if mapping is not None:
+            if isinstance(obj, bool):
+                return str(int(obj)).encode()
+            if isinstance(obj, (bytes, bytearray)):
+                return self._escape_bytes_compat(obj)
+
         if isinstance(obj, str):
             return f"'{self._escape_string(obj)}'"
 
@@ -558,6 +564,13 @@ class Connection:
         if self.server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
             return s.replace("'", "''")  # Escape only single quote. Use '' quote
         return converters.escape_string(s)
+
+    def _escape_bytes_compat(self, s: bytes | bytearray) -> bytes:
+        server_status = getattr(self, "server_status", 0)
+        if server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
+            return b"'" + bytes(s).replace(b"'", b"''") + b"'"
+        escaped = converters.escape_string(bytes(s).decode("ascii", "surrogateescape"))
+        return ("'" + escaped + "'").encode("ascii", "surrogateescape")
 
     def cursor(self, cursor=None):
         """
