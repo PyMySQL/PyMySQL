@@ -114,7 +114,9 @@ class Connection:
         (default: None - no timeout)
     :param write_timeout: The timeout for writing to the connection in seconds.
         (default: None - no timeout)
-    :param str charset: Charset to use.
+    :param str charset: Charset to use. "utf8" (or "utf8mb4") is recommended.
+        legacy multibyte encodings may pose security risks.
+        Do not use such encodings for public-facing systems.
     :param str collation: Collation name to use.
     :param sql_mode: Default SQL_MODE to use.
     :param read_default_file:

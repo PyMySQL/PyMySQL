@@ -1,5 +1,34 @@
 # Changes
 
+## v1.2.1 (security fix)
+
+Release date: 2026-09-17
+
+Fixed a SQL injection vulnerability caused by incorrect escaping of `bytes`
+parameters when using the big5, gbk, sjis, cp932, or gb18030 character sets.
+This vulnerability also occurs when strings decoded from `bytes` using
+`surrogateescape` are passed as query parameters.
+
+See also: https://github.com/PyMySQL/PyMySQL/security/advisories/GHSA-x4f8-9hx9-hpp9
+
+* Queries are now encoded using the `strict` error handler instead of
+  `surrogateescape`.
+  Queries that cannot be encoded using the connection encoding can no longer be sent.
+
+* `bytes` parameters are now always sent as hexadecimal literals, such as
+  `X'636174'`. Note that this increases the number of bytes sent.
+
+* The `binary_prefix` parameter of `connect()` is deprecated. The `_binary`
+  prefix is no longer sent.
+
+These changes address the confirmed SQL injection vulnerabilities related to
+character encoding.
+However, we strongly recommend using UTF-8 (`utf8mb4`).
+Other character sets are not thoroughly tested, and their limited use means
+that problems may go unreported. In the 2020s, encodings other than UTF-8
+should be considered legacy.
+
+
 ## v1.2.0
 
 Release date: 2026-05-19
