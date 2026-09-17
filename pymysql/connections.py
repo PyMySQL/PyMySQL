@@ -569,8 +569,8 @@ class Connection:
         server_status = getattr(self, "server_status", 0)
         if server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
             return b"'" + bytes(s).replace(b"'", b"''") + b"'"
-        escaped = converters.escape_string(bytes(s).decode("ascii", "surrogateescape"))
-        return ("'" + escaped + "'").encode("ascii", "surrogateescape")
+        escaped = converters.escape_string(bytes(s).decode("latin1"))
+        return ("'" + escaped + "'").encode("latin1")
 
     def cursor(self, cursor=None):
         """
