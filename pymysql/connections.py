@@ -47,6 +47,7 @@ except (ImportError, KeyError, OSError):
     DEFAULT_USER = None
 
 DEBUG = False
+_MYSQLDB_ESCAPE_COMPAT = False
 _DEFAULT_AUTH_PLUGIN = None  # if this is not None, use it instead of server's default.
 
 TEXT_TYPES = {
@@ -532,7 +533,7 @@ class Connection:
 
         Non-standard, for internal use; do not use this in your applications.
         """
-        if mapping is not None:
+        if _MYSQLDB_ESCAPE_COMPAT and mapping is not None:
             if isinstance(obj, bool):
                 return str(int(obj)).encode()
             if isinstance(obj, (bytes, bytearray)):
