@@ -2,6 +2,8 @@
 # http://dev.mysql.com/doc/internals/en/client-server-protocol.html
 # Error codes:
 # https://dev.mysql.com/doc/refman/5.5/en/error-handling.html
+from __future__ import annotations
+
 import contextlib
 import errno
 import os
@@ -154,7 +156,7 @@ class Connection:
         an argument.  For the dialog plugin, a prompt(echo, prompt) method can be used
         (if no authenticate method) for returning a string from the user. (experimental)
     :param server_public_key: SHA256 authentication plugin public key value. (default: None)
-    :param binary_prefix: Add _binary prefix on bytes and bytearray. (default: False)
+    :param binary_prefix: **DEPRECATED**
     :param compress: Not supported.
     :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
@@ -352,7 +354,6 @@ class Connection:
         self.init_command = init_command
         self.max_allowed_packet = max_allowed_packet
         self._auth_plugin_map = auth_plugin_map or {}
-        self._binary_prefix = binary_prefix
         self.server_public_key = server_public_key
 
         self._connect_attrs = {
@@ -524,38 +525,35 @@ class Connection:
         self._execute_command(COMMAND.COM_INIT_DB, db)
         self._read_ok_packet()
 
-    def escape(self, obj, mapping=None):
+    def escape(self, obj, mapping=None) -> str:
         """Escape whatever value is passed.
 
         Non-standard, for internal use; do not use this in your applications.
         """
         if isinstance(obj, str):
-            return "'" + self.escape_string(obj) + "'"
-        if isinstance(obj, (bytes, bytearray)):
-            ret = self._quote_bytes(obj)
-            if self._binary_prefix:
-                ret = "_binary" + ret
-            return ret
-        return converters.escape_item(obj, self.charset, mapping=mapping)
+            return f"'{self._escape_string(obj)}'"
 
-    def literal(self, obj):
+        if isinstance(obj, (bytes, bytearray)):
+            return f"X'{obj.hex()}'"
+
+        if mapping is None:
+            mapping = self.encoders
+        return converters.escape_item(obj, self.encoding, mapping=mapping)
+
+    def literal(self, obj) -> str:
         """Alias for escape().
 
         Non-standard, for internal use; do not use this in your applications.
         """
-        return self.escape(obj, self.encoders)
+        warnings.warn("literal() is deprecated and will be removed in the next version.",
+                      DeprecationWarning,
+                      stacklevel=2)
+        return self.escape(obj)
 
-    def escape_string(self, s):
+    def _escape_string(self, s: str):
         if self.server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
-            return s.replace("'", "''")
+            return s.replace("'", "''")  # Escape only single quote. Use '' quote
         return converters.escape_string(s)
-
-    def _quote_bytes(self, s):
-        if self.server_status & SERVER_STATUS.SERVER_STATUS_NO_BACKSLASH_ESCAPES:
-            return "'{}'".format(
-                s.replace(b"'", b"''").decode("ascii", "surrogateescape")
-            )
-        return converters.escape_bytes(s)
 
     def cursor(self, cursor=None):
         """
@@ -574,7 +572,7 @@ class Connection:
         # if DEBUG:
         #     print("DEBUG: sending query:", sql)
         if isinstance(sql, str):
-            sql = sql.encode(self.encoding, "surrogateescape")
+            sql = sql.encode(self.encoding)
         self._execute_command(COMMAND.COM_QUERY, sql)
         self._affected_rows = self._read_query_result(unbuffered=unbuffered)
         return self._affected_rows
