@@ -377,6 +377,27 @@ PRIMARY KEY (id)
         cursor.execute("commit")
         self._verify_records(data)
 
+    def test_bulk_insert_percent_postfix(self):
+        cursor = self.conn.cursor()
+        data = [(0, "bob", 21, 123), (1, "jim", 56, 45)]
+        query = "insert into bulkinsert (id, name, age, height) values {}"
+        postfix = " on duplicate key update name = '100%%'"
+
+        for placeholders in ("(%s,%s,%s,%s)", "(%(id)s,%(name)s,%(age)s,%(height)s)"):
+            args = data
+            if "%(id)s" in placeholders:
+                args = [dict(zip(("id", "name", "age", "height"), row)) for row in data]
+            for max_stmt_length in (pymysql.cursors.Cursor.max_stmt_length, 1):
+                with self.subTest(
+                    placeholders=placeholders, max_stmt_length=max_stmt_length
+                ):
+                    cursor.max_stmt_length = max_stmt_length
+                    cursor.execute("delete from bulkinsert")
+                    cursor.executemany(query.format(placeholders), args)
+                    cursor.executemany(query.format(placeholders) + postfix, args)
+                    cursor.execute("select id, name from bulkinsert order by id")
+                    self.assertEqual(cursor.fetchall(), ((0, "100%"), (1, "100%")))
+
     def test_bulk_insert_multiline_statement(self):
         conn = self.connect()
         cursor = conn.cursor()
