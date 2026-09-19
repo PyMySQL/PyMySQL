@@ -1,4 +1,5 @@
 import re
+import warnings
 
 from . import err
 
@@ -103,17 +104,29 @@ class Cursor:
     def nextset(self):
         return self._nextset(False)
 
-    def _escape_args(self, args, conn):
-        if isinstance(args, (tuple, list)):
-            return tuple(conn.literal(arg) for arg in args)
-        elif isinstance(args, dict):
-            return {key: conn.literal(val) for (key, val) in args.items()}
-        else:
-            # If it's not a dictionary let's try escaping it anyways.
-            # Worst case it will throw a Value error
-            return conn.escape(args)
+    def _mogrify(self, query, args) -> str:
+        """Return query after binding args."""
+        escape = self._get_db().escape
 
-    def mogrify(self, query, args=None):
+        if isinstance(args, dict):
+            args = {key: escape(item) for key, item in args.items()}
+        elif isinstance(args, (list, tuple)):
+            args = tuple(map(escape, args))
+        else:
+            # Escaping a single argument is not part of the DB-API or mysqlclient.
+            # It will be removed in the next version.
+            warnings.warn(
+                "single argument is deprecated and will be removed in the next version.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            args = escape(args)
+        try:
+            return query % args
+        except TypeError as m:
+            raise err.ProgrammingError(str(m))
+
+    def mogrify(self, query, args=None) -> str:
         """
         Returns the exact string that would be sent to the database by calling the
         execute() method.
@@ -129,12 +142,10 @@ class Cursor:
 
         This method follows the extension to the DB API 2.0 followed by Psycopg.
         """
-        conn = self._get_db()
+        if args is None:
+            return query
 
-        if args is not None:
-            query = query % self._escape_args(args, conn)
-
-        return query
+        return self._mogrify(query, args)
 
     def execute(self, query, args=None):
         """Execute a query.
@@ -154,8 +165,8 @@ class Cursor:
         while self.nextset():
             pass
 
-        query = self.mogrify(query, args)
-
+        if args is not None:
+            query = self._mogrify(query, args)
         result = self._query(query)
         self._executed = query
         return result
@@ -200,23 +211,17 @@ class Cursor:
     def _do_execute_many(
         self, prefix, values, postfix, args, max_stmt_length, encoding
     ):
-        conn = self._get_db()
-        escape = self._escape_args
+        encoding = self._get_db().encoding
         if isinstance(prefix, str):
             prefix = prefix.encode(encoding)
         if isinstance(postfix, str):
             postfix = postfix.encode(encoding)
         sql = bytearray(prefix)
         args = iter(args)
-        v = values % escape(next(args), conn)
-        if isinstance(v, str):
-            v = v.encode(encoding, "surrogateescape")
-        sql += v
+        sql += self._mogrify(values, next(args)).encode(encoding)
         rows = 0
         for arg in args:
-            v = values % escape(arg, conn)
-            if isinstance(v, str):
-                v = v.encode(encoding, "surrogateescape")
+            v = self._mogrify(values, arg).encode(encoding)
             if len(sql) + len(v) + len(postfix) + 1 > max_stmt_length:
                 rows += self.execute(sql + postfix)
                 sql = bytearray(prefix)

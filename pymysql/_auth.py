@@ -267,4 +267,4 @@ def caching_sha2_password_auth(conn, pkt):
             print(conn.server_public_key.decode("ascii"))
 
     data = sha2_rsa_encrypt(conn.password, conn.salt, conn.server_public_key)
-    pkt = _roundtrip(conn, data)
+    return _roundtrip(conn, data)

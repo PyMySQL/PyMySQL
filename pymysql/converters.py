@@ -1,13 +1,18 @@
 import datetime
 import re
 import time
+import warnings
 from decimal import Decimal
 
 from .constants import FIELD_TYPE
 from .err import ProgrammingError
 
+# This silly alias is needed for aiomysql compatibility for now. It is scheduled for removal in 1.3.0.
+# https://github.com/PyMySQL/PyMySQL/issues/1274
+escape_dict = escape_bytes_prefixed = "DO NOT IMPORT THIS!!!"
 
-def escape_item(val, charset, mapping=None):
+
+def escape_item(val, charset=None, mapping=None):
     if mapping is None:
         mapping = encoders
     encoder = mapping.get(type(val))
@@ -19,18 +24,18 @@ def escape_item(val, charset, mapping=None):
         except KeyError:
             raise TypeError("no default type converter defined")
 
-    if encoder in (escape_dict, escape_sequence):
+    if encoder == escape_sequence:
         val = encoder(val, charset, mapping)
     else:
         val = encoder(val, mapping)
     return val
 
 
-def escape_dict(val, charset, mapping=None):
-    raise TypeError("dict can not be used as parameter")
+def escape_not_supported(val, charset=None, mapping=None):
+    raise TypeError(f"{type(val).__name__} can not be used as parameter")
 
 
-def escape_sequence(val, charset, mapping=None):
+def escape_sequence(val, charset=None, mapping=None):
     n = []
     for item in val:
         quoted = escape_item(item, charset, mapping)
@@ -38,7 +43,8 @@ def escape_sequence(val, charset, mapping=None):
     return "(" + ",".join(n) + ")"
 
 
-def escape_set(val, charset, mapping=None):
+def escape_set(val, charset=None, mapping=None):
+    warnings.warn("escape_set is deprecated", DeprecationWarning, stacklevel=2)
     return ",".join([escape_item(x, charset, mapping) for x in val])
 
 
@@ -53,7 +59,7 @@ def escape_int(value, mapping=None):
 def escape_float(value, mapping=None):
     s = repr(value)
     if s in ("inf", "-inf", "nan"):
-        raise ProgrammingError("%s can not be used with MySQL" % s)
+        raise ProgrammingError(f"{s} can not be used with MySQL")
     if "e" not in s:
         s += "e0"
     return s
@@ -77,18 +83,12 @@ def escape_string(value, mapping=None):
     return value.translate(_escape_table)
 
 
-def escape_bytes_prefixed(value, mapping=None):
-    return "_binary'%s'" % value.decode("ascii", "surrogateescape").translate(
-        _escape_table
-    )
+def escape_bytes(value, mapping=None) -> str:
+    return "_binary X'%s'" % value.hex()
 
 
-def escape_bytes(value, mapping=None):
-    return "'%s'" % value.decode("ascii", "surrogateescape").translate(_escape_table)
-
-
-def escape_str(value, mapping=None):
-    return "'%s'" % escape_string(str(value), mapping)
+def escape_str(value, mapping=None) -> str:
+    return "'" + escape_string(str(value)) + "'"
 
 
 def escape_None(value, mapping=None):
@@ -329,7 +329,7 @@ encoders = {
     list: escape_sequence,
     set: escape_sequence,
     frozenset: escape_sequence,
-    dict: escape_dict,
+    dict: escape_not_supported,
     type(None): escape_None,
     datetime.date: escape_date,
     datetime.datetime: escape_datetime,
