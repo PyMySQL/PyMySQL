@@ -1,6 +1,5 @@
 """Framing for the MySQL compressed packet stream."""
 
-import struct
 import sys
 import zlib
 
@@ -19,7 +18,7 @@ MIN_COMPRESS_LENGTH = 400
 
 
 def _pack_int24(value):
-    return struct.pack("<I", value)[:3]
+    return value.to_bytes(3, "little")
 
 
 class CompressedStream:
@@ -41,12 +40,16 @@ class CompressedStream:
                 if len(compressed) < len(payload):
                     original_length = len(payload)
                     payload = compressed
-            header = (
-                _pack_int24(len(payload))
-                + bytes([self.sequence])
-                + _pack_int24(original_length)
+            write_bytes(
+                b"".join(
+                    (
+                        _pack_int24(len(payload)),
+                        bytes([self.sequence]),
+                        _pack_int24(original_length),
+                        payload,
+                    )
+                )
             )
-            write_bytes(header + payload)
             self.sequence = (self.sequence + 1) % 256
 
     def read(self, size, read_bytes):
@@ -71,6 +74,10 @@ class CompressedStream:
             raise err.InternalError("Empty compressed packet")
         payload = read_bytes(length)
         if original_length:
+            # These stateful decoders stop at EOF and expose no reset API.
+            # Use an independent context for each frame, including across
+            # connections/threads. One-shot helpers also create contexts and
+            # cannot enforce the declared output limit before allocation.
             if self.algorithm == "zstd":
                 decoder = zstd.ZstdDecompressor()
                 decode_error = zstd.ZstdError

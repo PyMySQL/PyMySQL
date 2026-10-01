@@ -6,13 +6,15 @@ import io
 import random
 import struct
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from unittest import mock
 
 import pytest
 
 import pymysql
-from pymysql import _compression, err
+from pymysql import _compression, connections, err
 from pymysql.constants import CLIENT, COMMAND
 from pymysql.protocol import MysqlPacket
 from pymysql.tests import base
@@ -42,6 +44,174 @@ def compressed_payload(algorithm, payload):
     if algorithm == "zstd":
         return _compression.zstd.compress(payload)
     return _compression.zlib.compress(payload)
+
+
+def mysql_packet(payload, sequence):
+    return len(payload).to_bytes(3, "little") + bytes([sequence]) + payload
+
+
+class FragmentedRaw(io.RawIOBase):
+    """Return short transport reads even when a full frame is already available."""
+
+    def __init__(self, data, fragment_size):
+        self.source = io.BytesIO(data)
+        self.fragment_size = fragment_size
+        self.read_sizes = []
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        data = self.source.read(min(len(buffer), self.fragment_size))
+        buffer[: len(data)] = data
+        self.read_sizes.append(len(data))
+        return len(data)
+
+
+def framed_connection(algorithm, wire, fragment_size):
+    conn = pymysql.connect(defer_connect=True, ssl_disabled=True)
+    conn._compression = _compression.CompressedStream(algorithm)
+    conn._sock = mock.Mock()
+    conn._current_timeout = None
+    conn._next_seq_id = 1
+    raw = FragmentedRaw(wire, fragment_size)
+    # socket.makefile('rb') uses a buffered reader too. Each raw read may
+    # provide only part of a compressed header or compressed payload.
+    conn._rfile = io.BufferedReader(raw)
+    return conn, raw
+
+
+@pytest.mark.parametrize("value", [0, 1, (1 << 24) - 1])
+def test_pack_int24(value):
+    assert _compression._pack_int24(value) == value.to_bytes(3, "little")
+
+
+@pytest.mark.parametrize("value", [-1, 1 << 24])
+def test_pack_int24_rejects_overflow(value):
+    with pytest.raises(OverflowError):
+        _compression._pack_int24(value)
+
+
+@pytest.mark.parametrize("algorithm", ALGORITHMS)
+@pytest.mark.parametrize("fragment_size", [1, 2, 5, 17])
+def test_compressed_frame_with_fragmented_transport_reads(algorithm, fragment_size):
+    payloads = [b"a" * 1000, b"b" * 2000]
+    normal_wire = b"".join(
+        mysql_packet(payload, sequence) for sequence, payload in enumerate(payloads, 1)
+    )
+    packets = []
+    _compression.CompressedStream(algorithm).write(normal_wire, packets.append)
+    assert len(packets) == 1
+    assert int.from_bytes(packets[0][4:7], "little") == len(normal_wire)
+    conn, raw = framed_connection(algorithm, packets[0], fragment_size)
+    try:
+        for expected in payloads:
+            assert conn._read_packet().get_all_data() == expected
+        assert raw.source.tell() == len(packets[0])
+        assert len(raw.read_sizes) > 1
+        assert all(size <= fragment_size for size in raw.read_sizes)
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("algorithm", ALGORITHMS)
+@pytest.mark.parametrize("fragment_size", [1, 13, 8192])
+def test_mysql_header_and_body_split_across_compressed_frames(algorithm, fragment_size):
+    # The second four-byte MySQL header begins at offset 399. Its first byte
+    # is in one compressed frame and the remaining three are in the next.
+    payloads = [b"a" * 395, b"b" * 1000]
+    normal_wire = b"".join(
+        mysql_packet(payload, sequence) for sequence, payload in enumerate(payloads, 1)
+    )
+    packets = []
+    with mock.patch.object(_compression, "MAX_PAYLOAD_LENGTH", 400):
+        _compression.CompressedStream(algorithm).write(normal_wire, packets.append)
+    assert [packet[3] for packet in packets] == [0, 1, 2, 3]
+    assert [int.from_bytes(packet[4:7], "little") for packet in packets] == [
+        400,
+        400,
+        400,
+        0,
+    ]
+    wire = b"".join(packets)
+    conn, raw = framed_connection(algorithm, wire, fragment_size)
+    try:
+        for expected in payloads:
+            assert conn._read_packet().get_all_data() == expected
+        assert raw.source.tell() == len(wire)
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("algorithm", ALGORITHMS)
+@pytest.mark.parametrize("tail_size", [0, 5])
+def test_mysql_continuation_packets_across_compressed_frames(algorithm, tail_size):
+    limit = 400
+    data = b"a" * limit + b"b" * limit + b"c" * tail_size
+    # An exact multiple of the normal protocol limit needs an empty final
+    # packet. Otherwise the following response could become part of this one.
+    normal_wire = (
+        mysql_packet(data[:limit], 1)
+        + mysql_packet(data[limit : 2 * limit], 2)
+        + mysql_packet(data[2 * limit :], 3)
+        + mysql_packet(b"done", 4)
+    )
+    packets = []
+    with mock.patch.object(_compression, "MAX_PAYLOAD_LENGTH", limit):
+        _compression.CompressedStream(algorithm).write(normal_wire, packets.append)
+    assert len(packets) == 3
+    wire = b"".join(packets)
+    conn, raw = framed_connection(algorithm, wire, 3)
+    try:
+        with mock.patch.object(connections, "MAX_PACKET_LEN", limit):
+            assert conn._read_packet().get_all_data() == data
+            assert conn._read_packet().get_all_data() == b"done"
+        assert raw.source.tell() == len(wire)
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("algorithm", ALGORITHMS)
+@pytest.mark.parametrize("compressible", [True, False])
+def test_real_24_bit_frame_limit(algorithm, compressible):
+    limit = _compression.MAX_PAYLOAD_LENGTH
+    size = limit + 400
+    data = b"a" * size if compressible else random.Random(42).randbytes(size)
+    packets = []
+    _compression.CompressedStream(algorithm).write(data, packets.append)
+    assert len(packets) == 2
+    assert [packet[3] for packet in packets] == [0, 1]
+    for packet, expected_length in zip(packets, (limit, 400)):
+        wire_length = int.from_bytes(packet[:3], "little")
+        original_length = int.from_bytes(packet[4:7], "little")
+        assert wire_length == len(packet) - 7 <= limit
+        assert original_length == (expected_length if compressible else 0)
+        # Each frame must be independently decodable. A single compressed
+        # stream cannot be split between protocol frames for later reassembly.
+        reader = _compression.CompressedStream(algorithm)
+        offset = 0 if packet[3] == 0 else limit
+        assert (
+            reader.read(expected_length, io.BytesIO(packet).read)
+            == data[offset : offset + expected_length]
+        )
+
+
+@pytest.mark.parametrize("algorithm", ALGORITHMS)
+def test_parallel_frame_decoding_keeps_streams_independent(algorithm):
+    workers = 8
+    barrier = threading.Barrier(workers)
+
+    def decode(worker):
+        data = bytes([worker + 1]) * 100000
+        wire = frame(compressed_payload(algorithm, data), original_length=len(data))
+        stream = _compression.CompressedStream(algorithm)
+        barrier.wait(timeout=30)
+        for _ in range(20):
+            assert stream.read(len(data), io.BytesIO(wire).read) == data
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        # Consume every result so worker exceptions fail the test.
+        list(executor.map(decode, range(workers)))
 
 
 @pytest.mark.parametrize("algorithm", ALGORITHMS)
