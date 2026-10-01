@@ -13,7 +13,7 @@ import sys
 import traceback
 import warnings
 
-from . import VERSION_STRING, _auth, converters, err
+from . import VERSION_STRING, _auth, _compression, converters, err
 from .charset import charset_by_id, charset_by_name
 from .constants import CLIENT, COMMAND, CR, ER, FIELD_TYPE, SERVER_STATUS
 from .cursors import Cursor
@@ -159,7 +159,13 @@ class Connection:
         (if no authenticate method) for returning a string from the user. (experimental)
     :param server_public_key: SHA256 authentication plugin public key value. (default: None)
     :param binary_prefix: **DEPRECATED**
-    :param compress: Not supported.
+    :param compress: Enable protocol compression with True (prefer zstd when
+        available and supported by the server, otherwise zlib). "zlib" or "zstd"
+        requires that algorithm; zstd uses compression.zstd on Python 3.14+
+        and backports.zstd on older Python versions (install PyMySQL[zstd]).
+        True falls back to an uncompressed connection if the server supports neither.
+        Packets smaller than 400 bytes and data that does not shrink are sent
+        uncompressed within the compressed protocol. (default: None)
     :param named_pipe: Not supported.
     :param db: **DEPRECATED** Alias for database.
     :param passwd: **DEPRECATED** Alias for password.
@@ -173,6 +179,7 @@ class Connection:
     _auth_plugin_name = ""
     _closed = False
     _secure = False
+    _compression = None
 
     def __init__(
         self,
@@ -213,7 +220,7 @@ class Connection:
         ssl_key_password=None,
         ssl_verify_cert=None,
         ssl_verify_identity=None,
-        compress=None,  # not supported
+        compress=None,
         named_pipe=None,  # not supported
         passwd=None,  # deprecated
         db=None,  # deprecated
@@ -227,10 +234,27 @@ class Connection:
             )
             password = passwd
 
-        if compress or named_pipe:
+        if named_pipe:
+            raise NotImplementedError("named_pipe argument is not supported")
+        if (
+            compress is not None
+            and compress is not False
+            and compress is not True
+            and compress not in ("zlib", "zstd")
+        ):
+            raise ValueError('compress must be True, False, None, "zlib" or "zstd"')
+        # Honor callers that enabled compression through the capability flags.
+        if not compress:
+            if client_flag & CLIENT.ZSTD_COMPRESSION_ALGORITHM:
+                compress = "zstd"
+            elif client_flag & CLIENT.COMPRESS:
+                compress = "zlib"
+        if compress == "zstd" and _compression.zstd is None:
             raise NotImplementedError(
-                "compress and named_pipe arguments are not supported"
+                "zstd compression requires compression.zstd (Python 3.14+) "
+                "or backports.zstd; install PyMySQL[zstd] on older Python versions"
             )
+        self.compress = compress
 
         self._local_infile = bool(local_infile)
         if self._local_infile:
@@ -434,6 +458,8 @@ class Connection:
         if self._sock is None:
             return
         send_data = struct.pack("<iB", 1, COMMAND.COM_QUIT)
+        if self._compression is not None:
+            self._compression.sequence = 0
         try:
             with contextlib.suppress(Exception):
                 self._write_bytes(send_data)
@@ -456,6 +482,7 @@ class Connection:
                 pass
         self._sock = None
         self._rfile = None
+        self._compression = None
 
     __del__ = _force_close
 
@@ -662,6 +689,7 @@ class Connection:
 
     def connect(self, sock=None):
         self._closed = False
+        self._compression = None
         try:
             if sock is None:
                 if self.unix_socket:
@@ -781,7 +809,8 @@ class Connection:
 
             btrl, btrh, packet_number = struct.unpack("<HBB", packet_header)
             bytes_to_read = btrl + (btrh << 16)
-            if packet_number != self._next_seq_id:
+            expected_packet_number = self._next_seq_id
+            if self._compression is None and packet_number != expected_packet_number:
                 self._force_close()
                 if packet_number == 0:
                     # MariaDB sends error packet with seqno==0 when shutdown
@@ -793,7 +822,9 @@ class Connection:
                     "Packet sequence number wrong - got %d expected %d"
                     % (packet_number, self._next_seq_id)
                 )
-            self._next_seq_id = (self._next_seq_id + 1) % 256
+            # Compressed servers may reset the inner sequence at frame
+            # boundaries. Follow it, as libmysqlclient does.
+            self._next_seq_id = (packet_number + 1) % 256
 
             recv_data = self._read_bytes(bytes_to_read)
             if DEBUG:
@@ -805,12 +836,33 @@ class Connection:
 
         packet = packet_type(b"".join(buff), self.encoding)
         if packet.is_error_packet():
+            if (
+                self._compression is not None
+                and packet_number == 0
+                and expected_packet_number != 0
+            ):
+                # Preserve the normal protocol's treatment of unsolicited
+                # shutdown/idle-timeout errors with a reset sequence number.
+                self._force_close()
+                raise err.OperationalError(
+                    CR.CR_SERVER_LOST,
+                    "Lost connection to MySQL server during query",
+                )
             if self._result is not None and self._result.unbuffered_active is True:
                 self._result.unbuffered_active = False
             packet.raise_for_error()
         return packet
 
     def _read_bytes(self, num_bytes):
+        if self._compression is not None:
+            try:
+                return self._compression.read(num_bytes, self._read_bytes_uncompressed)
+            except err.InternalError:
+                self._force_close()
+                raise
+        return self._read_bytes_uncompressed(num_bytes)
+
+    def _read_bytes_uncompressed(self, num_bytes):
         # NOTE: caller should call self._sock.settimeout(self._read_timeout)
         # before first read.
         while True:
@@ -837,6 +889,12 @@ class Connection:
         return data
 
     def _write_bytes(self, data):
+        if self._compression is not None:
+            self._compression.write(data, self._write_bytes_uncompressed)
+        else:
+            self._write_bytes_uncompressed(data)
+
+    def _write_bytes_uncompressed(self, data):
         if self._current_timeout != self._write_timeout:
             self._sock.settimeout(self._write_timeout)
             self._current_timeout = self._write_timeout
@@ -893,6 +951,8 @@ class Connection:
         # calling self..write_packet()
         prelude = struct.pack("<iB", packet_size, command)
         packet = prelude + sql[: packet_size - 1]
+        if self._compression is not None:
+            self._compression.sequence = 0
         self._write_bytes(packet)
         if DEBUG:
             dump_packet(packet)
@@ -927,6 +987,26 @@ class Connection:
         # also advertises SSL support.
         # _do_ssl is set here and checked below for sha256_password auth.
         client_flags = self.client_flag
+        client_flags &= ~(CLIENT.COMPRESS | CLIENT.ZSTD_COMPRESSION_ALGORITHM)
+        compression_algorithm = None
+        if self.compress:
+            if (
+                self.compress in (True, "zstd")
+                and _compression.zstd is not None
+                and self.server_capabilities & CLIENT.ZSTD_COMPRESSION_ALGORITHM
+            ):
+                compression_algorithm = "zstd"
+                client_flags |= CLIENT.ZSTD_COMPRESSION_ALGORITHM
+            elif (
+                self.compress in (True, "zlib")
+                and self.server_capabilities & CLIENT.COMPRESS
+            ):
+                compression_algorithm = "zlib"
+                client_flags |= CLIENT.COMPRESS
+            elif self.compress is not True:
+                raise err.NotSupportedError(
+                    f"Server does not support {self.compress} compression"
+                )
         if self.ssl:
             if self.server_capabilities & CLIENT.SSL:
                 # SSL upgrade: include CLIENT.SSL flag and wrap the socket.
@@ -1006,6 +1086,10 @@ class Connection:
                 connect_attrs += _lenenc_int(len(v)) + v
             data += _lenenc_int(len(connect_attrs)) + connect_attrs
 
+        if compression_algorithm == "zstd":
+            # zstd_compression_level follows the connection attributes.
+            data += b"\x03"
+
         self.write_packet(data)
         auth_packet = self._read_packet()
 
@@ -1072,6 +1156,11 @@ class Connection:
             if auth_packet.is_ok_packet():
                 break
             raise err.OperationalError("unexpected packet during authentication")
+
+        # The complete authentication exchange, including the final OK packet,
+        # uses normal framing. Compression starts with the first command.
+        if compression_algorithm is not None:
+            self._compression = _compression.CompressedStream(compression_algorithm)
 
         if DEBUG:
             print("Succeed to auth")
