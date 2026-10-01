@@ -22,6 +22,10 @@ class TestConverter(TestCase):
         dt = converters.convert_datetime("2007-02-24 23:06:20.511581")
         self.assertEqual(dt, expected)
 
+    def test_convert_datetime_rejects_non_dot_fraction(self):
+        raw = "2007-02-24 23:06:20X511581"
+        self.assertEqual(converters.convert_datetime(raw), raw)
+
     def _test_convert_timedelta(self, with_negate=False, with_fsp=False):
         d = {"hours": 789, "minutes": 12, "seconds": 34}
         s = "%(hours)s:%(minutes)s:%(seconds)s" % d
@@ -44,6 +48,10 @@ class TestConverter(TestCase):
     def test_convert_timedelta_with_fsp(self):
         self._test_convert_timedelta(with_negate=False, with_fsp=True)
         self._test_convert_timedelta(with_negate=False, with_fsp=True)
+
+    def test_convert_timedelta_rejects_non_dot_fraction(self):
+        raw = "25:06:17X511581"
+        self.assertEqual(converters.convert_timedelta(raw), raw)
 
     def test_escape_timedelta(self):
         # MySQL TIME allows negatives, and a timedelta is the registered param
@@ -78,6 +86,10 @@ class TestConverter(TestCase):
         expected = datetime.time(23, 6, 20, 511581)
         time_obj = converters.convert_time("23:06:20.511581")
         self.assertEqual(time_obj, expected)
+
+    def test_convert_time_rejects_non_dot_fraction(self):
+        raw = "23:06:20X511581"
+        self.assertEqual(converters.convert_time(raw), raw)
 
     def test_decimal_special_values(self):
         values = (
