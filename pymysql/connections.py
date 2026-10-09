@@ -277,12 +277,17 @@ class Connection:
         self._ssl_required = False
         if not ssl_disabled:
             if ssl_ca or ssl_cert or ssl_key or ssl_verify_cert or ssl_verify_identity:
+                if ssl_verify_cert is not None:
+                    verify_mode = ssl_verify_cert
+                elif ssl_verify_identity and ssl_ca:
+                    # check_hostname cannot be combined with CERT_NONE.
+                    verify_mode = True
+                else:
+                    verify_mode = False
                 ssl = {
                     "ca": ssl_ca,
                     "check_hostname": bool(ssl_verify_identity),
-                    "verify_mode": ssl_verify_cert
-                    if ssl_verify_cert is not None
-                    else False,
+                    "verify_mode": verify_mode,
                 }
                 if ssl_cert is not None:
                     ssl["cert"] = ssl_cert

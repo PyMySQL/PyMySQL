@@ -749,7 +749,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             assert create_default_context.called
             assert dummy_ssl_context.check_hostname
-            assert dummy_ssl_context.verify_mode == ssl.CERT_NONE
+            assert dummy_ssl_context.verify_mode == ssl.CERT_REQUIRED
             dummy_ssl_context.load_cert_chain.assert_called_with(
                 "cert",
                 keyfile="key",
@@ -772,7 +772,7 @@ class TestConnection(base.PyMySQLTestCase):
             )
             assert create_default_context.called
             assert dummy_ssl_context.check_hostname
-            assert dummy_ssl_context.verify_mode == ssl.CERT_NONE
+            assert dummy_ssl_context.verify_mode == ssl.CERT_REQUIRED
             dummy_ssl_context.load_cert_chain.assert_called_with(
                 "cert",
                 keyfile="key",
