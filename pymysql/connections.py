@@ -520,6 +520,11 @@ class Connection:
         such as ``autocommit``, ``sql_mode`` and ``init_command`` are not replayed.
         The current database is retained.
 
+        ``get_autocommit()`` follows the server's protocol status. MySQL 8.4
+        reports autocommit ON after reset even when global autocommit is OFF
+        and the session variable is OFF. This server inconsistency is not
+        normalized; see the connection documentation for details.
+
         The current charset and collation are reapplied to keep the server and
         the client's encoding consistent. If this fails after the reset, the
         connection is closed. Connection result state is cleared; close existing

@@ -22,6 +22,30 @@ def error_packet(code, message):
     return packet(b"\xff" + struct.pack("<H", code) + b"#HY000" + message)
 
 
+@pytest.mark.parametrize("autocommit", [False, True, None])
+def test_reset_autocommit(autocommit):
+    params = base.PyMySQLTestCase.databases[0].copy()
+    params["autocommit"] = autocommit
+    with pymysql.connect(**params) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT @@GLOBAL.autocommit")
+            default = bool(cur.fetchone()[0])
+        conn.autocommit(not default)
+        conn.reset()
+        cached = conn.get_autocommit()
+        assert conn.autocommit_mode is cached
+        with conn.cursor() as cur:
+            cur.execute("SELECT @@SESSION.autocommit")
+            assert bool(cur.fetchone()[0]) is default
+        if not default and "MariaDB" not in conn.get_server_info() and cached:
+            pytest.xfail("MySQL reset reports autocommit ON with global autocommit OFF")
+        assert cached is default
+        conn.autocommit(not default)
+        with conn.cursor() as cur:
+            cur.execute("SELECT @@SESSION.autocommit")
+            assert bool(cur.fetchone()[0]) is not default
+
+
 class TestResetProtocol(unittest.TestCase):
     def connection(self, response):
         conn = pymysql.connect(
@@ -159,8 +183,6 @@ class TestReset(base.PyMySQLTestCase):
             cur.execute("SET SESSION sql_mode='NO_BACKSLASH_ESCAPES'")
         self.assertEqual(conn.escape("a'b"), "'a''b'")
         conn.reset()
-        self.assertEqual(conn.get_autocommit(), bool(autocommit))
-        self.assertEqual(conn.autocommit_mode, bool(autocommit))
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT @@autocommit, @@sql_mode, @reset_variable, @reset_init, DATABASE()"
