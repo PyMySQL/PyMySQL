@@ -511,6 +511,38 @@ class Connection:
         self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
         self._read_ok_packet()
 
+    def reset(self):
+        """Reset the session on the existing connection.
+
+        Roll back any active transaction, release locks and prepared statements,
+        drop temporary tables, and clear user variables. Session system variables,
+        including autocommit, return to the server's defaults. Connection options
+        such as ``autocommit``, ``sql_mode`` and ``init_command`` are not replayed.
+        The current database is retained.
+
+        The current charset and collation are reapplied to keep the server and
+        the client's encoding consistent. If this fails after the reset, the
+        connection is closed. Connection result state is cleared; close existing
+        cursors before resetting and create new cursors afterwards.
+
+        Uses COM_RESET_CONNECTION (MySQL >= 5.7.3, MariaDB >= 10.2.4), subject to
+        PyMySQL's supported-server policy. There is no reconnect or fallback for
+        servers that do not support it. Returns ``None`` on success.
+
+        :raise InterfaceError: If the connection is closed.
+        :raise Error: If the server rejects the reset or communication fails.
+        """
+        self._execute_command(COMMAND.COM_RESET_CONNECTION, b"")
+        self._read_ok_packet()
+        self._affected_rows = 0
+        self.autocommit_mode = self.get_autocommit()
+        try:
+            self.set_character_set(self.charset, self.collation)
+        except Exception:
+            # The reset changed the server charset, so the encoder may be stale.
+            self._force_close()
+            raise
+
     def show_warnings(self):
         """Send the "SHOW WARNINGS" SQL command."""
         self._execute_command(COMMAND.COM_QUERY, "SHOW WARNINGS")
