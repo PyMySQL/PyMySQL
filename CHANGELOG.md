@@ -1,5 +1,9 @@
 # Changes
 
+## Unreleased
+
+* Encode string passwords as UTF-8 instead of Latin-1. (#1252)
+
 ## v1.2.3
 
 Release date: 2026-09-17
@@ -47,7 +51,6 @@ However, we strongly recommend using UTF-8 (`utf8mb4`).
 Other character sets are not thoroughly tested, and their limited use means
 that problems may go unreported. In the 2020s, encodings other than UTF-8
 should be considered legacy.
-
 
 ## v1.2.0
 
