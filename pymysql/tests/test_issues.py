@@ -518,3 +518,35 @@ class TestGitHubIssues(base.PyMySQLTestCase):
             self.assertEqual(cur.fetchone()[0], 246)
         finally:
             cur.execute("DROP PROCEDURE IF EXISTS `foo.bar`")
+
+class TestCallProcEdgeCases(base.PyMySQLTestCase):
+    def test_callproc_with_multi_resultset_and_out_params(self):
+        conn = self.connections[0]
+        with conn.cursor() as cursor:
+            cursor.execute("DROP PROCEDURE IF EXISTS test_multi_rs_proc;")
+            cursor.execute("""
+                CREATE PROCEDURE test_multi_rs_proc(IN p_in INT, OUT p_out INT)
+                BEGIN
+                    SELECT p_in AS internal_val;
+                    SET p_out = p_in * 2;
+                END;
+            """)
+
+            try:
+                cursor.callproc("test_multi_rs_proc", (5, 0))
+
+                # Read internal result set
+                res1 = cursor.fetchall()
+                self.assertEqual(res1[0][0], 5)
+
+                # Advance past internal result set and validate state
+                self.assertTrue(cursor.nextset())
+                self.assertIsNone(cursor.nextset())
+
+                # Fetch OUT parameter from server variable
+                cursor.execute("SELECT @_test_multi_rs_proc_1;")
+                out_val = cursor.fetchone()
+                self.assertEqual(out_val[0], 10)
+            finally:
+                cursor.execute("DROP PROCEDURE IF EXISTS test_multi_rs_proc;")
+                
