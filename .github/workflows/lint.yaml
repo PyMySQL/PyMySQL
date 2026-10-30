@@ -13,9 +13,9 @@ jobs:
   lint:
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
 
-      - uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89 # v4.1.0
+      - uses: astral-sh/ruff-action@v4.1.0
 
       - name: format
         run: ruff format --diff
