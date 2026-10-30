@@ -297,12 +297,14 @@ def convert_date(obj):
       '2007-02-31'
       >>> convert_date('0000-00-00')
       '0000-00-00'
+      >>> convert_date('2007-02')
+      '2007-02'
     """
     if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode("ascii")
     try:
         return datetime.date(*[int(x) for x in obj.split("-", 2)])
-    except ValueError:
+    except (ValueError, TypeError):
         return obj
 
 
