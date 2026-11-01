@@ -34,6 +34,20 @@ additional dependency:
 
     $ python3 -m pip install PyMySQL[ed25519]
 
+Protocol compression can be enabled with `pymysql.connect(..., compress=True)`.
+This prefers zstd when available and supported by the server, otherwise it uses
+zlib. Servers that support neither algorithm use an uncompressed connection.
+Use `compress="zlib"` or `compress="zstd"` to require a specific algorithm.
+On Python 3.14 and newer, zstd uses the standard library's `compression.zstd`.
+On older Python versions, install the optional extra to use the API-compatible
+[`backports.zstd`](https://pypi.org/project/backports.zstd/) implementation:
+
+    $ python3 -m pip install 'PyMySQL[zstd]'
+
+The backport dependency is installed only on Python versions below 3.14.
+Outgoing compression payloads below 400 bytes, or those that do not become
+smaller, are sent uncompressed within the compressed protocol.
+
 ## Documentation
 
 Documentation is available online: <https://pymysql.readthedocs.io/>

@@ -1,5 +1,15 @@
 # Changes
 
+## Unreleased
+
+* Support MySQL protocol compression with `compress=True`, `compress="zlib"`,
+  or `compress="zstd"`. Automatic selection prefers zstd when available and
+  supported by the server and falls back to zlib or an uncompressed connection.
+  zstd uses the standard library on Python 3.14+ and the API-compatible
+  `backports.zstd` on older versions, installed with `PyMySQL[zstd]`.
+  Compression is skipped for outgoing payloads smaller than 400 bytes or when
+  it would not reduce their size.
+
 ## v1.2.3
 
 Release date: 2026-09-17

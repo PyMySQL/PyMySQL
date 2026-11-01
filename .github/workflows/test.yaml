@@ -81,7 +81,7 @@ jobs:
 
       - name: Install dependency
         run: |
-          pip install --upgrade -r requirements-dev.txt
+          pip install --upgrade -r requirements-dev.txt '.[zstd]'
 
       - name: Set up MySQL
         run: |
