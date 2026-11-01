@@ -325,6 +325,7 @@ encoders = {
     float: escape_float,
     str: escape_str,
     bytes: escape_bytes,
+    bytearray: escape_bytes,
     tuple: escape_sequence,
     list: escape_sequence,
     set: escape_sequence,

@@ -103,3 +103,9 @@ class TestConverter(TestCase):
                 ProgrammingError, f"{str(value).lower()} can not be used with MySQL"
             ):
                 converters.Decimal2Literal(value, None)
+
+
+def test_escape_binary_types_in_sequence():
+    expected = "(_binary X'6162')"
+    assert converters.escape_item([b"ab"], "utf8") == expected
+    assert converters.escape_item([bytearray(b"ab")], "utf8") == expected
