@@ -915,11 +915,38 @@ class TestEscape(base.PyMySQLTestCase):
             cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES,NO_AUTO_CREATE_USER'")
         self.assertEqual(con.escape("foo'bar"), "'foo''bar'")
 
+    def test_escape_sequence(self):
+        con = self.connect()
+        cur = con.cursor()
+        values = ("foo'bar", "foo\\bar", "foo\\'bar", "foo') OR 1=1 -- ")
+
+        for sql_mode in ("", "NO_BACKSLASH_ESCAPES"):
+            cur.execute("SET sql_mode=%s", (sql_mode,))
+            for container in (tuple, list, set, frozenset):
+                with self.subTest(sql_mode=sql_mode, container=container):
+                    items = container(values)
+                    for value in values:
+                        cur.execute("SELECT %s IN %s", (value, items))
+                        self.assertEqual(cur.fetchone(), (1,))
+                    cur.execute("SELECT %s IN %s", ("not included", items))
+                    self.assertEqual(cur.fetchone(), (0,))
+
+    def test_escape_nested_sequence(self):
+        con = self.connect()
+        cur = con.cursor()
+        cur.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'")
+        rows = (("foo'bar", "foo\\bar"), ("baz", "qux"))
+        cur.execute("SELECT (%s, %s) IN %s", ("foo'bar", "foo\\bar", rows))
+        self.assertEqual(cur.fetchone(), (1,))
+        cur.execute("SELECT (%s, %s) IN %s", ("foo'bar", "qux", rows))
+        self.assertEqual(cur.fetchone(), (0,))
+
     def test_escape_builtin_encoders(self):
         con = self.connect()
 
         val = datetime.datetime(2012, 3, 4, 5, 6)
         self.assertEqual(con.escape(val, con.encoders), "'2012-03-04 05:06:00'")
+        self.assertEqual(con.escape(val.timetuple()), "'2012-03-04 05:06:00'")
 
     def test_escape_custom_object(self):
         con = self.connect()

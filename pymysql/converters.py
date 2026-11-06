@@ -36,6 +36,7 @@ def escape_not_supported(val, charset=None, mapping=None):
 
 
 def escape_sequence(val, charset=None, mapping=None):
+    warnings.warn("escape_sequence is deprecated", DeprecationWarning, stacklevel=2)
     n = []
     for item in val:
         quoted = escape_item(item, charset, mapping)
@@ -325,10 +326,10 @@ encoders = {
     float: escape_float,
     str: escape_str,
     bytes: escape_bytes,
-    tuple: escape_sequence,
-    list: escape_sequence,
-    set: escape_sequence,
-    frozenset: escape_sequence,
+    tuple: escape_not_supported,
+    list: escape_not_supported,
+    set: escape_not_supported,
+    frozenset: escape_not_supported,
     dict: escape_not_supported,
     type(None): escape_None,
     datetime.date: escape_date,

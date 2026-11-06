@@ -543,6 +543,11 @@ class Connection:
         if isinstance(obj, (bytes, bytearray)):
             return f"X'{obj.hex()}'"
 
+        # don't use isinstance here. it breaks subclasses like time.struct_time.
+        if type(obj) in (tuple, list, set, frozenset):
+            escape = self.escape
+            return "(" + ",".join([escape(item, mapping) for item in obj]) + ")"
+
         if mapping is None:
             mapping = self.encoders
         return converters.escape_item(obj, self.encoding, mapping=mapping)
