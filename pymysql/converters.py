@@ -177,6 +177,8 @@ def convert_datetime(obj):
       '2007-02-31T23:06:20'
       >>> convert_datetime('0000-00-00 00:00:00')
       '0000-00-00 00:00:00'
+      >>> convert_datetime('2007-02')
+      '2007-02'
     """
     if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode("ascii")
@@ -298,11 +300,18 @@ def convert_date(obj):
       '2007-02-31'
       >>> convert_date('0000-00-00')
       '0000-00-00'
+      >>> convert_date('2007-02')
+      '2007-02'
     """
     if isinstance(obj, (bytes, bytearray)):
         obj = obj.decode("ascii")
+    parts = obj.split("-", 2)
+    if len(parts) != 3:
+        # incomplete values (e.g. "2007-02") are illegal, return as str
+        # like every other value the date constructor cannot consume
+        return obj
     try:
-        return datetime.date(*[int(x) for x in obj.split("-", 2)])
+        return datetime.date(*[int(x) for x in parts])
     except ValueError:
         return obj
 
