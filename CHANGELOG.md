@@ -1,5 +1,33 @@
 # Changes
 
+## v1.2.4 (security fix)
+
+Release date: 2026-11-09
+
+Fixed a SQL injection vulnerability caused by incorrect escaping of string values
+inside `tuple`, `list`, `set`, or `frozenset` query parameters when the
+`NO_BACKSLASH_ESCAPES` SQL mode is enabled.
+
+Sequence items are now escaped through `Connection.escape()` so they respect
+the connection's SQL mode.
+
+See also: https://github.com/PyMySQL/PyMySQL/security/advisories/GHSA-m75w-33c4-7v8q
+
+### Other changes
+
+* `ssl_verify_identity=True` now requires server certificate verification,
+  even when `ssl_verify_cert=False`. (#1282)
+* Fix a missing return value in `caching_sha2_password` authentication. (#1275)
+* Fix escaped percent signs in `executemany()` query postfixes, such as
+  `ON DUPLICATE KEY UPDATE` clauses. (#1276)
+* Require a decimal point before fractional seconds and reject trailing input
+  when converting date/time values. (#1280)
+* Add `MUST_CHANGE_PASSWORD` and `MUST_CHANGE_PASSWORD_LOGIN` error codes. (#1278)
+* Deprecate `pymysql.converters.escape_sequence()`. Use `Connection.escape()`
+  instead. The default converter mapping no longer supports `tuple`, `list`,
+  `set`, or `frozenset`.
+
+
 ## v1.2.3
 
 Release date: 2026-09-17
