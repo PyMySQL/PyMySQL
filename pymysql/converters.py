@@ -307,6 +307,22 @@ def convert_date(obj):
         return obj
 
 
+def convert_decimal(obj):
+    """Returns a DECIMAL column value as a Decimal object:
+
+      >>> convert_decimal('9.99')
+      Decimal('9.99')
+
+    Values are bytes when the connection uses ``use_unicode=False``:
+
+      >>> convert_decimal(b'-0.50')
+      Decimal('-0.50')
+    """
+    if isinstance(obj, (bytes, bytearray)):
+        obj = obj.decode("ascii")
+    return Decimal(obj)
+
+
 def through(x):
     return x
 
@@ -362,8 +378,8 @@ decoders = {
     FIELD_TYPE.STRING: through,
     FIELD_TYPE.VAR_STRING: through,
     FIELD_TYPE.VARCHAR: through,
-    FIELD_TYPE.DECIMAL: Decimal,
-    FIELD_TYPE.NEWDECIMAL: Decimal,
+    FIELD_TYPE.DECIMAL: convert_decimal,
+    FIELD_TYPE.NEWDECIMAL: convert_decimal,
 }
 
 

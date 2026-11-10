@@ -1,6 +1,7 @@
 import datetime
 import json
 import time
+from decimal import Decimal
 
 import pytest
 
@@ -200,6 +201,13 @@ create table test_datatypes (
             self.assertEqual((dt,), c.fetchone())
         finally:
             c.execute("drop table test_datetime")
+
+    def test_decimal_without_unicode(self):
+        """test DECIMAL conversion with use_unicode=False"""
+        conn = self.connect(use_unicode=False)
+        c = conn.cursor()
+        c.execute("select cast(9.99 as decimal(10, 2)), sum(i) from (select 2 as i) t")
+        self.assertEqual((Decimal("9.99"), Decimal(2)), c.fetchone())
 
 
 class TestCursor(base.PyMySQLTestCase):
