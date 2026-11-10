@@ -1,5 +1,15 @@
 # Changes
 
+## v1.3.0
+
+Release date: TBD
+
+### Breaking changes
+
+* `str` passwords are now encoded with UTF-8 instead of Latin-1, matching the
+  default connection encoding. Pass `bytes` to keep the old behavior. (#1252)
+
+
 ## v1.2.4 (security fix)
 
 Release date: 2026-11-09
