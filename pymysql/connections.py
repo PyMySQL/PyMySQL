@@ -103,7 +103,7 @@ class Connection:
 
     :param host: Host where the database server is located.
     :param user: Username to log in as.
-    :param password: Password to use.
+    :param password: Password to use. ``str`` is encoded with UTF-8.
     :param database: Database to use, None to not use a particular one.
     :param port: MySQL port to use, default is usually OK. (default: 3306)
     :param bind_address: When the client has multiple network interfaces, specify
@@ -316,7 +316,7 @@ class Connection:
         self.user = user or DEFAULT_USER
         self.password = password or b""
         if isinstance(self.password, str):
-            self.password = self.password.encode("latin1")
+            self.password = self.password.encode("utf-8")
         self.db = database
         self.unix_socket = unix_socket
         self.bind_address = bind_address

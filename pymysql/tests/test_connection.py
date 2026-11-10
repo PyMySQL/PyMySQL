@@ -444,6 +444,16 @@ class TestConnection(base.PyMySQLTestCase):
         arg["charset"] = "utf8mb4"
         pymysql.connect(**arg)
 
+    def test_password_utf8(self):
+        """str password is encoded with UTF-8, same as the connection encoding"""
+        password = "pässwörd-パスワード"
+        db = self.databases[0].copy()
+        cur = self.connect().cursor()
+        with TempUser(cur, "pymysql_utf8", db["database"], password=password):
+            db["user"] = "pymysql_utf8"
+            db["password"] = password
+            pymysql.connect(**db).close()
+
     def test_set_character_set(self):
         con = self.connect()
         cur = con.cursor()
