@@ -603,7 +603,7 @@ class Connection:
             raise TypeError("thread_id must be an integer")
         self.query(f"KILL {thread_id:d}")
 
-    def ping(self, reconnect=False):
+    def ping(self, reconnect=False, timeout=None):
         """
         Check if the server is alive.
 
@@ -611,6 +611,10 @@ class Connection:
 
         :param reconnect: If the connection is closed, reconnect.
         :type reconnect: boolean
+        :param timeout: Timeout in seconds for this ping only. It overrides
+            `read_timeout` and `write_timeout` during the call. If None, the
+            connection's own timeouts are used.
+        :type timeout: float
 
         :raise Error: If the connection is closed and reconnect=False.
         """
@@ -621,21 +625,28 @@ class Connection:
                 DeprecationWarning,
                 2,
             )
+        if timeout is not None and timeout <= 0:
+            raise ValueError("timeout should be > 0")
         if self._sock is None:
             if reconnect:
                 self.connect()
                 reconnect = False
             else:
                 raise err.Error("Already closed")
+        saved_timeouts = self._read_timeout, self._write_timeout
+        if timeout is not None:
+            self._read_timeout = self._write_timeout = timeout
         try:
             self._execute_command(COMMAND.COM_PING, "")
             self._read_ok_packet()
         except Exception:
             if reconnect:
                 self.connect()
-                self.ping(False)
+                self.ping(False, timeout)
             else:
                 raise
+        finally:
+            self._read_timeout, self._write_timeout = saved_timeouts
 
     def set_charset(self, charset):
         """Deprecated. Use set_character_set() instead."""
