@@ -56,3 +56,12 @@ def test_ping_timeout_must_be_positive():
     finally:
         server.close()
         client.close()
+
+
+def test_ping_timeout_is_checked_before_reconnect(monkeypatch):
+    conn = pymysql.connect(defer_connect=True)
+    calls = []
+    monkeypatch.setattr(conn, "connect", lambda *args: calls.append(args))
+    with pytest.warns(DeprecationWarning), pytest.raises(ValueError):
+        conn.ping(reconnect=True, timeout=0)
+    assert calls == []

@@ -625,14 +625,14 @@ class Connection:
                 DeprecationWarning,
                 2,
             )
+        if timeout is not None and timeout <= 0:
+            raise ValueError("timeout should be > 0")
         if self._sock is None:
             if reconnect:
                 self.connect()
                 reconnect = False
             else:
                 raise err.Error("Already closed")
-        if timeout is not None and timeout <= 0:
-            raise ValueError("timeout should be > 0")
         saved_timeouts = self._read_timeout, self._write_timeout
         if timeout is not None:
             self._read_timeout = self._write_timeout = timeout
