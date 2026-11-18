@@ -167,8 +167,24 @@ class MysqlPacket:
         (unsigned, positive) integer represented in 1-9 bytes followed by
         that many bytes of binary data.  (For example "cat" would be "3cat".)
         """
-        length = self.read_length_encoded_integer()
-        if length is None:
+        data = self._data
+        pos = self._position
+        length = data[pos]
+        if length < UNSIGNED_CHAR_COLUMN:
+            end_pos = pos + 1 + length
+            if end_pos <= len(data):
+                self._position = end_pos
+                return data[pos + 1 : end_pos]
+        self._position = pos + 1
+        if length == NULL_COLUMN:
+            return None
+        if length == UNSIGNED_SHORT_COLUMN:
+            length = self.read_uint16()
+        elif length == UNSIGNED_INT24_COLUMN:
+            length = self.read_uint24()
+        elif length == UNSIGNED_INT64_COLUMN:
+            length = self.read_uint64()
+        elif length > UNSIGNED_INT64_COLUMN:
             return None
         return self.read(length)
 
