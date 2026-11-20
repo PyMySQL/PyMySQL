@@ -963,6 +963,25 @@ class TestEscape(base.PyMySQLTestCase):
         mapping = {str: pymysql.converters.escape_string}
         self.assertEqual(con.escape(Custom("foobar"), mapping), "'foobar'")
 
+    def test_escape_fallback_no_backslash_escapes(self):
+        con = self.connect()
+        cur = con.cursor()
+
+        class Custom:
+            def __init__(self, value):
+                self.value = value
+
+            def __str__(self):
+                return self.value
+
+        values = ("foo'bar", "foo\\bar", "foo\\' OR 1=1 -- ")
+        for sql_mode in ("", "NO_BACKSLASH_ESCAPES"):
+            cur.execute("SET sql_mode=%s", (sql_mode,))
+            for value in values:
+                with self.subTest(sql_mode=sql_mode, value=value):
+                    cur.execute("SELECT %s", (Custom(value),))
+                    self.assertEqual(cur.fetchone(), (value,))
+
     def test_escape_no_default(self):
         con = self.connect()
 
