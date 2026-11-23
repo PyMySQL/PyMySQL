@@ -1112,6 +1112,7 @@ class Connection:
             )
         elif plugin_name == b"mysql_clear_password":
             # https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
+            self._check_cleartext_password_allowed(plugin_name)
             data = self.password + b"\0"
         elif plugin_name == b"dialog":
             pkt = auth_packet
@@ -1122,6 +1123,7 @@ class Connection:
                 prompt = pkt.read_all()
 
                 if prompt == b"Password: ":
+                    self._check_cleartext_password_allowed(plugin_name)
                     self.write_packet(self.password + b"\0")
                 elif handler:
                     resp = "no response - TypeError within plugin.prompt method"
@@ -1160,6 +1162,18 @@ class Connection:
         pkt = self._read_packet()
         pkt.check_error()
         return pkt
+
+    def _check_cleartext_password_allowed(self, plugin_name):
+        # mysql_clear_password and the dialog plugin's password prompt send the
+        # password as-is. The server picks the plugin during the handshake, so a
+        # rogue server or a man-in-the-middle could ask for either one and read
+        # the password off the wire. Only answer over TLS or a unix socket.
+        if not self._secure:
+            raise err.OperationalError(
+                CR.CR_AUTH_PLUGIN_ERR,
+                f"Authentication plugin '{plugin_name.decode()}' sends the password"
+                " in clear text and requires a secure connection (TLS or unix socket)",
+            )
 
     def _get_auth_plugin_handler(self, plugin_name):
         plugin_class = self._auth_plugin_map.get(plugin_name)

@@ -73,6 +73,47 @@ class TestAuthenticationStateMachine:
             expected_auth_responses
         )
 
+    @pytest.mark.parametrize(
+        "switch_request",
+        [b"\xfemysql_clear_password\0", b"\xfedialog\0\x04Password: "],
+        ids=["mysql_clear_password", "dialog"],
+    )
+    def test_cleartext_password_is_refused_on_insecure_connection(self, switch_request):
+        """A rogue server must not be able to read the password off a plain TCP link."""
+        conn = self.connection()
+        conn._secure = False
+
+        packets = [self.packet(switch_request), self.packet(self.ok_packet)]
+        with (
+            mock.patch.object(conn, "write_packet") as write_packet,
+            mock.patch.object(conn, "_read_packet", side_effect=packets),
+            pytest.raises(pymysql.err.OperationalError, match="secure connection"),
+        ):
+            conn._request_authentication()
+
+        # Only the handshake response was written; the password never left the client.
+        assert len(write_packet.call_args_list) == 1
+
+    @pytest.mark.parametrize(
+        "switch_request",
+        [b"\xfemysql_clear_password\0", b"\xfedialog\0\x04Password: "],
+        ids=["mysql_clear_password", "dialog"],
+    )
+    def test_cleartext_password_is_sent_on_secure_connection(self, switch_request):
+        """Over TLS or a unix socket the clear-text plugins keep working."""
+        conn = self.connection()
+
+        packets = [self.packet(switch_request), self.packet(self.ok_packet)]
+        with (
+            mock.patch.object(conn, "write_packet") as write_packet,
+            mock.patch.object(conn, "_read_packet", side_effect=packets),
+        ):
+            conn._request_authentication()
+
+        assert [call.args[0] for call in write_packet.call_args_list[1:]] == [
+            self.password + b"\0"
+        ]
+
     def test_multiple_auth_switch_requests_are_rejected(self):
         """Only one authentication-method switch is valid per handshake."""
         conn = self.connection()
