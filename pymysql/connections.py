@@ -672,6 +672,10 @@ class Connection:
 
     def connect(self, sock=None):
         self._closed = False
+        # A reconnect (e.g. ping(reconnect=True)) must not inherit the security
+        # state of a previous transport; it is set again once TLS or a unix
+        # socket is actually established below.
+        self._secure = False
         try:
             if sock is None:
                 if self.unix_socket:

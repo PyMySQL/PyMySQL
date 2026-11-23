@@ -114,6 +114,24 @@ class TestAuthenticationStateMachine:
             self.password + b"\0"
         ]
 
+    def test_reconnect_does_not_inherit_secure_state(self):
+        """A reconnect after TLS must not reuse the stale _secure flag."""
+        conn = self.connection()
+        assert conn._secure is True
+
+        switch_request = self.packet(b"\xfemysql_clear_password\0")
+        with (
+            mock.patch("socket.create_connection", return_value=mock.MagicMock()),
+            mock.patch.object(conn, "_get_server_information"),
+            mock.patch.object(conn, "write_packet") as write_packet,
+            mock.patch.object(conn, "_read_packet", return_value=switch_request),
+            pytest.raises(pymysql.err.OperationalError, match="secure connection"),
+        ):
+            conn.connect()
+
+        assert conn._secure is False
+        assert len(write_packet.call_args_list) == 1
+
     def test_multiple_auth_switch_requests_are_rejected(self):
         """Only one authentication-method switch is valid per handshake."""
         conn = self.connection()
