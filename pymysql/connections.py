@@ -550,6 +550,12 @@ class Connection:
 
         if mapping is None:
             mapping = self.encoders
+
+        # Types without an encoder fall back to escape_str, which always uses
+        # backslash escapes. Escape them here so NO_BACKSLASH_ESCAPES is respected.
+        if not mapping.get(type(obj)) and mapping.get(str) is converters.escape_str:
+            return f"'{self._escape_string(str(obj))}'"
+
         return converters.escape_item(obj, self.encoding, mapping=mapping)
 
     def literal(self, obj) -> str:
