@@ -223,12 +223,17 @@ class Cursor:
         for arg in args:
             v = self._mogrify(values, arg).encode(encoding)
             if len(sql) + len(v) + len(postfix) + 1 > max_stmt_length:
-                rows += self.execute(sql + postfix)
+                sql += postfix
+                rows += self.execute(sql)
+                # Drop the cursor's reference to the sent statement; rebinding
+                # sql then frees it before the next statement grows.
+                self._executed = None
                 sql = bytearray(prefix)
             else:
                 sql += b","
             sql += v
-        rows += self.execute(sql + postfix)
+        sql += postfix
+        rows += self.execute(sql)
         self.rowcount = rows
         return rows
 
